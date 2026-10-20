@@ -1,0 +1,179 @@
+id,category,title,priority,phase,acceptance
+CORE-001,CORE,Shared browser and desktop editor,MUST,P0,"The same project file can be opened and edited on the web, Linux, Windows, and macOS."
+CORE-002,CORE,Usable without registration,MUST,P0,"The editor, imports, and exports work for guests."
+CORE-003,CORE,Offline-first,MUST,P0,Core features work without a network after installation or PWA caching.
+CORE-004,CORE,Local storage,MUST,P0,Desktop uses files and the browser uses persistent local storage.
+CORE-005,CORE,Portable native project archive,MUST,P0,"A project can be exported, copied, and imported."
+CORE-006,CORE,Document model with schema versions,MUST,P0,Files contain an explicit format version and migration path.
+CORE-007,CORE,Preservation of unknown extension data,MUST,P0,Unknown extension fields are preserved during compatible editing.
+CORE-008,CORE,Undo and redo,MUST,P0,All relevant editing operations can be undone and redone.
+CORE-009,CORE,Automatic recovery,MUST,P0,A crash does not cause complete loss of unsaved work.
+CORE-010,CORE,Project and page management,MUST,P0,A project can contain multiple diagrams or pages.
+CORE-011,CORE,Project search,MUST,P0,Elements and text can be found.
+CORE-012,CORE,Keyboard operation and shortcuts,MUST,P0,Essential actions can be performed without a mouse.
+CORE-013,CORE,Themes and dark mode,MUST,P0,"Light, dark, and custom styles work."
+CORE-014,CORE,Accessibility,MUST,P0,"The core interface supports keyboards, screen readers, and sufficient contrast."
+CORE-015,CORE,Internationalization from project inception,MUST,P0,"All interface text uses localization keys; English (en) is the default and fallback, German (de) is supported from the beginning, and additional languages require no application-logic changes."
+CORE-016,CORE,Language selection independent of the document,MUST,P0,Changing the interface language does not change document content; users can select German independently of their operating system language.
+CORE-017,CORE,RTL and Unicode,MUST,P0,Text and layout direction can be displayed correctly for each language.
+CORE-018,CORE,Privacy-friendly defaults,MUST,P0,Telemetry and cloud services are not prerequisites.
+CORE-019,CORE,Versioned public interfaces,MUST,P0,Breaking changes require a version change and migration.
+CORE-020,CORE,Cross-platform fonts and assets,MUST,P0,Missing fonts are visibly substituted or embedded.
+EDIT-001,EDIT,Infinite canvas with pan and zoom,MUST,P1,Navigation remains responsive with large diagrams.
+EDIT-002,EDIT,Grid and snapping,MUST,P1,Elements can be aligned precisely.
+EDIT-003,EDIT,"Nodes, edges, and groups",MUST,P1,Elements can be connected and grouped.
+EDIT-004,EDIT,Multiple selection and alignment,MUST,P1,Multiple elements can be changed together.
+EDIT-005,EDIT,Connection anchors and routing,MUST,P1,Edges adapt when elements move.
+EDIT-006,EDIT,Automatic layout,MUST,P1,Structured diagrams can be rearranged automatically.
+EDIT-007,EDIT,Free manual editing,MUST,P1,Automatic layout does not overwrite user positions without consent.
+EDIT-008,EDIT,Style and formatting presets,MUST,P1,Styles can be reused consistently.
+EDIT-009,EDIT,Presentation mode,MUST,P1,Pages or steps can be presented.
+EDIT-010,EDIT,Animations and transitions,MUST,P1,Diagram states can be animated over time.
+EDIT-011,EDIT,Interactive elements,MUST,P1,"Click actions, tooltips, filters, and links can be modeled."
+EDIT-012,EDIT,Local template management,MUST,P1,Templates can be saved and applied.
+EDIT-013,EDIT,Switching diagram views,MUST,P1,Compatible data can be displayed in different views.
+EDIT-014,EDIT,Conversion with loss warnings,MUST,P1,Conversions that are not lossless display their limitations.
+EDIT-015,EDIT,Shape and icon libraries,MUST,P1,New shapes can be imported or added.
+EDIT-016,EDIT,Configurable widgets and information boxes,MUST,P1,Additional information can be bound to elements.
+DIAG-001,DIAG,Mind maps and brainstorming,MUST,P1,Tree-like mind maps with topics and subtopics are supported.
+DIAG-002,DIAG,Concept maps and knowledge graphs,MUST,P1,Arbitrary semantic relationships are supported.
+DIAG-003,DIAG,Decision trees and argument maps,MUST,P1,Branches and labels are supported.
+DIAG-004,DIAG,Fishbone and affinity diagrams,MUST,P1,Specialized layouts or templates are available.
+DIAG-005,DIAG,Flowcharts and swimlanes,MUST,P1,Process flows with distinct lanes can be represented.
+DIAG-006,DIAG,BPMN,MUST,P1,Validated basic BPMN elements and relationships are available.
+DIAG-007,DIAG,Organization charts,MUST,P1,Hierarchical structures can be laid out automatically.
+DIAG-008,DIAG,"Gantt charts, roadmaps, and timelines",MUST,P1,Time-bound tasks and milestones are visible.
+DIAG-009,DIAG,"Kanban, SIPOC, and value streams",MUST,P1,Domain-specific templates or models are available.
+DIAG-010,DIAG,UML class and object diagrams,MUST,P1,"Classes, attributes, methods, and relationships can be modeled."
+DIAG-011,DIAG,"UML sequence, activity, and state diagrams",MUST,P1,Temporal and state flows can be represented.
+DIAG-012,DIAG,UML use case and deployment diagrams,MUST,P1,"Actors, use cases, and infrastructure can be modeled."
+DIAG-013,DIAG,Entity-relationship diagrams,MUST,P1,"Entities, attributes, and cardinalities can be represented."
+DIAG-014,DIAG,C4 and software architecture,MUST,P1,"Context, container, component, and code views are supported."
+DIAG-015,DIAG,Network and infrastructure diagrams,MUST,P1,"Devices, networks, and relationships can be modeled."
+DIAG-016,DIAG,API and data flow diagrams,MUST,P1,Interfaces and data movement can be represented.
+DIAG-017,DIAG,"Bar, line, area, and pie charts",MUST,P1,Tabular data is visualized correctly.
+DIAG-018,DIAG,"Scatter, bubble, radar, and histogram charts",MUST,P1,Suitable numerical datasets are supported.
+DIAG-019,DIAG,"Box plots, heatmaps, and treemaps",MUST,P1,Aggregations and scales are displayed correctly.
+DIAG-020,DIAG,"Sankey, funnel, waterfall, and combination charts",MUST,P1,Multidimensional representations are available.
+DIAG-021,DIAG,Mathematical function plots,MUST,P1,Functions and axes can be defined.
+DIAG-022,DIAG,Electrical schematics and logic gates,MUST,P1,Symbols and connections are available.
+DIAG-023,DIAG,"Block, control loop, and signal flow diagrams",MUST,P1,Technical relationships can be represented.
+DIAG-024,DIAG,Wireframes and UI flows,MUST,P1,Interface components and connections are available.
+DIAG-025,DIAG,"User journeys, storyboards, and infographics",MUST,P1,Customizable visual templates are available.
+DIAG-026,DIAG,Freeform whiteboard,MUST,P1,"Freehand drawing, shapes, notes, and media are supported."
+DIAG-027,DIAG,Extensible diagram registry,MUST,P1,New diagram types do not require restructuring the core schema.
+DATA-001,DATA,CSV and TSV import,MUST,P2,"Encoding, delimiters, and columns are detected."
+DATA-002,DATA,XLSX and XLS import,MUST,P2,Worksheets and values are accessible.
+DATA-003,DATA,ODS import,MUST,P2,LibreOffice spreadsheets can be read.
+DATA-004,DATA,JSON import,MUST,P2,Nested datasets can be mapped.
+DATA-005,DATA,Tables from the clipboard,MUST,P2,Pasting tabular data works.
+DATA-006,DATA,Integrated table editor,MUST,P2,Data can be changed without an external application.
+DATA-007,DATA,Data type and format detection,MUST,P2,"Numbers, dates, currencies, and categories are detected."
+DATA-008,DATA,Automatic chart suggestions,MUST,P2,The data schema produces suitable suggestions.
+DATA-009,DATA,Live data binding,MUST,P2,Changes update the visualization.
+DATA-010,DATA,"Filtering, sorting, and aggregation",MUST,P2,Transformations are reproducible.
+DATA-011,DATA,Formulas and calculated fields,MUST,P2,Calculations are evaluated transparently.
+DATA-012,DATA,Local SQLite connection,MUST,P2,Users can use a local database as a source.
+DATA-013,DATA,REST API connection,MUST,P2,External data sources are usable with explicit consent.
+DATA-014,DATA,Google Sheets and Excel Online,MUST,P2,Optional integrations with OAuth are available.
+DATA-015,DATA,Data source permissions and secrets,MUST,P2,Tokens are not exported in project archives.
+DATA-016,DATA,Source snapshots,MUST,P2,A project can be opened without its live data source.
+IO-001,IO,Project archive import and export,MUST,P2,A fully editable round trip is possible.
+IO-002,IO,PNG and JPEG,MUST,P2,Resolution and background are configurable.
+IO-003,IO,SVG,MUST,P2,Vectors and text are exported correctly.
+IO-004,IO,PDF,MUST,P2,"Vector export, pages, print profiles, and links work where supported."
+IO-005,IO,Standalone HTML,MUST,P2,An offline file contains embedded assets and interactions.
+IO-006,IO,Embedded HTML,MUST,P2,An embeddable diagram variant is available.
+IO-007,IO,GIF,MUST,P2,Animated frames are exported.
+IO-008,IO,MP4 and WebM,MUST,P2,Time-based animations can be exported as video.
+IO-009,IO,JSON interchange,MUST,P2,Structural data can be exported in a documented format.
+IO-010,IO,Mermaid import and export,MUST,P2,Supported syntax is converted with warnings.
+IO-011,IO,Markdown outline import,MUST,P2,Hierarchical content can generate mind maps.
+IO-012,IO,Batch export,MUST,P2,Multiple diagrams or pages can be exported in one operation.
+IO-013,IO,Export profiles,MUST,P2,"Presets for web, print, and presentations are available."
+IO-014,IO,Exports without cloud services,MUST,P2,Standard exports run locally.
+IO-015,IO,Import security boundaries,MUST,P2,"Size limits, parser isolation, and protection against ZIP bombs are enforced."
+IO-016,IO,Export fidelity checks,MUST,P2,Differences and missing features are reported.
+IO-017,IO,Asset embedding,MUST,P2,Standalone files work without external dependencies.
+IO-018,IO,Reimport limitations,MUST,P2,Raster formats are not advertised as losslessly editable.
+AI-001,AI,Optional AI,MUST,P2,All core features remain usable without AI.
+AI-002,AI,User-provided API keys,MUST,P2,Provider credentials can be configured locally.
+AI-003,AI,Multiple AI providers,MUST,P2,Adapters support interchangeable providers.
+AI-004,AI,Local Ollama,MUST,P2,A local model can be used without an external API.
+AI-005,AI,Text to diagram,MUST,P2,A description generates a validated document model.
+AI-006,AI,Data to diagram,MUST,P2,AI suggests a chart type from a table.
+AI-007,AI,Diagram optimization,MUST,P2,AI can suggest layout or structural changes.
+AI-008,AI,Diagram explanation,MUST,P2,Content can be explained in natural language.
+AI-009,AI,AI preview and consent,MUST,P2,Changes are shown before application.
+AI-010,AI,Protection against unsafe code,MUST,P2,AI output is schema-validated; arbitrary JavaScript is not executed.
+AI-011,AI,API key security,MUST,P2,Secrets are not stored unencrypted in projects.
+COLLAB-001,COLLAB,Simultaneous editing,MUST,P3,Two users see consistent changes.
+COLLAB-002,COLLAB,Live cursors and presence,MUST,P3,Participants and cursors are displayed.
+COLLAB-003,COLLAB,Live selection,MUST,P3,Objects selected by other participants are identifiable.
+COLLAB-004,COLLAB,Comments and mentions,MUST,P3,Discussions can be attached to elements.
+COLLAB-005,COLLAB,Roles and permissions,MUST,P3,"Owner, Editor, Commenter, and Viewer roles are enforced."
+COLLAB-006,COLLAB,Invitation links,MUST,P3,Links are revocable and unguessable.
+COLLAB-007,COLLAB,Guest collaboration,MUST,P3,Temporary participation without an account is possible.
+COLLAB-008,COLLAB,Offline changes and merging,MUST,P3,Offline edits can be synchronized.
+COLLAB-009,COLLAB,Conflict semantics,MUST,P3,"Deletion, renaming, and assets have defined rules."
+COLLAB-010,COLLAB,Version history,MUST,P3,Historical states can be restored.
+COLLAB-011,COLLAB,Follow-presenter mode,MUST,P3,Participants can follow the presenter.
+COLLAB-012,COLLAB,WebSocket cloud synchronization,MUST,P3,A persistent team session works without an active host.
+COLLAB-013,COLLAB,WebRTC peer-to-peer,MUST,P3,An optional direct mode with signaling and TURN fallback is available.
+COLLAB-014,COLLAB,Session security,MUST,P3,Access control is enforced and end-to-end encryption is a testable option.
+PLAT-001,PLAT,Optional registration and login,MUST,P3,The guest editor remains usable without an account.
+PLAT-002,PLAT,Passkeys and MFA,MUST,P3,Accounts can be secured further.
+PLAT-003,PLAT,Private cloud projects,MUST,P3,Only authorized users have access.
+PLAT-004,PLAT,Cross-device synchronization,MUST,P3,Local and cloud copies are reconciled.
+PLAT-005,PLAT,Cloud export and account sign-out,MUST,P3,Data remains usable locally.
+PLAT-006,PLAT,Account data export and deletion,MUST,P3,Privacy rights are supported technically.
+PLAT-007,PLAT,Public template browsing,MUST,P3,Browsing and downloading work without an account.
+PLAT-008,PLAT,Template publishing,MUST,P3,Authenticated authors can submit content.
+PLAT-009,PLAT,Template versions and licenses,MUST,P3,Publications carry a license and version.
+PLAT-010,PLAT,Marketplace search and categories,MUST,P3,"Templates, shapes, themes, and plugins can be found."
+PLAT-011,PLAT,"Ratings, favorites, and reports",MUST,P3,The community can rate and report content.
+PLAT-012,PLAT,Moderation and abuse prevention,MUST,P3,"Approval, blocking, and auditing are available."
+PLAT-013,PLAT,Plugin SDK and manifest,MUST,P3,Plugins have versioned APIs.
+PLAT-014,PLAT,Plugin sandbox and permissions,MUST,P3,Untrusted code is isolated and restricted.
+PLAT-015,PLAT,Optional paid templates,MUST,P3,The marketplace can support payments and commissions later.
+PLAT-016,PLAT,Community profiles and public projects,MUST,P3,Users can showcase content.
+PLAT-017,PLAT,Self-hosting through Docker,MUST,P3,Operators can deploy community servers themselves.
+PLAT-018,PLAT,Enterprise SSO and LDAP,MUST,P3,"OIDC, SAML, and LDAP integrations are optional."
+PLAT-019,PLAT,Enterprise auditing and policies,MUST,P3,Administrators manage organizations and logs.
+PLAT-020,PLAT,Support and maintenance contracts,MUST,P3,Commercial service offerings can be administered.
+PLAT-021,PLAT,Managed cloud subscriptions,MUST,P3,Optional paid storage services are available.
+PLAT-022,PLAT,License and entitlement management,MUST,P3,Enterprise access does not disable access to existing data.
+SITE-001,SITE,Multilingual landing page,MUST,P1,"Product information, calls to action, screenshots, and a demo are available."
+SITE-002,SITE,Feature catalog,MUST,P1,Features and diagram types can be filtered.
+SITE-003,SITE,Download center,MUST,P1,"Operating system, architecture, package format, and version can be selected."
+SITE-004,SITE,Signatures and checksums,MUST,P1,Artifacts can be verified.
+SITE-005,SITE,"Stable, Beta, and Nightly channels",MUST,P1,Versions are documented separately.
+SITE-006,SITE,Automatic update metadata,MUST,P1,Desktop receives signed update information.
+SITE-007,SITE,Changelogs and release pages,MUST,P1,"Version, date, fixes, and migrations are displayed."
+SITE-008,SITE,Public roadmap and voting,MUST,P1,Status and suggestions are visible.
+SITE-009,SITE,Documentation and tutorials,MUST,P1,User and developer documentation is available.
+SITE-010,SITE,Blog and news,MUST,P1,Publications can be managed editorially.
+SITE-011,SITE,Marketplace web frontend,MUST,P1,A public gallery works without login.
+SITE-012,SITE,Community profiles,MUST,P1,Public profiles and content can be accessed.
+SITE-013,SITE,Cloud dashboard,MUST,P1,Signed-in users manage projects.
+SITE-014,SITE,Self-hosting and enterprise pages,MUST,P1,Docker guides and offerings are available.
+SITE-015,SITE,"Support, FAQ, and bug reports",MUST,P1,Help channels are available.
+SITE-016,SITE,Administrative CMS,MUST,P1,"Releases, text, moderation, and translations can be maintained."
+SITE-017,SITE,Legal and privacy information,MUST,P1,"Legal notice, privacy policy, terms of use, and licenses are available."
+SITE-018,SITE,SEO and hreflang,MUST,P1,Language variants can be indexed.
+SITE-019,SITE,Mobile and accessible website,MUST,P1,The website is responsive and follows WCAG principles.
+SITE-020,SITE,Status page and security disclosure,MUST,P1,Incidents and the vulnerability reporting channel are documented.
+SITE-021,SITE,Interactive demo gallery,MUST,P1,Visitors can test HTML diagrams without registration.
+SITE-022,SITE,Automatic operating system detection,MUST,P1,A suitable download is suggested and alternatives remain visible.
+OPS-001,OPS,Automated CI and tests,MUST,P0,"Lint, type checking, unit, integration, and end-to-end tests run in CI."
+OPS-002,OPS,Release signing,MUST,P0,Desktop artifacts and update feeds are signed.
+OPS-003,OPS,Supply chain checks,MUST,P0,Dependencies and licenses are checked regularly.
+OPS-004,OPS,Observability for optional services,MUST,P0,Logs and metrics avoid unintended document content.
+OPS-005,OPS,Cloud backup and restore,MUST,P0,Recovery is tested.
+OPS-006,OPS,Rate limits and access protection,MUST,P0,APIs and uploads are protected.
+OPS-007,OPS,ADRs and documentation,MUST,P0,Architecture decisions are versioned.
+OPS-008,OPS,Security threat modeling,MUST,P0,"File formats, HTML export, plugins, and sharing are assessed."
+OPS-009,OPS,Privacy and data minimization,MUST,P0,Data flows are documented and telemetry is not mandatory.
+OPS-010,OPS,Performance budgets,MUST,P0,Large documents are tested with measured results.
+OPS-011,OPS,Reproducible builds,MUST,P0,Artifacts are traceable and versioned.
+OPS-012,OPS,Trademark and license checks,MUST,P0,The name and library licenses are checked before publication.
