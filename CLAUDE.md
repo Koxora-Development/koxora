@@ -10,6 +10,6 @@ After assignment, Claude Code preferably handles website, cloud/backend, communi
 
 Check claims against the actual GitHub diff, tests, and implementation. Report concrete locations, severity, reproducible findings, and suggestions. Prioritize data loss, offline access, authorization, secrets, import/HTML safety, accessibility, localization, license compatibility, and migrations. Do not report a successful review without full diff and test access. Do not merge or make follow-up changes without an assignment.
 
-## Phase 0 and language
+## Implementation scope and language
 
-No runnable product or valid npm/pnpm build commands exist. Documentation is not a deployment or feature assignment. No DNS or mailserver changes. Write all technical work in English; preserve the English default/fallback, German support from inception, localization keys, and independent language selection required by [internationalization](docs/product/internationalization.md).
+Phase 1 foundation is authorized; see [development setup](docs/development/foundation.md) for real commands and scope. Canvas and optional services require subsequent assignments. No DNS or mailserver changes. Write all technical work in English; preserve the English default/fallback, German support from inception, localization keys, and independent language selection required by [internationalization](docs/product/internationalization.md).

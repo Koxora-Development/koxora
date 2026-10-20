@@ -7,6 +7,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 import re
 import sys
 import zipfile
@@ -128,7 +129,13 @@ def validate(root, archive):
     known_ids = set(EXPECTED_IDS) | ENGINEERING_IDS | DECISION_IDS | LEGACY_IDS
     known_ids |= {"SHA-256"}
     known_ids |= {f"ADR-{n:03}" for n in range(1, 11)} | {"I18N-001"}
-    markdown = sorted(p for p in root.rglob("*.md") if ".git" not in p.parts)
+    # Installed dependencies and generated build/test outputs are not project docs.
+    markdown = []
+    excluded = {".git", "node_modules", "dist", "target", "playwright-report", "test-results", ".cache"}
+    for directory, names, files in os.walk(root):
+        names[:] = [name for name in names if name not in excluded]
+        markdown.extend(Path(directory) / name for name in files if name.endswith(".md"))
+    markdown.sort()
     link_count = json_count = 0
     for path in markdown:
         text = path.read_text()

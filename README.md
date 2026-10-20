@@ -1,39 +1,31 @@
 # Koxora
 
-Open-source platform for diagrams, mind maps, data visualization, and collaboration.
+A local-first visualization studio. The Phase 1 technical foundation provides a shared browser/desktop shell, English and German, persistent preferences, light/dark themes, and development checks. Canvas editing and project files are not implemented yet.
 
-**Make ideas visible. One canvas. Endless possibilities.** (Working slogan, pending approval.)
+## Quick start
 
-Koxora is a planned international, local-first visualization platform for diagrams, data, and interactive documents. The full editor is intended to work in the browser without registration, offline after initial provisioning, and on Linux, Windows, and macOS. Optional cloud services, teams, live collaboration, AI, templates, plugins, and a marketplace extend the local core.
+Use Node.js 22.22.0 (see `.node-version`) and pnpm 10.32.1 (see `packageManager`). Node 24 is also supported. Python 3.9+ runs the documentation validator.
 
-**Status as of 2026-10-20: Phase 0 documentation, awaiting review. No runnable application exists.** The repository was described as private in the planning baseline; publication and the specific open-source license remain separate decisions. No deployment, DNS, mailbox, or infrastructure setup is authorized by this documentation.
+```sh
+npm install --global pnpm@10.32.1
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
-## Project identity
+Open the address Vite prints. No account, backend, environment variables, or API credentials are needed. For offline reload, use the production build: `pnpm build && pnpm preview`; load it online once and let its service worker finish installation. Development mode does not cache the application.
 
-- Organization: [Koxora-Development](https://github.com/Koxora-Development).
-- Repository: [Koxora-Development/koxora](https://github.com/Koxora-Development/koxora).
-- Registered domains according to the planning source: `koxora.app`, `koxora.com`, `koxora.de`.
-- Planned hosts: `koxora.app` (website), `app.koxora.app` (editor), `docs.koxora.app`, `cloud.koxora.app`, `marketplace.koxora.app`, and `status.koxora.app`. Registration does not establish deployment or reachability.
-- The Product Owner sets priorities, tests product outcomes, and approves merges and releases. Coding agents perform implementation and technical validation.
+```sh
+pnpm check
+pnpm exec playwright install --with-deps chromium firefox webkit
+pnpm test:e2e
+```
 
-## Documentation
+Desktop commands and native prerequisites, module boundaries, license checks, verification evidence, and limitations are in the [development guide](docs/development/foundation.md). The [stack ADR](docs/adr/0011-foundation-stack.md) and [localization ADR](docs/adr/0012-localization-and-offline-shell.md) record the choices and their tradeoffs. These implementation decisions are subject to PR review; there is no production release or signing setup.
 
-1. [Vision and product principles](docs/product/vision.md), [PRD](docs/product/prd.md).
-2. [All 178 requirements](docs/product/feature-catalog.md), [machine-readable CSV](docs/product/feature-catalog.csv), [requirements guide](docs/requirements.md).
-3. [Mandatory internationalization and language rules](docs/product/internationalization.md).
-4. [Decision register](docs/decisions.md), [source traceability and legacy IDs](docs/traceability.md).
-5. [Architecture overview](docs/architecture.md), [system architecture](docs/architecture/system-architecture.md).
-6. [Roadmap](docs/roadmap.md), [milestones and 27 proposed engineering items](docs/planning/roadmap-backlog.md).
-7. [Website and platform](docs/platform/website.md), [email plan](docs/email-plan.md).
-8. [Agent workflow](docs/development/ai-workflow.md), [contributing](CONTRIBUTING.md), [agent instructions](AGENTS.md), [Claude instructions](CLAUDE.md).
-9. [Phase 0 acceptance](docs/phase-0.md), [security reporting](SECURITY.md).
+## Product and planning
 
-## Language and decision status
+The [PRD](docs/product/prd.md), [178-entry catalog](docs/product/feature-catalog.md), [CSV](docs/product/feature-catalog.csv), [vision](docs/product/vision.md), [decision register](docs/decisions.md), [architecture](docs/architecture.md), [roadmap](docs/roadmap.md), and [Phase 0 acceptance](docs/phase-0.md) remain the authoritative planning baseline. Historical technology proposals describe long-term possibilities; only the foundation choices in the new ADRs are implemented.
 
-English (`en`) is the default and fallback language. German (`de`) must be supported from the beginning and selectable independently of operating system language. All interface text must use localization keys. Additional languages must require no application-logic changes. All code, identifiers, comments, documentation, issues, commits, and pull requests must be written in English.
+English is the default/fallback interface language; German is explicitly selectable, independent of operating system language. All technical work remains English. See [internationalization](docs/product/internationalization.md), [agent instructions](AGENTS.md), [contributing](CONTRIBUTING.md), and [security reporting](SECURITY.md).
 
-The broad functional vision is confirmed as long-term scope. React/TypeScript, pnpm, Tauri 2, Yjs, Laravel, and other named technologies are candidates pending spikes and license checks. Final schemas, commercial terms, release scope, and operating costs remain open.
-
-## Scope and verification
-
-This branch contains documentation, templates, and a standard-library documentation validator. There are no application install, build, or product-test commands. Run `python3 scripts/validate_docs.py` for documentation consistency; see [validation and source comparison](docs/phase-0.md#validation). Application implementation requires a separate assignment. No merge is authorized without explicit Product Owner approval.
+The project license, branding, distribution signing, cloud, AI, collaboration, and marketplace decisions remain open. All packages are private and marked `UNLICENSED`; this is not a publication or licensing decision.
