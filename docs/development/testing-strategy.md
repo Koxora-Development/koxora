@@ -1,6 +1,6 @@
 # Quality and testing strategy
 
-**Status: proposed; application frameworks are selected in separately authorized Phase 1 work.**
+**Status: long-term strategy with a Phase 1 foundation subset implemented.** See [current commands and limitations](foundation.md#local-checks); editor, project-file, collaboration and native UI scenarios below remain future work.
 
 ## Test layers
 
@@ -27,4 +27,4 @@ Localization tests must verify an English initial UI even on a German OS, explic
 
 Every story links IDs, verifiable acceptance cases, commands, and actual results. Planning is not a passing product test. Phase 0 validates only documentation structure, links/anchors, fenced JSON, CSV/Markdown agreement, ID references, source inventory, and completeness.
 
-Run `python3 scripts/validate_docs.py`. For an independent comparison against the supplied archive, run `python3 scripts/validate_docs.py --source-archive /absolute/path/to/Koxora_Phase0_Masterplanung_komplett.zip`. The source file remains outside Git. The validator uses only Python's standard library; no application dependencies or CI jobs are introduced.
+Run `python3 scripts/validate_docs.py`. For an independent comparison against the supplied archive, run `python3 scripts/validate_docs.py --source-archive /absolute/path/to/Koxora_Phase0_Masterplanung_komplett.zip`. The source file remains outside Git. The documentation validator still uses only Python's standard library. The separately authorized Phase 1 foundation adds application dependencies, unit/browser tests and CI; see the development guide for executable commands and actual evidence.

@@ -31,4 +31,4 @@ Branch protection, required checks, CODEOWNERS, labels, and milestones need real
 
 ## Current checks
 
-Run `python3 scripts/validate_docs.py` from the repository root. No dependency manifests, application build scripts, or product CI exist. Exact product startup and test commands must be documented when separately authorized Phase 1 work introduces them.
+The Phase 1 foundation now provides `pnpm check`, `pnpm build`, and `pnpm test:e2e` from the repository root. Run the native checks when platform prerequisites are available. See [development setup and checks](docs/development/foundation.md) for installation, startup, browser/native commands, CI, and known limitations. `python3 scripts/validate_docs.py` remains the standard-library documentation check.

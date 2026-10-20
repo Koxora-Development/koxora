@@ -1,0 +1,14 @@
+{
+  "name": "@koxora/ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./styles.css": "./src/styles.css"
+  },
+  "dependencies": {
+    "react": "19.3.1"
+  }
+}

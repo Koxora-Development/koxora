@@ -1,6 +1,6 @@
 # Technology candidates and decision method
 
-**Status: preferred candidates, no adopted dependencies.** Record decisions as ADRs after spikes and license/maintenance review.
+**Status: planning candidates; the Phase 1 foundation subset is implemented for PR review in [the stack ADR](../adr/0011-foundation-stack.md).** The table below retains long-term proposals; unimplemented rows are not approved dependencies.
 
 | Layer | Candidate | Evaluation |
 | --- | --- | --- |

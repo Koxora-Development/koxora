@@ -7,6 +7,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 import re
 import sys
 import zipfile
@@ -70,7 +71,7 @@ def without_fences(text):
 
 
 def validate(root, archive):
-    manifest = json.loads((root / "docs/planning/source-manifest.json").read_text())
+    manifest = json.loads((root / "docs/planning/source-manifest.json").read_text(encoding="utf-8"))
     records = manifest["source_files"]
     paths = [record["path"] for record in records]
     check(manifest["archive_sha256"] == ARCHIVE_SHA256, "Archive identity drift")
@@ -86,7 +87,7 @@ def validate(root, archive):
           "Original .gitignore was changed")
 
     catalog_path = root / "docs/product/feature-catalog.csv"
-    with catalog_path.open(newline="") as stream:
+    with catalog_path.open(newline="", encoding="utf-8") as stream:
         reader = csv.DictReader(stream)
         check(reader.fieldnames == FIELDS, "CSV schema differs from source")
         rows = list(reader)
@@ -102,11 +103,11 @@ def validate(root, archive):
             "P1" if category in {"EDIT", "DIAG", "SITE"} else (
                 "P2" if category in {"DATA", "IO", "AI"} else "P3"))
         check(row["phase"] == phase, f"Historical wave drift: {key}")
-    md_rows = catalog_rows((root / "docs/product/feature-catalog.md").read_text())
+    md_rows = catalog_rows((root / "docs/product/feature-catalog.md").read_text(encoding="utf-8"))
     check(md_rows == [[r["id"], r["title"], r["phase"], r["acceptance"]] for r in rows],
           "Markdown and CSV catalog entries differ")
 
-    backlog = (root / "docs/planning/roadmap-backlog.md").read_text()
+    backlog = (root / "docs/planning/roadmap-backlog.md").read_text(encoding="utf-8")
     engineering = [r for r in table_rows(backlog) if r[0] in ENGINEERING_IDS]
     milestones = [r for r in table_rows(backlog) if r[0] in MILESTONES]
     check(len(engineering) == 27 and {r[0] for r in engineering} == ENGINEERING_IDS,
@@ -116,11 +117,11 @@ def validate(root, archive):
     for row in engineering:
         check(len(row) == 4 and row[2] in MILESTONES and row[3] in EXPECTED_IDS,
               f"Invalid engineering reference: {row}")
-    decisions = table_rows((root / "docs/decisions.md").read_text())
+    decisions = table_rows((root / "docs/decisions.md").read_text(encoding="utf-8"))
     actual_decisions = [row[0] for row in decisions if re.fullmatch(r"[KTO]-\d{3}", row[0])]
     check(len(actual_decisions) == len(DECISION_IDS) and set(actual_decisions) == DECISION_IDS,
           "Decision register must preserve all K/T/O IDs exactly once")
-    legacy = [r[0] for r in table_rows((root / "docs/traceability.md").read_text())
+    legacy = [r[0] for r in table_rows((root / "docs/traceability.md").read_text(encoding="utf-8"))
               if re.fullmatch(r"[RMD]-\d{2}", r[0])]
     check(len(legacy) == len(LEGACY_IDS) and set(legacy) == LEGACY_IDS,
           "Legacy R/M/D mappings are incomplete or duplicated")
@@ -128,10 +129,16 @@ def validate(root, archive):
     known_ids = set(EXPECTED_IDS) | ENGINEERING_IDS | DECISION_IDS | LEGACY_IDS
     known_ids |= {"SHA-256"}
     known_ids |= {f"ADR-{n:03}" for n in range(1, 11)} | {"I18N-001"}
-    markdown = sorted(p for p in root.rglob("*.md") if ".git" not in p.parts)
+    # Installed dependencies and generated build/test outputs are not project docs.
+    markdown = []
+    excluded = {".git", "node_modules", "dist", "target", "playwright-report", "test-results", ".cache"}
+    for directory, names, files in os.walk(root):
+        names[:] = [name for name in names if name not in excluded]
+        markdown.extend(Path(directory) / name for name in files if name.endswith(".md"))
+    markdown.sort()
     link_count = json_count = 0
     for path in markdown:
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         rel = path.relative_to(root)
         check(bool(re.search(r"^# \S", text, re.M)), f"Missing document title: {rel}")
         check(sum(line.startswith("```") for line in text.splitlines()) % 2 == 0,
@@ -160,18 +167,18 @@ def validate(root, archive):
             check(dest.is_relative_to(root), f"Link escapes repository: {rel}: {target}")
             check(dest.is_file(), f"Broken local link: {rel}: {target}")
             if parsed.fragment and dest.is_file():
-                check(unquote(parsed.fragment) in headings(dest.read_text()),
+                check(unquote(parsed.fragment) in headings(dest.read_text(encoding="utf-8")),
                       f"Broken heading anchor: {rel}: {target}")
             link_count += 1
 
     for name in ("bug_report", "decision", "feature_request"):
-        text = (root / f".github/ISSUE_TEMPLATE/{name}.md").read_text()
+        text = (root / f".github/ISSUE_TEMPLATE/{name}.md").read_text(encoding="utf-8")
         check(text.startswith("---\n") and len(text.split("---", 2)) == 3,
               f"Missing template front matter: {name}")
         header = text.split("---", 2)[1]
         check(all(re.search(rf"^{field}:\s*\S", header, re.M)
                   for field in ("name", "about", "title")), f"Incomplete issue template: {name}")
-    check("## Validation" in (root / ".github/pull_request_template.md").read_text(),
+    check("## Validation" in (root / ".github/pull_request_template.md").read_text(encoding="utf-8"),
           "PR template lacks validation section")
 
     if archive:

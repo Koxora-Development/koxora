@@ -1,6 +1,6 @@
 # Architecture overview
 
-**Status: binding product constraints with a preferred, unvalidated technical design.**
+**Status: binding product constraints and long-term proposed architecture.** The implemented Phase 1 shell and actual workspace boundaries are documented in the [foundation guide](development/foundation.md); the diagram below includes future modules.
 
 ## System boundaries
 

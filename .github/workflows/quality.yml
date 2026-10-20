@@ -1,0 +1,47 @@
+name: Quality
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  web:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
+      - run: pnpm check:docs
+      - run: pnpm check:licenses
+      - run: pnpm audit --audit-level high
+      - if: runner.os == 'Linux'
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - if: runner.os == 'Linux'
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: web-validation-${{ matrix.os }}
+          include-hidden-files: true
+          path: |
+            node_modules/.cache/koxora/playwright-report
+            node_modules/.cache/koxora/test-results
+            node_modules/.cache/koxora/dependency-licenses.json
+          retention-days: 7

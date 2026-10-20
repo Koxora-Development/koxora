@@ -27,12 +27,12 @@ React/TypeScript/Vite, pnpm, Tauri 2, Yjs, Laravel, PostgreSQL, canvas libraries
 - Never commit secrets, real personal data, server credentials, session tokens, or SMTP credentials. Validate untrusted files, templates, remote data, plugins, and browser content; enforce optional cloud permissions on the server.
 - DNS, mailserver, payment, production, and organization-permission changes require a separate explicit assignment.
 
-## Phase 0
+## Authorized implementation scope
 
-Only documentation, templates, and documentation validation are in scope. No package installation, application scaffolding, backend, infrastructure, or application features. The 178 requirements are not an instruction to create 178 GitHub issues or implement them. Phase 1 requires a separate assignment.
+Phase 0 is complete. The explicit Phase 1 assignment authorizes the monorepo, shared web/desktop shell, localization, themes, tests, CI, and supporting ADRs. See [foundation setup](docs/development/foundation.md). It does not authorize canvas, cloud, authentication, collaboration, AI, marketplace, DNS, or production work. The 178 requirements remain long-term scope; do not implement unrelated features or create issues en masse.
 
 ## Verification and handover
 
-Run relevant existing checks and report real results. For this documentation baseline, run `python3 scripts/validate_docs.py`; no product build or application tests exist. Later stories must address appropriate unit/integration/E2E, offline, localization, migration, security, accessibility, and dependency-license checks. Do not claim unrun tests passed.
+Run relevant existing checks and report real results. Run `pnpm check`, `pnpm build`, browser smoke tests, and native checks where prerequisites exist; see the development guide. Keep actual local results distinct from configured remote CI. Later stories must address appropriate unit/integration/E2E, offline, localization, migration, security, accessibility, and dependency-license checks. Do not claim unrun tests passed.
 
 Arrange independent review by another agent or reviewer; do not claim it happened without access to the diff and evidence. Present changes, verification, limitations, and decisions in plain English. Human Product Owner approval remains required before merge. A documentation merge does not authorize Phase 1.
