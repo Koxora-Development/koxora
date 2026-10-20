@@ -15,6 +15,12 @@ Date: 2026-10-20. Results apply to the cloud instance and feature branch, not a 
 - Tauri's desktop build hook successfully builds the shared frontend with browser service-worker generation disabled.
 - Independent read-only agent review examined implementation, tests, architecture, licenses and workflows. Windows license-check invocation and unlocked Cargo builds were fixed; a second inspection confirmed closure and no remaining blocking findings. This is not human merge approval.
 
+## Remote CI and portability evidence
+
+On source revision `101609a`, Ubuntu quality CI passed all 16 browser tests across Chromium, Firefox, WebKit and mobile Chromium; macOS quality CI passed. Native Linux DEB/AppImage, macOS ARM64, and the Rust supply-chain job passed. These are native build/packaging checks, not desktop UI acceptance. Remaining native jobs and the latest revision are tracked in the PR.
+
+Windows quality initially failed because checkout converted 37 text files to CRLF and Prettier required LF. The failure was confirmed in the job log and reproduced with `git -c core.autocrlf=true checkout-index`. Explicit Git LF attributes make the same reproduction pass. A portable Python launcher and explicit UTF-8 documentation reads avoid platform-default executable/encoding assumptions. The fix is independently reviewed; a fresh Windows CI run is still required to confirm remote success.
+
 ## Blocked or not executed locally
 
 - `cargo check --locked -j 2` and Tauri debug build fail at `glib-sys`: system `glib-2.0` development metadata is absent. GTK/WebKit development packages and an interactive desktop are also unavailable. No successful native application build/startup is claimed.

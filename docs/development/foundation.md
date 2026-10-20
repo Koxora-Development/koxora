@@ -17,7 +17,7 @@ Dependencies point from apps toward shared packages. The UI package has no appli
 
 ## Setup and web startup
 
-Use the existing isolated checkout; do not create a Git worktree unless explicitly requested. Install Node.js 22.22.0 and pnpm 10.32.1. Node 24 also satisfies the supported engine range. Python 3.9+ is required for documentation validation. From the repository root:
+Use the existing isolated checkout; do not create a Git worktree unless explicitly requested. Install Node.js 22.22.0 and pnpm 10.32.1. Node 24 also satisfies the supported engine range. Python 3.9+ is required for documentation validation (`python3` on Unix, `python` on Windows; `pnpm check:docs` selects the appropriate executable). Git attributes keep source line endings LF on every platform. From the repository root:
 
 ```sh
 npm install --global pnpm@10.32.1
