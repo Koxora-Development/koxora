@@ -26,6 +26,8 @@ No Turborepo, global application store, routing framework, UI kit, backend, canv
 
 React, TypeScript, Vite, pnpm, Tailwind, ESLint, Vitest and Prettier use permissive licenses; Playwright is Apache-2.0; Tauri is MIT OR Apache-2.0. See the [dependency review](../development/dependencies.md) for transitive exceptions and release obligations. Package and toolchain locks, frozen installs, supply-chain checks, and weekly Dependabot updates make changes reviewable. No final core license is inferred from dependency licenses (O-001).
 
+Tauri's current Linux GTK macro chain includes the unmaintained `proc-macro-error` build dependency (RustSec RUSTSEC-2024-0370), with no patched version. This is a documented maintenance risk, not a reported runtime vulnerability in that advisory. Independent review supports an exact-ID policy exception for the foundation; reassess it before distribution and on upstream updates. See the dependency review for the remaining active gates.
+
 The web shell uses standard browser APIs without remote assets or fonts. Native frontend assets are bundled locally and browser service-worker generation is disabled for desktop. Linux, Windows, macOS ARM64 and macOS x86_64 builds have dedicated CI targets. Signing, notarization, Windows ARM64, installers on real user devices, and desktop UI automation remain outside verified results (O-013).
 
 ## Verification evidence and consequences

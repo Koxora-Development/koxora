@@ -18,6 +18,10 @@ No external fonts, stock artwork, downloaded icons, or canvas dependencies are i
 
 The desktop uses a committed Cargo lockfile and a pinned Rust toolchain. CI runs `cargo deny --locked check licenses advisories sources` using cargo-deny 0.20.2. Its license allowlist includes permissive licenses, Unicode data licenses and MPL-2.0 for native ecosystem dependencies; private application metadata is excluded. Review failures, source notices and advisories before changing exceptions. Cargo advisories need access to the RustSec GitHub advisory database. Dependency advisories can change independently of a commit.
 
+The exact `Apache-2.0 WITH LLVM-exception` expression is allowed only for `target-lexicon`, a native target-description dependency. Its bundled license was checked; upstream metadata is unchanged.
+
+The current locked Tauri 2.12.4 Linux GTK stack reaches `proc-macro-error 1.0.4` through `glib-macros`/`gtk3-macros`. RustSec RUSTSEC-2024-0370 is an informational **unmaintained** advisory, with no patched version. It reports no runtime vulnerability, but build-time code executes in the build environment and still has maintenance/supply-chain risk. `deny.toml` records one exact advisory-ID exception with rationale; unmaintained checks and all vulnerability checks remain enabled for other findings. Independent review verified this classification and the dependency trace. Reassess this exception on GTK/Tauri updates and before public distribution; do not describe the native graph as free of advisories. The passing gate is explicitly **with one documented maintenance advisory exception**.
+
 GitHub Actions use immutable commit references with version comments. Dependabot proposes npm, Cargo, and Actions updates weekly. Only necessary package install scripts are enabled. No npm audit fix, signature bypass, arbitrary checksum change, or unattended dependency update is part of setup.
 
 Before public desktop distribution, gather licenses/notices for every target artifact, complete the product-license decision, and configure signing/notarization under a separate release assignment.

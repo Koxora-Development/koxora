@@ -1,10 +1,14 @@
 [advisories]
 version = 2
 git-fetch-with-cli = true
+# Informational maintenance advisory in Tauri's GTK proc-macro build chain.
+# Independently reviewed; reassess on GTK/Tauri updates and before distribution.
+ignore = [{ id = "RUSTSEC-2024-0370", reason = "proc-macro-error 1.0.4 is an unmaintained build-time dependency of current GTK macros, with no patched version; tracked in docs/development/dependencies.md" }]
 [licenses]
 version = 2
 confidence-threshold = 0.8
-allow = ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "0BSD", "CC0-1.0", "Unicode-3.0", "MPL-2.0", "Zlib", "BSL-1.0"]
+exceptions = [{ crate = "target-lexicon", allow = ["Apache-2.0 WITH LLVM-exception"] }]
+allow = ["MIT", "Apache-2.0", "BSD-3-Clause", "CC0-1.0", "Unicode-3.0", "MPL-2.0", "Zlib"]
 [licenses.private]
 ignore = true
 [sources]
