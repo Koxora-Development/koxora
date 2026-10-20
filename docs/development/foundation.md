@@ -84,7 +84,7 @@ From `apps/studio-desktop/src-tauri`:
 cargo fmt --check
 cargo clippy --locked -- -D warnings
 cargo test --locked
-cargo install cargo-deny --version 0.18.3 --locked
+cargo install cargo-deny --version 0.20.2 --locked
 cargo deny --locked check licenses advisories sources
 ```
 

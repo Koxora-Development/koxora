@@ -1,5 +1,6 @@
 [advisories]
 version = 2
+git-fetch-with-cli = true
 [licenses]
 version = 2
 confidence-threshold = 0.8
