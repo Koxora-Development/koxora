@@ -1,41 +1,49 @@
-# Architekturentwurf
+# Architecture overview
 
-Status: Vorschlag zur Diskussion, keine Stack-Freigabe und keine Implementierung. Entscheidung D-03.
+**Status: binding product constraints with a preferred, unvalidated technical design.**
 
-## Logische Bausteine
+## System boundaries
 
-1. **Weboberfläche und Editor**: Eingaben, Auswahl, Zoom, Tastaturbedienung und Anzeige. Änderungen werden als fachliche Operationen verarbeitet.
-2. **Dokumentmodell**: Dokument-ID, Formatversion, Knoten, Verbindungen und Layout. Diagrammtyp und Nutzdaten getrennt halten, damit Mindmaps und Datenvisualisierung später ergänzbar bleiben.
-3. **Speicherschnittstelle**: Laden, Speichern, Import und Export hinter einer klaren Grenze. Lokale Speicherung und serverseitige Speicherung sind Alternativen, über D-02/D-03 zu wählen.
-4. **Optionaler Anwendungsserver**: Für Konten, Dokumentrechte, geteilte Dokumente und zentrale Speicherung. Autorisierung und Validierung liegen hier, nicht allein im Browser.
-5. **Spätere Zusammenarbeit**: Präsenz, Kommentare oder gleichzeitige Änderungen erst nach eigenem Konflikt-, Offline- und Rechtekonzept (D-04).
-6. **Benachrichtigungen**: Späterer Versandadapter mit Warteschlange, Wiederholungen und Versandprotokoll ohne vertrauliche Inhalte. Separat vom interaktiven Editor.
+- Local core editing works without login or network after provisioning.
+- Browser and desktop share a versioned project/document model, undo/redo, recovery, and import/export.
+- Domain data is separate from rendering; modular engines serve different diagram families.
+- Local persistence is fundamental. Cloud, live collaboration, AI, and marketplace are optional adapters.
+- Imports, URLs, templates, plugins, HTML exports, and collaboration links cross security boundaries.
+- A shared internationalization layer provides English default/fallback, German from inception, key-based interface text, independent language selection, and resource-based language extension.
 
-## Datenfluss und Grenzen
+```text
+studio-web / studio-desktop
+             |
+         editor-ui / i18n
+             |
+   application / commands
+             |
+       document-core <----> format / migrations
+         |      |                  |
+ diagram-engines data-engine  local storage adapters
+         |      |
+     import-export / templates / themes
+             |
+ OPTIONAL: ai-adapters, plugin-sdk, collaboration-adapter
+             |
+ OPTIONAL: cloud-api, realtime, marketplace, accounts, billing
+```
 
-Einzelbenutzer-Variante: Eingabe → fachliche Operation → Dokumentmodell → Darstellung und Speicheradapter. Import ist nicht vertrauenswürdig: Schema, Größe und unterstützte Version vor Übernahme prüfen.
+The earlier foundation treated local/server storage as alternatives. The authoritative archive resolves this: local storage is required; servers extend the product optionally. Server authorization and account ownership are authoritative server state, never trusted from editable import metadata. Notification queues/retries remain an optional server adapter, with no document content in delivery logs and no mailserver administration privileges.
 
-Mehrbenutzer-Variante: Browser → authentifizierte API → Autorisierung pro Dokument → validierte Speicherung. Der Server liefert nur zulässige Daten. Zugangsdaten und SMTP-Geheimnisse gehören nie in Browsercode oder Repository.
+## Detailed specifications
 
-Künftige Dokumente benötigen eine explizite Formatversion. Rechte und Kontozuordnung gehören bei Serverbetrieb zur autoritativen Serververwaltung, nicht in frei editierbare Importdaten. Gleichzeitiges Speichern braucht eine Revision beziehungsweise eine erkennbare Konfliktantwort, bevor kollaboratives Bearbeiten angeboten wird.
+- [System architecture](architecture/system-architecture.md)
+- [Local-first, offline, recovery](architecture/local-first.md)
+- [Technology evaluation](architecture/technology-stack.md)
+- [Editor and engines](architecture/editor-engine.md)
+- [Project format](architecture/project-format.md)
+- [Import/export pipeline](architecture/import-export.md)
+- [Collaboration](architecture/collaboration.md)
+- [AI and plugin safety](architecture/ai-and-plugins.md)
+- [Security and privacy](architecture/security.md)
+- [Internationalization](product/internationalization.md)
 
-## Technische Optionen für Phase 1
+## Quality gates
 
-| Bereich | Zu prüfender Vorschlag | Alternative / Entscheidungskriterium |
-| --- | --- | --- |
-| Oberfläche | TypeScript-basierte Webanwendung | Framework nach Editor-Kompatibilität, Zugänglichkeit und Wartbarkeit bewerten |
-| Editor | Bestehende Canvas-/Graph-Bibliothek evaluieren | Eigene Darstellung nur bei belegter Lücke; Lizenz, Export und große Dokumente prüfen |
-| Speicherung | Lokal für einen frühen Einzelbenutzer-Test | Serverbetrieb bei Konten/Teilen; Sicherung und Wiederherstellung einplanen |
-| Serverdaten | Relationale Datenbank bei Serverbedarf | Erst aus Zugriffsmustern, Dokumentgröße und Betriebsaufwand ableiten |
-| Zusammenarbeit | Zunächst sequenzielles Teilen/Kommentieren prüfen | CRDT/OT nur nach bestätigtem Echtzeitbedarf und Konflikttest |
-| Betrieb | Kleine, gemeinsam deploybare Anwendung mit klaren Modulgrenzen | Getrennte Dienste erst bei messbarem Bedarf |
-
-Es werden keine konkreten Paketversionen oder Anbieter vorausgesetzt. Die Auswahl benötigt in Phase 1 einen dokumentierten Vergleich mit aktuellem Wartungsstatus, Lizenz, Betriebskosten und kurzem technischen Nachweis. Keine Technologie wird durch die bestehende .gitignore festgelegt.
-
-## Betrieb und Sicherheit als spätere Voraussetzungen
-
-Vor Pilotbetrieb: Umgebungen trennen, Geheimnisse außerhalb Git verwalten, Sicherung und Wiederherstellung testen, Aufbewahrung und Löschung festlegen, Fehlerüberwachung ohne Dokumentinhalte gestalten. Vor externen Konten: Anmeldung, Missbrauchsschutz und Kontowiederherstellung prüfen. Selbst gehostete E-Mail ist ein vorhandener separater Dienst; die Anwendung darf weder administrative Mailserver-Rechte benötigen noch dessen Konfiguration verändern.
-
-## Geplante Repository-Struktur
-
-Jetzt vorhanden: docs/ und .github/ für Grundlagen. Erst nach Freigabe denkbar: apps/web/, gegebenenfalls apps/server/ und packages/document-model/. Keine leeren App-Pakete oder Build-Konfigurationen in Phase 0.
+Type checking, lint, unit/integration, native round-trip/migration, browser/desktop E2E, build matrices, missing-key validation, security, dependency, and license scans are planned. Measure quantitative budgets against reference projects; no validated product benchmarks exist. No application directories or empty packages are created during Phase 0.

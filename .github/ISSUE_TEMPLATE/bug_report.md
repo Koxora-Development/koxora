@@ -1,27 +1,29 @@
 ---
-name: Fehlerbericht
-about: Einen beobachteten Fehler nachvollziehbar beschreiben
-title: "[Fehler] "
+name: Bug report
+about: Describe an observed defect with reproducible evidence
+title: "[Bug] "
 ---
 
-## Beobachtung
-Was passiert, was wurde erwartet?
+# Bug report
 
-## Schritte zur Reproduktion
+## Observation
+What happened, and what was expected?
+
+## Steps to reproduce
 1.
 2.
 3.
 
-## Umgebung
-Version/Commit, Browser und Betriebssystem, soweit relevant.
+## Environment
+Version/commit, browser, and operating system where relevant.
 
-## Auswirkung
-Wer ist betroffen? Gibt es eine Umgehung?
+## Impact
+Who is affected? Is there a workaround?
 
-## Nachweis
-Anonymisierte Screenshots oder minimale Beispieldaten. Keine Zugangsdaten oder vertraulichen Dokumente.
+## Evidence
+Use anonymized screenshots or minimal synthetic examples. No credentials or confidential documents.
 
-## Akzeptanzkriterium
-Woran erkennen wir, dass der Fehler behoben ist?
+## Acceptance criterion
+How can a reviewer verify the defect is fixed? Include the relevant catalog ID where known.
 
-Bei Sicherheitsproblemen SECURITY.md beachten.
+For security issues, follow [SECURITY.md](https://github.com/Koxora-Development/koxora/blob/main/SECURITY.md).

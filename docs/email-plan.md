@@ -1,42 +1,54 @@
-# Geplante @koxora.app-E-Mail-Struktur
+# Planned email structure for @koxora.app
 
-Status: **Plan, nicht eingerichtet**. Ein selbst gehosteter Mailserver ist laut Nutzer vorhanden. Seine Software, aktuelle Domains, Postfächer und Zustellkonfiguration wurden nicht geprüft. Keine der nachstehenden Adressen ist als bestehend oder erreichbar bestätigt. Keine DNS-, Mailserver-, Konto- oder Versandänderung gehört zu Phase 0.
+**Status: planning only; no address, DNS record, delivery path, or mailbox has been established or verified by Phase 0.** The planning source reports an existing self-hosted mailserver and names Mailcow as the previously used platform. Its current software, domains, configuration, and availability for Koxora have not been inspected.
 
-## Adressen und Zuständigkeiten – Vorschlag D-08
+## Goal and proposed roles
 
-| Adresse | Zweck | Vorgeschlagener Typ / Ziel | Zeitpunkt |
+Use few managed mailboxes, explicit roles, and least privilege. Proposal O-009 recommends `contact@` as the public primary mailbox; it is not yet an operational contact.
+
+| Address | Purpose | Proposed route | Timing/notes |
 | --- | --- | --- | --- |
-| admin@koxora.app | GitHub-Organisation, technische Anbieter und Wiederherstellung | Separates geschütztes Funktionspostfach; PO als zunächst verantwortliche Person | Vor Nutzung als Kontoadresse |
-| info@koxora.app | Allgemeine externe Anfragen | Alias auf betreutes Kontaktpostfach | Vor öffentlichem Auftritt |
-| support@koxora.app | Produktfragen und Fehlerberichte | Alias auf Kontaktpostfach; später eigenes Supportpostfach | Vor Pilot |
-| security@koxora.app | Vertrauliche Sicherheitsmeldungen | Geschütztes Postfach mit eng begrenztem Zugriff | Vor Veröffentlichung als Meldeweg |
-| privacy@koxora.app | Datenschutzanfragen | Alias an festgelegte verantwortliche Person | Vor Verarbeitung externer Nutzerdaten |
-| postmaster@koxora.app | Zustellprobleme und Mailbetrieb | Alias an tatsächlichen Mailadministrator | Bei Domainbetrieb prüfen |
-| abuse@koxora.app | Missbrauchsmeldungen | Alias an betreuten Betriebskontakt | Bei öffentlichem Betrieb prüfen |
-| notifications@koxora.app | Automatische Produktnachrichten | Separater Versandzugang; Antworten an support@ nach dessen Aktivierung | Erst bei Produktbedarf |
-| bounces@koxora.app | Unzustellbarkeit automatischer Nachrichten | Technisch verarbeitetes Empfangsziel; kein allgemeiner Kontakt | Mit Systemversand |
+| contact@koxora.app | General project, website, GitHub public contact | One monitored primary mailbox | Before publishing contact details |
+| hello@koxora.app | User/community contact | Alias to contact | Optional branding |
+| info@koxora.app | General questions | Alias to contact | Avoid duplicate mailboxes |
+| support@koxora.app | Help and tickets | Initially alias to contact | Separate ticketing later |
+| security@koxora.app | Confidential security reports | Separate restricted intake recommended | Test before publishing as a reporting route |
+| privacy@koxora.app | Privacy requests | Restricted designated recipient | Before external user data processing |
+| legal@koxora.app | Contracts and legal matters | Designated recipient | No implied SLA |
+| business@koxora.app | Partnerships/enterprise | Alias to contact | Possible CRM later |
+| billing@koxora.app | Invoices/subscriptions | Separate route later | Before paid operation |
+| admin@koxora.app | Provider/organization/recovery notices | Protected internal mailbox or alias | Verify before use for account recovery |
+| github@koxora.app | Optional GitHub notifications | Internal alias to admin | Personal accounts remain individual identities |
+| postmaster@koxora.app | Delivery problems and mail administration | Actual mail administrator | Reachable during live domain operation |
+| abuse@koxora.app | Abuse reports | Monitored operations contact | Before public uploads/operation |
+| notifications@koxora.app | Automated product messages | Separate scoped SMTP identity when needed | Replies to verified support/contact route |
+| noreply@koxora.app | Optional no-reply sender | Not needed initially | Never the sole path for important messages |
+| bounces@koxora.app | Automated delivery failures | Machine-processed intake | Avoid flooding general contact |
 
-Info und Support können anfangs dasselbe betreute Postfach erreichen; die Rollen bleiben nach außen getrennt. Ein Alias ist kein Login und erhält kein geteiltes Passwort. Zugang für Menschen über persönliche Konten oder delegierten Zugriff; konkrete Empfänger, Vertretung und Zugriffsrechte vor Einrichtung festlegen.
+An alias is not a login and has no shared password. People use individual accounts/delegated access. Define real recipients, substitutes, access rights, monitoring, retention, deletion, and backups before setup. Shared routing does not erase the distinction between public roles.
 
-## GitHub und Wiederherstellung
+## Confirmed and open
 
-Vorschlag: admin@ für Organisations-/Anbieterkontakte, persönliche Konten der Mitglieder für GitHub-Anmeldung und nachvollziehbare Aktionen. Keine gemeinsam genutzte GitHub-Identität. Das Kontaktpostfach ist nicht automatisch Eigentümer oder Administrator der Organisation. Vor Nutzung als Wiederherstellungsadresse Erreichbarkeit prüfen und einen unabhängigen Wiederherstellungsweg dokumentieren, damit ein Mailserverausfall nicht sämtliche Adminzugänge blockiert.
+The archive records the registered domain and existing mailserver. Contact-mailbox choice, aliases, owners, backups, MX/SPF/DKIM/DMARC, DMARC reporting, sending/bounce services, and privacy retention remain proposals or unverified configuration. Preserve personal GitHub identities; a contact mailbox does not automatically own or administer the organization.
 
-## Betriebsregeln als spätere Einrichtungsanforderungen
+## Safety and operation
 
-- Sicherheits- und Wiederherstellungsnachrichten nur für berechtigte Personen zugänglich machen; Mehrfaktorverfahren und Wiederherstellung nach Möglichkeiten des eingesetzten Systems planen.
-- Keine Catch-all-Zustellung als Standard; jede Funktionsadresse bewusst zuordnen.
-- Systemversand mit begrenzten Zugangsdaten und getrenntem Versandzweck; keine Mailserver-Administrationsrechte für die Anwendung.
-- Antworten und Unzustellbarkeit aktiv bearbeiten; keine unbetreute no-reply-Adresse als Supportkontakt verwenden.
-- Aufbewahrung, Löschung, Sicherung, Vertretung und Prüfung des Posteingangs verbindlich festlegen; keine erfundenen Reaktionszeitversprechen.
-- Geheimnisse außerhalb des Repositorys verwalten.
+- Restrict security/recovery messages to authorized people. Plan passkeys/MFA and recovery codes as supported.
+- Maintain independent emergency recovery so a mail outage cannot lock all administrative access.
+- No catch-all by default; assign role addresses deliberately and prevent backscatter/abuse.
+- Separate scoped SMTP credentials, rate limits, queues/retries, and sending purpose. The application gets no mailserver administration privileges.
+- Handle replies/bounces actively. Never treat unmonitored no-reply as support.
+- Keep secrets outside Git and logs. Do not invent response-time promises.
+- Test incoming/outgoing/reply/bounce paths, external delivery, access separation, backup/recovery, SPF/DKIM/DMARC, and TLS before activation.
+- Publish addresses in legal/security/contact surfaces only after reachability and ownership are verified.
+- A separate transactional subdomain needs its own DNS/reputation evaluation and authorization.
 
-## Separater späterer Einrichtungsauftrag
+## Separate operations assignment
 
-1. Reale verantwortliche Personen, vorhandene Postfächer und Mailserver-Funktionen aufnehmen.
-2. Adressen und Routing freigeben, zuerst erreichbare Empfangswege bereitstellen.
-3. Bestehende DNS-/Mailauthentifizierung (MX, SPF, DKIM, DMARC) und TLS prüfen; konkrete Änderungen ausschließlich nach gesondertem Auftrag planen und ausführen.
-4. Empfang, Versand, Antwortadresse, Unzustellbarkeit, Zugriffstrennung und Wiederherstellung testen.
-5. Erst danach Kontaktadressen in Anwendung, GitHub und Sicherheitsrichtlinie veröffentlichen.
+1. Inventory actual operators, existing mailboxes, and server features/configuration.
+2. Approve addresses/routes and assign owners/substitutes for contact, security, postmaster, and abuse.
+3. Inspect existing DNS/authentication and prepare exact changes only under separate explicit authorization.
+4. Record delivery, authentication, reply, bounce, access-control, and recovery tests.
+5. Publish working contacts only after those checks.
 
-Keine DNS-Werte oder Serverbefehle werden hier vorgegeben. Funktionsfähigkeit oder rechtliche Vollständigkeit dieses Plans wird nicht behauptet.
+No DNS values or server commands are prescribed here. This plan does not prove deliverability or legal completeness. See [security reporting](../SECURITY.md).

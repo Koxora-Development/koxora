@@ -1,25 +1,27 @@
-## Problem und Ergebnis
-Was ändert sich für Nutzer oder Projekt und warum?
+# Pull request
 
-## Referenzen und Umfang
-Auftrag/Issue, Roadmap-Phase, relevante Entscheidungs-IDs; klare Grenzen.
+## Problem and outcome
+What changes for users or the project, and why?
 
-## Prüfung
-Welche Prüfungen wurden tatsächlich ausgeführt und mit welchem Ergebnis?
-Nicht ausgeführte Prüfungen samt Grund nennen.
+## References and scope
+Assignment/issue, roadmap phase, requirement and decision IDs; explicit boundaries.
 
-## Abnahme durch den Product Owner
-Konkrete Ansicht, Demo oder Schritte zur Prüfung ohne Programmierkenntnisse.
+## Validation
+Which checks actually ran, and with what results? Name unrun checks and reasons.
 
-## Risiken und offene Entscheidungen
-Verbleibende Fragen und gegebenenfalls Rückfallplan.
+## Product Owner review
+Provide concrete documents, a demo, or review steps understandable without programming knowledge.
 
-## Checkliste
-- [ ] Änderungen liegen auf eigenem Branch gegen main.
-- [ ] Anforderungen und Dokumentation stimmen überein.
-- [ ] Passende Prüfungen ausgeführt und Ergebnisse genannt.
-- [ ] Keine Geheimnisse oder vertraulichen Echtdaten enthalten.
-- [ ] Offene Entscheidungen sind kenntlich gemacht.
-- [ ] PO-Freigabe vor Merge steht aus oder ist nachvollziehbar verlinkt.
+## Risks and open decisions
+Remaining questions and recovery/rollback approach where relevant.
 
-Für Phase 0 zusätzlich: nur Dokumentation/Vorlagen; keine Produkt-, DNS- oder Mailserver-Änderungen. Ein Merge gibt Phase 1 nicht automatisch frei.
+## Checklist
+- [ ] Changes are on a feature branch targeting main.
+- [ ] Requirements and documentation agree.
+- [ ] Relevant checks ran and actual results are reported.
+- [ ] All technical work is in English and localization rules are respected.
+- [ ] No secrets or confidential real data are included.
+- [ ] Open decisions are explicit and independent review is reported accurately.
+- [ ] Product Owner approval before merge is pending or explicitly linked.
+
+For Phase 0: documentation, templates, and documentation validation only. No application, DNS, or mailserver changes. A merge does not authorize Phase 1.

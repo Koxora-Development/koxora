@@ -1,0 +1,187 @@
+{
+  "archive_name": "Koxora_Phase0_Masterplanung_komplett.zip",
+  "archive_sha256": "e08ead7c063a825690f2fec7e28df7e9ba6b3a727b538457c04c25814d8c26f2",
+  "source_file_count": 45,
+  "source_files": [
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+      "sha256": "4e59012464487c81193391d237e19235acdd1250b4ec8ef9750077ef2438283c"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/decision.md",
+      "sha256": "5d8330ef2278a21abab0f5a02ac1319a2c2e39376a56d9f8fb728344612c5698"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.md",
+      "sha256": "1d8334a6d4cea6ef390d848f6c6f7583256ee8e80aaa8682df5cfc047f333c53"
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "sha256": "64308185184369c0f808330f38ba4b06172231c616deb015b2a84b73ca4360ee"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "dcb0fefb689cd92e1532e3e9dd30ff1d9e2a5a8d36c9878926f9716c3d389d1d"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "92ca8e7333fd1d8ee83b6fa33a046630693684514a329d8d7a03709cc8dcb8b7"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "51e91c496f436adb2bf436d27d4f3d3cdd85d78cd39128899b7723a27901d7b2"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "sha256": "300800d0a2df5c1f08cd61223a250433d5b4d5e841aaa813938946f0cc76c85e"
+    },
+    {
+      "path": "README.md",
+      "sha256": "db33d7b74f221d0003f1c11da0ad1467fa1bfaa83a2a84fe1fdf54465df3a88c"
+    },
+    {
+      "path": "SECURITY.md",
+      "sha256": "81f617c2d5871f5ac40ddcbee0c7c403ceade1236055a64b4b2fa1c92e9d4ad1"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "sha256": "1bd5efc5d2309f9a9c3217a5959ab157c846c9c4d2b23f367a6622bf3ac0be64"
+    },
+    {
+      "path": "docs/architecture/ai-and-plugins.md",
+      "sha256": "ec30ab22bb038d00eb55669769dfed86384c7e9ac5fa3b7812bc781dab6b2028"
+    },
+    {
+      "path": "docs/architecture/collaboration.md",
+      "sha256": "343f768eecaae56578dbc5d163c6fde32a4cc4fa5e71dc607200a0729698da8f"
+    },
+    {
+      "path": "docs/architecture/editor-engine.md",
+      "sha256": "3bbfbe1dbe4ab9895eeab231bf972d90edad21205d2bb4c84fdaa2bda21da06c"
+    },
+    {
+      "path": "docs/architecture/import-export.md",
+      "sha256": "e0022e4731991a6916ff6046ea417997824711ebcc7669816322185c882eb94c"
+    },
+    {
+      "path": "docs/architecture/local-first.md",
+      "sha256": "457ab7da9519c90ff906b37b46a43b51b314c130b864fd8ad0b9b8ab539df46b"
+    },
+    {
+      "path": "docs/architecture/project-format.md",
+      "sha256": "33d66b0fc7a58f5c73e145146649d00f4bf3fb83b546daa564c32a74a9f5cc98"
+    },
+    {
+      "path": "docs/architecture/security.md",
+      "sha256": "def365c0500a7e6ae503fa1329bcd1d85b1ac11203288e9774d87151ded39f33"
+    },
+    {
+      "path": "docs/architecture/system-architecture.md",
+      "sha256": "c261adae006de1cb2bfd986ff68af35228771c51051e81445e8076aa70fd7b05"
+    },
+    {
+      "path": "docs/architecture/technology-stack.md",
+      "sha256": "cf2f1b1d95228ed02ee4f45416bbced5a3362728718ad39094abfa386d80cda2"
+    },
+    {
+      "path": "docs/architecture.md",
+      "sha256": "2545b4c3a35adea10ad1b0a023be38d50894c9459a37a528c3ef7f1c9f59cadf"
+    },
+    {
+      "path": "docs/decisions.md",
+      "sha256": "fc2c6d7bb397857b253edbed87974331b4cc9840f6472bae8d9f1c2cfc8ba80e"
+    },
+    {
+      "path": "docs/development/ai-workflow.md",
+      "sha256": "2078c81b7dfa6cdbfbe759aa121a6171e38291fbecc188351fcbe0d4cee7dcb0"
+    },
+    {
+      "path": "docs/development/ci-cd.md",
+      "sha256": "8b0fe8aba8cf42e223d3ef6bb74e328b4aba35c5199477ea5fd0aa1fa9d648e4"
+    },
+    {
+      "path": "docs/development/release-process.md",
+      "sha256": "679bbacde495ce38799563971c16cbfd81abaa990c593d3110bb8a75d160eb8e"
+    },
+    {
+      "path": "docs/development/testing-strategy.md",
+      "sha256": "e5adc0d29921e2becc7b0690679cbc2b770898894c06f28af0d20586e76b28d0"
+    },
+    {
+      "path": "docs/email-plan.md",
+      "sha256": "62812c074c3afa7f7471d651c095c54bb1e8a8897db27c4fec14563d9e15dd2d"
+    },
+    {
+      "path": "docs/phase-0.md",
+      "sha256": "3fc8a9e229f25c3c8c72dd54b21ca73c8d877f8fa73fddf3ec922ec1844b9046"
+    },
+    {
+      "path": "docs/planning/roadmap-backlog.md",
+      "sha256": "413a7457685f4928d112edd3070b917e8421546d40b2b0fabae57a9c17301dce"
+    },
+    {
+      "path": "docs/platform/cloud.md",
+      "sha256": "c92f1bf5bbd71726dc1d6f7a531a8f8243d7a22677bfcefd3e0cede3450a2ab3"
+    },
+    {
+      "path": "docs/platform/desktop.md",
+      "sha256": "1f6c041265c5ba6c9e1f6cc34b4f8d83ac82ac6a9db72faf1053f8bda8931b3b"
+    },
+    {
+      "path": "docs/platform/email-plan.md",
+      "sha256": "9f1d3356e7b7120f17630ed09ac88fcedb7dcccba1e087318f714369674abd6f"
+    },
+    {
+      "path": "docs/platform/marketplace.md",
+      "sha256": "895d56f9eb8f266e8af7e22148c96ad0d99d726388c1ad4d510530007cd39b59"
+    },
+    {
+      "path": "docs/platform/self-hosting.md",
+      "sha256": "70f731f90cbf3bfeb9fc984141c8fa528e154e13eba54a64ffbf9a161315bbcf"
+    },
+    {
+      "path": "docs/platform/website.md",
+      "sha256": "4ec656b33bc4b0b4aaf1296104198ec701d20473e856b484dd4def5ac7861d8d"
+    },
+    {
+      "path": "docs/product/diagram-types.md",
+      "sha256": "a58d3f1f7a75c694f8143f16871aec934a0ccd7ebcdd489c5f71938841a8d565"
+    },
+    {
+      "path": "docs/product/feature-catalog.csv",
+      "sha256": "d3a288416d724dab001e08b2cf6d1bd5589dbe083d0789c6bd0066dda2f92cef"
+    },
+    {
+      "path": "docs/product/feature-catalog.md",
+      "sha256": "bc8ad2935f636e143de7bffa23c33e3295361e30c91257d9931d86f0c0b2d038"
+    },
+    {
+      "path": "docs/product/prd.md",
+      "sha256": "7d5d1dcbf2903bd4187d6bee9b55c0ab143b3495622a97a1aa652d811b096735"
+    },
+    {
+      "path": "docs/product/pricing-and-licensing.md",
+      "sha256": "4bf9732c29f577db233d6b95ee885112375d3b332922b8aa2e4af36cf98d39f8"
+    },
+    {
+      "path": "docs/product/ux-and-design.md",
+      "sha256": "1726fede08285c2aa71ccf30cef6cc8ea75482028d7ad505f426c557c3d38f37"
+    },
+    {
+      "path": "docs/product/vision.md",
+      "sha256": "a373e1428e52ef34d4d0d285cf36b897c5a4f3c2c1f960747777e127219b4481"
+    },
+    {
+      "path": "docs/requirements.md",
+      "sha256": "4e03b39305fad2e50aac5a3f157b0d6bc4a29e422492525aa65f0df2cec03500"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "sha256": "61e916fa818eec64cd5a8a2b3dac4c83647c67a979d61e81ad49b1c7fdad90d9"
+    },
+    {
+      "path": "docs/traceability.md",
+      "sha256": "32e993d27d9b1808402cd0f0f7b5f29f645e83836e546132171d868819e633ad"
+    }
+  ]
+}

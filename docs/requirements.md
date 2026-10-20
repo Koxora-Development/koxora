@@ -1,47 +1,33 @@
-# Projektanforderungen
+# Requirements: entry point and status
 
-## Bestätigt
+The authoritative long-term baseline is the [178-entry catalog](product/feature-catalog.md) and its [CSV representation](product/feature-catalog.csv). The supplied planning archive restores the complete scope under Koxora. The earlier seven-entry summary and five MVP proposals remain cross-referenced in [legacy traceability](traceability.md#legacy-requirement-and-mvp-ids).
 
-| ID | Anforderung | Herkunft |
-| --- | --- | --- |
-| R-01 | Plattform für Diagramme, Mindmaps, Datenvisualisierung und Zusammenarbeit | Bestehende README |
-| R-02 | Open-Source-Ausrichtung | Bestehende README; Lizenz noch offen |
-| R-03 | Product Owner verantwortet Ziele, Prioritäten und Freigaben, nicht Programmierung | Aktueller Auftrag |
-| R-04 | Entwicklung über eigenen Branch und Pull Request | Aktueller Auftrag |
-| R-05 | Phase 0 liefert ausschließlich Grundlagen und Vorlagen | Aktueller Auftrag |
-| R-06 | E-Mail-Struktur für koxora.app auf vorhandenem selbst gehostetem Mailserver planen | Auftrag und Referenzchat |
-| R-07 | Keine DNS- oder Mailserver-Änderungen | Aktueller Auftrag |
+## Confirmed requirements: summary
 
-## Produktvision und vorgeschlagener Fokus
+| Requirement | Catalog reference |
+| --- | --- |
+| Browser and Linux/Windows/macOS share an editor core | CORE-001 |
+| Core features without an account | CORE-002 |
+| Offline use after provisioning | CORE-003 |
+| Local persistence | CORE-004 |
+| Portable, versioned native project | CORE-005, CORE-006 |
+| English default/fallback; German from inception; localization keys and extensibility | CORE-015 |
+| Independent language selection without document mutation | CORE-016 |
+| Unicode and RTL preparation | CORE-017 |
+| Broad diagram and data visualization scope | DIAG-*, DATA-* |
+| Imports/exports including standalone HTML and video | IO-* |
+| Optional AI, collaboration, cloud, and platform services | AI-*, COLLAB-*, PLAT-* |
+| Website, downloads, docs, community | SITE-* |
+| Privacy, QA, CI/CD, security | OPS-* |
 
-Menschen sollen Informationen visuell strukturieren, verständlich darstellen und gemeinsam weiterentwickeln können. Zielgruppe und Differenzierung sind noch nicht belegt (D-01). Vorschlag für den ersten Test: Eine Einzelperson erstellt und überarbeitet ein einfaches Knotendiagramm im Browser.
+## Interpretation
 
-### MVP-Vorschlag – noch nicht freigegeben (D-02)
+MUST means confirmed long-term scope, not delivery in v0.1/v1.0. P0–P3 in the catalog are original implementation waves, not current GitHub priority labels, numbered roadmap phases, or authorization to implement during Phase 0. A large catalog is not an MVP. Technical, schema, and commercial proposals require spikes and appropriate decisions.
 
-| ID | Fähigkeit | Geplantes Abnahmeszenario |
-| --- | --- | --- |
-| M-01 | Diagramm bearbeiten | Knoten anlegen, beschriften, bewegen, verbinden und löschen |
-| M-02 | Arbeit erhalten | Diagramm speichern und erneut öffnen; Speicherfehler sichtbar machen, keine stillen Verluste |
-| M-03 | Änderungen korrigieren | Bearbeitung rückgängig machen und wiederherstellen |
-| M-04 | Daten mitnehmen | Versioniertes Dokumentformat exportieren und wieder importieren; ungültige Daten verständlich ablehnen |
-| M-05 | Bedienbarer Einstieg | Neues Diagramm ohne Einführung erstellen; wesentliche Aktionen per Tastatur und beschriftete Bedienelemente |
+The explicit [language contract](product/internationalization.md) overrides the archive's German-first documentation preference and clarifies CORE-015/CORE-016 without adding or removing requirement IDs.
 
-Speicherort (lokal oder Konto), Exportformate neben dem Dokumentformat, Browsermatrix und konkrete Qualitätsbudgets werden vor Umsetzung entschieden. Diese Tabelle ist ein Vorschlag, keine Feature-Zusage.
+## First incremental acceptance journey: proposal
 
-### Nach MVP priorisieren
+Open the browser without an account → create a flowchart/mind map → edit nodes/edges → undo/redo → persist locally → export the native project → open in a desktop prototype → preserve data → reimport. This is proposed implementation sequencing and does not authorize Phase 1.
 
-Mindmap-Modus, Datenvisualisierung aus Datensätzen, Bild-/Vektorexport, Vorlagen, Kommentare, Freigaben und gleichzeitiges Bearbeiten. Zusammenarbeit gehört zur Vision; ihr genauer Umfang und Zeitpunkt bleiben offen. Kein Echtzeitversprechen für den ersten MVP.
-
-### Qualitätsziele zur Konkretisierung
-
-- Dokumentinhalt von Darstellung trennen; Format versionieren und Migrationen prüfen.
-- Bei späterem Mehrbenutzerbetrieb Zugriff auf jedes Dokument serverseitig prüfen.
-- Privatsphäre als Standard; keine öffentlichen Dokumente ohne bewusste Freigabe.
-- Zugängliche Bedienung und verständliche Fehler; Testfälle und messbare Ziele vor Feature-Freigabe festlegen.
-- Abhängigkeiten, Lizenzen und Datenverarbeitung vor Übernahme bewerten.
-
-## Außerhalb Phase 0
-
-Kein App-Gerüst, keine Abhängigkeiten, Datenbank, Authentifizierung, CI-Ausführung, Bereitstellung oder Migration. Keine Konten, E-Mail-Adressen, DNS-Einträge oder Serverkonfiguration anlegen. Bezahlmodell, KI-Funktionen, mobile Apps und Integrationen sind nicht beschlossen.
-
-Offene Fragen werden im [Entscheidungsregister](decisions.md) geführt.
+The Product Owner controls goals and approvals, agents handle technical work, all changes use branches/PRs, and DNS/mail operations remain outside Phase 0. See [PRD](product/prd.md), [vision](product/vision.md), [roadmap](roadmap.md), and [decisions](decisions.md).

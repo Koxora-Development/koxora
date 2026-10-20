@@ -1,24 +1,21 @@
-# Roadmap
+# Phased development roadmap
 
-Status: Vorschlag, ohne Termin- oder Budgetzusage. Reihenfolge richtet sich nach Freigaben, nicht nach Kalenderwochen.
+**Status: proposed sequence, without guaranteed dates, budgets, or automatic implementation authorization.** All [178 catalog requirements](product/feature-catalog.md) remain long-term scope.
 
-| Phase | Ergebnis | Eintritt | Austrittskriterium / Nachweis |
-| --- | --- | --- | --- |
-| 0 – Grundlagen | Anforderungen, Architekturentwurf, Workflow, Vorlagen, Mailplan | Aktueller Auftrag | Dokumentations-PR vom Product Owner freigegeben; offene Punkte sichtbar |
-| 1 – Technische Grundlage | Bewertete Technik, Entwicklungsumgebung und kleiner technischer Nachweis | Separater Auftrag; D-01 bis D-03 geklärt | Begründete Technikentscheidung, reproduzierbarer Start und vereinbarte Prüfungen; Demo vom PO akzeptiert |
-| 2 – Einzelbenutzer-MVP | Freigegebene M-01 bis M-05 | MVP-Abnahmefälle und Speicherstrategie bestätigt | Erstellen → Bearbeiten → Speichern → Öffnen → Export/Import nachweislich möglich; Fehlerfälle geprüft |
-| 3 – Erweiterte Visualisierung | Priorisierte Mindmap- und Datenvisualisierungsfälle | Eigene Anforderungen und Priorität bestätigt | Vereinbarte Beispieldaten und Anwendungsfälle erfolgreich demonstriert |
-| 4 – Zusammenarbeit und Pilot | Gewähltes Rechte-/Zusammenarbeitsmodell | D-04, D-05, D-07 geklärt; Pilotauftrag | Rechteentzug und unzulässiger Zugriff geprüft, Konflikte behandelt, Sicherung wiederhergestellt, PO akzeptiert Pilot |
-| 5 – Veröffentlichung | Freigegebene Veröffentlichung und Betriebsübergabe | Lizenz, Betrieb, Support und Datenschutz geklärt | Release-Freigabe, Betriebsanleitung, Zuständigkeiten und Rückfallplan vorhanden |
+| Phase | Scope | Acceptance evidence |
+| --- | --- | --- |
+| 0: Master planning | PRD, 178 requirements, architecture, agent/GitHub rules, email concept | Validated documentation PR, independent review, explicit Product Owner approval |
+| 1: Foundation | Proposed monorepo/web shell, desktop spike, local storage, schema, English/German localization, CI | Reproducible web/desktop startup, local round trip, actual tests |
+| 2: Editor alpha | Canvas/commands, undo/redo, mind map, flowchart, organization chart, template base | Guest/offline editing and shared files across targets |
+| 3: Data and export | CSV/XLSX/ODS, charts, wizards, SVG/PDF/PNG, interactive HTML, GIF/video spikes | Data import and export fidelity/offline interaction |
+| 4: Visualization breadth | UML, ER, BPMN, C4, network, Gantt, Kanban, wireframe, statistics, whiteboard | Cross-family reference projects |
+| 5: AI and plugins | User keys, local models, prompts, preview/validation, sandbox, templates | Independent local core and safely tested optional capabilities |
+| 6: Cloud and live teams | Accounts, sync, history, roles, CRDT/presence, comments, guests | Concurrent/offline merging, authorization, backups |
+| 7: Community, self-hosting, enterprise | Marketplace, publication/moderation, Docker/backup, policies/SSO | Security, legal, and operating gates |
+| 8: Stabilization and growth | Accessibility, translations, performance, distribution, release hardening | Platforms, migrations, recovery, support verified |
 
-Die Vision enthält alle vier Produktbereiche. Ob einfache Zusammenarbeit vor Phase 3 priorisiert wird, entscheidet der PO in D-04. Echtzeitbearbeitung ist kein automatischer Bestandteil eines Piloten.
+Before Phase 1, choose the first audience/journey, release acceptance scope, and technical comparison under O-002/O-003 and T-001 through T-004. Cloud pilot work also needs O-005/O-010 and privacy/account processes. Public release requires license, security reporting, support, and rollback readiness. Email setup requires a separate O-009 operations assignment.
 
-## Nächste Arbeitspakete nach Phase 0
+Versions 0.1/0.3/0.5/0.7/0.9/1.0 and 1.x/2.x are illustrative maturity markers, not fixed cloud/enterprise delivery commitments. All 178 requirements need not ship before v1.0. Map releases by feasibility and value. Catalog waves P0–P3 are distinct from these numbered roadmap phases and GitHub priority labels.
 
-1. Zielgruppe und einen konkreten ersten Arbeitsablauf wählen (D-01).
-2. MVP-Abnahmefälle und Speicherort festlegen (D-02).
-3. Stack und Editor-Bibliothek anhand derselben kleinen Aufgabe vergleichen (D-03).
-4. Lizenz, Veröffentlichungsmodell und Betriebsverantwortung festlegen (D-05/D-06).
-5. Mail-Routing und verantwortliche Empfänger bestätigen (D-08); Einrichtung nur separat beauftragen.
-
-Diese Liste ist ein planbarer Backlog, keine automatisch angelegte Issue-Serie und kein Auftrag zur Umsetzung. Jede Umsetzung erhält ein Issue mit überprüfbarem Ergebnis.
+The [detailed backlog](planning/roadmap-backlog.md) preserves M0–M8 and 27 initial engineering-item IDs. No issues, labels, milestones, workflows, or infrastructure are created by these planning tables. Each implementation needs a separate assignment and test evidence.

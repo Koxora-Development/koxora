@@ -1,34 +1,34 @@
-# Entwicklungsworkflow
+# Contributing and development workflow
 
-## Rollen
+Koxora uses agent-assisted development: the Product Owner prioritizes and accepts outcomes, agents implement, and reviewers/CI validate. The planning baseline describes a private repository; external contributions depend on an explicit license and publication decision.
 
-Der Product Owner legt Bedarf, Priorität und Akzeptanzkriterien fest und gibt Ergebnisse frei. Er muss weder programmieren noch technische Prüfungen selbst ausführen. Entwickler und Coding-Agenten bereiten Änderungen vor, führen passende Prüfungen aus und erläutern Ergebnis, Grenzen und offene Entscheidungen.
+## Workflow
 
-## Ablauf
-
-1. Bedarf als Issue beschreiben: Problem, erwarteter Nutzen, Abnahmefälle, Grenzen und offene Entscheidungen. Bei kleinen Dokumentationsaufgaben kann der direkte Auftrag als Referenz genügen.
-2. Aktuellen Stand und AGENTS.md lesen, bestehende Änderungen respektieren.
-3. Eigenen Branch vom aktuellen main verwenden, etwa docs/phase-0-foundation oder feat/<issue>-<thema>. Keine direkten Änderungen an main.
-4. Kleinen, zusammenhängenden Umfang bearbeiten. Abhängige Produktentscheidungen vorher klären; technische Detailarbeit selbstständig erledigen.
-5. Passende Prüfungen ausführen und tatsächliche Ergebnisse dokumentieren. Dokumentation: Links und Konsistenz. Später Produktcode: Formatierung, statische Prüfungen und risikogerechte Funktions-/Integrationstests.
-6. PR gegen main mit Ergebnis, Begründung, Nachweisen, Risiken und offenen Punkten öffnen.
-7. Review-Rückmeldungen bearbeiten. Der PO erhält eine verständliche Abnahmebeschreibung oder Demo und erteilt die Freigabe. Kein automatischer Merge durch Agenten.
-8. Nach Freigabe durch berechtigte Person übernehmen; Releases und Infrastrukturänderungen separat freigeben.
+1. Record the need in an issue with catalog IDs, value, acceptance criteria, non-goals, dependencies, and test expectations. A direct assignment can serve as the reference for a small documentation task.
+2. Read AGENTS, relevant PRD/specifications, decisions, ADRs, and CLAUDE when applicable. Inspect current branches and PRs and preserve others' changes.
+3. Use a dedicated branch from current `main`, such as `docs/phase-0-completion` or `feat/CORE-005-project-io`. Continue an existing task branch when explicitly updating its work. Do not write directly to `main` or force-push.
+4. Make the smallest coherent change. Do not hide architecture or feature changes, or perform unrelated refactoring or infrastructure changes.
+5. Run real local/CI checks appropriate to scope, including guest/offline, localization, privacy, and migration cases where relevant.
+6. Open a PR with assignment/issue, context, requirement IDs, changes, actual checks and results, review instructions, risks, and open decisions.
+7. Obtain independent review and address findings. Give the Product Owner understandable review steps and request explicit merge approval. Agents do not auto-merge.
+8. Release builds, downloads, and production operation require a separate gate. A documentation merge does not authorize application implementation.
 
 ## Definition of Ready
 
-Problem und Umfang verständlich; überprüfbare Akzeptanzkriterien; notwendige Entscheidungen getroffen; Abhängigkeiten benannt. Keine unbestätigten Vorschläge stillschweigend als Auftrag behandeln.
+Known user problem/value, unambiguous requirement references, accepted prerequisite decisions, verifiable acceptance scenarios, scope/non-goals, dependencies, and risks. Do not treat proposals or silence as approval.
 
 ## Definition of Done
 
-Akzeptanzkriterien erfüllt; geeignete Prüfungen mit Ergebnis im PR; Dokumentation aktuell; keine Geheimnisse oder personenbezogenen Echtdaten; offene Punkte sichtbar; PO-Freigabe vor Merge. Nicht ausgeführte Prüfungen mit Grund nennen.
+Acceptance cases demonstrated, appropriate checks executed and reported, documentation/migrations/changelog updated where relevant, independent review addressed, no secrets or real confidential data, and explicit Product Owner approval before merge. Identify unrun checks and reasons.
 
-## GitHub-Konventionen
+## Language and project management
 
-Issue-Vorlagen: Fehler, Funktionswunsch, Entscheidung. PR-Vorlage enthält Abnahme und Prüfnachweise. Dokumentation auf Deutsch; technische Bezeichner bei Bedarf Englisch. Aussagekräftige Commit-Titel, optional docs:, feat: oder fix:.
+All code, names, comments, documentation, issues, commits, and PR descriptions are English. All interface text uses localization keys, with English default/fallback, German from inception, independent language selection, and resource-based extension to other languages. See [language rules](docs/product/internationalization.md).
 
-Empfohlene spätere Repository-Regeln: main nur über PR, keine Force-Pushes, notwendige Prüfungen nach Einrichtung verlangen. Das ist eine Empfehlung; dieser PR richtet keine Regeln ein. Bei einem einzelnen menschlichen Verantwortlichen muss die Review-Regel zur GitHub-Rollenverteilung passen, statt einen unerfüllbaren zweiten menschlichen Reviewer vorauszusetzen. Labels, Milestones, CODEOWNERS und CI erst nach Bestimmung realer Zuständigkeiten einrichten.
+Use [roadmap and backlog](docs/planning/roadmap-backlog.md) for proposed milestones and engineering items. Suggested labels: `area:*`, `type:*`, `priority:P0..P3`, `status:*`, `platform:*`. Historical catalog waves are not GitHub priority labels. Engineering-item IDs and requirement IDs are separate namespaces.
 
-## Aktueller Prüfstand
+Branch protection, required checks, CODEOWNERS, labels, and milestones need real maintainers and permission review before setup. Avoid impossible approval rules for a repository with one human maintainer. No such settings are configured by Phase 0 documentation.
 
-Phase 0 hat keine Anwendung, Paketdatei oder CI. Daher sind npm install, Build und Produkt-Tests derzeit nicht definiert. Fehlende Produktprüfungen dürfen nicht als bestanden gemeldet werden. Zukünftige Ausführende dokumentieren mit dem ersten technischen Gerüst die exakten Start- und Prüfbefehle.
+## Current checks
+
+Run `python3 scripts/validate_docs.py` from the repository root. No dependency manifests, application build scripts, or product CI exist. Exact product startup and test commands must be documented when separately authorized Phase 1 work introduces them.

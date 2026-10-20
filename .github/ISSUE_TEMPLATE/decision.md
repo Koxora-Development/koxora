@@ -1,27 +1,29 @@
 ---
-name: Entscheidung
-about: Eine offene Produkt- oder Architekturentscheidung vorbereiten
-title: "[Entscheidung] "
+name: Decision
+about: Prepare an open product or architecture decision
+title: "[Decision] "
 ---
 
-## Register-ID
-Zum Beispiel D-01 aus docs/decisions.md; bei neuer Frage neue ID vorschlagen.
+# Decision proposal
 
-## Frage und Zeitpunkt
-Was muss vor welchem nächsten Schritt entschieden werden?
+## Register ID
+For example, O-004 for an open format question or T-004 for a technology candidate in [the decision register](https://github.com/Koxora-Development/koxora/blob/main/docs/decisions.md). Propose a new ID for a new question.
 
-## Optionen
-Beschreibe die realistischen Optionen mit Nutzen, Aufwand und Folgen.
+## Question and timing
+What must be decided before which next step?
 
-## Empfehlung
-Begründung in verständlicher Sprache; notwendige technische Nachweise verlinken.
+## Options
+Describe realistic choices, benefits, effort, risks, and consequences.
 
-## Entscheidung des Product Owners
-Status: offen
-Entscheidende Person:
-Datum:
-Gewählte Option und Begründung:
+## Recommendation
+Explain in plain English and link technical evidence.
 
-## Nachbereitung
-- [ ] Entscheidung ausdrücklich bestätigt
-- [ ] Register und betroffene Dokumente im PR aktualisiert
+## Product Owner decision
+Status: open
+Decision maker:
+Date:
+Selected option and rationale:
+
+## Follow-up
+- [ ] Decision explicitly confirmed.
+- [ ] Register and affected documentation updated in the PR.

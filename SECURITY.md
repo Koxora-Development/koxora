@@ -1,7 +1,7 @@
-# Sicherheitsmeldungen
+# Security reporting
 
-Es gibt noch keine veröffentlichte Anwendung oder unterstützte Produktversion. Sensible Sicherheitsdetails und Zugangsdaten gehören nicht in öffentliche Issues oder Pull Requests.
+There is no released application or supported product version yet. Never put sensitive security details, real credentials, or confidential files into public issues or pull requests.
 
-security@koxora.app ist ausschließlich geplant und **kein bestätigter Meldeweg**. Dorthin derzeit keine Meldungen senden. Bis ein vertraulicher Kanal eingerichtet ist, den Repository-Verantwortlichen über einen bereits bekannten privaten Kontakt zunächst ohne sensible Details um einen sicheren Meldeweg bitten. Im Repository keinen vertraulichen Bericht veröffentlichen.
+`security@koxora.app` is planned and is **not a verified reporting channel**. Do not send reports there yet. Until a private reporting channel exists, contact the repository owner through an already known private contact, initially without sensitive details, to arrange a secure channel. Do not publish the confidential report in the repository.
 
-Vor öffentlichem Pilotbetrieb muss ein erreichbarer privater Meldekanal samt Verantwortlichen und Ablauf getestet und hier eingetragen werden. GitHub Private Vulnerability Reporting ist eine mögliche spätere Option; seine Aktivierung wird hier nicht behauptet.
+Before a public pilot, establish and test a reachable private channel with responsible people and a handling process, then update this policy. GitHub Private Vulnerability Reporting is a possible later option; this document does not claim it is enabled.

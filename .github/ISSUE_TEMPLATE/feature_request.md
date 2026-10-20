@@ -1,24 +1,30 @@
 ---
-name: Funktionswunsch
-about: Problem, Nutzen und überprüfbares Ergebnis festhalten
-title: "[Funktion] "
+name: Feature request
+about: Record a problem, benefit, and verifiable outcome
+title: "[Feature] "
 ---
 
-## Nutzer und Problem
-Für wen soll welches Problem gelöst werden?
+# Feature request
 
-## Gewünschtes Ergebnis
-Beschreibe den Arbeitsablauf aus Nutzersicht.
+## User and problem
+Whose problem should be solved?
 
-## Akzeptanzkriterien
-- [ ] Überprüfbares Verhalten
-- [ ] Relevanter Fehlerfall
+## Desired outcome
+Describe the workflow from the user's perspective.
 
-## Umfang und Grenzen
-Was gehört dazu? Was bleibt außerhalb?
+## Requirement references
+List catalog IDs; distinguish engineering-item IDs where applicable.
 
-## Alternativen und Abhängigkeiten
-Verknüpfte Entscheidungen, Roadmap-Phase und gegebenenfalls bestehende Issues.
+## Acceptance criteria
+- [ ] Verifiable behavior.
+- [ ] Relevant failure case.
+- [ ] Localization and guest/offline behavior where applicable.
 
-## Entscheidung des Product Owners
-Priorität und Freigabe: offen. Eine eingereichte Idee ist noch kein Umsetzungsauftrag.
+## Scope and boundaries
+What belongs to this change, and what remains outside it?
+
+## Alternatives and dependencies
+Link decisions, roadmap milestones, and existing issues.
+
+## Product Owner decision
+Priority and authorization: open. A submitted idea is not an implementation assignment.
