@@ -1,6 +1,6 @@
 # CI/CD and release automation plan
 
-**Status: proposed; no workflow or deployment is configured by this documentation.**
+**Status: the Phase 1 foundation configures quality and native-build workflows; production deployment remains unconfigured.** See [implemented development checks](foundation.md#ci) and [validation evidence](foundation-validation.md) for the current subset. The pipeline below also includes future editor/release goals.
 
 ## Planned PR pipeline
 

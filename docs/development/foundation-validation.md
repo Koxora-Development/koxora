@@ -6,7 +6,7 @@ Date: 2026-10-20. Results apply to the cloud instance and feature branch, not a 
 
 - Node.js 24.19.0, pnpm 10.32.1; frozen installation repeated successfully.
 - `pnpm check`: TypeScript, ESLint (including literal JSX localization checks), Prettier, 8 unit tests in 2 files, documentation consistency, and 453 JavaScript dependency license entries.
-- Documentation validation retains all 178 requirements, 38 decisions, 27 engineering items, 9 milestones and 21 legacy mappings; currently 49 Markdown documents and 100 local links/anchors.
+- Documentation validation retains all 178 requirements, 38 decisions, 27 engineering items, 9 milestones and 21 legacy mappings; project Markdown documents and local links/anchors are checked, excluding installed dependencies and generated outputs.
 - `pnpm audit --audit-level high`: no known vulnerabilities reported.
 - Production web build and development server startup; light/dark screenshots visually inspected.
 - 8 Playwright tests passed across desktop/mobile Chromium using the installed system browser: English default on German OS, guest startup with no external requests, language/theme selection and offline reload, unchanged unrelated synthetic data, blocked storage warning, responsive layout and keyboard skip navigation.
