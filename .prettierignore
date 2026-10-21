@@ -23,3 +23,5 @@ CONTRIBUTING.md
 SECURITY.md
 .github/ISSUE_TEMPLATE/
 .github/pull_request_template.md
+# Golden migration input retains the original serializer's exact bytes.
+packages/project/fixtures/legacy-json-v1.json

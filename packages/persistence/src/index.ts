@@ -45,12 +45,13 @@ export class ProjectRepository {
     return Promise.all(
       keys.map(async (id) => {
         try {
-          return { id, title: (await this.open(id)).project.title };
+          return { id, title: (await this.open(id)).project.manifest.title };
         } catch (error) {
           if (
             error instanceof ProjectError &&
             [
               'invalid',
+              'integrity',
               'unsupported',
               'tooLarge',
               'storage',
@@ -71,18 +72,18 @@ export class ProjectRepository {
       const data = envelope(raw);
       const text = previous ? data.previous : data.current;
       if (text === null) throw new ProjectError('missing');
-      project = parseProject(text);
+      project = await parseProject(text);
     } catch (error) {
       if (!previous || !this.store.readPrevious) throw error;
       const backup = await this.store.readPrevious(id);
       if (backup === null) throw error;
-      project = parseProject(envelope(backup).current);
+      project = await parseProject(envelope(backup).current);
     }
-    if (project.projectId !== id) throw new ProjectError('invalid');
+    if (project.manifest.projectId !== id) throw new ProjectError('invalid');
     return { project, token: raw, recovered: previous };
   }
   async save(project: Project, expected: string | null): Promise<string> {
-    const current = serializeProject(project);
+    const current = await serializeProject(project);
     // Retain the prior bytes when the user explicitly restores a previous save.
     let previous: string | null = null;
     let recoverySource: string | undefined;
@@ -95,7 +96,7 @@ export class ProjectRepository {
       }
       recoverySource = old.recoverySource;
       if (old.current === current) {
-        await this.store.write(project.projectId, expected, expected);
+        await this.store.write(project.manifest.projectId, expected, expected);
         return expected;
       }
       // Preserve even an unsupported or corrupt head byte-for-byte. Recovery is
@@ -107,7 +108,7 @@ export class ProjectRepository {
       previous,
       ...(recoverySource === undefined ? {} : { recoverySource }),
     });
-    await this.store.write(project.projectId, expected, next);
+    await this.store.write(project.manifest.projectId, expected, next);
     return next;
   }
 }

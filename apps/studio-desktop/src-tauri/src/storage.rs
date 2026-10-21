@@ -2,7 +2,7 @@
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-const MAX_RECORD: u64 = 40 * 1024 * 1024;
+const MAX_RECORD: u64 = 256 * 1024 * 1024;
 fn storage<T>(result: std::io::Result<T>) -> Result<T, String> {
     result.map_err(|_| "storage".to_owned())
 }
@@ -126,8 +126,8 @@ pub fn write(root: &Path, id: &str, expected: Option<&str>, value: &str) -> Resu
     }
     Ok(())
 }
-pub fn export(directory: &Path, id: &str, text: &str) -> Result<String, String> {
-    if !valid_id(id) || text.len() > 8 * 1024 * 1024 {
+pub fn export(directory: &Path, id: &str, bytes: &[u8]) -> Result<String, String> {
+    if !valid_id(id) || bytes.len() > 64 * 1024 * 1024 {
         return Err("invalid".into());
     }
     let stamp = std::time::SystemTime::now()
@@ -135,14 +135,14 @@ pub fn export(directory: &Path, id: &str, text: &str) -> Result<String, String> 
         .map_err(|_| "storage")?
         .as_nanos();
     let path = directory.join(format!("koxora-{id}-{stamp}.koxora"));
-    publish_export(&path, text)?;
+    publish_export(&path, bytes)?;
     Ok(path.to_string_lossy().into_owned())
 }
-fn publish_export(path: &Path, text: &str) -> Result<(), String> {
+fn publish_export(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let temp = path.with_extension("koxora.tmp");
     let mut file = storage(OpenOptions::new().write(true).create_new(true).open(&temp))?;
     if file
-        .write_all(text.as_bytes())
+        .write_all(bytes)
         .and_then(|()| file.sync_all())
         .is_err()
     {
@@ -203,9 +203,9 @@ mod tests {
         write(root, ID, Some("first"), "second").unwrap();
         assert_eq!(read(root, ID).unwrap().as_deref(), Some("second"));
         assert_eq!(list(root).unwrap(), vec![ID]);
-        let path = export(root, ID, "portable").unwrap();
-        assert_eq!(fs::read_to_string(path).unwrap(), "portable");
-        assert!(export(&root.join("missing"), ID, "data").is_err());
+        let path = export(root, ID, b"portable").unwrap();
+        assert_eq!(fs::read(path).unwrap(), b"portable");
+        assert!(export(&root.join("missing"), ID, b"data").is_err());
     }
     #[test]
     fn malformed_head_retains_an_explicit_generation_backup() {
@@ -267,18 +267,26 @@ mod tests {
         assert_eq!(read(root, ID).unwrap().as_deref(), Some("original"));
     }
     #[test]
+    fn native_export_preserves_complete_zip_bytes() {
+        let directory = TestDirectory::new();
+        let bytes = include_bytes!("../../../../packages/project/fixtures/complete-v1.koxora");
+        let path = export(&directory.0, ID, bytes).unwrap();
+        assert_eq!(fs::read(path).unwrap(), bytes);
+    }
+
+    #[test]
     fn export_publication_is_complete_and_never_overwrites_existing_files() {
         let directory = TestDirectory::new();
         let path = directory.0.join("existing.koxora");
-        publish_export(&path, "original").unwrap();
+        publish_export(&path, b"original").unwrap();
         assert_eq!(fs::read_to_string(&path).unwrap(), "original");
-        assert_eq!(publish_export(&path, "replacement"), Err("storage".into()));
+        assert_eq!(publish_export(&path, b"replacement"), Err("storage".into()));
         assert_eq!(fs::read_to_string(&path).unwrap(), "original");
         assert!(!path.with_extension("koxora.tmp").exists());
         let interrupted = directory.0.join("interrupted.koxora");
         fs::write(interrupted.with_extension("koxora.tmp"), "partial").unwrap();
         assert!(!interrupted.exists());
-        assert!(publish_export(&interrupted, "replacement").is_err());
+        assert!(publish_export(&interrupted, b"replacement").is_err());
         assert!(!interrupted.exists());
     }
     #[test]

@@ -1,11 +1,20 @@
 import { expect, it } from 'vitest';
-import { createProject, ProjectError } from '@koxora/project';
+import {
+  createProject,
+  ProjectError,
+  parseProject,
+  serializeProject,
+  encodeBase64,
+  decodeBase64,
+  DEFAULT_LIMITS,
+} from '@koxora/project';
 import {
   IndexedDbStore,
   NativeStore,
   ProjectRepository,
   type SnapshotStore,
 } from './index';
+import { readZip, writeZip } from '../../project/src/zip';
 class MemoryStore implements SnapshotStore {
   data = new Map<string, string>();
   fail = false;
@@ -37,54 +46,69 @@ function setup() {
 it('creates, lists, reopens and retains one previous version without degrading it on redundant save', async () => {
   const { repo, project } = setup();
   const first = await repo.save(project, null);
-  project.title = 'Second';
+  project.manifest.title = 'Second';
   const second = await repo.save(project, first);
   expect(await repo.save(project, second)).toBe(second);
-  expect((await repo.open(project.projectId)).project.title).toBe('Second');
-  expect((await repo.open(project.projectId, true)).project.title).toBe(
-    'First',
-  );
+  expect(
+    (await repo.open(project.manifest.projectId)).project.manifest.title,
+  ).toBe('Second');
+  expect(
+    (await repo.open(project.manifest.projectId, true)).project.manifest.title,
+  ).toBe('First');
   expect(await repo.list()).toEqual([
-    { id: project.projectId, title: 'Second' },
+    { id: project.manifest.projectId, title: 'Second' },
   ]);
 });
 it('failed and conflicting writes retain the committed version', async () => {
   const { repo, store, project } = setup();
   const token = await repo.save(project, null);
-  project.title = 'Other tab';
+  project.manifest.title = 'Other tab';
   await repo.save(project, token);
   await expect(
-    repo.save({ ...project, title: 'Stale tab' }, token),
+    repo.save(
+      { ...project, manifest: { ...project.manifest, title: 'Stale tab' } },
+      token,
+    ),
   ).rejects.toThrow(new ProjectError('conflict'));
   store.fail = true;
   await expect(repo.save(project, null)).rejects.toThrow(
     new ProjectError('storage'),
   );
-  expect((await repo.open(project.projectId)).project.title).toBe('Other tab');
+  expect(
+    (await repo.open(project.manifest.projectId)).project.manifest.title,
+  ).toBe('Other tab');
 });
 it('recovers a corrupt current document explicitly and preserves the corrupt source', async () => {
   const { repo, store, project } = setup();
   const first = await repo.save(project, null);
-  project.title = 'Second';
+  project.manifest.title = 'Second';
   const second = await repo.save(project, first);
   const data = JSON.parse(second);
   data.current = '{';
-  store.data.set(project.projectId, JSON.stringify(data));
-  await expect(repo.open(project.projectId)).rejects.toThrow(ProjectError);
-  expect(await repo.list()).toEqual([{ id: project.projectId, title: null }]);
-  const recovered = await repo.open(project.projectId, true);
+  store.data.set(project.manifest.projectId, JSON.stringify(data));
+  await expect(repo.open(project.manifest.projectId)).rejects.toThrow(
+    ProjectError,
+  );
+  expect(await repo.list()).toEqual([
+    { id: project.manifest.projectId, title: null },
+  ]);
+  const recovered = await repo.open(project.manifest.projectId, true);
   await repo.save(recovered.project, recovered.token);
-  expect((await repo.open(project.projectId)).project.title).toBe('First');
-  expect(JSON.parse(store.data.get(project.projectId)!).previous).toBe('{');
+  expect(
+    (await repo.open(project.manifest.projectId)).project.manifest.title,
+  ).toBe('First');
+  expect(JSON.parse(store.data.get(project.manifest.projectId)!).previous).toBe(
+    '{',
+  );
 });
 it('does not fall back silently on unsupported data, malformed envelopes or missing backup', async () => {
   const { repo, store, project } = setup();
   await repo.save(project, null);
-  await expect(repo.open(project.projectId, true)).rejects.toThrow(
+  await expect(repo.open(project.manifest.projectId, true)).rejects.toThrow(
     new ProjectError('missing'),
   );
-  store.data.set(project.projectId, 'null');
-  await expect(repo.open(project.projectId)).rejects.toThrow(
+  store.data.set(project.manifest.projectId, 'null');
+  await expect(repo.open(project.manifest.projectId)).rejects.toThrow(
     new ProjectError('invalid'),
   );
   await expect(repo.open('missing')).rejects.toThrow(
@@ -111,13 +135,22 @@ it('preserves unsupported current data when explicitly recovering an older save'
   const { repo, store, project } = setup();
   const first = await repo.save(project, null);
   const future = JSON.parse(first);
-  const document = JSON.parse(future.current);
+  const files = await readZip(
+    decodeBase64(future.current.slice('koxora-zip:'.length)),
+    DEFAULT_LIMITS,
+  );
+  const document = JSON.parse(new TextDecoder().decode(files['manifest.json']));
   document.schemaVersion = '2.0.0';
   document.future = 'must survive';
   future.previous = future.current;
-  future.current = JSON.stringify(document);
-  store.data.set(project.projectId, JSON.stringify(future));
-  const recovered = await repo.open(project.projectId, true);
+  files['manifest.json'] = new TextEncoder().encode(JSON.stringify(document));
+  future.current =
+    'koxora-zip:' + encodeBase64(writeZip(files, DEFAULT_LIMITS));
+  await expect(parseProject(future.current)).rejects.toMatchObject({
+    code: 'unsupported',
+  });
+  store.data.set(project.manifest.projectId, JSON.stringify(future));
+  const recovered = await repo.open(project.manifest.projectId, true);
   const next = await repo.save(recovered.project, recovered.token);
   expect(JSON.parse(next).previous).toBe(future.current);
 });
@@ -130,18 +163,20 @@ it('uses an explicit native generation backup when the envelope is corrupt, pres
     write: (id, expected, next) => store.write(id, expected, next),
     readPrevious: async () => good,
   };
-  store.data.set(project.projectId, '{broken');
+  store.data.set(project.manifest.projectId, '{broken');
   const nativeRepo = new ProjectRepository(withBackup);
-  const recovered = await nativeRepo.open(project.projectId, true);
+  const recovered = await nativeRepo.open(project.manifest.projectId, true);
   const next = await nativeRepo.save(recovered.project, recovered.token);
   expect(JSON.parse(next).recoverySource).toBe('{broken');
-  expect((await nativeRepo.open(project.projectId)).project).toEqual(project);
+  expect((await nativeRepo.open(project.manifest.projectId)).project).toEqual(
+    await parseProject(await serializeProject(project)),
+  );
 });
 it('isolates unreadable records while still listing healthy projects', async () => {
   const { repo, store, project } = setup();
   await repo.save(project, null);
   const mixed: SnapshotStore = {
-    keys: async () => [project.projectId, 'unreadable'],
+    keys: async () => [project.manifest.projectId, 'unreadable'],
     read: async (id) => {
       if (id === 'unreadable') throw new ProjectError('storage');
       return store.read(id);
@@ -149,7 +184,7 @@ it('isolates unreadable records while still listing healthy projects', async () 
     write: (...args) => store.write(...args),
   };
   expect(await new ProjectRepository(mixed).list()).toEqual([
-    { id: project.projectId, title: 'First' },
+    { id: project.manifest.projectId, title: 'First' },
     { id: 'unreadable', title: null },
   ]);
 });

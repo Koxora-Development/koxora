@@ -61,5 +61,7 @@
   "project.error.conflict": "This project already exists or was changed elsewhere. Export your changes, reopen the current version, or import as a new project. No existing data was overwritten.",
   "project.error.missing": "This project or previous save is not available.",
   "project.confirm": "Continue",
-  "project.cancel": "Cancel"
+  "project.cancel": "Cancel",
+  "project.error.integrity": "The project failed its integrity check. Keep the original file and try a verified backup.",
+  "project.error.location": "Location: {path}"
 }

@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-const golden = readFileSync('packages/project/fixtures/v1.koxora');
+import {
+  importProject,
+  DEFAULT_LIMITS,
+} from '../../packages/project/src/index';
+import { readZip, writeZip } from '../../packages/project/src/zip';
+const golden = readFileSync('packages/project/fixtures/complete-v1.koxora');
 async function saved(page: import('@playwright/test').Page) {
   await expect(
     page.getByText('Saved on this device', { exact: true }),
@@ -23,8 +28,8 @@ test('create, rename, reopen offline, export, import and recover', async ({
     .click();
   const download = await downloadPromise;
   const path = await download.path();
-  const data = JSON.parse(readFileSync(path!, 'utf8'));
-  expect(data.title).toBe('Portable 世界');
+  const data = await importProject(new Uint8Array(readFileSync(path!)));
+  expect(data.manifest.title).toBe('Portable 世界');
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
     if (!navigator.serviceWorker.controller)
@@ -74,21 +79,27 @@ test('invalid files, versions and duplicate keys leave the active project unchan
   await page.goto('/');
   await page.getByLabel('Import .koxora', { exact: true }).setInputFiles({
     name: 'fixture.koxora',
-    mimeType: 'application/json',
+    mimeType: 'application/zip',
     buffer: golden,
   });
   await saved(page);
-  for (const text of [
-    '{',
+  const files = await readZip(new Uint8Array(golden), DEFAULT_LIMITS);
+  const manifest = JSON.parse(new TextDecoder().decode(files['manifest.json']));
+  manifest.schemaVersion = '2.0.0';
+  files['manifest.json'] = new TextEncoder().encode(JSON.stringify(manifest));
+  const unsupported = writeZip(files, DEFAULT_LIMITS);
+  files['manifest.json'] = new TextEncoder().encode(
     '{"format":"wrong","format":"koxora-project"}',
-    golden
-      .toString()
-      .replace('"schemaVersion": "1.0.0"', '"schemaVersion": "2.0.0"'),
+  );
+  for (const bytes of [
+    Buffer.from('{'),
+    unsupported,
+    writeZip(files, DEFAULT_LIMITS),
   ]) {
     await page.getByLabel('Import .koxora', { exact: true }).setInputFiles({
       name: 'invalid.koxora',
-      mimeType: 'application/json',
-      buffer: Buffer.from(text),
+      mimeType: 'application/zip',
+      buffer: Buffer.from(bytes),
     });
     await expect(page.getByRole('alert')).toBeVisible();
     await expect(
@@ -119,8 +130,11 @@ test('a quota failure keeps unsaved changes exportable and the stored version in
     .getByRole('button', { name: 'Export .koxora', exact: true })
     .click();
   expect(
-    JSON.parse(readFileSync((await (await downloadPromise).path())!, 'utf8'))
-      .title,
+    (
+      await importProject(
+        new Uint8Array(readFileSync((await (await downloadPromise).path())!)),
+      )
+    ).manifest.title,
   ).toBe('Keep my changes');
   page.once('dialog', (dialog) => dialog.accept());
   await page.reload();
@@ -237,8 +251,11 @@ test('blocked project storage keeps edits exportable and replacement requires ex
     .getByRole('button', { name: 'Export .koxora', exact: true })
     .click();
   expect(
-    JSON.parse(readFileSync((await (await downloadPromise).path())!, 'utf8'))
-      .title,
+    (
+      await importProject(
+        new Uint8Array(readFileSync((await (await downloadPromise).path())!)),
+      )
+    ).manifest.title,
   ).toBe('Session only');
   await page.getByRole('button', { name: 'New project', exact: true }).click();
   await page

@@ -61,5 +61,7 @@
   "project.error.conflict": "Dieses Projekt existiert bereits oder wurde anderweitig geändert. Exportiere deine Änderungen, öffne den aktuellen Stand oder importiere als neues Projekt. Bestehende Daten wurden nicht überschrieben.",
   "project.error.missing": "Dieses Projekt oder ein vorheriger Speicherstand ist nicht verfügbar.",
   "project.confirm": "Fortfahren",
-  "project.cancel": "Abbrechen"
+  "project.cancel": "Abbrechen",
+  "project.error.integrity": "Die Integritätsprüfung des Projekts ist fehlgeschlagen. Bewahre die Originaldatei auf und versuche eine geprüfte Sicherung.",
+  "project.error.location": "Stelle: {path}"
 }

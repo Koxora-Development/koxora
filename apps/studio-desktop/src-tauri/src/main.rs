@@ -29,11 +29,11 @@ fn project_write(
     storage::write(&root(&app)?, &id, expected.as_deref(), &value)
 }
 #[tauri::command]
-fn project_export(app: tauri::AppHandle, id: String, text: String) -> Result<String, String> {
+fn project_export(app: tauri::AppHandle, id: String, bytes: Vec<u8>) -> Result<String, String> {
     storage::export(
         &app.path().download_dir().map_err(|_| "storage")?,
         &id,
-        &text,
+        &bytes,
     )
 }
 fn main() {

@@ -1,85 +1,109 @@
 # Native project format specification
 
-**Status: planning proposal v0.1, 2026-10-20; extension, schema, and implementation are not finalized.**
+**Implemented v1.0.0 for Phase 2.1 review, 2026-10-21.** The Product Owner explicitly required a structured ZIP container. This specification and [ADR 0013](../adr/0013-project-storage.md) replace the rejected, never-released JSON draft. Acceptance and merge remain pending. The executable schema is `packages/project/src/schema.ts`, with public types in `types.ts`; no separate JSON Schema dialect is claimed.
 
-Implemented Phase 2.1 behavior and proposed deviations are recorded in [ADR 0013](../adr/0013-project-storage.md) and the [project storage guide](../development/project-storage.md). The broader planning scope below is retained.
+## Container and archive layout
 
-## 1. Purpose
-
-Portable, versioned, offline-editable native projects span browser and desktop. They contain projects, diagrams, datasets, media, layouts, interactions, animations, and metadata. A native file is different from PNG/PDF/GIF or exported HTML.
-
-## 2. Container
-
-Proposed `.koxora` ZIP archive with UTF-8 JSON and binary assets; MIME type registration follows the format decision. Bound expanded sizes, compression ratios, and file count. Reject absolute paths, traversal, and unsafe links.
+A `.koxora` file is a ZIP32 archive of UTF-8 JSON and binary resources. Browser downloads use `application/zip`; no vendor MIME registration is claimed. Required indexes exist even when empty.
 
 ```text
-project.koxora
-├── manifest.json
-├── documents/
-│   ├── index.json
-│   └── <document-id>.json
-├── datasets/
-│   ├── index.json
-│   └── <dataset-id>.json
-├── assets/
-│   └── <sha256>.<extension>
-├── themes/
-├── templates/
-└── previews/thumbnail.png
+manifest.json
+documents/index.json
+documents/<document-uuid>.json
+datasets/index.json
+datasets/<dataset-uuid>.json
+assets/index.json
+assets/<sha256>
+themes/index.json
+themes/<theme-uuid>.json
+templates/index.json
+templates/<template-uuid>.json
+previews/index.json
+previews/<preview-uuid>
+extensions/<owner-namespace>/<optional-resource>
 ```
 
-## 3. Illustrative manifest
+Manifest fields: `format: "koxora-project"`, independent `formatVersion` and `schemaVersion`, `minReaderVersion`, `minSchemaReaderVersion`, `projectId`, `title`, `createdAt`, `updatedAt`, `locale`, `direction`, `requiredFeatures`, the six `<collection>Index` paths, `resources`, and `extensions`. Initial versions are `1.0.0`. Dates are canonical UTC ISO strings with milliseconds. Locale is a valid BCP 47 tag, independent of UI language; direction is `auto`, `ltr`, or `rtl`.
 
-```json
-{
-  "format": "koxora-project",
-  "schemaVersion": "1.0.0",
-  "minReaderVersion": "1.0.0",
-  "projectId": "018f0000-0000-7000-8000-000000000001",
-  "title": "Network architecture",
-  "locale": "en",
-  "createdAt": "2026-10-20T00:00:00Z",
-  "updatedAt": "2026-10-20T00:00:00Z",
-  "documentsIndex": "documents/index.json",
-  "datasetsIndex": "datasets/index.json",
-  "features": ["nodes", "edges", "interactive-actions"],
-  "extensions": {}
-}
-```
+Each resource descriptor has `size` (uncompressed bytes), lowercase hex `sha256`, `mediaType`, `required`, and `extensions`. Every file except the manifest itself must have exactly one descriptor. Missing files, extra unlisted files, hash/size mismatches, and a recursive manifest descriptor fail import. Hashes detect corruption; they do not authenticate the author. Core JSON entry hashes are regenerated after edits. Optional opaque files retain their exact bytes and descriptor metadata. Empty directory entries carry no project semantics and are omitted on export.
 
-IDs, versions, title, and timestamps are synthetic examples, not a real project. `title` is user-authored document content, not interface text. `locale` is document metadata, independent of interface selection and its English fallback; the `de-DE` source example has been adapted to the English documentation convention. Exact locale normalization is an open schema decision.
+Indexes have `schemaVersion`, `items`, and `extensions`. Each item has a unique `id`, canonical `path`, and `extensions`, plus optional future fields. Assets and previews store their complete descriptors in the index. Other indexes point to individual JSON records. Two asset identities may share the same content-addressed blob. Asset filenames omit a guessed extension; their media type is explicit. This refines the original illustrative `<hash>.<extension>` layout without changing its content-addressing intent.
 
-## 4. Objects
+## Domain schema
 
-- Document: `id`, `type`, `title`, `pages`, `views`, `styles`, `interactions`, `animations`, `extensions`.
-- Page: `id`, `size`, `viewport`, `layers`, `elements`, `relationships`.
-- Element: stable `id`, `kind`, `geometry`, `style`, `content`, `dataBindings`, `metadata`, `extensions`.
-- Relationship: `id`, `sourceId`, `targetId`, `relationType`, `ports`, `routing`, `metadata`.
-- Domain-specific models: independently versioned `domainModel` blocks; renderers may generate additional views.
-- Dataset: `schema`, `rows`/`columns`, `transforms`, `refreshPolicy`, `sourceRef`, `snapshot`.
-- Interactions: allowlisted declarative tooltip, navigation, filter, expand, and URL actions; no arbitrary script.
-- Animation: keyframes, timeline, duration, easing, target elements.
+All entities with IDs use canonical lowercase UUIDs, versions 1–8 and RFC variant. The factory creates UUID v4 through an injected generator. IDs are globally unique within the modeled project, including template contents, dataset fields, styles and actions. References are checked by type and scope, not merely by UUID spelling. A copy import changes only the project ID; opaque embedded references to the original project cannot safely be rewritten automatically.
 
-## 5. Resources and portability
+| Structure | Validated v1 fields and semantics |
+| --- | --- |
+| Document | `id`, `schemaVersion`, `type`, `title`, `locale`, nonempty `pages`, `styles`, `domainModels`, `actions`, `animations`, `extensions` |
+| Page | `id`, `title`, positive `size.width/height`, `viewport.x/y/zoom`, nonempty `layers`, `nodes`, `connections`, `relationships`, `layout`, `presentation`, `extensions` |
+| Layer | `id`, `title`, booleans `visible/locked`, optional same-page `parentId`; acyclic hierarchy |
+| Node/shape | `id`, `kind`, same-page `layerId`, `geometry.x/y/width/height/rotation`, `content`, `metadata`, optional `styleId`, `assetIds`, `dataBindings`, `extensions` |
+| Connection | `id`, same-page node `sourceId/targetId`, same-page `layerId`, `relationType`, numeric `waypoints`, optional `styleId`, `extensions` |
+| Relationship | `id`, project node `sourceId/targetId`, `kind`, `metadata`, `extensions`; may span pages/documents |
+| Dataset | `id`, `schemaVersion`, `title`, `fields`, `rows`, `source`, `extensions`; every row contains exactly the declared field IDs |
+| Dataset field | `id`, `name`, `type` (`string`, `number`, `boolean`, `date`, `json`), boolean `nullable`, `extensions`; dates use valid `YYYY-MM-DD` |
+| Data binding | `datasetId`, `fieldId`; field must belong to that dataset |
+| Asset | `id`, `path: assets/<sha256>`, `sha256`, integer `size`, `mediaType`, `extensions`; bytes and manifest descriptor must agree |
+| Style | `id`, `properties`, optional same-list `parentId`, `extensions`; acyclic inheritance |
+| Theme | `id`, `schemaVersion`, `title`, `tokens`, `styles`, `extensions` |
+| Template | `id`, `schemaVersion`, `title`, validated `document`, `extensions` |
+| Preview | Asset descriptor plus existing `documentId`, `path: previews/<id>`, and image media type |
+| Action | `id`, node `targetId`, `trigger` (`click`, `hover`, `focus`), allowlisted `operation`, `parameters`, `extensions` |
+| Animation | `id`, node `targetId`, positive `duration` in milliseconds, supported `easing`, at least two strictly ordered `keyframes` within duration, `extensions` |
 
-Address assets by SHA-256. Explicitly reference external fonts/URLs; embedding requires license review. Never automatically export credentials, tokens, absolute local paths, or session secrets. Retain portable source snapshots optionally.
+Geometry uses logical document units; rotation is in degrees. Page layout/presentation, shape content and style properties are inert extensible JSON dictionaries. They provide storage for future renderers, not an implemented drawing engine. Text and embedded bytes are never interpreted as HTML or executed. No remote resource, dataset source, URL, font or plugin is loaded during import.
 
-## 6. Versions and migration
+Actions validate operation-specific parameters: `tooltip.text`, `navigate.pageId`, `expand.nodeId`, `filter.datasetId/fieldId/value`, or `url.url`. URL schemes are limited to HTTP, HTTPS and mailto, without URL credentials. Animation easing accepts `linear`, `ease`, `ease-in`, `ease-out`, `ease-in-out`, `step-start`, `step-end`. Neither actions nor animations are executed in this milestone. A later interpreter must independently enforce interaction and navigation permissions.
 
-Schema SemVer is separate from app version. Validate manifest and minimum reader version, back up, then migrate incrementally. Preserve unknown optional extensions. Unknown required features cause read-only access or an error rather than silent destruction. Export to old schemas only with an explicit loss report.
+### Diagram-specific schemas
 
-## 7. Collaboration
+Each domain model has `namespace`, `schemaVersion`, `required`, `references`, `data`, and `extensions`. References must exist in the project. Known v1 namespaces validate these data structures:
 
-A CRDT operation log is a synchronization mechanism, not necessarily the portable format. Serialize snapshots deterministically. Keep project IDs stable; importing as a copy may create a new identity at user request. Resolve imported-file/cloud-project conflicts through user choice.
+- `org.koxora.mindmap`: `roots` and `parents` keyed by document node IDs; roots are the exact distinct null-parent entries; parents form an acyclic forest.
+- `org.koxora.flowchart`: `starts` and `ends` containing document node references.
+- `org.koxora.uml`: `classifiers` with document `nodeId`, `kind`, string `attributes` and `operations`.
+- `org.koxora.er`: `entities` with document `nodeId` and fields (`id`, `name`, `dataType`, `primaryKey`, `nullable`); `relations` reference document connections and declared ER fields.
 
-## 8. Fidelity
+These validate a storage foundation, not all semantic rules of UML or a database engine. Future engine metadata fits in namespaced extensions. An unknown namespace or unsupported model major version is retained opaquely when optional and rejected when required. Its declared references still validate.
 
-Importers/exporters report `supported`, `partiallySupported`, `unsupported`. HTML can retain interactions; SVG/PDF have limits; PNG/JPEG are static; GIF/video are temporal. Raster reimport cannot automatically restore editable structures.
+## Compatibility and preservation
 
-## 9. Reference tests
+Container, core schema, indexed component schemas and domain model schemas are independent of application versions. Readers accept major version 1 with additive minor/patch versions only when the manifest's minimum container and schema readers are no higher than `1.0.0`. Unsupported major versions, unknown required features or unknown required resources fail safely. The UI keeps the active project and source file untouched.
 
-Golden files per schema version; import/export/import; vN→vN+1 migrations; deterministic asset hashes; corrupt/oversized archives; Unicode/RTL; unknown extensions; missing fonts; offline HTML.
+Supported required feature labels are `documents`, `pages`, `nodes`, `connections`, `layers`, `relationships`, `datasets`, `assets`, `styles`, `themes`, `templates`, `actions`, `animations`, `previews`. Unsupported semantics must be declared required by writers; unknown optional fields must not redefine existing fields.
 
-## 10. Open decisions
+Every extensible record retains additional JSON fields. Extension keys use lowercase reverse-domain namespaces such as `org.example.plugin`; namespace ownership is not authenticated. Opaque plugin resources must be listed in the manifest with `required: false`. Unknown fields in indexes and resource descriptors also survive. A known field with an invalid value is rejected rather than reinterpreted as an extension.
 
-Extension/MIME, JSON schemas, UUIDv7 versus ULID, units, collaboration granularity, deterministic ZIP ordering, asset limits, and optional archive encryption. See [O-004 and T-010](../decisions.md).
+Serialization sorts JSON object keys and archive paths, preserves array order, uses two-space JSON plus a newline, and emits STORE entries with fixed DOS timestamps (1980-01-01). Repeated exports of unchanged data are byte-identical. Imports accept STORE and raw DEFLATE, including data descriptors. Re-exporting compressed input changes compression, ZIP metadata, JSON formatting and hashes of normalized JSON; semantic values and opaque resource bytes remain intact. Finite binary64 numbers are supported, with safe integers only; high-precision values should be strings. Negative zero normalizes to zero.
+
+## Migration
+
+Normal file import accepts ZIP only. `importLegacyJson` is the explicit migration entry point for this PR's unreleased JSON draft. The migration preserves project/page/node/connection IDs, derives deterministic document/layer UUIDs, supplies required geometry/layout defaults, and retains the complete original parsed project in `org.koxora.legacy-source`. Local snapshots from the draft are detected and migrated in memory; the next save retains the original snapshot bytes as its previous value.
+
+`migrate` operates on copies through explicit exact `from`/`to` steps, rejects missing or cyclic routes, and propagates errors. The caller validates the final target schema before persistence. No invented historical ZIP version is accepted, and no downgrade exporter silently drops data. New container/schema migrations must add real source/target fixtures and explicit validation before they are registered. `legacy-json-v1.json` and `migrated-json-v1.koxora` form the current migration pair.
+
+## Security and resource limits
+
+The archive parser preflights the central directory and every local header before inflation. It rejects encryption, ZIP64, multiple disks, unsupported methods, links/devices, alternate-name extra fields, mismatched headers, overlap/hidden bytes, unsafe paths, duplicate/case-alias names, bad CRCs and size inconsistencies. Names are portable ASCII paths of at most 240 characters; Unicode belongs in JSON content, not generated archive paths. No entry is extracted to the filesystem. Streaming DEFLATE checks actual output against advertised and configured bounds, even when headers lie.
+
+JSON rejects duplicate keys (including escaped aliases), unsafe prototype keys, malformed UTF-8, non-JSON runtime values, excessive nesting, invalid references and unsupported required semantics. Index identities are checked before parsing referenced payloads to prevent repeat-reference amplification. Hierarchy checks visit each parent chain only once.
+
+| Default limit | Value | Reason |
+| --- | --- | --- |
+| Archive bytes | 64 MiB | Portable whole-file browser/desktop exchange; bounds file-input and native IPC allocation |
+| Total expanded bytes | 64 MiB | Compressed input must not exceed the same document-data budget |
+| Per-entry expanded bytes | 32 MiB | Prevents one binary object consuming the full project budget |
+| Per-JSON entry bytes | 8 MiB | JSON objects/strings use substantially more heap than their UTF-8 bytes |
+| Archive entries | 4,096 | Bounds headers, resource-table work and hash operations |
+| Compression ratio | 200:1 | Rejects extreme compression amplification before inflation; configurable for trusted legitimate data |
+| JSON depth | 64 | Bounds recursive schema and canonicalization work |
+| Aggregate runtime JSON values | 1,000,000 | Bounds object graph complexity independently of file size |
+
+These are explicit implementation budgets, not on-disk schema maxima or measured renderer capacity. Peak memory includes input bytes, inflated buffers, JSON objects, generated output, base64 snapshots and the previous save; it can be several times the archive limit. `ResourceLimits` options on import/export permit host-selected budgets; the application uses defaults. Rejecting a large project leaves its source intact. ZIP32 field bounds remain mandatory regardless of host configuration. Parsing currently runs on the calling thread; worker parsing and streaming persistence are future performance work. The native snapshot envelope is capped at 256 MiB to hold two base64-encoded 64 MiB archives plus metadata; an oversized recovery envelope fails without deleting its source.
+
+## Verification and deferred features
+
+`complete-v1.koxora` includes multiple documents/pages, every known domain model, a dataset/binding, PNG bytes, theme, template, preview, actions, animation, Unicode/RTL metadata and opaque future data. Unit and browser tests cover deterministic round trips, corruption, references, versions, migrations, limits and failure retention. See [project storage](../development/project-storage.md) for actual results and manual acceptance.
+
+Interactive editors, rendering fidelity across export formats, CRDT logs, cloud integration, archive encryption, external asset licensing and a MIME registration remain separate decisions. They do not weaken the implemented container's preservation contract.
