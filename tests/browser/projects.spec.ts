@@ -266,3 +266,18 @@ test('blocked project storage keeps edits exportable and replacement requires ex
     'Untitled project',
   );
 });
+test('compressed multi-document import retains all binary and optional data on export', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page
+    .getByLabel('Import .koxora', { exact: true })
+    .setInputFiles('packages/project/fixtures/complete-v1-deflated.koxora');
+  await saved(page);
+  const downloadPromise = page.waitForEvent('download');
+  await page
+    .getByRole('button', { name: 'Export .koxora', exact: true })
+    .click();
+  const path = await (await downloadPromise).path();
+  expect(readFileSync(path!)).toEqual(golden);
+});

@@ -15,7 +15,7 @@ Phase 2.1 implements a shared native ZIP project format, local saves, creation/n
 
 The model stores multiple documents/pages, layers, shapes/nodes, connections, relationships, mindmap/flowchart/UML/ER models, typed datasets, binaries, themes, templates, previews, declarative actions/animations, locale and namespaced future extensions. These are real validated storage structures. The minimal UI creates an empty document/page and edits the project name; it does not expose editors or renderers for all structures. No account, backend, network, cloud, AI or marketplace is required.
 
-Fixtures are synthetic: `packages/project/fixtures/complete-v1.koxora` exercises all collections and future data; `legacy-json-v1.json` and `migrated-json-v1.koxora` form a deterministic migration pair. Normal file import accepts ZIP. Local draft snapshots migrate in memory and retain their original bytes on the next save.
+Fixtures are synthetic: `packages/project/fixtures/complete-v1.koxora` exercises all collections and future data; `legacy-json-v1.json` and `migrated-json-v1.koxora` form a deterministic migration pair; `legacy-rich-v1.json` and `migrated-rich-v1.koxora` additionally cover populated graphs and opaque metadata. `complete-v1-deflated.koxora` is a Python-zipfile interoperability fixture. Normal file import accepts ZIP. Local draft snapshots migrate in memory and retain their original bytes on the next save.
 
 ## Local saves, conflicts, and recovery
 
@@ -90,14 +90,15 @@ Unit tests cover all collections, deterministic golden bytes, Unicode, compatibl
 
 Local revision validation on 2026-10-21:
 
-| Check                                                | Observed result                                                                               |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Unit suite                                           | 89 passed; full `pnpm check` passed (TypeScript, lint, formatting, docs, 453 license records) |
-| Chromium desktop and mobile-emulation browser suites | 20 passed against the ZIP production build                                                    |
-| Standalone native storage                            | 7 passed, including complete ZIP export fidelity                                              |
-| Full native build and cross-OS packages              | Awaiting the final commit's CI matrix                                                         |
+| Check                                                | Observed result                                                                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Build and dependency audit                           | Production build passed; audit found no known vulnerabilities                                                      |
+| Unit suite                                           | 92 passed; full `pnpm check` passed (TypeScript, lint, formatting, docs, 453 license records)                      |
+| Chromium desktop and mobile-emulation browser suites | 22 passed: 20 regression cases plus two independent DEFLATE archive round trips                                    |
+| Standalone native storage                            | 7 passed, including complete ZIP export fidelity; standalone Clippy and Rust formatting passed                     |
+| Full native build and cross-OS packages              | Final CI results and artifact links are recorded on [PR #10](https://github.com/Koxora-Development/koxora/pull/10) |
 
-The local browser tests use installed Chromium because the Playwright CDN was blocked in this environment. Mobile coverage is Chromium device emulation, not a physical iOS device. The standalone Rust checks cover storage, not full Tauri integration. Full local native commands require GLib/GObject/WebKit development prerequisites that were unavailable at the prior check; final attempts and CI evidence must remain distinct.
+The local browser tests use installed Chromium because the Playwright CDN was blocked in this environment. Mobile coverage is Chromium device emulation, not a physical iOS device. The standalone Rust checks cover storage, not full Tauri integration. Full local native commands require GLib/GObject/WebKit development prerequisites that were unavailable at the revision check (`cargo test --locked --offline` failed in glib-sys/gobject-sys); local and remote results are distinct.
 
 ### CI diagnosis
 

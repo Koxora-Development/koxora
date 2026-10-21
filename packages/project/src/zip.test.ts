@@ -1,5 +1,5 @@
 import { deflateRawSync } from 'node:zlib';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { DEFAULT_LIMITS, parseJson } from './validation';
 import { crc32, readZip, writeZip } from './zip';
 const encoder = new TextEncoder();
@@ -199,4 +199,16 @@ it('shares a JSON value budget across archive entries', () => {
   expect(() =>
     parseJson(encoder.encode('[3,4]'), 'second.json', DEFAULT_LIMITS, values),
   ).toThrow();
+});
+
+it('reports missing raw-DEFLATE support without changing STORE support', async () => {
+  vi.stubGlobal('DecompressionStream', undefined);
+  try {
+    await expect(
+      readZip(compressed('x', encoder.encode('hello')), DEFAULT_LIMITS),
+    ).rejects.toMatchObject({ code: 'unsupported', reason: 'compressionApi' });
+    await expect(readZip(archive(), DEFAULT_LIMITS)).resolves.toBeDefined();
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

@@ -359,3 +359,37 @@ it('rejects duplicate mindmap roots instead of losing a forest root', async () =
   };
   expect(() => validateProject(p)).toThrow();
 });
+it('migrates a populated legacy graph without losing IDs, coordinates or opaque data', async () => {
+  const source = readFileSync(
+    'packages/project/fixtures/legacy-rich-v1.json',
+    'utf8',
+  );
+  const old = JSON.parse(source),
+    result = await importLegacyJson(source);
+  const page = result.documents[0].pages[0];
+  expect(page.nodes.map((node) => node.id)).toEqual(
+    old.pages[0].nodes.map((node: { id: string }) => node.id),
+  );
+  expect(page.nodes[0].geometry).toMatchObject({ x: 12.5, y: -9 });
+  expect(page.connections[0]).toMatchObject(
+    old.pages[0].connections.map(
+      (edge: { id: string; sourceId: string; targetId: string }) => ({
+        id: edge.id,
+        sourceId: edge.sourceId,
+        targetId: edge.targetId,
+      }),
+    )[0],
+  );
+  expect(result.manifest.extensions['org.koxora.legacy-source']).toEqual(old);
+  expect(await exportProject(result)).toEqual(
+    new Uint8Array(
+      readFileSync('packages/project/fixtures/migrated-rich-v1.koxora'),
+    ),
+  );
+});
+it('imports a compressed archive produced by Python zipfile and normalizes to the golden bytes', async () => {
+  const bytes = new Uint8Array(
+    readFileSync('packages/project/fixtures/complete-v1-deflated.koxora'),
+  );
+  expect(await exportProject(await importProject(bytes))).toEqual(golden);
+});

@@ -81,7 +81,7 @@ Serialization sorts JSON object keys and archive paths, preserves array order, u
 
 Normal file import accepts ZIP only. `importLegacyJson` is the explicit migration entry point for this PR's unreleased JSON draft. The migration preserves project/page/node/connection IDs, derives deterministic document/layer UUIDs, supplies required geometry/layout defaults, and retains the complete original parsed project in `org.koxora.legacy-source`. Local snapshots from the draft are detected and migrated in memory; the next save retains the original snapshot bytes as its previous value.
 
-`migrate` operates on copies through explicit exact `from`/`to` steps, rejects missing or cyclic routes, and propagates errors. The caller validates the final target schema before persistence. No invented historical ZIP version is accepted, and no downgrade exporter silently drops data. New container/schema migrations must add real source/target fixtures and explicit validation before they are registered. `legacy-json-v1.json` and `migrated-json-v1.koxora` form the current migration pair.
+`migrate` operates on copies through explicit exact `from`/`to` steps, rejects missing or cyclic routes, and propagates errors. The caller validates the final target schema before persistence. No invented historical ZIP version is accepted, and no downgrade exporter silently drops data. New container/schema migrations must add real source/target fixtures and explicit validation before they are registered. `legacy-json-v1.json` and `migrated-json-v1.koxora` form the minimal migration pair; `legacy-rich-v1.json` and `migrated-rich-v1.koxora` also preserve a populated graph and unknown source metadata.
 
 ## Security and resource limits
 

@@ -242,9 +242,15 @@ export async function readZip(
       data = compressed;
     } else {
       // Streaming decompression checks actual output, even when the ZIP header lies.
+      let decompressor: DecompressionStream;
+      try {
+        decompressor = new DecompressionStream('deflate-raw');
+      } catch {
+        throw new ProjectError('unsupported', entry.path, 'compressionApi');
+      }
       const reader = new Blob([compressed])
         .stream()
-        .pipeThrough(new DecompressionStream('deflate-raw'))
+        .pipeThrough(decompressor)
         .getReader();
       const chunks: Uint8Array[] = [];
       let size = 0;
