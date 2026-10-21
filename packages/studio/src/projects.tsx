@@ -3,9 +3,9 @@ import { translate, type MessageKey } from '@koxora/i18n';
 import {
   createProject,
   MAX_BYTES,
-  parseProject,
+  importProject,
   ProjectError,
-  serializeProject,
+  exportProject,
   type Project,
 } from '@koxora/project';
 import {
@@ -70,6 +70,7 @@ export function Projects({ locale }: { locale: string }) {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<MessageKey | null>(null);
+  const [errorPath, setErrorPath] = useState<string | null>(null);
   const [exportPath, setExportPath] = useState<string | null>(null);
   const [asCopy, setAsCopy] = useState(false);
   const [confirmation, setConfirmation] = useState<{
@@ -78,6 +79,9 @@ export function Projects({ locale }: { locale: string }) {
   } | null>(null);
   const dirty = project !== saved;
   function report(error: unknown) {
+    setErrorPath(
+      error instanceof ProjectError && error.path !== '$' ? error.path : null,
+    );
     setError(
       `project.error.${error instanceof ProjectError ? error.code : 'storage'}`,
     );
@@ -168,12 +172,10 @@ export function Projects({ locale }: { locale: string }) {
     setError(null);
     try {
       if (file.size > MAX_BYTES) throw new ProjectError('tooLarge');
-      const imported = parseProject(
-        new TextDecoder('utf-8', { fatal: true }).decode(
-          await file.arrayBuffer(),
-        ),
+      const imported = await importProject(
+        new Uint8Array(await file.arrayBuffer()),
       );
-      if (asCopy) imported.projectId = crypto.randomUUID();
+      if (asCopy) imported.manifest.projectId = crypto.randomUUID();
       // A duplicate identity is never silently replaced. Import must commit before switching views.
       const next = await repository.save(imported, null);
       setProject(imported);
@@ -193,21 +195,21 @@ export function Projects({ locale }: { locale: string }) {
     setError(null);
     setExportPath(null);
     try {
-      const text = serializeProject(project);
+      const bytes = await exportProject(project);
       if (native) {
         setExportPath(
           await native.invoke<string>('project_export', {
-            id: project.projectId,
-            text,
+            id: project.manifest.projectId,
+            bytes: Array.from(bytes),
           }),
         );
       } else {
         const url = URL.createObjectURL(
-          new Blob([text], { type: 'application/json' }),
+          new Blob([new Uint8Array(bytes)], { type: 'application/zip' }),
         );
         const link = document.createElement('a');
         link.href = url;
-        link.download = `koxora-${project.projectId}.koxora`;
+        link.download = `koxora-${project.manifest.projectId}.koxora`;
         link.click();
         window.setTimeout(() => URL.revokeObjectURL(url), 60000);
       }
@@ -264,17 +266,23 @@ export function Projects({ locale }: { locale: string }) {
           <label>
             {t('project.name')}
             <input
-              value={project.title}
+              value={project.manifest.title}
               maxLength={1024}
               disabled={busy}
               onChange={(event) => {
                 setError(null);
                 setProject({
                   ...project,
-                  title: event.target.value,
-                  updatedAt: new Date(
-                    Math.max(Date.now(), Date.parse(project.updatedAt)),
-                  ).toISOString(),
+                  manifest: {
+                    ...project.manifest,
+                    title: event.target.value,
+                    updatedAt: new Date(
+                      Math.max(
+                        Date.now(),
+                        Date.parse(project.manifest.updatedAt),
+                      ),
+                    ).toISOString(),
+                  },
                 });
               }}
             />
@@ -303,7 +311,17 @@ export function Projects({ locale }: { locale: string }) {
           <p>{t('project.canvasLater')}</p>
         </div>
       )}
-      {error && <p role="alert">{t(error)}</p>}
+      {error && (
+        <p role="alert">
+          {t(error)}
+          {errorPath && (
+            <>
+              {' '}
+              {translate(locale, 'project.error.location', { path: errorPath })}
+            </>
+          )}
+        </p>
+      )}
       {exportPath && (
         <p>{translate(locale, 'project.exported', { path: exportPath })}</p>
       )}
