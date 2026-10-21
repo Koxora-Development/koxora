@@ -1,0 +1,24 @@
+{
+  "createdAt": "2026-10-20T00:00:00.000Z",
+  "extensions": {},
+  "format": "koxora-project",
+  "minReaderVersion": "1.0.0",
+  "pages": [
+    {
+      "connections": [],
+      "extensions": {},
+      "id": "00000000-0000-4000-8000-000000000002",
+      "nodes": [],
+      "title": "Überblick 世界 مرحبا",
+      "type": "diagram"
+    }
+  ],
+  "projectId": "00000000-0000-4000-8000-000000000001",
+  "requiredFeatures": [
+    "nodes",
+    "connections"
+  ],
+  "schemaVersion": "1.0.0",
+  "title": "Überblick 世界 مرحبا",
+  "updatedAt": "2026-10-20T00:00:00.000Z"
+}

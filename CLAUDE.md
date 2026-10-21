@@ -12,4 +12,4 @@ Check claims against the actual GitHub diff, tests, and implementation. Report c
 
 ## Implementation scope and language
 
-Phase 1 foundation is authorized; see [development setup](docs/development/foundation.md) for real commands and scope. Canvas and optional services require subsequent assignments. No DNS or mailserver changes. Write all technical work in English; preserve the English default/fallback, German support from inception, localization keys, and independent language selection required by [internationalization](docs/product/internationalization.md).
+Phase 2.1 additionally authorizes [project storage](docs/development/project-storage.md). Phase 1 foundation is authorized; see [development setup](docs/development/foundation.md) for real commands and scope. Canvas and optional services require subsequent assignments. No DNS or mailserver changes. Write all technical work in English; preserve the English default/fallback, German support from inception, localization keys, and independent language selection required by [internationalization](docs/product/internationalization.md).

@@ -92,8 +92,22 @@ importers:
 
   packages/i18n: {}
 
+  packages/project: {}
+
+  packages/persistence:
+    dependencies:
+      '@koxora/project':
+        specifier: workspace:*
+        version: link:../project
+
   packages/studio:
     dependencies:
+      '@koxora/project':
+        specifier: workspace:*
+        version: link:../project
+      '@koxora/persistence':
+        specifier: workspace:*
+        version: link:../persistence
       '@koxora/i18n':
         specifier: workspace:*
         version: link:../i18n

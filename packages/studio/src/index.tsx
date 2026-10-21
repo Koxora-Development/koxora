@@ -1,3 +1,4 @@
+import { Projects } from './projects';
 import { useEffect, useState } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
 import { FeatureCard, Mark } from '@koxora/ui';
@@ -85,17 +86,7 @@ export function Studio() {
               <h2 id="workspace-title">{t('workspace.title')}</h2>
               <span className="badge">{t('workspace.badge')}</span>
             </div>
-            <div className="empty-workspace">
-              <div className="diagram-art" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-                <i />
-                <i />
-              </div>
-              <h3>{t('workspace.empty.title')}</h3>
-              <p>{t('workspace.empty.description')}</p>
-            </div>
+            <Projects locale={preferences.locale} />
             <p className="workspace-note">{t('workspace.note')}</p>
           </section>
           <section id="foundation" aria-labelledby="foundation-title">

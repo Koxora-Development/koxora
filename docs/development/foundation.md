@@ -1,5 +1,7 @@
 # Phase 1 development foundation
 
+This records the Phase 1 baseline. For the current project model, persistence, native permissions, and recovery behavior added by Phase 2.1, see [project storage](project-storage.md). Statements about absent project features below describe Phase 1 only.
+
 ## Scope and architecture
 
 This milestone implements a guest studio shell, shared UI and design tokens, English/German, light/dark preferences, offline shell caching, Tauri configuration, and development checks. It implements foundations for CORE-001, CORE-002, CORE-003, CORE-013, CORE-014, CORE-015, CORE-016, CORE-018, OPS-001, OPS-003, OPS-007 and OPS-011. These are partial foundations, not completion of every catalog acceptance case. The direct Phase 1 assignment narrows the earlier roadmap: no canvas, document schema or project files yet.

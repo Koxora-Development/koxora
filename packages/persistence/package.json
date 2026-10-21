@@ -1,0 +1,11 @@
+{
+  "name": "@koxora/persistence",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "UNLICENSED",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@koxora/project": "workspace:*"
+  }
+}

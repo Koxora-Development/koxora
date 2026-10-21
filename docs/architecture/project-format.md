@@ -2,6 +2,8 @@
 
 **Status: planning proposal v0.1, 2026-10-20; extension, schema, and implementation are not finalized.**
 
+Implemented Phase 2.1 behavior and proposed deviations are recorded in [ADR 0013](../adr/0013-project-storage.md) and the [project storage guide](../development/project-storage.md). The broader planning scope below is retained.
+
 ## 1. Purpose
 
 Portable, versioned, offline-editable native projects span browser and desktop. They contain projects, diagrams, datasets, media, layouts, interactions, animations, and metadata. A native file is different from PNG/PDF/GIF or exported HTML.

@@ -31,6 +31,8 @@ React/TypeScript/Vite, pnpm, Tauri 2, Yjs, Laravel, PostgreSQL, canvas libraries
 
 Phase 0 is complete. The explicit Phase 1 assignment authorizes the monorepo, shared web/desktop shell, localization, themes, tests, CI, and supporting ADRs. See [foundation setup](docs/development/foundation.md). It does not authorize canvas, cloud, authentication, collaboration, AI, marketplace, DNS, or production work. The 178 requirements remain long-term scope; do not implement unrelated features or create issues en masse.
 
+Phase 2.1 separately authorizes the shared project model, validation and migration infrastructure, local persistence adapters, native project import/export and recovery, minimal project controls, and their tests. See [project storage](docs/development/project-storage.md). Canvas and optional services remain outside this assignment.
+
 ## Verification and handover
 
 Run relevant existing checks and report real results. Run `pnpm check`, `pnpm build`, browser smoke tests, and native checks where prerequisites exist; see the development guide. Keep actual local results distinct from configured remote CI. Later stories must address appropriate unit/integration/E2E, offline, localization, migration, security, accessibility, and dependency-license checks. Do not claim unrun tests passed.
