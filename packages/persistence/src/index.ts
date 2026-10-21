@@ -42,27 +42,29 @@ export class ProjectRepository {
   constructor(private readonly store: SnapshotStore) {}
   async list(): Promise<{ id: string; title: string | null }[]> {
     const keys = await this.store.keys();
-    return Promise.all(
-      keys.map(async (id) => {
-        try {
-          return { id, title: (await this.open(id)).project.manifest.title };
-        } catch (error) {
-          if (
-            error instanceof ProjectError &&
-            [
-              'invalid',
-              'integrity',
-              'unsupported',
-              'tooLarge',
-              'storage',
-              'missing',
-            ].includes(error.code)
-          )
-            return { id, title: null };
-          throw error;
-        }
-      }),
-    );
+    const items: { id: string; title: string | null }[] = [];
+    // A project can contain large embedded assets. Bound list discovery to one
+    // decoded archive at a time rather than multiplying peak memory by count.
+    for (const id of keys) {
+      try {
+        items.push({ id, title: (await this.open(id)).project.manifest.title });
+      } catch (error) {
+        if (
+          error instanceof ProjectError &&
+          [
+            'invalid',
+            'integrity',
+            'unsupported',
+            'tooLarge',
+            'storage',
+            'missing',
+          ].includes(error.code)
+        ) {
+          items.push({ id, title: null });
+        } else throw error;
+      }
+    }
+    return items;
   }
   async open(id: string, previous = false): Promise<OpenProject> {
     const raw = await this.store.read(id);

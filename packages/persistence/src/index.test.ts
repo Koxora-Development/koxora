@@ -188,3 +188,32 @@ it('isolates unreadable records while still listing healthy projects', async () 
     { id: 'unreadable', title: null },
   ]);
 });
+it('bounds archive loading while listing multiple saved projects', async () => {
+  const { repo, store, project } = setup();
+  await repo.save(project, null);
+  const second = createProject(
+    'Second',
+    () => crypto.randomUUID(),
+    '2026-10-21T00:00:00.000Z',
+  );
+  await repo.save(second, null);
+  let active = 0,
+    peak = 0;
+  const measured: SnapshotStore = {
+    keys: () => store.keys(),
+    read: async (id) => {
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      const result = await store.read(id);
+      active--;
+      return result;
+    },
+    write: (...args) => store.write(...args),
+  };
+  expect(await new ProjectRepository(measured).list()).toEqual([
+    { id: project.manifest.projectId, title: 'First' },
+    { id: second.manifest.projectId, title: 'Second' },
+  ]);
+  expect(peak).toBe(1);
+});

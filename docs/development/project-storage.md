@@ -19,7 +19,7 @@ Fixtures are synthetic: `packages/project/fixtures/complete-v1.koxora` exercises
 
 ## Local saves, conflicts, and recovery
 
-Browser projects live in the `koxora-projects` IndexedDB database, in the `projects` object store keyed by project ID. The record contains current and previous serialized project snapshots. An IndexedDB transaction checks the expected record and commits its replacement atomically. Browser preferences and cached application assets are separate stores.
+Project-list discovery decodes one archive at a time so peak archive memory does not grow with the number of saved projects. Browser projects live in the `koxora-projects` IndexedDB database, in the `projects` object store keyed by project ID. The record contains current and previous serialized project snapshots. An IndexedDB transaction checks the expected record and commits its replacement atomically. Browser preferences and cached application assets are separate stores.
 
 Desktop projects live below Tauri's application-data directory in `projects-v1/<project-id>/`. Each directory contains numbered `.snapshot` records and a `write.lock`; `pending.tmp` is ignored until a successful write becomes a snapshot. Native records are limited to 256 MiB. An OS lock coordinates native writers, and the expected record must still match before committing. The latest two generations are retained. These internal records are not portable `.koxora` exports and should not be manually edited.
 
@@ -93,7 +93,7 @@ Local revision validation on 2026-10-21:
 | Check                                                | Observed result                                                                                                    |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | Build and dependency audit                           | Production build passed; audit found no known vulnerabilities                                                      |
-| Unit suite                                           | 92 passed; full `pnpm check` passed (TypeScript, lint, formatting, docs, 453 license records)                      |
+| Unit suite                                           | 93 passed; full `pnpm check` passed (TypeScript, lint, formatting, docs, 453 license records)                      |
 | Chromium desktop and mobile-emulation browser suites | 22 passed: 20 regression cases plus two independent DEFLATE archive round trips                                    |
 | Standalone native storage                            | 7 passed, including complete ZIP export fidelity; standalone Clippy and Rust formatting passed                     |
 | Full native build and cross-OS packages              | Final CI results and artifact links are recorded on [PR #10](https://github.com/Koxora-Development/koxora/pull/10) |
