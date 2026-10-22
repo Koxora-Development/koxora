@@ -1,0 +1,56 @@
+{
+  "createdAt": "2026-10-20T00:00:00.000Z",
+  "extensions": {
+    "org.example.legacy": {
+      "opaque": "source"
+    }
+  },
+  "format": "koxora-project",
+  "minReaderVersion": "1.0.0",
+  "pages": [
+    {
+      "connections": [
+        {
+          "id": "00000000-0000-4000-8000-000000000005",
+          "sourceId": "00000000-0000-4000-8000-000000000003",
+          "targetId": "00000000-0000-4000-8000-000000000004",
+          "extensions": {
+            "org.example.edge": [1, 2]
+          }
+        }
+      ],
+      "extensions": {},
+      "id": "00000000-0000-4000-8000-000000000002",
+      "nodes": [
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "kind": "topic",
+          "x": 12.5,
+          "y": -9,
+          "extensions": {
+            "org.example.note": {
+              "text": "世界 مرحبا"
+            }
+          }
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "kind": "topic",
+          "x": 40,
+          "y": 50,
+          "extensions": {}
+        }
+      ],
+      "title": "Überblick 世界 مرحبا",
+      "type": "mindmap"
+    }
+  ],
+  "projectId": "00000000-0000-4000-8000-000000000001",
+  "requiredFeatures": ["nodes", "connections"],
+  "schemaVersion": "1.0.0",
+  "title": "Überblick 世界 مرحبا",
+  "updatedAt": "2026-10-20T00:00:00.000Z",
+  "futureOptional": {
+    "retained": true
+  }
+}

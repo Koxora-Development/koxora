@@ -1,6 +1,6 @@
 # Koxora
 
-A local-first visualization studio. The Phase 1 technical foundation provides a shared browser/desktop shell, English and German, persistent preferences, light/dark themes, and development checks. Canvas editing and project files are not implemented yet.
+A local-first visualization studio. The shared browser/desktop shell supports English and German, persistent preferences, and light/dark themes. Phase 2.1 adds versioned projects, local saves, `.koxora` import/export, and previous-save recovery. Interactive canvas editing remains future work.
 
 ## Quick start
 
@@ -20,11 +20,13 @@ pnpm exec playwright install --with-deps chromium firefox webkit
 pnpm test:e2e
 ```
 
+Project behavior, the supported file profile, manual acceptance, and current limitations are in the [project storage guide](docs/development/project-storage.md). The [storage ADR](docs/adr/0013-project-storage.md) records the versioned ZIP `.koxora` container and local persistence boundaries.
+
 Desktop commands and native prerequisites, module boundaries, license checks, verification evidence, and limitations are in the [development guide](docs/development/foundation.md). The [stack ADR](docs/adr/0011-foundation-stack.md) and [localization ADR](docs/adr/0012-localization-and-offline-shell.md) record the choices and their tradeoffs. These implementation decisions are subject to PR review; there is no production release or signing setup.
 
 ## Product and planning
 
-The [PRD](docs/product/prd.md), [178-entry catalog](docs/product/feature-catalog.md), [CSV](docs/product/feature-catalog.csv), [vision](docs/product/vision.md), [decision register](docs/decisions.md), [architecture](docs/architecture.md), [roadmap](docs/roadmap.md), and [Phase 0 acceptance](docs/phase-0.md) remain the authoritative planning baseline. Historical technology proposals describe long-term possibilities; only the foundation choices in the new ADRs are implemented.
+The [PRD](docs/product/prd.md), [178-entry catalog](docs/product/feature-catalog.md), [CSV](docs/product/feature-catalog.csv), [vision](docs/product/vision.md), [decision register](docs/decisions.md), [architecture](docs/architecture.md), [roadmap](docs/roadmap.md), and [Phase 0 acceptance](docs/phase-0.md) remain the authoritative planning baseline. Historical technology proposals describe long-term possibilities; the implemented foundation and project-storage choices are documented in their ADRs and remain subject to the stated review status.
 
 English is the default/fallback interface language; German is explicitly selectable, independent of operating system language. All technical work remains English. See [internationalization](docs/product/internationalization.md), [agent instructions](AGENTS.md), [contributing](CONTRIBUTING.md), and [security reporting](SECURITY.md).
 

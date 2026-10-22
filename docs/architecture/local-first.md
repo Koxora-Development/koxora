@@ -2,6 +2,8 @@
 
 **Confirmed product principle; technical implementation remains unvalidated.**
 
+Implemented Phase 2.1 behavior and proposed deviations are recorded in [ADR 0013](../adr/0013-project-storage.md) and the [project storage guide](../development/project-storage.md). The broader planning scope below is retained.
+
 ## Ownership and state
 
 Editing, commands, layout, undo/redo, imports/exports, and core rendering run locally. Cloud can maintain a synchronization copy, never the only permitted storage. Users explicitly choose whether and when to share data.

@@ -1,0 +1,12 @@
+{
+  "identifier": "projects",
+  "description": "Local project snapshots and exports for the main studio window only.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-project-list",
+    "allow-project-read",
+    "allow-project-write",
+    "allow-project-export",
+    "allow-project-read-previous"
+  ]
+}
