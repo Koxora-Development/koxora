@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import {
   importProject,
@@ -6,6 +6,14 @@ import {
 } from '../../packages/project/src/index';
 import { readZip, writeZip } from '../../packages/project/src/zip';
 const golden = readFileSync('packages/project/fixtures/complete-v1.koxora');
+async function importInput(page: Page) {
+  const dialog = page.getByRole('dialog', { name: 'Import .koxora' });
+  if (!(await dialog.isVisible()))
+    await page
+      .getByRole('button', { name: 'Import .koxora', exact: true })
+      .click();
+  return dialog.getByLabel('Import .koxora', { exact: true });
+}
 async function saved(page: import('@playwright/test').Page) {
   await expect(
     page.getByText('Saved on this device', { exact: true }),
@@ -47,23 +55,26 @@ test('create, rename, reopen offline, export, import and recover', async ({
   await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue(
     'Portable 世界',
   );
-  await page.getByLabel('Import .koxora', { exact: true }).setInputFiles(path!);
+  await (await importInput(page)).setInputFiles(path!);
   await expect(page.getByRole('alert')).toContainText('already exists');
   await page.getByLabel('Import as a new project').check();
-  await page.getByLabel('Import .koxora', { exact: true }).setInputFiles(path!);
+  await (await importInput(page)).setInputFiles(path!);
   await saved(page);
+  await page
+    .getByRole('button', { name: 'Local projects', exact: false })
+    .click();
   await expect(
     page.getByRole('button', { name: 'Open project', exact: true }),
   ).toHaveCount(2);
   await page
+    .locator('.project-card.active')
+    .getByRole('button', { name: 'Open project', exact: true })
+    .click();
+  await page
     .getByRole('textbox', { name: 'Project name' })
     .fill('Renamed copy');
   await saved(page);
-  await page
-    .getByRole('listitem')
-    .filter({ hasText: 'Renamed copy' })
-    .getByRole('button', { name: 'Recover previous save' })
-    .click();
+  await page.getByRole('button', { name: 'Recover previous save' }).click();
   await page
     .getByRole('dialog')
     .getByRole('button', { name: 'Continue' })
@@ -77,7 +88,9 @@ test('invalid files, versions and duplicate keys leave the active project unchan
   page,
 }) => {
   await page.goto('/');
-  await page.getByLabel('Import .koxora', { exact: true }).setInputFiles({
+  await (
+    await importInput(page)
+  ).setInputFiles({
     name: 'fixture.koxora',
     mimeType: 'application/zip',
     buffer: golden,
@@ -96,15 +109,17 @@ test('invalid files, versions and duplicate keys leave the active project unchan
     unsupported,
     writeZip(files, DEFAULT_LIMITS),
   ]) {
-    await page.getByLabel('Import .koxora', { exact: true }).setInputFiles({
+    await (
+      await importInput(page)
+    ).setInputFiles({
       name: 'invalid.koxora',
       mimeType: 'application/zip',
       buffer: Buffer.from(bytes),
     });
     await expect(page.getByRole('alert')).toBeVisible();
-    await expect(
-      page.getByRole('textbox', { name: 'Project name' }),
-    ).toHaveValue('Überblick 世界 مرحبا');
+    await expect(page.locator('.inspector input')).toHaveValue(
+      'Überblick 世界 مرحبا',
+    );
   }
 });
 test('a quota failure keeps unsaved changes exportable and the stored version intact', async ({
@@ -270,9 +285,9 @@ test('compressed multi-document import retains all binary and optional data on e
   page,
 }) => {
   await page.goto('/');
-  await page
-    .getByLabel('Import .koxora', { exact: true })
-    .setInputFiles('packages/project/fixtures/complete-v1-deflated.koxora');
+  await (
+    await importInput(page)
+  ).setInputFiles('packages/project/fixtures/complete-v1-deflated.koxora');
   await saved(page);
   const downloadPromise = page.waitForEvent('download');
   await page

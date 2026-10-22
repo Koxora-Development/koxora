@@ -9,7 +9,8 @@ Phase 2.1 implements a shared native ZIP project format, local saves, creation/n
 | `packages/project`                             | Framework-independent model, runtime schema, secure ZIP profile, integrity, deterministic bytes and migration |
 | `packages/persistence`                         | Atomic compare-and-swap repository; current/previous snapshots; IndexedDB/native adapters                     |
 | `packages/studio/src/projects.tsx`             | Localized project controls and session state                                                                  |
-| `apps/studio-desktop/src-tauri/src/storage.rs` | Native locking, generations, atomic binary export and interruption handling                                   |
+| `apps/studio-desktop/src-tauri/src/storage.rs` | Native locking, generations and interruption handling                                                         |
+| `apps/studio-desktop/src-tauri/src/export.rs`  | Native Save As publication, cancellation, overwrite checks and atomic binary writes                           |
 | `packages/i18n`                                | English default/fallback and German interface resources                                                       |
 | `tests/browser/projects.spec.ts`               | Production-shell project journeys and injected failure cases                                                  |
 
@@ -33,7 +34,9 @@ Autosave cannot capture edits made immediately before a crash or before the writ
 
 **Import .koxora** validates a chosen local file and commits it before switching the displayed project. A failed import leaves the current project visible. A duplicate project ID causes a localized conflict. Select **Import as a new project (new project ID)** when a separate copy is intended. This changes only the project ID; opaque extension references are not rewritten.
 
-**Export .koxora** serializes the active in-memory project, including changes that have not saved locally. Browser downloads follow normal browser behavior. Desktop exports to the OS download directory using a unique filename and displays the resulting path. It writes and synchronizes a temporary file before publishing a complete export with an atomic, non-overwriting hard link. Filesystems without hard-link support produce a storage error; there is no fallback that overwrites a destination or exposes a partial final export. An interrupted export can leave a temporary file. Desktop has no native save-location dialog or in-place file overwrite in this milestone. Files are not uploaded, and imported content does not trigger network requests or script execution.
+**Export .koxora** serializes the active in-memory project, including changes that have not saved locally. Browser downloads follow normal browser behavior. Desktop **Save as…** opens a native Tauri 2 save dialog, suggests a safe filename based on the title and permits choosing a directory and filename. The final extension is normalized to `.koxora`; an existing destination requires an explicit localized replacement confirmation. Cancellation writes nothing. A unique temporary file in the chosen directory is fully written and synchronized before atomic publication; failed writes clean up staging files and preserve the previous destination until commit. A process crash may leave an uncommitted temporary file, never a partial final export. Files are not uploaded, and imported content does not trigger network requests or script execution. Internal autosave remains in app-data storage and is independent of these portable exports.
+
+The [UX revision and visual comparison](../design/phase-2.1-ux.md) documents the dashboard, accessible workspace transition, official brand assets, Save As boundaries and filesystem limitations.
 
 The source import file remains untouched. Exported files contain project content and extension data; the application adds no account tokens, storage paths, preference records, or runtime credentials. The format cannot identify secrets a user deliberately stores in arbitrary document content.
 
@@ -47,7 +50,7 @@ Use the repository-pinned Node/pnpm/Rust versions and locked dependencies from [
 2. Create a project named `Portable 世界`; wait for **Saved on this device**. Reload and use **Open project**. Confirm the title survives.
 3. Export `.koxora`. Inspect with `unzip -l FILE.koxora` and `unzip -p FILE.koxora manifest.json`: it must be a ZIP with version fields, indexes and stable IDs. Import into a second browser profile and export again. Unchanged exports should be byte-identical.
 4. Import the same file in the original profile: expect a conflict and unchanged saved content. Enable **Import as a new project** and retry: expect a new project identity and separate list entry.
-5. Import `complete-v1.koxora` in a fresh profile, export it, and compare bytes using `sha256sum`. The UI only shows the project title; the archive retains all additional documents, dataset, binary assets and extensions.
+5. Import `complete-v1.koxora` in a fresh profile, export it, and compare bytes using `sha256sum`. The workspace lists documents/pages and shows counts; the archive retains datasets, binary assets and extensions. The canvas does not render or edit that content yet.
 6. Rename and save, then choose **Recover previous save**, confirm, reload and verify the previous title. Cancel recovery once to verify no replacement occurs.
 7. Wait for service-worker activation, disconnect networking, reload, reopen, rename, save and export. Use production preview for this test; development mode does not provision an offline shell.
 8. Select German, then English. Controls/errors change language; document titles, locale metadata and payloads remain unchanged.
@@ -61,7 +64,7 @@ Use the artifact from **the current PR commit's successful Desktop foundation ru
 1. Open PR #10 → Checks → Desktop foundation → successful run → Artifacts. Download the Linux artifact ZIP and extract it into a new directory. Verify the run's commit matches the PR head. Artifacts expire after seven days; an expired artifact requires a new workflow run.
 2. In a terminal inside the extracted directory, locate the AppImage with `find . -name '*.AppImage' -type f`. Set its executable bit with `chmod +x ./appimage/ACTUAL_FILE.AppImage`, then run `./appimage/ACTUAL_FILE.AppImage`. Replace the placeholder with the actual filename. These are unsigned review builds.
 3. If the host reports missing FUSE, install the distribution's FUSE 2 compatibility package according to CachyOS guidance, or run `./appimage/ACTUAL_FILE.AppImage --appimage-extract-and-run`. Record which route was used. Do not use `sudo` to launch the app.
-4. Create/name/save a project, close the process, launch again, reopen and verify it. Export and confirm the reported file exists in Downloads and passes `unzip -t FILE.koxora`.
+4. Create/name/save a project, close the process, launch again, reopen and verify it. Choose **Save as…**, change the filename and select a directory outside Downloads. Confirm that the reported file exists there and passes `unzip -t FILE.koxora`. Cancel once and verify no file appears. Export over an existing file: decline replacement and check its hash, then approve replacement and validate the archive.
 5. Import that export in the browser; import a browser export and `complete-v1.koxora` in the AppImage. Export the unchanged fixture and compare its SHA-256 with the repository fixture. This tests actual native IPC and binary fidelity.
 6. Repeat rename/recovery, cancelled confirmations, invalid archive import, English/German switching and offline restart. Confirm that failure leaves the active project and source file intact.
 7. Keep exports before testing failure conditions. Native snapshots are under Tauri's app-data location in `projects-v1`; do not edit/delete a real user's records. A storage failure can be tested only in a disposable OS profile or test directory.
@@ -88,7 +91,7 @@ cargo deny --locked check licenses advisories sources
 
 Unit tests cover all collections, deterministic golden bytes, Unicode, compatible future fields, optional resources, hashes, malformed ZIP/JSON, unsafe paths, duplicate entries/indexes, resource limits and lying DEFLATE headers, references, domain models, migration, persistence conflicts and recovery. Native tests additionally export the complete binary fixture and verify byte equality. Browser tests use real IndexedDB and the production offline shell.
 
-Local revision validation on 2026-10-21:
+ZIP revision validation on 2026-10-21 (before the UX revision; current results are in the [UX revision](../design/phase-2.1-ux.md) and PR):
 
 | Check                                                | Observed result                                                                                                    |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -112,6 +115,6 @@ After the Product Owner made the repository public, Quality run 39630608405 succ
 - ZIP32 STORE/DEFLATE is the supported profile; encryption, ZIP64 and arbitrary legacy ZIP metadata are deliberately rejected. DEFLATE import requires a supporting standard compression API in the host webview.
 - Whole-project parsing and base64 snapshot transport consume multiple buffers and run on the calling thread; limits bound work but do not guarantee responsiveness on every low-memory device.
 - Browser eviction/clearing, device loss and private-storage restrictions remain reasons to keep portable backups. Recovery is bounded, not unlimited history.
-- Native export uses hard links and Downloads; unsupported filesystems fail explicitly. No native destination picker or overwrite-in-place workflow is supplied.
+- Native Save As uses same-directory atomic publication. New-file publication may require filesystem hard-link support; unsupported filesystems fail explicitly. There is no universal atomic compare-and-replace against an unrelated external writer in the final check-to-replace interval; see the UX revision.
 - There is no complete RTL editor, accessibility certification, archive authenticity signature or guarantee of power-loss durability on every filesystem.
-- No dependency upgrades or changes to Dependabot PRs #3–#9 are included. Audit and license results apply to the repository's existing dependency baseline.
+- No existing dependency upgrades or changes to Dependabot PRs #3–#9 are included. Feature-specific native dialog/atomic-file dependencies are documented in the dependency review.

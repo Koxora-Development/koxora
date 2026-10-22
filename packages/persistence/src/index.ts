@@ -17,6 +17,13 @@ interface RecordData {
   previous: string | null;
   recoverySource?: string;
 }
+export interface ProjectSummary {
+  id: string;
+  title: string | null;
+  updatedAt?: string;
+  documents?: number;
+  pages?: number;
+}
 export interface OpenProject {
   project: Project;
   token: string;
@@ -40,14 +47,24 @@ function envelope(raw: string): RecordData {
 }
 export class ProjectRepository {
   constructor(private readonly store: SnapshotStore) {}
-  async list(): Promise<{ id: string; title: string | null }[]> {
+  async list(): Promise<ProjectSummary[]> {
     const keys = await this.store.keys();
-    const items: { id: string; title: string | null }[] = [];
+    const items: ProjectSummary[] = [];
     // A project can contain large embedded assets. Bound list discovery to one
     // decoded archive at a time rather than multiplying peak memory by count.
     for (const id of keys) {
       try {
-        items.push({ id, title: (await this.open(id)).project.manifest.title });
+        const { project } = await this.open(id);
+        items.push({
+          id,
+          title: project.manifest.title,
+          updatedAt: project.manifest.updatedAt,
+          documents: project.documents.length,
+          pages: project.documents.reduce(
+            (count, doc) => count + doc.pages.length,
+            0,
+          ),
+        });
       } catch (error) {
         if (
           error instanceof ProjectError &&

@@ -56,7 +56,13 @@ it('creates, lists, reopens and retains one previous version without degrading i
     (await repo.open(project.manifest.projectId, true)).project.manifest.title,
   ).toBe('First');
   expect(await repo.list()).toEqual([
-    { id: project.manifest.projectId, title: 'Second' },
+    {
+      id: project.manifest.projectId,
+      title: 'Second',
+      updatedAt: project.manifest.updatedAt,
+      documents: 1,
+      pages: 1,
+    },
   ]);
 });
 it('failed and conflicting writes retain the committed version', async () => {
@@ -184,7 +190,13 @@ it('isolates unreadable records while still listing healthy projects', async () 
     write: (...args) => store.write(...args),
   };
   expect(await new ProjectRepository(mixed).list()).toEqual([
-    { id: project.manifest.projectId, title: 'First' },
+    {
+      id: project.manifest.projectId,
+      title: 'First',
+      updatedAt: project.manifest.updatedAt,
+      documents: 1,
+      pages: 1,
+    },
     { id: 'unreadable', title: null },
   ]);
 });
@@ -212,8 +224,20 @@ it('bounds archive loading while listing multiple saved projects', async () => {
     write: (...args) => store.write(...args),
   };
   expect(await new ProjectRepository(measured).list()).toEqual([
-    { id: project.manifest.projectId, title: 'First' },
-    { id: second.manifest.projectId, title: 'Second' },
+    {
+      id: project.manifest.projectId,
+      title: 'First',
+      updatedAt: project.manifest.updatedAt,
+      documents: 1,
+      pages: 1,
+    },
+    {
+      id: second.manifest.projectId,
+      title: 'Second',
+      updatedAt: second.manifest.updatedAt,
+      documents: 1,
+      pages: 1,
+    },
   ]);
   expect(peak).toBe(1);
 });

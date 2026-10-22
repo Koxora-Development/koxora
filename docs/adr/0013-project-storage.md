@@ -2,7 +2,7 @@
 
 ## Status and responsibility
 
-Implemented for Phase 2.1 Product Owner review, revised 2026-10-21. The Product Owner explicitly requires the ZIP container and rejected the initial JSON-only proposal. This ADR supersedes that proposal; it does not imply product acceptance, merge authorization or release approval.
+Implemented for Phase 2.1 Product Owner review, revised 2026-10-22. The Product Owner explicitly requires the ZIP container and rejected the initial JSON-only proposal. This ADR supersedes that proposal; it does not imply product acceptance, merge authorization or release approval.
 
 References: CORE-001 through CORE-007, CORE-009, CORE-010, CORE-012, CORE-014 through CORE-019, K-004 through K-007, O-004, T-010, the [project-format specification](../architecture/project-format.md), and [local-first architecture](../architecture/local-first.md). These remain foundations for the full catalog, not completed canvas features.
 
@@ -34,7 +34,7 @@ The migration runner follows explicit exact version steps on copies, detects cyc
 
 Browser projects use IndexedDB, independently of preferences and offline shell caches. Desktop projects use app-data `projects-v1/<project-id>/` with OS file locks, expected-record comparison, synchronized temporary writes and immutable generation publication. Readers ignore pending files; the latest two generations are retained. The native record limit is 256 MiB and export limit 64 MiB. The native adapter exports byte arrays without text decoding. Only scoped project commands are available to the main window; no general filesystem command or arbitrary destination is exposed.
 
-Browser downloads and native export receive identical shared serializer bytes. Native export synchronizes a temporary file and publishes it under a unique name using a non-overwriting hard link in Downloads. Unsupported filesystems return a storage error. A native save-location dialog, in-place overwrite, unlimited revision history and cross-device synchronization remain outside this slice. Unix directory synchronization is attempted; universal power-loss durability is not claimed.
+Browser downloads and native export receive identical shared serializer bytes. Following explicit Product Owner feedback, desktop export now uses the official Tauri 2 dialog plugin for a native Save As dialog. The Rust command owns the chosen path; JavaScript supplies only the suggested name, archive bytes and localized labels. A normalized `.koxora` destination requires explicit confirmation if it exists. A synchronized temporary file in the chosen directory is atomically published through `tempfile`, with no-clobber publication for new destinations. Cancellation writes nothing. Existing-file changes during confirmation are detected; symlink and non-file destinations are rejected. Unix directory synchronization is attempted; universal power-loss durability is not claimed. See the [UX revision](../design/phase-2.1-ux.md) for the remaining filesystem concurrency limitation. Unlimited revision history and synchronization remain outside this slice.
 
 ## User behavior and recovery
 
@@ -44,6 +44,6 @@ Recovery is explicit and confirmed. Saving a recovered project retains the displ
 
 ## Consequences and validation
 
-No backend, authentication, cloud service, new external dependency or dependency upgrade is required. Dependabot PRs #3–#9 remain separate. Whole-project processing is bounded but consumes several times the source size and runs on the calling thread. The default budgets are documented, configurable and tested; they are not estimates of future canvas capacity.
+No backend, authentication or cloud service is required. The requested native Save As flow adds `tauri-plugin-dialog` and `tempfile`, with `serde` made a direct dependency; no existing locked dependency is upgraded. Dependabot PRs #3–#9 remain separate. Whole-project processing is bounded but consumes several times the source size and runs on the calling thread. The default budgets are documented, configurable and tested; they are not estimates of future canvas capacity.
 
 Golden files and negative tests exercise every modeled collection, unknown extensions, binary hashes, migrations, corrupt archives, resource exhaustion, references, conflicts and recovery. Independent review identified amplification and preservation issues that were addressed with regression tests. The [project storage guide](../development/project-storage.md) records actual verification, CI status, native limitations and CachyOS acceptance. Native artifacts and successful workflows for the final commit are required before acceptance; earlier Phase 1 artifacts do not validate this implementation.
