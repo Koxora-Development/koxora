@@ -126,8 +126,8 @@ test('grid, snap and viewport survive save, offline restart and portable export'
   await page
     .getByRole('spinbutton', { name: 'Spacing', exact: true })
     .fill('32');
-  const expected = await camera(page);
   await saved(page);
+  const expected = await camera(page);
   const downloaded = page.waitForEvent('download');
   await page
     .getByRole('button', { name: 'Export .koxora', exact: true })
@@ -198,7 +198,11 @@ test('page changes flush a pending wheel gesture and restore independent viewpor
   });
   await expect(pages.last()).toHaveAttribute('aria-current', 'page');
   await canvas(page).focus();
+  const beforeKey = await camera(page);
   await page.keyboard.press('ArrowLeft');
+  await expect
+    .poll(async () => (await camera(page)).x)
+    .toBeCloseTo(beforeKey.x - 40 / beforeKey.zoom, 3);
   const last = await camera(page);
   await saved(page);
   await page.reload();
