@@ -62,6 +62,14 @@ test('import dialog traps keyboard focus and Escape restores its trigger', async
   await trigger.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
+  const centered = await dialog.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    return (
+      Math.abs(box.x + box.width / 2 - innerWidth / 2) < 2 &&
+      Math.abs(box.y + box.height / 2 - innerHeight / 2) < 2
+    );
+  });
+  expect(centered).toBe(true);
   for (let i = 0; i < 7; i++) {
     await page.keyboard.press('Tab');
     expect(

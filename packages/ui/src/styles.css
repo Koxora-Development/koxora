@@ -790,6 +790,9 @@ dd {
   }
 }
 dialog {
+  margin: auto;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line);
