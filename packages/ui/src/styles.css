@@ -1181,6 +1181,13 @@ input[type='checkbox'] {
   color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.6;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin-inline: auto;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
 }
 .canvas-hint {
   position: absolute;

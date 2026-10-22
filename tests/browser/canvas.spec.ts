@@ -449,3 +449,22 @@ test('culling preserves paint order and imported labels remain inert text', asyn
     ),
   ).toHaveCount(0);
 });
+
+test('resizing during a captured drag ends the gesture without a coordinate jump', async ({
+  page,
+}) => {
+  await create(page);
+  await canvas(page).scrollIntoViewIfNeeded();
+  const box = (await canvas(page).boundingBox())!;
+  await page.mouse.move(box.x + 80, box.y + 80);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 120, box.y + 100);
+  await expect.poll(async () => (await camera(page)).x).toBe(-40);
+  const before = await camera(page);
+  await page.setViewportSize({ width: 1000, height: 800 });
+  await expect(canvas(page)).not.toHaveClass(/panning/);
+  await page.mouse.move(500, 400);
+  await page.mouse.up();
+  expect(await camera(page)).toEqual(before);
+  await saved(page);
+});

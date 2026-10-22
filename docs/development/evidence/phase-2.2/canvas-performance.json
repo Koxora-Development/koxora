@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-10-22T16:35:05.748Z",
+  "recordedAt": "2026-10-22T16:46:27.452Z",
   "browserName": "chromium",
   "browserVersion": "154.0.8037.57",
   "host": {
@@ -17,8 +17,8 @@
     {
       "count": 100,
       "view": "detail",
-      "importToReadyMs": 246.66238899999985,
-      "frameGapMedianMs": 16.700000000000045,
+      "importToReadyMs": 324.51059699999996,
+      "frameGapMedianMs": 16.699999999999818,
       "frameGapP95Ms": 16.700000000000273,
       "inputDispatchP95Ms": 0.20000000298023224,
       "renderedNodes": 80,
@@ -28,10 +28,10 @@
     {
       "count": 100,
       "view": "fit",
-      "importToReadyMs": 246.66238899999985,
+      "importToReadyMs": 324.51059699999996,
       "frameGapMedianMs": 16.699999999999818,
       "frameGapP95Ms": 16.700000000000273,
-      "inputDispatchP95Ms": 0.20000000298023224,
+      "inputDispatchP95Ms": 0.19999999552965164,
       "renderedNodes": 100,
       "dpr": 1,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36"
@@ -39,7 +39,7 @@
     {
       "count": 1000,
       "view": "detail",
-      "importToReadyMs": 262.17490799999996,
+      "importToReadyMs": 252.43030799999997,
       "frameGapMedianMs": 16.699999999999818,
       "frameGapP95Ms": 16.700000000000728,
       "inputDispatchP95Ms": 0.20000000298023224,
@@ -50,9 +50,9 @@
     {
       "count": 1000,
       "view": "fit",
-      "importToReadyMs": 262.17490799999996,
+      "importToReadyMs": 252.43030799999997,
       "frameGapMedianMs": 16.699999999999818,
-      "frameGapP95Ms": 16.80000000000109,
+      "frameGapP95Ms": 33.30000000000018,
       "inputDispatchP95Ms": 0.20000000298023224,
       "renderedNodes": 1000,
       "dpr": 1,
@@ -61,9 +61,9 @@
     {
       "count": 10000,
       "view": "detail",
-      "importToReadyMs": 1147.9474449999998,
+      "importToReadyMs": 1158.163901,
       "frameGapMedianMs": 16.69999999999891,
-      "frameGapP95Ms": 16.799999999999272,
+      "frameGapP95Ms": 16.700000000000728,
       "inputDispatchP95Ms": 0.20000000298023224,
       "renderedNodes": 80,
       "dpr": 1,
@@ -72,8 +72,8 @@
     {
       "count": 10000,
       "view": "fit",
-      "importToReadyMs": 1147.9474449999998,
-      "frameGapMedianMs": 16.700000000000728,
+      "importToReadyMs": 1158.163901,
+      "frameGapMedianMs": 16.69999999999891,
       "frameGapP95Ms": 33.399999999999636,
       "inputDispatchP95Ms": 0.20000000298023224,
       "renderedNodes": 1500,

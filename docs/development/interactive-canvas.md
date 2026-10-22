@@ -36,12 +36,12 @@ Measured on 2026-10-22 in the Linux x64 cloud container (AMD EPYC 9V74, 3 expose
 
 | Nodes  | View   | Rendered nodes | Frame gap median / p95 (ms) | Input dispatch p95 (ms) | Import-to-ready (ms) |
 | ------ | ------ | -------------- | --------------------------- | ----------------------- | -------------------- |
-| 100    | Detail | 80             | 16.7 / 16.7                 | 0.2                     | 247                  |
-| 100    | Fit    | 100            | 16.7 / 16.7                 | 0.2                     | 247                  |
-| 1,000  | Detail | 80             | 16.7 / 16.7                 | 0.2                     | 262                  |
-| 1,000  | Fit    | 1,000          | 16.7 / 16.8                 | 0.2                     | 262                  |
-| 10,000 | Detail | 80             | 16.7 / 16.8                 | 0.2                     | 1,148                |
-| 10,000 | Fit    | 1,500 (capped) | 16.7 / 33.4                 | 0.2                     | 1,148                |
+| 100    | Detail | 80             | 16.7 / 16.7                 | 0.2                     | 325                  |
+| 100    | Fit    | 100            | 16.7 / 16.7                 | 0.2                     | 325                  |
+| 1,000  | Detail | 80             | 16.7 / 16.7                 | 0.2                     | 252                  |
+| 1,000  | Fit    | 1,000          | 16.7 / 33.3                 | 0.2                     | 252                  |
+| 10,000 | Detail | 80             | 16.7 / 16.7                 | 0.2                     | 1,158                |
+| 10,000 | Fit    | 1,500 (capped) | 16.7 / 33.4                 | 0.2                     | 1,158                |
 
 The dense 10,000-node fit view misses some 60 Hz frame intervals even with capped output. This supports keeping the honest preview limit and evaluating spatial indexing/another renderer before unrestricted dense editing. The results are one local reference run, not native platform measurements.
 

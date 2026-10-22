@@ -251,7 +251,10 @@ export function Canvas({
       commit();
     };
     const observer = new ResizeObserver(() => {
-      size = measure();
+      const next = measure();
+      // A resized surface changes local pointer coordinates; end the old gesture.
+      if (next.width !== size.width || next.height !== size.height) blur();
+      size = next;
       schedule();
     });
     observer.observe(element);
@@ -264,6 +267,7 @@ export function Canvas({
     element.addEventListener('keydown', key);
     element.addEventListener('keyup', keyup);
     element.addEventListener('blur', blur);
+    window.addEventListener('blur', blur);
     render();
     return () => {
       commit();
@@ -280,6 +284,7 @@ export function Canvas({
       element.removeEventListener('keydown', key);
       element.removeEventListener('keyup', keyup);
       element.removeEventListener('blur', blur);
+      window.removeEventListener('blur', blur);
       renderer.clear();
     };
     // A keyed canvas owns one immutable page scene; navigation changes only its camera.
