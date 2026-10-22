@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog, Icon } from '@koxora/ui';
+import { Canvas, type CanvasHandle } from './canvas';
+import {
+  activePageId,
+  selectPage,
+  writeCanvas,
+  type CanvasState,
+} from '@koxora/editor-core';
 import {
   createProject,
   MAX_BYTES,
@@ -47,7 +54,11 @@ export function Projects({ locale }: { locale: string }) {
   } | null>(null);
   const [focusVersion, setFocusVersion] = useState(0);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const dirty = project !== saved,
+  const session = useRef(0);
+  const [loadVersion, setLoadVersion] = useState(0);
+  const canvasRef = useRef<CanvasHandle>(null);
+  const [pendingNavigation, setPendingNavigation] = useState(false);
+  const dirty = project !== saved || pendingNavigation,
     busy = operation !== null;
   const activeDocument =
     project?.documents.find((doc) =>
@@ -56,6 +67,38 @@ export function Projects({ locale }: { locale: string }) {
   const activePage =
     activeDocument?.pages.find((page) => page.id === pageId) ??
     activeDocument?.pages[0];
+  const snapshot = useCallback(() => {
+    if (!project || !activeDocument || !activePage || view !== 'workspace')
+      return project;
+    const state = canvasRef.current?.snapshot();
+    const next = state
+      ? writeCanvas(project, activeDocument.id, activePage.id, state)
+      : project;
+    if (next !== project) setProject(next);
+    return next;
+  }, [project, activeDocument, activePage, view]);
+  const commitCanvas = useCallback(
+    (state: CanvasState) => {
+      const projectId = project?.manifest.projectId;
+      const documentId = activeDocument?.id,
+        id = activePage?.id;
+      setProject((current) =>
+        current &&
+        session.current === loadVersion &&
+        current.manifest.projectId === projectId &&
+        documentId &&
+        id
+          ? writeCanvas(current, documentId, id, state)
+          : current,
+      );
+    },
+    [
+      project?.manifest.projectId,
+      activeDocument?.id,
+      activePage?.id,
+      loadVersion,
+    ],
+  );
   const date = (value: string) =>
     new Intl.DateTimeFormat(locale, {
       dateStyle: 'medium',
@@ -114,32 +157,56 @@ export function Projects({ locale }: { locale: string }) {
   }, [dirty]);
   const save = useCallback(async () => {
     if (!project || operation) return;
+    const current = snapshot();
+    if (!current) return;
     setOperation('saving');
     setError(null);
     try {
-      const next = await repository.save(project, token);
+      const next = await repository.save(current, token);
       setToken(next);
-      setSaved(project);
+      setSaved(current);
       await refresh();
     } catch (error) {
       report(error);
     } finally {
       setOperation(null);
     }
-  }, [project, operation, repository, token, refresh]);
+  }, [project, operation, repository, token, refresh, snapshot]);
   useEffect(() => {
-    if (!dirty || !project || busy || error || confirmation || importing)
+    if (
+      !dirty ||
+      pendingNavigation ||
+      !project ||
+      busy ||
+      error ||
+      confirmation ||
+      importing
+    )
       return;
     const timer = window.setTimeout(() => void save(), 600);
     return () => window.clearTimeout(timer);
-  }, [dirty, project, busy, error, save, confirmation, importing]);
+  }, [
+    dirty,
+    pendingNavigation,
+    project,
+    busy,
+    error,
+    save,
+    confirmation,
+    importing,
+  ]);
   function replace(action: () => void) {
-    if (dirty) setConfirmation({ message: 'project.discard', action });
+    const current = snapshot();
+    if (dirty || current !== saved)
+      setConfirmation({ message: 'project.discard', action });
     else action();
   }
   function enter(next: Project) {
+    session.current += 1;
+    setLoadVersion(session.current);
     setProject(next);
-    setPageId(next.documents[0].pages[0].id);
+    setPageId(activePageId(next));
+    setPendingNavigation(false);
     setView('workspace');
     setFocusVersion((n) => n + 1);
     setNotice(null);
@@ -194,11 +261,13 @@ export function Projects({ locale }: { locale: string }) {
   }
   async function exportFile() {
     if (!project) return;
+    const current = snapshot();
+    if (!current) return;
     setOperation('exporting');
     setError(null);
     setNotice(null);
     try {
-      const bytes = await exportProject(project);
+      const bytes = await exportProject(current);
       if (native) {
         const path = await native.invoke<string | null>('project_export', {
           suggestedName: project.manifest.title,
@@ -285,6 +354,7 @@ export function Projects({ locale }: { locale: string }) {
           className={`nav-item ${view === 'dashboard' ? 'selected' : ''}`}
           aria-current={view === 'dashboard' ? 'page' : undefined}
           onClick={() => {
+            snapshot();
             setView('dashboard');
             setFocusVersion((n) => n + 1);
           }}
@@ -322,7 +392,13 @@ export function Projects({ locale }: { locale: string }) {
                         aria-current={
                           activePage?.id === page.id ? 'page' : undefined
                         }
-                        onClick={() => setPageId(page.id)}
+                        onClick={() => {
+                          const current = snapshot();
+                          if (current)
+                            setProject(selectPage(current, doc.id, page.id));
+                          setPageId(page.id);
+                          setPendingNavigation(false);
+                        }}
                       >
                         <span className="page-number">{index + 1}</span>
                         <span dir="auto">{page.title}</span>
@@ -618,47 +694,17 @@ export function Projects({ locale }: { locale: string }) {
               </div>
             </header>
             <div className="workspace-layout">
-              <section
-                className="canvas-stage"
-                aria-label={t('workspace.canvas')}
-              >
-                <div className="canvas-toolbar">
-                  <span>
-                    <Icon name="file" />
-                    <span dir="auto">{activeDocument?.title}</span>
-                    <span className="breadcrumb-separator">/</span>
-                    <span dir="auto">{activePage?.title}</span>
-                  </span>
-                  <span className="badge">{t('workspace.preview')}</span>
-                </div>
-                <div className="canvas-surface">
-                  <div className="canvas-empty">
-                    <div className="empty-symbol">
-                      <Icon name="layers" />
-                    </div>
-                    <h2>{t('workspace.canvasTitle')}</h2>
-                    <p>
-                      {t(
-                        activePage?.nodes.length
-                          ? 'workspace.existingContent'
-                          : 'workspace.canvasDescription',
-                      )}
-                    </p>
-                    <span className="canvas-page-label" dir="auto">
-                      {activePage?.title}
-                    </span>
-                  </div>
-                </div>
-                <div className="canvas-status">
-                  <span>
-                    {t('workspace.pageContent', {
-                      nodes: activePage?.nodes.length ?? 0,
-                      connections: activePage?.connections.length ?? 0,
-                    })}
-                  </span>
-                  <span>{t('status.local')}</span>
-                </div>
-              </section>
+              {activePage && activeDocument && (
+                <Canvas
+                  key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
+                  ref={canvasRef}
+                  page={activePage}
+                  documentTitle={activeDocument.title}
+                  locale={locale}
+                  onCommit={commitCanvas}
+                  onPending={setPendingNavigation}
+                />
+              )}
               <aside className="inspector" aria-label={t('workspace.details')}>
                 <h2>{t('workspace.details')}</h2>
                 <label className="field-label">
@@ -669,10 +715,11 @@ export function Projects({ locale }: { locale: string }) {
                     disabled={busy}
                     onChange={(e) => {
                       setError(null);
+                      const current = snapshot() ?? project;
                       setProject({
-                        ...project,
+                        ...current,
                         manifest: {
-                          ...project.manifest,
+                          ...current.manifest,
                           title: e.target.value,
                           updatedAt: new Date(
                             Math.max(

@@ -1,0 +1,84 @@
+{
+  "recordedAt": "2026-10-22T16:35:05.748Z",
+  "browserName": "chromium",
+  "browserVersion": "154.0.8037.57",
+  "host": {
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 3
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "note": "Headless reference run, not a hardware or FPS guarantee. rAF gaps include scheduling and rendering; input dispatch excludes the deferred SVG render. Dense views cap previews at 1500 nodes and 1500 edges.",
+  "results": [
+    {
+      "count": 100,
+      "view": "detail",
+      "importToReadyMs": 246.66238899999985,
+      "frameGapMedianMs": 16.700000000000045,
+      "frameGapP95Ms": 16.700000000000273,
+      "inputDispatchP95Ms": 0.20000000298023224,
+      "renderedNodes": 80,
+      "dpr": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36"
+    },
+    {
+      "count": 100,
+      "view": "fit",
+      "importToReadyMs": 246.66238899999985,
+      "frameGapMedianMs": 16.699999999999818,
+      "frameGapP95Ms": 16.700000000000273,
+      "inputDispatchP95Ms": 0.20000000298023224,
+      "renderedNodes": 100,
+      "dpr": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36"
+    },
+    {
+      "count": 1000,
+      "view": "detail",
+      "importToReadyMs": 262.17490799999996,
+      "frameGapMedianMs": 16.699999999999818,
+      "frameGapP95Ms": 16.700000000000728,
+      "inputDispatchP95Ms": 0.20000000298023224,
+      "renderedNodes": 80,
+      "dpr": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36"
+    },
+    {
+      "count": 1000,
+      "view": "fit",
+      "importToReadyMs": 262.17490799999996,
+      "frameGapMedianMs": 16.699999999999818,
+      "frameGapP95Ms": 16.80000000000109,
+      "inputDispatchP95Ms": 0.20000000298023224,
+      "renderedNodes": 1000,
+      "dpr": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36"
+    },
+    {
+      "count": 10000,
+      "view": "detail",
+      "importToReadyMs": 1147.9474449999998,
+      "frameGapMedianMs": 16.69999999999891,
+      "frameGapP95Ms": 16.799999999999272,
+      "inputDispatchP95Ms": 0.20000000298023224,
+      "renderedNodes": 80,
+      "dpr": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36"
+    },
+    {
+      "count": 10000,
+      "view": "fit",
+      "importToReadyMs": 1147.9474449999998,
+      "frameGapMedianMs": 16.700000000000728,
+      "frameGapP95Ms": 33.399999999999636,
+      "inputDispatchP95Ms": 0.20000000298023224,
+      "renderedNodes": 1500,
+      "dpr": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36"
+    }
+  ]
+}

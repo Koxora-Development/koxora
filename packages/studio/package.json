@@ -12,6 +12,7 @@
     "@koxora/i18n": "workspace:*",
     "@koxora/ui": "workspace:*",
     "@koxora/project": "workspace:*",
-    "@koxora/persistence": "workspace:*"
+    "@koxora/persistence": "workspace:*",
+    "@koxora/editor-core": "workspace:*"
   }
 }

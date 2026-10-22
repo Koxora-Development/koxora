@@ -60,3 +60,7 @@
 For acceptance, record status, date, accepting role, rationale, alternatives, consequences, evidence, and issue/PR links. New evidence may reopen a decision for explicit review; do not silently override it. Confirmed K-decisions take precedence over candidate tables. The user-supplied language rules are already confirmed and do not require another language-default decision. Unspecified library/resource details remain technical work.
 
 A document's acceptance does not approve every open option it contains. Human approval is required before merge, and a Phase 0 merge does not authorize Phase 1.
+
+## Phase 2.2 proposal
+
+[ADR 0014](adr/0014-interactive-canvas.md) proposes a framework-independent viewport/grid core and replaceable SVG preview adapter, with portable optional view settings in the existing format. Implementation and verification do not constitute Product Owner architecture acceptance or merge approval.
