@@ -381,9 +381,13 @@ test('expanded help closes independently and keeps background fields inaccessibl
     page.getByRole('button', { name: 'Navigation help', exact: true }),
   ).toBeFocused();
   await expect(page.locator('.canvas-expanded')).toBeVisible();
-  await expect(
-    page.getByRole('textbox', { name: 'Project name', exact: true }),
-  ).toHaveCount(0);
+  await expect(page.locator('.inspector')).toHaveJSProperty('inert', true);
+  const backgroundName = page.getByRole('textbox', {
+    name: 'Project name',
+    exact: true,
+  });
+  await backgroundName.evaluate((element) => element.focus());
+  await expect(backgroundName).not.toBeFocused();
   await page.keyboard.press('Escape');
   await expect(
     page.getByRole('button', { name: 'Expand canvas', exact: true }),
