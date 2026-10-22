@@ -31,3 +31,5 @@ The [PRD](docs/product/prd.md), [178-entry catalog](docs/product/feature-catalog
 English is the default/fallback interface language; German is explicitly selectable, independent of operating system language. All technical work remains English. See [internationalization](docs/product/internationalization.md), [agent instructions](AGENTS.md), [contributing](CONTRIBUTING.md), and [security reporting](SECURITY.md).
 
 The project license, branding, distribution signing, cloud, AI, collaboration, and marketplace decisions remain open. All packages are private and marked `UNLICENSED`; this is not a publication or licensing decision.
+
+Phase 2.2 adds the [interactive canvas foundation](docs/development/interactive-canvas.md): pan/zoom, per-page portable views, grid settings and read-only geometry previews. Element creation/editing remains a later milestone. The renderer choice is documented in [ADR 0014](docs/adr/0014-interactive-canvas.md), pending Product Owner review.

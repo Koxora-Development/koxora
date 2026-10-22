@@ -1073,3 +1073,166 @@ input[type='checkbox'] {
     animation: none;
   }
 }
+
+/* Canvas adapter chrome: all project coordinates remain independent of layout. */
+.interactive-stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.interactive-stage .canvas-toolbar {
+  gap: 12px;
+}
+.canvas-options,
+.canvas-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface);
+}
+.canvas-options {
+  border-bottom: 1px solid var(--line);
+}
+.canvas-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.canvas-options input {
+  width: 68px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+.button.compact {
+  padding: 6px 9px;
+  font-size: 0.75rem;
+}
+.button[aria-pressed='true'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.interactive-canvas {
+  position: relative;
+  flex: 1 0 360px;
+  min-height: 360px;
+  height: clamp(360px, 55vh, 900px);
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+  cursor: grab;
+  background: var(--canvas);
+  outline-offset: -4px;
+}
+.interactive-canvas.panning {
+  cursor: grabbing;
+}
+.canvas-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.grid-dot {
+  fill: var(--grid);
+}
+.scene-node {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.scene-connection {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 1.5;
+}
+.scene-label {
+  fill: var(--ink);
+  font:
+    12px system-ui,
+    sans-serif;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.canvas-welcome {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(340px, 85%);
+  text-align: center;
+  pointer-events: none;
+}
+.canvas-welcome h2 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+.canvas-welcome p,
+.canvas-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin-inline: auto;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.canvas-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  right: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+.canvas-navigation {
+  justify-content: center;
+  border-top: 1px solid var(--line);
+}
+.canvas-navigation output {
+  min-width: 54px;
+  font-size: 0.8rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.canvas-disclosure {
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--muted);
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.canvas-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--surface);
+  overflow: auto;
+}
+.canvas-expanded .interactive-canvas {
+  height: auto;
+  min-height: 160px;
+}
+@media (max-width: 600px) {
+  .interactive-stage .canvas-toolbar {
+    padding-inline: 12px;
+    flex-wrap: wrap;
+  }
+  .canvas-options {
+    padding: 8px;
+    gap: 6px;
+  }
+}

@@ -25,3 +25,7 @@ An engine declares supported types/versions, commands, validation, layouts, rend
 ## Incremental validation
 
 Phase 1 proposes a minimal node/edge technical round trip; Phase 2 proposes flowcharts, mind maps, and organization charts. Specialist notations follow. Preserve the full [diagram vision](../product/diagram-types.md) while implementing incrementally.
+
+## Phase 2.2 implementation
+
+The navigation foundation now lives in `packages/editor-core`, with a shared Studio SVG adapter for browser and Tauri. [ADR 0014](../adr/0014-interactive-canvas.md) compares renderer options and proposes the portable camera/grid semantics. [Interactive canvas development](../development/interactive-canvas.md) documents real controls, performance protocol, read-only preview limits, tests and the Phase 2.3–2.5 boundaries. Element editing remains future work.

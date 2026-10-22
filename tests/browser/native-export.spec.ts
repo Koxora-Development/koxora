@@ -70,7 +70,7 @@ test('Save As awaits the native choice, cancellation is explicit and the project
     .poll(() => page.evaluate(() => window.nativeTest.calls.length))
     .toBe(1);
   await page.evaluate(() => window.nativeTest.finish(null));
-  await expect(page.getByRole('status')).toHaveText(
+  await expect(page.locator('.notification[role="status"]')).toHaveText(
     'Export cancelled. No file was written.',
   );
   await expect(
@@ -111,7 +111,7 @@ test('Save As carries complete project bytes and localized labels and reports th
     'Roadmap 世界',
   );
   await page.evaluate(() => window.nativeTest.finish('/chosen/Roadmap.koxora'));
-  await expect(page.getByRole('status')).toContainText(
+  await expect(page.locator('.notification[role="status"]')).toContainText(
     '/chosen/Roadmap.koxora',
   );
   await expect(page.getByRole('textbox', { name: 'Projektname' })).toHaveValue(
