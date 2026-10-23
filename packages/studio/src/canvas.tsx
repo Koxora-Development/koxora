@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useId,
   useImperativeHandle,
   useRef,
@@ -8,9 +9,16 @@ import {
 } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog } from '@koxora/ui';
-import type { Page } from '@koxora/project';
+import type { Page, Style } from '@koxora/project';
 import {
   buildScene,
+  DEFAULT_CONNECTION,
+  assertEditableElement,
+  screenToWorld,
+  pickNode,
+  layerStates,
+  isShapeKind,
+  type EditCommand,
   fitBounds,
   pan,
   pinch,
@@ -22,11 +30,14 @@ import {
   type Point,
 } from '@koxora/editor-core';
 import { SvgRenderer } from './svg-renderer';
+import { DiagramTools, ElementDialog, type DiagramTool } from './diagram-tools';
 export interface CanvasHandle {
   snapshot: () => CanvasState;
 }
 interface Props {
   page: Page;
+  styles: Style[];
+  onEdit: (command: EditCommand) => boolean;
   documentTitle: string;
   locale: string;
   onCommit: (state: CanvasState) => void;
@@ -35,6 +46,8 @@ interface Props {
 }
 export function Canvas({
   page,
+  styles,
+  onEdit,
   documentTitle,
   locale,
   onCommit,
@@ -42,6 +55,101 @@ export function Canvas({
   ref,
 }: Props) {
   const t = (key: MessageKey) => translate(locale, key);
+  const [tool, setTool] = useState<DiagramTool>('pan');
+  const cancelInput = useRef<() => void>(() => {});
+  const [editError, setEditError] = useState<MessageKey | null>(null);
+  const [source, setSource] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [options, setOptions] = useState(DEFAULT_CONNECTION);
+  const [layerId, setLayerId] = useState(
+    () =>
+      page.layers.find((l) => layerStates(page.layers).get(l.id)?.editable)
+        ?.id ?? '',
+  );
+  const scene = useMemo(
+    () =>
+      buildScene(
+        {
+          nodes: page.nodes,
+          connections: page.connections,
+          layers: page.layers,
+        },
+        styles,
+      ),
+    [page.nodes, page.connections, page.layers, styles],
+  );
+  function activate(next: DiagramTool) {
+    cancelInput.current();
+    setTool(next);
+    setSource(null);
+  }
+  function pick(id: string) {
+    const item =
+      page.nodes.find((n) => n.id === id) ??
+      page.connections.find((e) => e.id === id);
+    if (!item) return;
+    try {
+      assertEditableElement(item);
+    } catch {
+      setEditError('diagram.error.unsupported');
+      return;
+    }
+    setEditError(null);
+    if (tool === 'connect') {
+      if (!page.nodes.some((n) => n.id === id)) return;
+      if (!source) setSource(id);
+      else if (source === id) setEditError('diagram.error.endpoint');
+      else if (
+        page.connections.some(
+          (e) =>
+            (e.sourceId === source && e.targetId === id) ||
+            (!options.arrow && e.sourceId === id && e.targetId === source),
+        )
+      )
+        setEditError('diagram.error.duplicate');
+      else if (
+        onEdit({
+          type: 'connect',
+          id: crypto.randomUUID(),
+          sourceId: source,
+          targetId: id,
+          layerId,
+          options,
+        })
+      )
+        setSource(null);
+      else setEditError('diagram.error.invalid');
+    } else setEditing(id);
+  }
+  function act(point: Point, id?: string) {
+    if (isShapeKind(tool)) {
+      const id = crypto.randomUUID();
+      if (
+        onEdit({
+          type: 'insert',
+          id,
+          kind: tool,
+          position: point,
+          layerId,
+          text: tool === 'text' ? t('diagram.newText') : '',
+        }) &&
+        tool === 'text'
+      ) {
+        setEditing(id);
+        activate('pan');
+      }
+    } else {
+      const node = pickNode(scene, point);
+      const edge =
+        id && scene.connections.find((e) => e.id === id && e.editable);
+      if (node) pick(node.id);
+      else if (edge && tool !== 'connect') pick(edge.id);
+    }
+  }
+  const interaction = useRef({ tool, act, activate, source });
+  useEffect(() => {
+    interaction.current = { tool, act, activate, source };
+  });
   const [initial] = useState(() => readCanvas(page));
   const state = useRef<CanvasState>(initial);
   const [grid, setGrid] = useState(initial.grid);
@@ -57,6 +165,7 @@ export function Canvas({
   const controls = useRef<{
     camera: (action: 'in' | 'out' | 'reset' | 'fit') => void;
     settings: () => void;
+    refresh: () => void;
   } | null>(null);
   const callbacks = useRef({ onCommit, onPending });
   useEffect(() => {
@@ -72,7 +181,7 @@ export function Canvas({
       pattern.current!,
       gridRect.current!,
     );
-    const scene = buildScene(page);
+
     const measure = () => {
       const rect = element.getBoundingClientRect();
       return { width: rect.width, height: rect.height };
@@ -86,7 +195,12 @@ export function Canvas({
     let space = false;
     const render = () => {
       frame = 0;
-      const nextLimited = renderer.render(scene, state.current, size);
+      const nextLimited = renderer.render(
+        scene,
+        state.current,
+        size,
+        interaction.current.source,
+      );
       if (nextLimited !== lastLimited) {
         lastLimited = nextLimited;
         setLimited(nextLimited);
@@ -127,6 +241,7 @@ export function Canvas({
         ),
       );
     controls.current = {
+      refresh: schedule,
       camera(action) {
         if (action === 'fit') change(fitBounds(scene.bounds, size));
         else if (action === 'reset')
@@ -167,15 +282,55 @@ export function Canvas({
       window.clearTimeout(timer);
       timer = window.setTimeout(commit, 180);
     };
+    let candidate: {
+      id: number;
+      point: Point;
+      edgeId?: string;
+      moved: boolean;
+    } | null = null;
     const down = (event: PointerEvent) => {
       if (event.button !== 0 && event.button !== 1) return;
       event.preventDefault();
       element.focus({ preventScroll: true });
       element.setPointerCapture(event.pointerId);
-      pointers.set(event.pointerId, local(event));
+      const point = local(event);
+      const editingTool =
+        interaction.current.tool !== 'pan' && !space && event.button === 0;
+      if (editingTool && event.pointerType !== 'touch') {
+        candidate = {
+          id: event.pointerId,
+          point,
+          moved: false,
+          edgeId:
+            (event.target as Element)
+              .closest?.('[data-connection-id]')
+              ?.getAttribute('data-connection-id') ?? undefined,
+        };
+        return;
+      }
+      if (event.button === 0 && !space && pointers.size === 0)
+        candidate = {
+          id: event.pointerId,
+          point,
+          moved: false,
+          edgeId:
+            (event.target as Element)
+              .closest?.('[data-connection-id]')
+              ?.getAttribute('data-connection-id') ?? undefined,
+        };
+      else candidate = null;
+      pointers.set(event.pointerId, point);
       element.classList.add('panning');
     };
     const move = (event: PointerEvent) => {
+      if (
+        candidate &&
+        Math.hypot(
+          local(event).x - candidate.point.x,
+          local(event).y - candidate.point.y,
+        ) > 5
+      )
+        candidate.moved = true;
       const previous = pointers.get(event.pointerId);
       if (!previous) return;
       const before = [...pointers.values()];
@@ -200,6 +355,21 @@ export function Canvas({
         );
     };
     const up = (event: PointerEvent) => {
+      const click =
+        candidate &&
+        candidate.id === event.pointerId &&
+        !candidate.moved &&
+        event.type === 'pointerup'
+          ? candidate
+          : null;
+      candidate = null;
+      if (click) {
+        commit();
+        interaction.current.act(
+          screenToWorld(click.point, state.current.camera, size),
+          click.edgeId,
+        );
+      }
       pointers.delete(event.pointerId);
       if (element.hasPointerCapture(event.pointerId))
         element.releasePointerCapture(event.pointerId);
@@ -209,6 +379,12 @@ export function Canvas({
       }
     };
     const key = (event: KeyboardEvent) => {
+      if (event.key === 'Enter' && isShapeKind(interaction.current.tool)) {
+        event.preventDefault();
+        commit();
+        interaction.current.act(state.current.camera);
+        return;
+      }
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       const distance = event.shiftKey ? 160 : 40;
       const directions: Record<string, Point> = {
@@ -246,10 +422,12 @@ export function Canvas({
     };
     const blur = () => {
       space = false;
+      candidate = null;
       element.classList.remove('hand-ready', 'panning');
       pointers.clear();
       commit();
     };
+    cancelInput.current = blur;
     const observer = new ResizeObserver(() => {
       const next = measure();
       // A resized surface changes local pointer coordinates; end the old gesture.
@@ -275,6 +453,7 @@ export function Canvas({
       cancelAnimationFrame(frame);
       window.clearTimeout(timer);
       controls.current = null;
+      cancelInput.current = () => {};
       element.removeEventListener('wheel', wheel);
       element.removeEventListener('pointerdown', down);
       element.removeEventListener('pointermove', move);
@@ -287,9 +466,8 @@ export function Canvas({
       window.removeEventListener('blur', blur);
       renderer.clear();
     };
-    // A keyed canvas owns one immutable page scene; navigation changes only its camera.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page.id, locale]);
+    // Content transactions replace the scene; navigation retains the current scene.
+  }, [page.id, scene, locale]);
   useEffect(() => {
     if (!expanded) return;
     const root = stage.current!;
@@ -310,14 +488,18 @@ export function Canvas({
         event.target.closest('dialog[open]')
       )
         return;
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
         event.preventDefault();
+        if (interaction.current.tool !== 'pan') {
+          interaction.current.activate('pan');
+          return;
+        }
         setExpanded(false);
       }
       if (event.key !== 'Tab') return;
       const focusable = [
         ...root.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), input:not(:disabled), [tabindex="0"]',
+          'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]',
         ),
       ];
       const first = focusable[0],
@@ -337,6 +519,9 @@ export function Canvas({
       if (previous?.isConnected) previous.focus();
     };
   }, [expanded]);
+  useEffect(() => {
+    controls.current?.refresh();
+  }, [source]);
   function updateGrid(next: typeof grid) {
     state.current = { ...state.current, grid: next };
     setGrid(next);
@@ -345,6 +530,13 @@ export function Canvas({
   return (
     <section
       ref={stage}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && !editing && tool !== 'pan') {
+          event.preventDefault();
+          event.stopPropagation();
+          activate('pan');
+        }
+      }}
       role={expanded ? 'dialog' : undefined}
       aria-modal={expanded ? true : undefined}
       className={`canvas-stage interactive-stage ${expanded ? 'canvas-expanded' : ''}`}
@@ -364,6 +556,35 @@ export function Canvas({
           {t(expanded ? 'canvas.restore' : 'canvas.expand')}
         </button>
       </div>
+      <DiagramTools
+        page={page}
+        styles={styles}
+        locale={locale}
+        tool={tool}
+        source={source}
+        layerId={layerId}
+        setLayer={setLayerId}
+        activate={activate}
+        pick={pick}
+        options={options}
+        setOptions={setOptions}
+      />
+      {editError && (
+        <p className="canvas-disclosure" role="alert">
+          {t(editError)}
+        </p>
+      )}
+      {editing && (
+        <ElementDialog
+          key={editing}
+          page={page}
+          styles={styles}
+          id={editing}
+          locale={locale}
+          onApply={onEdit}
+          onCancel={() => setEditing(null)}
+        />
+      )}
       <div className="canvas-options">
         <button
           className="button compact"
@@ -404,7 +625,7 @@ export function Canvas({
       </div>
       <div
         ref={host}
-        className="interactive-canvas"
+        className={`interactive-canvas ${tool !== 'pan' ? 'tool-active' : ''}`}
         tabIndex={0}
         role="region"
         aria-label={t('canvas.navigation')}
@@ -436,7 +657,10 @@ export function Canvas({
             <p>{t('canvas.emptyDescription')}</p>
           </div>
         )}
-        <p className="canvas-hint" id={`${patternId}-hint`}>
+        <p
+          className={`canvas-hint ${page.nodes.length ? 'with-content' : ''}`}
+          id={`${patternId}-hint`}
+        >
           {t('canvas.hint')}
         </p>
       </div>

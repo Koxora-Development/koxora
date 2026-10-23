@@ -41,6 +41,8 @@ test('pointer-centered zoom, wheel pan, drag, keyboard, resize and expanded canv
   page,
 }) => {
   await create(page);
+  // On narrow screens the toolbars precede the canvas in the scrollable workspace.
+  await canvas(page).scrollIntoViewIfNeeded();
   const box = (await canvas(page).boundingBox())!;
   const anchor = {
     x: Math.round(box.x + box.width * 0.3) - box.x,

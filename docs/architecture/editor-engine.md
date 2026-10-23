@@ -29,3 +29,7 @@ Phase 1 proposes a minimal node/edge technical round trip; Phase 2 proposes flow
 ## Phase 2.2 implementation
 
 The navigation foundation now lives in `packages/editor-core`, with a shared Studio SVG adapter for browser and Tauri. [ADR 0014](../adr/0014-interactive-canvas.md) compares renderer options and proposes the portable camera/grid semantics. [Interactive canvas development](../development/interactive-canvas.md) documents real controls, performance protocol, read-only preview limits, tests and the Phase 2.3–2.5 boundaries. Element editing remains future work.
+
+## Phase 2.3 implementation
+
+The same core now supplies a trusted vector shape registry, rotation/contour/anchor geometry, safe scene styles, connection paths and immutable editing transactions. Studio integrates insertion, plain-text/style dialogs and endpoint picking with the existing SVG adapter and repository. See [ADR 0015](../adr/0015-shapes-text-connections.md) and [editing acceptance](../development/shapes-text-connections.md). Container manipulation, full selection, drag/resize and history remain later work.

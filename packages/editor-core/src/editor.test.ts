@@ -254,8 +254,9 @@ describe('safe read-only scene adapter', () => {
       },
     ];
     const scene = buildScene(page);
-    expect(scene.nodes[0].bounds.width).toBeCloseTo(20);
-    expect(scene.nodes[0].bounds.height).toBeCloseTo(100);
+    // Culling now includes the visible 2-unit outline.
+    expect(scene.nodes[0].bounds.width).toBeCloseTo(22);
+    expect(scene.nodes[0].bounds.height).toBeCloseTo(102);
     expect(scene.nodes[0].label).toBe('<script>unsafe</script>');
     expect(
       visibleScene(scene, visibleBounds({ x: 0, y: 0, zoom: 1 }, size)).nodes,

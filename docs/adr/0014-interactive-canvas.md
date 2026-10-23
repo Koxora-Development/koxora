@@ -46,3 +46,7 @@ Phase 2.3 should extend the scene adapter/render primitives for text, shapes, an
 ## Consequences and acceptance
 
 We own input lifecycle and accessible navigation, but avoid an additional runtime dependency and irreversible library model. Keyboard arrows, zoom/reset/fit buttons, visible focus, localized help, pointer capture, touch pinch and pen pan are implemented. Expanded view makes background UI inert, contains focus and restores it on exit. Reduced-motion navigation is immediate; there is no inertia or animated camera. Physical trackpad, pen, Wayland fractional scaling and screen-reader behavior still need platform acceptance beyond synthetic browser coverage. See the linked development guide for checks, limitations and manual cases.
+
+## Phase 2.3 follow-up
+
+[ADR 0015](0015-shapes-text-connections.md) extends the same SVG adapter with editable basic shapes, text, styles and connections. Its pure geometry, layer ordering, bounded label rendering, endpoint picking and immutable transactions supersede the read-only preview description for supported content. The camera, CSS-pixel coordinate and portable view-state contracts remain unchanged.

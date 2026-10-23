@@ -4,6 +4,9 @@ import { Dialog, Icon } from '@koxora/ui';
 import { Canvas, type CanvasHandle } from './canvas';
 import {
   activePageId,
+  applyEdit,
+  EditError,
+  type EditCommand,
   selectPage,
   writeCanvas,
   type CanvasState,
@@ -67,6 +70,21 @@ export function Projects({ locale }: { locale: string }) {
   const activePage =
     activeDocument?.pages.find((page) => page.id === pageId) ??
     activeDocument?.pages[0];
+  const styleSources = [
+    ...(project?.themes.map((theme) => theme.styles) ?? []),
+    ...(project?.documents.map((doc) => doc.styles) ?? []),
+  ];
+  const [styleCache, setStyleCache] = useState(() => ({
+    sources: styleSources,
+    styles: styleSources.flat(),
+  }));
+  if (
+    styleSources.length !== styleCache.sources.length ||
+    styleSources.some((source, i) => source !== styleCache.sources[i])
+  ) {
+    setStyleCache({ sources: styleSources, styles: styleSources.flat() });
+  }
+  const renderStyles = styleCache.styles;
   const snapshot = useCallback(() => {
     if (!project || !activeDocument || !activePage || view !== 'workspace')
       return project;
@@ -99,6 +117,35 @@ export function Projects({ locale }: { locale: string }) {
       loadVersion,
     ],
   );
+  function edit(command: EditCommand): boolean {
+    if (
+      !project ||
+      !activeDocument ||
+      !activePage ||
+      session.current !== loadVersion
+    )
+      return false;
+    try {
+      const current = snapshot() ?? project;
+      const next = applyEdit(
+        current,
+        activeDocument.id,
+        activePage.id,
+        command,
+        new Date().toISOString(),
+      );
+      setProject(next);
+      setError(null);
+      setPendingNavigation(false);
+      return true;
+    } catch (error) {
+      setError(
+        `diagram.error.${error instanceof EditError ? error.code : 'invalid'}`,
+      );
+      setErrorPath(null);
+      return false;
+    }
+  }
   const date = (value: string) =>
     new Intl.DateTimeFormat(locale, {
       dateStyle: 'medium',
@@ -699,6 +746,8 @@ export function Projects({ locale }: { locale: string }) {
                   key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
                   ref={canvasRef}
                   page={activePage}
+                  styles={renderStyles}
+                  onEdit={edit}
                   documentTitle={activeDocument.title}
                   locale={locale}
                   onCommit={commitCanvas}
