@@ -1,5 +1,7 @@
 # Interactive canvas (Phase 2.2)
 
+This document records the Phase 2.2 baseline. [Phase 2.3](shapes-text-connections.md) extends it with basic shapes, text/style editing, connections and updated interaction rules; the navigation and persistence contracts below remain in effect.
+
 Phase 2.2 adds pan/zoom, portable per-page view settings and a read-only content preview to the approved Phase 2.1 workspace. It does not add element creation, selection, dragging, resizing, deletion or undo. See [ADR 0014](../adr/0014-interactive-canvas.md), [project format](../architecture/project-format.md), and [storage](project-storage.md).
 
 ## Module boundaries

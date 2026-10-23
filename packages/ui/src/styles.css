@@ -1145,23 +1145,22 @@ input[type='checkbox'] {
 .grid-dot {
   fill: var(--grid);
 }
-.scene-node {
-  fill: var(--surface);
-  stroke: var(--accent);
-  stroke-width: 1.5;
+.scene-node,
+.scene-connection,
+.scene-arrow {
+  pointer-events: visiblePainted;
 }
-.scene-connection {
-  fill: none;
-  stroke: var(--cyan);
-  stroke-width: 1.5;
+.scene-label,
+.scene-edge-label {
+  font-family: system-ui, sans-serif;
+  pointer-events: none;
+  unicode-bidi: plaintext;
 }
-.scene-label {
-  fill: var(--ink);
-  font:
-    12px system-ui,
-    sans-serif;
-  text-anchor: middle;
-  dominant-baseline: central;
+.scene-edge-label {
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 .canvas-welcome {
   position: absolute;
@@ -1235,4 +1234,110 @@ input[type='checkbox'] {
     padding: 8px;
     gap: 6px;
   }
+}
+
+.diagram-tools,
+.diagram-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.diagram-tools select,
+.diagram-options select {
+  max-width: 240px;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.diagram-tools [aria-pressed='true'] {
+  background: var(--accent);
+  color: white;
+}
+.diagram-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+.diagram-guidance {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.interactive-canvas.tool-active {
+  cursor: crosshair;
+}
+.element-form {
+  display: grid;
+  gap: 20px;
+}
+.element-form textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 90px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.element-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.element-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.element-fields input,
+.element-fields select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.element-fields input[type='color'] {
+  padding: 2px;
+  height: 34px;
+}
+.element-fields input[type='checkbox'] {
+  width: 20px;
+}
+@media (max-width: 600px) {
+  .diagram-tools,
+  .diagram-options {
+    padding: 8px;
+    gap: 6px;
+  }
+  .element-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.connection-source .scene-node {
+  stroke: var(--cyan);
+}
+
+.scene-standalone-label {
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.canvas-hint.with-content {
+  display: none;
 }

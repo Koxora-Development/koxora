@@ -40,3 +40,5 @@ Run relevant existing checks and report real results. Run `pnpm check`, `pnpm bu
 Arrange independent review by another agent or reviewer; do not claim it happened without access to the diff and evidence. Present changes, verification, limitations, and decisions in plain English. Human Product Owner approval remains required before merge. A documentation merge does not authorize Phase 1.
 
 Phase 2.2 separately authorizes the interactive canvas navigation foundation, grid/snapping infrastructure, portable viewport/page settings, honest read-only imported-content previews, renderer evaluation, performance measurements and their tests. See [interactive canvas](docs/development/interactive-canvas.md). Full element creation/editing, collaboration and optional services remain outside this assignment.
+
+Phase 2.3 separately authorizes basic shapes, plain text, connections, minimal editing-target interactions, styling, anchor geometry, immutable editing transactions and their tests. See [shapes, text and connections](docs/development/shapes-text-connections.md). Full selection, dragging, resizing, group manipulation and comprehensive undo/redo remain later milestones.

@@ -1,16 +1,38 @@
-import type { Page } from '@koxora/project';
+import type { Page, Style } from '@koxora/project';
 import { intersects, type Bounds, type Point } from './viewport';
-/** Read-only geometry adapter. Domain documents never contain renderer objects. */
+import {
+  containsShape,
+  geometryBounds,
+  isShapeKind,
+  layerStates,
+  MAX_TEXT,
+  appearanceResolver,
+  CONNECTION_KEY,
+  type Appearance,
+  type Geometry,
+} from './shapes';
+import {
+  connectionPath,
+  readConnection,
+  type ConnectionPath,
+} from './connections';
 export interface SceneNode {
   id: string;
+  kind: string;
   bounds: Bounds;
-  geometry: Bounds & { rotation: number };
+  geometry: Geometry;
   label: string;
+  style: Appearance;
+  editable: boolean;
+  layerOrder: number;
 }
-export interface SceneConnection {
+export interface SceneConnection extends ConnectionPath {
   id: string;
-  points: Point[];
-  bounds: Bounds;
+  label: string;
+  style: Appearance;
+  arrow: boolean;
+  editable: boolean;
+  layerOrder: number;
 }
 export interface Scene {
   nodes: SceneNode[];
@@ -31,82 +53,95 @@ export function unionBounds(bounds: Bounds[]): Bounds | null {
   }
   return { x, y, width: right - x, height: bottom - y };
 }
-export function buildScene(page: Page): Scene {
-  const layers = new Map(page.layers.map((layer) => [layer.id, layer]));
-  const visibility = new Map<string, boolean>();
-  const visible = (id: string): boolean => {
-    if (visibility.has(id)) return visibility.get(id)!;
-    const seen = new Set<string>();
-    const path: string[] = [];
-    let current: string | undefined = id;
-    let result = true;
-    while (current) {
-      if (visibility.has(current)) {
-        result = visibility.get(current)!;
-        break;
-      }
-      if (seen.has(current)) {
-        result = false;
-        break;
-      }
-      seen.add(current);
-      path.push(current);
-      const layer = layers.get(current);
-      if (!layer || !layer.visible) {
-        result = false;
-        break;
-      }
-      current = layer.parentId;
-    }
-    for (const key of path) visibility.set(key, result);
-    return result;
-  };
-  const nodes = page.nodes
-    .filter((node) => visible(node.layerId))
-    .map((node): SceneNode => {
-      const g = node.geometry,
-        radians = (g.rotation * Math.PI) / 180;
-      const width =
-        Math.abs(g.width * Math.cos(radians)) +
-        Math.abs(g.height * Math.sin(radians));
-      const height =
-        Math.abs(g.width * Math.sin(radians)) +
-        Math.abs(g.height * Math.cos(radians));
-      return {
-        id: node.id,
-        geometry: g,
-        bounds: {
-          x: g.x + (g.width - width) / 2,
-          y: g.y + (g.height - height) / 2,
-          width,
-          height,
+/** Only safe, bounded geometry and declarative appearance cross into the renderer. Originals are retained. */
+export function buildScene(
+  page: Pick<Page, 'nodes' | 'connections' | 'layers'>,
+  styles: Style[] = [],
+): Scene {
+  const layers = layerStates(page.layers);
+  const appearance = appearanceResolver(styles);
+  const nodes: SceneNode[] = page.nodes
+    .flatMap((node) => {
+      const layer = layers.get(node.layerId),
+        g = node.geometry;
+      if (
+        !layer?.visible ||
+        ![g.x, g.y, g.width, g.height, g.rotation].every(
+          (n) => Number.isFinite(n) && Math.abs(n) <= 1e12,
+        )
+      )
+        return [];
+      const style = appearance(node);
+      return [
+        {
+          id: node.id,
+          kind: node.kind,
+          geometry: g,
+          bounds: geometryBounds(g, style.strokeWidth / 2),
+          label:
+            typeof node.content.text === 'string'
+              ? node.content.text.slice(0, MAX_TEXT)
+              : node.kind.slice(0, 120),
+          style,
+          editable: layer.editable,
+          layerOrder: layer.order,
         },
-        label:
-          typeof node.content.text === 'string'
-            ? node.content.text.slice(0, 120)
-            : node.kind.slice(0, 120),
+      ];
+    })
+    .sort((a, b) => a.layerOrder - b.layerOrder);
+  const visible = new Map(nodes.map((n) => [n.id, n]));
+  const byId = new Map(page.nodes.map((n) => [n.id, n]));
+  const connections: SceneConnection[] = page.connections
+    .flatMap((edge) => {
+      const s = visible.get(edge.sourceId),
+        t = visible.get(edge.targetId),
+        layer = layers.get(edge.layerId);
+      if (!s || !t || !layer?.visible) return [];
+      const style = appearance(edge, CONNECTION_KEY),
+        options = readConnection(edge);
+      const path = connectionPath(
+        byId.get(s.id)!,
+        byId.get(t.id)!,
+        options,
+        edge.waypoints
+          .filter((p) => Math.abs(p.x) <= 1e12 && Math.abs(p.y) <= 1e12)
+          .slice(0, 2048),
+        s.style.cornerRadius,
+        t.style.cornerRadius,
+      );
+      const labelBounds = {
+        x: path.labelPoint.x - (options.label.length * style.fontSize) / 2,
+        y: path.labelPoint.y - style.fontSize * 2,
+        width: options.label.length * style.fontSize,
+        height: style.fontSize * 12,
       };
-    });
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  const center = (node: SceneNode) => ({
-    x: node.geometry.x + node.geometry.width / 2,
-    y: node.geometry.y + node.geometry.height / 2,
-  });
-  const connections = page.connections.flatMap((edge): SceneConnection[] => {
-    const source = byId.get(edge.sourceId),
-      target = byId.get(edge.targetId);
-    if (!source || !target || !visible(edge.layerId)) return [];
-    const points = [center(source), ...edge.waypoints, center(target)];
-    return [
-      {
-        id: edge.id,
-        points,
-        bounds: unionBounds(
-          points.map((p) => ({ ...p, width: 0, height: 0 })),
-        )!,
-      },
-    ];
-  });
+      return [
+        {
+          ...path,
+          id: edge.id,
+          label: options.label,
+          arrow: options.arrow,
+          style,
+          editable: layer.editable,
+          layerOrder: layer.order,
+          bounds: unionBounds([
+            path.bounds,
+            labelBounds,
+            {
+              x:
+                path.points.at(-1)!.x -
+                Math.max(16, style.strokeWidth * 3 * 1.12),
+              y:
+                path.points.at(-1)!.y -
+                Math.max(16, style.strokeWidth * 3 * 1.12),
+              width: Math.max(16, style.strokeWidth * 3 * 1.12) * 2,
+              height: Math.max(16, style.strokeWidth * 3 * 1.12) * 2,
+            },
+          ])!,
+        },
+      ];
+    })
+    .sort((a, b) => a.layerOrder - b.layerOrder);
   return {
     nodes,
     connections,
@@ -116,13 +151,23 @@ export function buildScene(page: Page): Scene {
     ]),
   };
 }
-/** Replaceable linear culling; no state or platform APIs. */
 export function visibleScene(scene: Scene, viewport: Bounds): Scene {
   return {
     ...scene,
-    nodes: scene.nodes.filter((node) => intersects(node.bounds, viewport)),
-    connections: scene.connections.filter((edge) =>
-      intersects(edge.bounds, viewport),
+    nodes: scene.nodes.filter((n) => intersects(n.bounds, viewport)),
+    connections: scene.connections.filter((c) =>
+      intersects(c.bounds, viewport),
     ),
   };
+}
+/** Topmost actual contour wins; locked/hidden layers cannot become editing targets. */
+export function pickNode(scene: Scene, point: Point): SceneNode | undefined {
+  return [...scene.nodes]
+    .reverse()
+    .find(
+      (n) =>
+        n.editable &&
+        isShapeKind(n.kind) &&
+        containsShape(n.kind, n.geometry, point, n.style.cornerRadius),
+    );
 }

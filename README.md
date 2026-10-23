@@ -1,6 +1,6 @@
 # Koxora
 
-A local-first visualization studio. The shared browser/desktop shell supports English and German, persistent preferences, and light/dark themes. Phase 2.1 adds versioned projects, local saves, `.koxora` import/export, and previous-save recovery. Interactive canvas editing remains future work.
+A local-first visualization studio. The shared browser/desktop shell supports English and German, persistent preferences, and light/dark themes. Versioned projects, local saves, `.koxora` import/export and previous-save recovery now support an interactive canvas with basic shapes, editable text and connections.
 
 ## Quick start
 
@@ -32,4 +32,6 @@ English is the default/fallback interface language; German is explicitly selecta
 
 The project license, branding, distribution signing, cloud, AI, collaboration, and marketplace decisions remain open. All packages are private and marked `UNLICENSED`; this is not a publication or licensing decision.
 
-Phase 2.2 adds the [interactive canvas foundation](docs/development/interactive-canvas.md): pan/zoom, per-page portable views, grid settings and read-only geometry previews. Element creation/editing remains a later milestone. The renderer choice is documented in [ADR 0014](docs/adr/0014-interactive-canvas.md), pending Product Owner review.
+Phase 2.2 adds the [interactive canvas foundation](docs/development/interactive-canvas.md): pan/zoom, per-page portable views, grid settings and read-only geometry previews. Phase 2.3 extends this foundation with basic element editing. The renderer choice is documented in [ADR 0014](docs/adr/0014-interactive-canvas.md), pending Product Owner review.
+
+Phase 2.3 adds [shapes, editable text and connections](docs/development/shapes-text-connections.md): insert shapes, edit labels/styles, connect endpoints, and save/reopen portable diagrams offline. [ADR 0015](docs/adr/0015-shapes-text-connections.md) documents the registry, geometry, extension fields and future command boundary. Drag/resize, multiselection and undo/redo remain later milestones.
