@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type Locator } from '@playwright/test';
 import { readFileSync, mkdirSync } from 'node:fs';
 import {
   createProject,
@@ -53,6 +53,26 @@ async function worldDrag(
 ) {
   await drag(p, await point(p, ax, ay), await point(p, bx, by));
 }
+async function handleCenter(handle: Locator) {
+  await expect(handle).toBeVisible();
+  // Read geometry atomically: scheduled overlay redraws replace SVG handles.
+  let center = { x: 0, y: 0, width: 0, height: 0 };
+  await expect
+    .poll(async () => {
+      center = await handle.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          x: rect.x + rect.width / 2,
+          y: rect.y + rect.height / 2,
+          width: rect.width,
+          height: rect.height,
+        };
+      });
+      return center.width > 0 && center.height > 0;
+    })
+    .toBe(true);
+  return center;
+}
 async function shape(p: Page, name: string, x: number, y: number) {
   await button(p, name).click();
   await click(p, x, y);
@@ -102,12 +122,8 @@ test('direct visual insertion, move at zoom, snapping override, resize and singl
   await expect(node).toHaveAttribute('transform', moved!);
   await click(page, -95, 41);
   const handle = page.locator('[data-handle="se"]');
-  const h = (await handle.boundingBox())!;
-  await drag(
-    page,
-    { x: h.x + h.width / 2, y: h.y + h.height / 2 },
-    { x: h.x + 90, y: h.y + 55 },
-  );
+  const h = await handleCenter(handle);
+  await drag(page, h, { x: h.x + 90, y: h.y + 55 });
   let model = (await exported(page)).project.documents[0].pages[0];
   expect(model.nodes[0].geometry.width).toBeGreaterThan(160);
   expect(Math.abs(model.nodes[0].geometry.x % 24)).toBe(0);
@@ -185,13 +201,11 @@ test('standalone arrows have editable endpoints, labels and heads and survive po
   await expect(page.locator('[data-node-id]')).toHaveCount(1);
   await expect(page.locator('[data-connection-id]')).toHaveCount(0);
   await expect(page.locator('.scene-arrow')).toHaveCount(1);
-  await expect(page.locator('[data-handle="end"]')).toBeVisible();
-  const end = (await page.locator('[data-handle="end"]').boundingBox())!;
-  await drag(
-    page,
-    { x: end.x + 5, y: end.y + 5 },
-    { x: end.x + 75, y: end.y - 20 },
-  );
+  const arrowPath = page.locator('[data-node-id] .scene-connection');
+  const originalPath = await arrowPath.getAttribute('d');
+  const end = await handleCenter(page.locator('[data-handle="end"]'));
+  await drag(page, end, { x: end.x + 75, y: end.y - 20 });
+  await expect(arrowPath).not.toHaveAttribute('d', originalPath!);
   await button(page, 'Element properties').click();
   await page
     .getByLabel('Label / text', { exact: true })
