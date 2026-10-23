@@ -9,9 +9,24 @@ import {
 } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog } from '@koxora/ui';
-import type { Page, Style } from '@koxora/project';
+import type { Page, Style, Node } from '@koxora/project';
 import {
   buildScene,
+  alignedGeometries,
+  copyElements,
+  movedGeometries,
+  marqueeSelection,
+  toggleSelection,
+  resizeGeometry,
+  lineGeometry,
+  lineEndpoints,
+  isDrawing,
+  transformScene,
+  snapPoint,
+  type Geometry,
+  type Bounds,
+  type ResizeHandle,
+  type Alignment,
   DEFAULT_CONNECTION,
   assertEditableElement,
   screenToWorld,
@@ -38,6 +53,8 @@ interface Props {
   page: Page;
   styles: Style[];
   onEdit: (command: EditCommand) => boolean;
+  history: { undo: number; redo: number };
+  onHistory: (direction: 'undo' | 'redo') => boolean;
   documentTitle: string;
   locale: string;
   onCommit: (state: CanvasState) => void;
@@ -48,6 +65,8 @@ export function Canvas({
   page,
   styles,
   onEdit,
+  history,
+  onHistory,
   documentTitle,
   locale,
   onCommit,
@@ -55,8 +74,29 @@ export function Canvas({
   ref,
 }: Props) {
   const t = (key: MessageKey) => translate(locale, key);
-  const [tool, setTool] = useState<DiagramTool>('pan');
-  const cancelInput = useRef<() => void>(() => {});
+  const [initial] = useState(() => readCanvas(page));
+  const state = useRef<CanvasState>(initial);
+  const [grid, setGrid] = useState(initial.grid);
+  const controls = useRef<{
+    camera: (action: 'in' | 'out' | 'reset' | 'fit') => void;
+    settings: () => void;
+    refresh: () => void;
+    focus: () => void;
+  } | null>(null);
+  const [tool, setTool] = useState<DiagramTool>('select');
+  const [repeat, setRepeat] = useState(false);
+  const [selected, setSelectedState] = useState<string[]>([]);
+  const selection = useRef<string[]>([]);
+  const clipboard = useRef<ReturnType<typeof copyElements> | null>(null);
+  const [hasClipboard, setHasClipboard] = useState(false);
+  const [feedback, setFeedback] = useState<MessageKey | null>(null);
+  const [contextMenu, setContextMenu] = useState(false);
+  function select(ids: string[]) {
+    selection.current = ids;
+    setSelectedState(ids);
+    controls.current?.refresh();
+  }
+  const cancelInput = useRef<() => boolean>(() => false);
   const [editError, setEditError] = useState<MessageKey | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -65,6 +105,15 @@ export function Canvas({
     () =>
       page.layers.find((l) => layerStates(page.layers).get(l.id)?.editable)
         ?.id ?? '',
+  );
+  const content = useMemo(
+    () => ({
+      id: page.id,
+      nodes: page.nodes,
+      connections: page.connections,
+      layers: page.layers,
+    }),
+    [page.id, page.nodes, page.connections, page.layers],
   );
   const scene = useMemo(
     () =>
@@ -82,6 +131,7 @@ export function Canvas({
     cancelInput.current();
     setTool(next);
     setSource(null);
+    setContextMenu(false);
   }
   function pick(id: string) {
     const item =
@@ -96,7 +146,7 @@ export function Canvas({
     }
     setEditError(null);
     if (tool === 'connect') {
-      if (!page.nodes.some((n) => n.id === id)) return;
+      if (!page.nodes.some((n) => n.id === id && !isDrawing(n.kind))) return;
       if (!source) setSource(id);
       else if (source === id) setEditError('diagram.error.endpoint');
       else if (
@@ -119,9 +169,12 @@ export function Canvas({
       )
         setSource(null);
       else setEditError('diagram.error.invalid');
-    } else setEditing(id);
+    } else {
+      select([id]);
+      setEditing(id);
+    }
   }
-  function act(point: Point, id?: string) {
+  function act(point: Point, id?: string, geometry?: Geometry, snap?: boolean) {
     if (isShapeKind(tool)) {
       const id = crypto.randomUUID();
       if (
@@ -131,28 +184,91 @@ export function Canvas({
           kind: tool,
           position: point,
           layerId,
+          geometry,
+          snap,
           text: tool === 'text' ? t('diagram.newText') : '',
-        }) &&
-        tool === 'text'
+        })
       ) {
-        setEditing(id);
-        activate('pan');
+        select([id]);
+        if (!repeat) activate('select');
+        if (tool === 'text') setEditing(id);
       }
     } else {
-      const node = pickNode(scene, point);
+      const node = pickNode(scene, point, 6 / state.current.camera.zoom);
       const edge =
         id && scene.connections.find((e) => e.id === id && e.editable);
       if (node) pick(node.id);
       else if (edge && tool !== 'connect') pick(edge.id);
     }
   }
-  const interaction = useRef({ tool, act, activate, source });
-  useEffect(() => {
-    interaction.current = { tool, act, activate, source };
-  });
-  const [initial] = useState(() => readCanvas(page));
-  const state = useRef<CanvasState>(initial);
-  const [grid, setGrid] = useState(initial.grid);
+  const editableSelection = selected.filter((id) =>
+    [...scene.nodes, ...scene.connections].some(
+      (n) => n.id === id && n.editable,
+    ),
+  );
+  function command(
+    action:
+      | 'delete'
+      | 'duplicate'
+      | 'copy'
+      | 'paste'
+      | 'undo'
+      | 'redo'
+      | 'properties'
+      | Alignment,
+  ) {
+    cancelInput.current();
+    if (action !== 'properties') controls.current?.focus();
+    setContextMenu(false);
+    setFeedback(null);
+    const ids = selection.current.filter((id) =>
+      [...scene.nodes, ...scene.connections].some(
+        (n) => n.id === id && n.editable,
+      ),
+    );
+    try {
+      if (action === 'undo' || action === 'redo') {
+        if (onHistory(action)) select([]);
+        else setFeedback('editing.noHistory');
+      } else if (action === 'properties') {
+        if (ids.length === 1) pick(ids[0]);
+      } else if (action === 'delete') {
+        if (ids.length && onEdit({ type: 'delete', ids })) select([]);
+      } else if (action === 'copy') {
+        clipboard.current = copyElements(page, ids);
+        setHasClipboard(true);
+        setFeedback('editing.copied');
+      } else if (action === 'duplicate' || action === 'paste') {
+        const content =
+          action === 'paste' ? clipboard.current : copyElements(page, ids);
+        if (!content) return;
+        const idMap = Object.fromEntries(
+          [...content.nodes, ...content.connections].map((n) => [
+            n.id,
+            crypto.randomUUID(),
+          ]),
+        );
+        const offset = {
+          x: state.current.grid.spacing,
+          y: state.current.grid.spacing,
+        };
+        if (
+          onEdit(
+            action === 'paste'
+              ? { type: 'paste', ...content, idMap, offset, layerId }
+              : { type: 'duplicate', ids, idMap, offset },
+          )
+        )
+          select(Object.values(idMap));
+      } else {
+        const geometries = alignedGeometries(scene, ids, action);
+        if (Object.keys(geometries).length)
+          onEdit({ type: 'transform', geometries });
+      }
+    } catch {
+      setEditError('diagram.error.unsupported');
+    }
+  }
   const [expanded, setExpanded] = useState(false);
   const [help, setHelp] = useState(false);
   const [limited, setLimited] = useState(false);
@@ -162,11 +278,26 @@ export function Canvas({
     pattern = useRef<SVGPatternElement>(null),
     gridRect = useRef<SVGRectElement>(null),
     percent = useRef<HTMLOutputElement>(null);
-  const controls = useRef<{
-    camera: (action: 'in' | 'out' | 'reset' | 'fit') => void;
-    settings: () => void;
-    refresh: () => void;
-  } | null>(null);
+  const interaction = useRef<{
+    tool: DiagramTool;
+    act: typeof act;
+    activate: typeof activate;
+    source: string | null;
+    command: typeof command;
+    select: typeof select;
+    onEdit: typeof onEdit;
+  }>(null!);
+  useEffect(() => {
+    interaction.current = {
+      tool,
+      act,
+      activate,
+      source,
+      command,
+      select,
+      onEdit,
+    };
+  });
   const callbacks = useRef({ onCommit, onPending });
   useEffect(() => {
     callbacks.current = { onCommit, onPending };
@@ -192,14 +323,27 @@ export function Canvas({
       pending = false;
     let lastLimited = false;
     const pointers = new Map<number, Point>();
+    const captures = new Set<number>();
+    let pendingMove: PointerEvent | null = null;
     let space = false;
+    let preview = scene;
+    let marquee: Bounds | null = null;
+    let snapping = false;
     const render = () => {
+      if (pendingMove) {
+        const move = pendingMove;
+        pendingMove = null;
+        updateGesture(move);
+      }
       frame = 0;
       const nextLimited = renderer.render(
-        scene,
+        preview,
         state.current,
         size,
         interaction.current.source,
+        selection.current,
+        marquee,
+        snapping,
       );
       if (nextLimited !== lastLimited) {
         lastLimited = nextLimited;
@@ -209,6 +353,8 @@ export function Canvas({
         style: 'percent',
         maximumFractionDigits: 0,
       }).format(state.current.camera.zoom);
+      element.dataset.snapping = String(snapping);
+      element.dataset.selection = JSON.stringify(selection.current);
       element.dataset.camera = JSON.stringify(state.current.camera);
     };
     const schedule = () => {
@@ -242,6 +388,7 @@ export function Canvas({
       );
     controls.current = {
       refresh: schedule,
+      focus: () => element.focus({ preventScroll: true }),
       camera(action) {
         if (action === 'fit') change(fitBounds(scene.bounds, size));
         else if (action === 'reset')
@@ -260,6 +407,7 @@ export function Canvas({
     };
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
+      cancelGesture();
       const delta = wheelDelta(
         { x: event.deltaX, y: event.deltaY },
         event.deltaMode,
@@ -282,59 +430,215 @@ export function Canvas({
       window.clearTimeout(timer);
       timer = window.setTimeout(commit, 180);
     };
-    let candidate: {
+    type Gesture = {
       id: number;
-      point: Point;
-      edgeId?: string;
+      kind: 'move' | 'resize' | 'marquee' | 'insert' | 'pick';
+      start: Point;
+      screen: Point;
       moved: boolean;
-    } | null = null;
+      originals: Node[];
+      base: string[];
+      handle?: string;
+      edgeId?: string;
+      single?: string;
+      geometries: Record<string, Geometry>;
+      geometry?: Geometry;
+      snap?: boolean;
+    };
+    let gesture: Gesture | null = null;
+    const world = (p: Point) => screenToWorld(p, state.current.camera, size);
+    const resetPreview = () => {
+      pendingMove = null;
+      preview = scene;
+      marquee = null;
+      snapping = false;
+      schedule();
+    };
+    const cancelGesture = () => {
+      gesture = null;
+      resetPreview();
+    };
     const down = (event: PointerEvent) => {
       if (event.button !== 0 && event.button !== 1) return;
       event.preventDefault();
       element.focus({ preventScroll: true });
       element.setPointerCapture(event.pointerId);
-      const point = local(event);
-      const editingTool =
-        interaction.current.tool !== 'pan' && !space && event.button === 0;
-      if (editingTool && event.pointerType !== 'touch') {
-        candidate = {
-          id: event.pointerId,
-          point,
-          moved: false,
-          edgeId:
-            (event.target as Element)
-              .closest?.('[data-connection-id]')
-              ?.getAttribute('data-connection-id') ?? undefined,
-        };
+      captures.add(event.pointerId);
+      const point = local(event),
+        start = world(point),
+        active = interaction.current;
+      if (event.pointerType === 'touch') pointers.set(event.pointerId, point);
+      if (pointers.size > 1) {
+        cancelGesture();
+        element.classList.add('panning');
         return;
       }
-      if (event.button === 0 && !space && pointers.size === 0)
-        candidate = {
-          id: event.pointerId,
-          point,
-          moved: false,
-          edgeId:
-            (event.target as Element)
-              .closest?.('[data-connection-id]')
-              ?.getAttribute('data-connection-id') ?? undefined,
+      if (active.tool === 'pan' || space || event.button === 1) {
+        cancelGesture();
+        pointers.set(event.pointerId, point);
+        element.classList.add('panning');
+        return;
+      }
+      const target = event.target as Element;
+      const handle = target.closest('[data-resize-id]');
+      let node = pickNode(scene, start, 6 / state.current.camera.zoom);
+      const edgeId = target
+        .closest('[data-connection-id]')
+        ?.getAttribute('data-connection-id');
+      const edge = scene.connections.find((e) => e.id === edgeId && e.editable);
+      if (edge && node && edge.layerOrder > node.layerOrder) node = undefined;
+      const hit = node?.id ?? edge?.id;
+      let kind: Gesture['kind'] = isShapeKind(active.tool)
+        ? 'insert'
+        : active.tool === 'connect' || active.tool === 'edit'
+          ? 'pick'
+          : hit
+            ? 'move'
+            : 'marquee';
+      let originals: Node[] = [];
+      if (active.tool === 'select') {
+        if (handle) {
+          const n = content.nodes.find(
+            (n) => n.id === handle.getAttribute('data-resize-id'),
+          );
+          if (n && scene.nodes.some((s) => s.id === n.id && s.editable)) {
+            kind = 'resize';
+            originals = [n];
+          }
+        } else if (hit) {
+          if (event.shiftKey)
+            active.select(toggleSelection(selection.current, hit, true));
+          else if (!selection.current.includes(hit)) active.select([hit]);
+          originals = content.nodes.filter(
+            (n) =>
+              selection.current.includes(n.id) &&
+              scene.nodes.some((s) => s.id === n.id && s.editable),
+          );
+          if (!selection.current.includes(hit)) {
+            pointers.delete(event.pointerId);
+            return;
+          }
+        } else if (!event.shiftKey) active.select([]);
+      }
+      gesture = {
+        id: event.pointerId,
+        kind,
+        start,
+        screen: point,
+        moved: false,
+        originals,
+        base: [...selection.current],
+        handle: handle?.getAttribute('data-handle') ?? undefined,
+        edgeId: edge?.id,
+        single: !event.shiftKey ? hit : undefined,
+        geometries: {},
+      };
+    };
+    const updateGesture = (event: PointerEvent) => {
+      if (!gesture || gesture.id !== event.pointerId) return false;
+      const p = local(event),
+        raw = world(p);
+      if (Math.hypot(p.x - gesture.screen.x, p.y - gesture.screen.y) > 3)
+        gesture.moved = true;
+      if (!gesture.moved) return true;
+      const grid = state.current.grid,
+        snap = grid.snap && !event.altKey;
+      const point = snapPoint(raw, grid.spacing, snap);
+      snapping = snap && ['move', 'resize', 'insert'].includes(gesture.kind);
+      gesture.snap = snap;
+      if (gesture.kind === 'move')
+        gesture.geometries = movedGeometries(
+          gesture.originals,
+          { x: raw.x - gesture.start.x, y: raw.y - gesture.start.y },
+          grid.spacing,
+          snap,
+        );
+      else if (gesture.kind === 'resize' && gesture.originals[0]) {
+        const n = gesture.originals[0];
+        if (isDrawing(n.kind)) {
+          const [a, b] = lineEndpoints(n.geometry);
+          gesture.geometries = {
+            [n.id]: {
+              ...n.geometry,
+              ...lineGeometry(
+                gesture.handle === 'start' ? point : a,
+                gesture.handle === 'end' ? point : b,
+                gesture.handle === 'start' ? 'end' : 'start',
+              ),
+            },
+          };
+        } else
+          gesture.geometries = {
+            [n.id]: resizeGeometry(
+              n.geometry,
+              gesture.handle as ResizeHandle,
+              point,
+              event.shiftKey,
+            ),
+          };
+      } else if (gesture.kind === 'marquee' || gesture.kind === 'insert') {
+        const a =
+          gesture.kind === 'insert'
+            ? snapPoint(gesture.start, grid.spacing, snap)
+            : gesture.start;
+        const b = gesture.kind === 'insert' ? point : raw;
+        marquee = {
+          x: Math.min(a.x, b.x),
+          y: Math.min(a.y, b.y),
+          width: Math.abs(b.x - a.x),
+          height: Math.abs(b.y - a.y),
         };
-      else candidate = null;
-      pointers.set(event.pointerId, point);
-      element.classList.add('panning');
+        if (
+          gesture.kind === 'insert' &&
+          isShapeKind(interaction.current.tool)
+        ) {
+          const tool = interaction.current.tool;
+          gesture.geometry = isDrawing(tool)
+            ? lineGeometry(a, b)
+            : {
+                ...marquee,
+                width: Math.max(8, marquee.width),
+                height: Math.max(8, marquee.height),
+                rotation: 0,
+              };
+          if (event.shiftKey && !isDrawing(tool))
+            gesture.geometry.height = gesture.geometry.width;
+          const temporary: Node = {
+            id: 'preview',
+            kind: tool,
+            layerId,
+            geometry: gesture.geometry,
+            content: {},
+            metadata: {},
+            assetIds: [],
+            dataBindings: [],
+            extensions: {},
+          };
+          const addition = buildScene(
+            { ...content, nodes: [temporary], connections: [] },
+            styles,
+          );
+          preview = { ...scene, nodes: [...scene.nodes, ...addition.nodes] };
+          marquee = null;
+        }
+      }
+      if (Object.keys(gesture.geometries).length)
+        preview = transformScene(scene, content, gesture.geometries);
+      schedule();
+      return true;
     };
     const move = (event: PointerEvent) => {
-      if (
-        candidate &&
-        Math.hypot(
-          local(event).x - candidate.point.x,
-          local(event).y - candidate.point.y,
-        ) > 5
-      )
-        candidate.moved = true;
+      if (gesture?.id === event.pointerId) {
+        pendingMove = event;
+        schedule();
+        if (pointers.has(event.pointerId))
+          pointers.set(event.pointerId, local(event));
+        return;
+      }
       const previous = pointers.get(event.pointerId);
       if (!previous) return;
-      const before = [...pointers.values()];
-      const point = local(event);
+      const before = [...pointers.values()],
+        point = local(event);
       pointers.set(event.pointerId, point);
       const after = [...pointers.values()];
       if (before.length === 2)
@@ -355,48 +659,127 @@ export function Canvas({
         );
     };
     const up = (event: PointerEvent) => {
-      const click =
-        candidate &&
-        candidate.id === event.pointerId &&
-        !candidate.moved &&
-        event.type === 'pointerup'
-          ? candidate
-          : null;
-      candidate = null;
-      if (click) {
-        commit();
-        interaction.current.act(
-          screenToWorld(click.point, state.current.camera, size),
-          click.edgeId,
-        );
-      }
+      pendingMove = null;
+      captures.delete(event.pointerId);
+      if (event.type === 'pointerup') updateGesture(event);
+      const done = gesture?.id === event.pointerId ? gesture : null;
+      const selectionBounds = marquee;
+      gesture = null;
       pointers.delete(event.pointerId);
       if (element.hasPointerCapture(event.pointerId))
         element.releasePointerCapture(event.pointerId);
+      if (done && event.type === 'pointerup') {
+        commit();
+        if (
+          (done.kind === 'move' || done.kind === 'resize') &&
+          done.moved &&
+          Object.keys(done.geometries).length
+        )
+          interaction.current.onEdit({
+            type: 'transform',
+            geometries: done.geometries,
+          });
+        else if (done.kind === 'marquee' && done.moved && selectionBounds)
+          interaction.current.select([
+            ...new Set([
+              ...done.base,
+              ...marqueeSelection(scene, selectionBounds),
+            ]),
+          ]);
+        else if (done.kind === 'move' && !done.moved && done.single)
+          interaction.current.select([done.single]);
+        else if (done.kind === 'insert')
+          interaction.current.act(
+            done.start,
+            undefined,
+            done.geometry,
+            state.current.grid.snap && !event.altKey,
+          );
+        else if (done.kind === 'pick' && !done.moved)
+          interaction.current.act(done.start, done.edgeId);
+      }
+      resetPreview();
       if (!pointers.size) {
         element.classList.remove('panning');
         commit();
       }
     };
     const key = (event: KeyboardEvent) => {
-      if (event.key === 'Enter' && isShapeKind(interaction.current.tool)) {
+      const active = interaction.current;
+      const modifier = event.ctrlKey || event.metaKey;
+      const letter = event.key.toLowerCase();
+      if (modifier && ['a', 'd', 'c', 'v', 'z', 'y'].includes(letter)) {
         event.preventDefault();
-        commit();
-        interaction.current.act(state.current.camera);
+        if (letter === 'a') {
+          cancelGesture();
+          active.select(
+            [...scene.nodes, ...scene.connections]
+              .filter((n) => n.editable)
+              .map((n) => n.id),
+          );
+        } else
+          active.command(
+            letter === 'd'
+              ? 'duplicate'
+              : letter === 'c'
+                ? 'copy'
+                : letter === 'v'
+                  ? 'paste'
+                  : letter === 'y' || event.shiftKey
+                    ? 'redo'
+                    : 'undo',
+          );
         return;
       }
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-      const distance = event.shiftKey ? 160 : 40;
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        active.command('delete');
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        commit();
+        if (isShapeKind(active.tool)) active.act(state.current.camera);
+        else active.command('properties');
+        return;
+      }
+      if (modifier) return;
       const directions: Record<string, Point> = {
-        ArrowLeft: { x: distance, y: 0 },
-        ArrowRight: { x: -distance, y: 0 },
-        ArrowUp: { x: 0, y: distance },
-        ArrowDown: { x: 0, y: -distance },
+        ArrowLeft: { x: -1, y: 0 },
+        ArrowRight: { x: 1, y: 0 },
+        ArrowUp: { x: 0, y: -1 },
+        ArrowDown: { x: 0, y: 1 },
       };
       if (directions[event.key]) {
         event.preventDefault();
-        change(pan(state.current.camera, directions[event.key]));
-        commit();
+        const direction = directions[event.key];
+        const nodes = content.nodes.filter(
+          (n) =>
+            selection.current.includes(n.id) &&
+            scene.nodes.some((s) => s.id === n.id && s.editable),
+        );
+        if (nodes.length && active.tool === 'select') {
+          const distance =
+            (state.current.grid.snap && !event.altKey
+              ? state.current.grid.spacing
+              : 1) * (event.shiftKey ? 10 : 1);
+          active.onEdit({
+            type: 'move',
+            ids: nodes.map((n) => n.id),
+            delta: { x: direction.x * distance, y: direction.y * distance },
+            spacing: state.current.grid.spacing,
+            snap: state.current.grid.snap && !event.altKey,
+          });
+        } else {
+          const distance = event.shiftKey ? 160 : 40;
+          change(
+            pan(state.current.camera, {
+              x: -direction.x * distance,
+              y: -direction.y * distance,
+            }),
+          );
+          commit();
+        }
       } else if (['+', '=', '-', '0', 'Home'].includes(event.key)) {
         event.preventDefault();
         controls.current?.camera(
@@ -414,20 +797,48 @@ export function Canvas({
         element.classList.add('hand-ready');
       }
     };
+    const spaceDown = (event: KeyboardEvent) => {
+      if (
+        event.key === ' ' &&
+        !(
+          event.target instanceof Element &&
+          event.target.closest(
+            'input, textarea, select, dialog, [contenteditable="true"]',
+          )
+        )
+      )
+        space = true;
+    };
     const keyup = (event: KeyboardEvent) => {
-      if (event.key === ' ' && space) {
+      if (event.key === ' ') {
         space = false;
         element.classList.remove('hand-ready');
       }
     };
     const blur = () => {
+      const active = !!gesture || !!pointers.size;
       space = false;
-      candidate = null;
+      cancelGesture();
       element.classList.remove('hand-ready', 'panning');
+      const captured = [...captures];
+      captures.clear();
       pointers.clear();
+      for (const id of captured)
+        if (element.hasPointerCapture(id)) element.releasePointerCapture(id);
       commit();
+      return active;
     };
     cancelInput.current = blur;
+    const doubleClick = (event: MouseEvent) => {
+      if (interaction.current.tool === 'select')
+        interaction.current.act(
+          world(local(event)),
+          (event.target as Element)
+            .closest('[data-connection-id]')
+            ?.getAttribute('data-connection-id') ?? undefined,
+        );
+    };
+    element.addEventListener('dblclick', doubleClick);
     const observer = new ResizeObserver(() => {
       const next = measure();
       // A resized surface changes local pointer coordinates; end the old gesture.
@@ -445,15 +856,18 @@ export function Canvas({
     element.addEventListener('keydown', key);
     element.addEventListener('keyup', keyup);
     element.addEventListener('blur', blur);
+    window.addEventListener('keydown', spaceDown);
+    window.addEventListener('keyup', keyup);
     window.addEventListener('blur', blur);
     render();
     return () => {
-      commit();
+      blur();
+      element.removeEventListener('dblclick', doubleClick);
       observer.disconnect();
       cancelAnimationFrame(frame);
       window.clearTimeout(timer);
       controls.current = null;
-      cancelInput.current = () => {};
+      cancelInput.current = () => false;
       element.removeEventListener('wheel', wheel);
       element.removeEventListener('pointerdown', down);
       element.removeEventListener('pointermove', move);
@@ -463,11 +877,13 @@ export function Canvas({
       element.removeEventListener('keydown', key);
       element.removeEventListener('keyup', keyup);
       element.removeEventListener('blur', blur);
+      window.removeEventListener('keydown', spaceDown);
+      window.removeEventListener('keyup', keyup);
       window.removeEventListener('blur', blur);
       renderer.clear();
     };
     // Content transactions replace the scene; navigation retains the current scene.
-  }, [page.id, scene, locale]);
+  }, [content, scene, locale, layerId, styles]);
   useEffect(() => {
     if (!expanded) return;
     const root = stage.current!;
@@ -490,8 +906,13 @@ export function Canvas({
         return;
       if (event.key === 'Escape' && !event.defaultPrevented) {
         event.preventDefault();
-        if (interaction.current.tool !== 'pan') {
-          interaction.current.activate('pan');
+        if (
+          cancelInput.current() ||
+          interaction.current.tool !== 'select' ||
+          selection.current.length
+        ) {
+          interaction.current.select([]);
+          interaction.current.activate('select');
           return;
         }
         setExpanded(false);
@@ -531,10 +952,45 @@ export function Canvas({
     <section
       ref={stage}
       onKeyDown={(event) => {
-        if (event.key === 'Escape' && !editing && tool !== 'pan') {
+        if (
+          (event.ctrlKey || event.metaKey) &&
+          !event.defaultPrevented &&
+          event.target instanceof Element &&
+          !event.target.closest(
+            'input, textarea, select, dialog, [contenteditable="true"], .interactive-canvas',
+          )
+        ) {
+          const letter = event.key.toLowerCase();
+          if (letter === 'z' || letter === 'y') {
+            event.preventDefault();
+            command(letter === 'y' || event.shiftKey ? 'redo' : 'undo');
+          } else if (letter === 'a') {
+            event.preventDefault();
+            select(
+              [...scene.nodes, ...scene.connections]
+                .filter((n) => n.editable)
+                .map((n) => n.id),
+            );
+          } else if (['d', 'c', 'v'].includes(letter)) {
+            event.preventDefault();
+            command(
+              letter === 'd' ? 'duplicate' : letter === 'c' ? 'copy' : 'paste',
+            );
+          }
+        }
+
+        if (
+          event.key === 'Escape' &&
+          !editing &&
+          (cancelInput.current() ||
+            tool !== 'select' ||
+            selected.length ||
+            contextMenu)
+        ) {
           event.preventDefault();
           event.stopPropagation();
-          activate('pan');
+          activate('select');
+          select([]);
         }
       }}
       role={expanded ? 'dialog' : undefined}
@@ -568,7 +1024,105 @@ export function Canvas({
         pick={pick}
         options={options}
         setOptions={setOptions}
+        repeat={repeat}
+        setRepeat={setRepeat}
       />
+      <div
+        className="editing-toolbar"
+        role="group"
+        aria-label={t('editing.actions')}
+      >
+        <button
+          className="button compact"
+          disabled={!history.undo}
+          title={t('editing.undoHelp')}
+          onClick={() => command('undo')}
+        >
+          {t('editing.undo')}
+        </button>
+        <button
+          className="button compact"
+          disabled={!history.redo}
+          title={t('editing.redoHelp')}
+          onClick={() => command('redo')}
+        >
+          {t('editing.redo')}
+        </button>
+        <span className="selection-count" role="status">
+          {translate(locale, 'editing.selected', {
+            count: editableSelection.length,
+          })}
+        </span>
+        <button
+          className="button compact"
+          disabled={editableSelection.length !== 1}
+          onClick={() => command('properties')}
+        >
+          {t('diagram.properties')}
+        </button>
+        <button
+          className="button compact"
+          disabled={!editableSelection.length}
+          onClick={() => command('duplicate')}
+        >
+          {t('editing.duplicate')}
+        </button>
+        <button
+          className="button compact"
+          disabled={!editableSelection.length}
+          onClick={() => command('delete')}
+        >
+          {t('editing.delete')}
+        </button>
+        <details className="editing-more">
+          <summary>{t('editing.more')}</summary>
+          <div>
+            <button
+              className="button compact"
+              disabled={!editableSelection.length}
+              onClick={() => command('copy')}
+            >
+              {t('editing.copy')}
+            </button>
+            <button
+              className="button compact"
+              disabled={!hasClipboard}
+              onClick={() => command('paste')}
+            >
+              {t('editing.paste')}
+            </button>
+            {(
+              [
+                'left',
+                'center',
+                'right',
+                'top',
+                'middle',
+                'bottom',
+                'horizontal',
+                'vertical',
+              ] as const
+            ).map((mode) => (
+              <button
+                key={mode}
+                className="button compact"
+                disabled={
+                  editableSelection.length <
+                  (mode === 'horizontal' || mode === 'vertical' ? 3 : 2)
+                }
+                onClick={() => command(mode)}
+              >
+                {t(`editing.align.${mode}`)}
+              </button>
+            ))}
+          </div>
+        </details>
+      </div>
+      {feedback && (
+        <p className="diagram-guidance" role="status">
+          {t(feedback)}
+        </p>
+      )}
       {editError && (
         <p className="canvas-disclosure" role="alert">
           {t(editError)}
@@ -625,7 +1179,11 @@ export function Canvas({
       </div>
       <div
         ref={host}
-        className={`interactive-canvas ${tool !== 'pan' ? 'tool-active' : ''}`}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setContextMenu(true);
+        }}
+        className={`interactive-canvas ${tool === 'select' ? 'select-active' : tool !== 'pan' ? 'tool-active' : ''}`}
         tabIndex={0}
         role="region"
         aria-label={t('canvas.navigation')}
@@ -664,6 +1222,38 @@ export function Canvas({
           {t('canvas.hint')}
         </p>
       </div>
+      {contextMenu && (
+        <div
+          className="editing-context"
+          role="group"
+          aria-label={t('editing.actions')}
+        >
+          {(
+            ['properties', 'duplicate', 'delete', 'copy', 'paste'] as const
+          ).map((action) => (
+            <button
+              key={action}
+              className="button compact"
+              disabled={
+                action === 'paste' ? !hasClipboard : !editableSelection.length
+              }
+              onClick={() => command(action)}
+            >
+              {t(
+                action === 'properties'
+                  ? 'diagram.properties'
+                  : `editing.${action}`,
+              )}
+            </button>
+          ))}
+          <button
+            className="button compact"
+            onClick={() => setContextMenu(false)}
+          >
+            {t('project.cancel')}
+          </button>
+        </div>
+      )}
       <div className="canvas-navigation">
         <button
           className="button compact"

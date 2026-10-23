@@ -31,13 +31,22 @@ async function clickWorld(p: Page, x: number, y: number) {
   );
 }
 async function shape(p: Page, kind: string, x: number, y: number) {
-  await p.getByLabel('Shape type', { exact: true }).selectOption(kind);
-  await button(p, 'Insert shape').click();
+  const names: Record<string, string> = {
+    rectangle: 'Rectangle',
+    'rounded-rectangle': 'Rounded rectangle',
+    ellipse: 'Ellipse / circle',
+    diamond: 'Diamond',
+    triangle: 'Triangle',
+    hexagon: 'Hexagon',
+    parallelogram: 'Parallelogram',
+    container: 'Container',
+  };
+  await button(p, names[kind]).click();
   await clickWorld(p, x, y);
 }
 async function edit(p: Page, id: string, label: string) {
   await p
-    .getByRole('group', { name: 'Diagram tools' })
+    .getByRole('toolbar', { name: 'Diagram tools' })
     .getByRole('button', { name: 'Edit', exact: true })
     .click();
   await p.getByLabel('Diagram element', { exact: true }).selectOption(id);
@@ -188,8 +197,17 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
     'parallelogram',
     'container',
   ]) {
-    await page.getByLabel('Shape type', { exact: true }).selectOption(kind);
-    await button(page, 'Insert shape').click();
+    const names: Record<string, string> = {
+      rectangle: 'Rectangle',
+      'rounded-rectangle': 'Rounded rectangle',
+      ellipse: 'Ellipse / circle',
+      diamond: 'Diamond',
+      triangle: 'Triangle',
+      hexagon: 'Hexagon',
+      parallelogram: 'Parallelogram',
+      container: 'Container',
+    };
+    await button(page, names[kind]).click();
     await canvas(page).focus();
     await page.keyboard.press('Enter');
   }
@@ -208,10 +226,7 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
   await shape(page, 'rectangle', 160, 40);
   await canvas(page).focus();
   await page.keyboard.press('Escape');
-  await expect(button(page, 'Navigate')).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(button(page, 'Select')).toHaveAttribute('aria-pressed', 'true');
   const { project } = await exported(page);
   const nodes = project.documents[0].pages[0].nodes;
   expect(nodes).toHaveLength(10);
@@ -223,7 +238,7 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
       '.canvas-svg img,.canvas-svg foreignObject,.canvas-svg script',
     ),
   ).toHaveCount(0);
-  await button(page, 'Insert shape').click();
+  await button(page, 'Rectangle').click();
   const box = (await canvas(page).boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
@@ -232,7 +247,7 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('[data-node-id]')).toHaveCount(10);
   await button(page, 'Expand canvas').click();
-  await button(page, 'Insert shape').click();
+  await button(page, 'Rectangle').click();
   await page.keyboard.press('Escape');
   await expect(page.locator('.canvas-expanded')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -245,7 +260,7 @@ test('German tools and modal focus stay usable after resize', async ({
   await page
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
-  await button(page, 'Form einfügen').click();
+  await button(page, 'Rechteck').click();
   await page
     .getByRole('region', { name: 'Interaktive Zeichenfläche', exact: true })
     .focus();

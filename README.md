@@ -1,6 +1,6 @@
 # Koxora
 
-A local-first visualization studio. The shared browser/desktop shell supports English and German, persistent preferences, and light/dark themes. Versioned projects, local saves, `.koxora` import/export and previous-save recovery now support an interactive canvas with basic shapes, editable text and connections.
+A local-first visualization studio. The shared browser/desktop shell supports English and German, persistent preferences, and light/dark themes. Versioned projects, local saves, `.koxora` import/export and previous-save recovery support an interactive canvas with direct shape insertion, selection, movement, resizing and undo/redo.
 
 ## Quick start
 
@@ -34,4 +34,6 @@ The project license, branding, distribution signing, cloud, AI, collaboration, a
 
 Phase 2.2 adds the [interactive canvas foundation](docs/development/interactive-canvas.md): pan/zoom, per-page portable views, grid settings and read-only geometry previews. Phase 2.3 extends this foundation with basic element editing. The renderer choice is documented in [ADR 0014](docs/adr/0014-interactive-canvas.md), pending Product Owner review.
 
-Phase 2.3 adds [shapes, editable text and connections](docs/development/shapes-text-connections.md): insert shapes, edit labels/styles, connect endpoints, and save/reopen portable diagrams offline. [ADR 0015](docs/adr/0015-shapes-text-connections.md) documents the registry, geometry, extension fields and future command boundary. Drag/resize, multiselection and undo/redo remain later milestones.
+Phase 2.3 adds [shapes, editable text and connections](docs/development/shapes-text-connections.md): insert shapes, edit labels/styles, connect endpoints, and save/reopen portable diagrams offline. [ADR 0015](docs/adr/0015-shapes-text-connections.md) documents the registry, geometry, extension fields and command boundary.
+
+Phase 2.4 adds [interactive editing](docs/development/interactive-editing.md): visual palette, direct insertion, multiselection, drag/resize, independent lines/arrows, duplicate/delete, alignment, bounded undo/redo and inline project renaming. [ADR 0016](docs/adr/0016-interactive-editing-history.md) records history and preservation rules. Product Owner acceptance and merge remain pending.

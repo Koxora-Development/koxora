@@ -29,6 +29,7 @@ test('create, rename, reopen offline, export, import and recover', async ({
   await page
     .getByRole('textbox', { name: 'Project name' })
     .fill('Portable 世界');
+  await page.getByRole('textbox', { name: 'Project name' }).press('Enter');
   await saved(page);
   const downloadPromise = page.waitForEvent('download');
   await page
@@ -73,6 +74,7 @@ test('create, rename, reopen offline, export, import and recover', async ({
   await page
     .getByRole('textbox', { name: 'Project name' })
     .fill('Renamed copy');
+  await page.getByRole('textbox', { name: 'Project name' }).press('Enter');
   await saved(page);
   await page.getByRole('button', { name: 'Recover previous save' }).click();
   await page
@@ -136,6 +138,7 @@ test('a quota failure keeps unsaved changes exportable and the stored version in
   await page
     .getByRole('textbox', { name: 'Project name' })
     .fill('Keep my changes');
+  await page.getByRole('textbox', { name: 'Project name' }).press('Enter');
   await expect(page.getByRole('alert')).toContainText('Local storage');
   await expect(
     page.getByText('Unsaved changes', { exact: true }),
@@ -176,10 +179,12 @@ test('two tabs cannot silently overwrite each other', async ({
   await page
     .getByRole('textbox', { name: 'Project name' })
     .fill('First writer');
+  await page.getByRole('textbox', { name: 'Project name' }).press('Enter');
   await saved(page);
   await other
     .getByRole('textbox', { name: 'Project name' })
     .fill('Stale writer');
+  await other.getByRole('textbox', { name: 'Project name' }).press('Enter');
   await expect(other.getByRole('alert')).toContainText('changed elsewhere');
   await page.reload();
   await page.getByRole('button', { name: 'Open project', exact: true }).click();
@@ -194,6 +199,7 @@ test('German project controls preserve content and recover an invalid head', asy
   await page.getByRole('button', { name: 'New project', exact: true }).click();
   await saved(page);
   await page.getByRole('textbox', { name: 'Project name' }).fill('Recovery');
+  await page.getByRole('textbox', { name: 'Project name' }).press('Enter');
   await saved(page);
   await page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -252,6 +258,7 @@ test('blocked project storage keeps edits exportable and replacement requires ex
   await page
     .getByRole('textbox', { name: 'Project name' })
     .fill('Session only');
+  await page.getByRole('textbox', { name: 'Project name' }).press('Enter');
   await expect(page.getByRole('alert')).toContainText('Local storage');
   await page.getByRole('button', { name: 'New project', exact: true }).click();
   await page

@@ -9,3 +9,5 @@ Initial topics: license/open-core boundaries, canvas engine, schema/commands, lo
 - [0014: Portable viewport core and replaceable SVG canvas](0014-interactive-canvas.md) — proposed with Phase 2.2, pending Product Owner review.
 
 - [0015: Portable basic elements and connection editing](0015-shapes-text-connections.md) — Phase 2.3 implementation, pending Product Owner review.
+
+- [0016: Interactive editing and bounded command history](0016-interactive-editing-history.md) — Phase 2.4 implementation, pending Product Owner acceptance.

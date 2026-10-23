@@ -69,10 +69,13 @@ test('pointer-centered zoom, wheel pan, drag, keyboard, resize and expanded canv
   await expect
     .poll(async () => (await camera(page)).x)
     .toBeCloseTo(zoomed.x + 30 / zoomed.zoom, 3);
+  await page.getByRole('button', { name: 'Navigate', exact: true }).click();
+  await canvas(page).scrollIntoViewIfNeeded();
   const beforeDrag = await camera(page);
-  await page.mouse.move(box.x + 100, box.y + 80);
+  const dragBox = (await canvas(page).boundingBox())!;
+  await page.mouse.move(dragBox.x + 100, dragBox.y + 80);
   await page.mouse.down();
-  await page.mouse.move(box.x + 160, box.y + 120, { steps: 8 });
+  await page.mouse.move(dragBox.x + 160, dragBox.y + 120, { steps: 8 });
   await page.mouse.up();
   await expect
     .poll(async () => (await camera(page)).x)
@@ -460,6 +463,7 @@ test('resizing during a captured drag ends the gesture without a coordinate jump
   page,
 }) => {
   await create(page);
+  await page.getByRole('button', { name: 'Navigate', exact: true }).click();
   await canvas(page).scrollIntoViewIfNeeded();
   const box = (await canvas(page).boundingBox())!;
   await page.mouse.move(box.x + 80, box.y + 80);

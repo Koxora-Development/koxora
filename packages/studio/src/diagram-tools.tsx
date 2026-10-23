@@ -3,7 +3,9 @@ import type { Page, Style } from '@koxora/project';
 import { Dialog } from '@koxora/ui';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
-  shapeKinds,
+  isDrawing,
+  LINE_KEY,
+  jsonObject,
   layerStates,
   resolveAppearance,
   readConnection,
@@ -15,10 +17,13 @@ import {
   type Appearance,
   DEFAULT_CONNECTION,
 } from '@koxora/editor-core';
-export type DiagramTool = 'pan' | 'edit' | 'connect' | ShapeKind;
+import { ShapePalette } from './shape-palette';
+export type DiagramTool = 'select' | 'pan' | 'edit' | 'connect' | ShapeKind;
 interface Props {
   page: Page;
   styles: Style[];
+  repeat: boolean;
+  setRepeat: (value: boolean) => void;
   locale: string;
   tool: DiagramTool;
   source: string | null;
@@ -31,6 +36,8 @@ interface Props {
 }
 export function DiagramTools({
   page,
+  repeat,
+  setRepeat,
   locale,
   tool,
   source,
@@ -42,77 +49,26 @@ export function DiagramTools({
   setOptions,
 }: Props) {
   const t = (key: MessageKey) => translate(locale, key);
-  const [shape, setShape] = useState<ShapeKind>('rectangle');
   const [target, setTarget] = useState('');
   const layers = layerStates(page.layers);
   const available = page.layers.filter((l) => layers.get(l.id)?.editable);
   return (
     <>
-      <div
-        className="diagram-tools"
-        role="group"
-        aria-label={t('diagram.tools')}
-      >
-        <button
-          className="button compact"
-          title={t('diagram.panHelp')}
-          aria-pressed={tool === 'pan'}
-          onClick={() => activate('pan')}
-        >
-          {t('diagram.pan')}
-        </button>
-        <select
-          aria-label={t('diagram.shape')}
-          value={shape}
-          onChange={(e) => {
-            setShape(e.target.value as ShapeKind);
-            if (shapeKinds.includes(tool as ShapeKind))
-              activate(e.target.value as ShapeKind);
-          }}
-        >
-          {shapeKinds
-            .filter((k) => k !== 'text')
-            .map((k) => (
-              <option key={k} value={k}>
-                {t(`shape.${k}`)}
-              </option>
-            ))}
-        </select>
-        <button
-          className="button compact"
-          title={t('diagram.insertHelp')}
-          disabled={!available.length}
-          aria-pressed={tool === shape}
-          onClick={() => activate(shape)}
-        >
-          {t('diagram.insert')}
-        </button>
-        <button
-          className="button compact"
-          title={t('diagram.insertHelp')}
-          disabled={!available.length}
-          aria-pressed={tool === 'text'}
-          onClick={() => activate('text')}
-        >
-          {t('shape.text')}
-        </button>
-        <button
-          className="button compact"
-          title={t('diagram.connectHelp')}
-          disabled={!available.length}
-          aria-pressed={tool === 'connect'}
-          onClick={() => activate('connect')}
-        >
-          {t('diagram.connect')}
-        </button>
-        <button
-          className="button compact"
-          title={t('diagram.editHelp')}
-          aria-pressed={tool === 'edit'}
-          onClick={() => activate('edit')}
-        >
-          {t('diagram.edit')}
-        </button>
+      <ShapePalette
+        locale={locale}
+        tool={tool}
+        activate={activate}
+        writable={!!available.length}
+      />
+      <div className="diagram-tools">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={repeat}
+            onChange={(e) => setRepeat(e.target.checked)}
+          />
+          {t('editing.repeat')}
+        </label>
         {page.layers.length > 1 && (
           <select
             aria-label={t('diagram.layer')}
@@ -126,8 +82,8 @@ export function DiagramTools({
             ))}
           </select>
         )}
-        {tool !== 'pan' && (
-          <button className="button compact" onClick={() => activate('pan')}>
+        {tool !== 'select' && (
+          <button className="button compact" onClick={() => activate('select')}>
             {t('diagram.cancel')}
           </button>
         )}
@@ -203,15 +159,17 @@ export function DiagramTools({
         {t(
           !available.length
             ? 'diagram.error.layer'
-            : tool === 'pan'
-              ? 'diagram.panHelp'
-              : tool === 'connect'
-                ? source
-                  ? 'diagram.targetHelp'
-                  : 'diagram.sourceHelp'
-                : tool === 'edit'
-                  ? 'diagram.editHelp'
-                  : 'diagram.insertHelp',
+            : tool === 'select'
+              ? 'editing.selectHelp'
+              : tool === 'pan'
+                ? 'diagram.panHelp'
+                : tool === 'connect'
+                  ? source
+                    ? 'diagram.targetHelp'
+                    : 'diagram.sourceHelp'
+                  : tool === 'edit'
+                    ? 'diagram.editHelp'
+                    : 'diagram.insertHelp',
         )}
       </p>
     </>
@@ -262,6 +220,18 @@ export function ElementDialog({
   const t = (key: MessageKey) => translate(locale, key);
   const node = page.nodes.find((n) => n.id === id),
     edge = page.connections.find((e) => e.id === id);
+  const [geometry, setGeometry] = useState(node?.geometry);
+  const line = node && isDrawing(node.kind);
+  const [startArrow, setStartArrow] = useState(
+    node ? jsonObject(node.extensions[LINE_KEY]).startArrow === true : false,
+  );
+  const [endArrow, setEndArrow] = useState(
+    node
+      ? typeof jsonObject(node.extensions[LINE_KEY]).endArrow === 'boolean'
+        ? jsonObject(node.extensions[LINE_KEY]).endArrow === true
+        : node.kind === 'arrow'
+      : false,
+  );
   const [failed, setFailed] = useState(false);
   const [text, setText] = useState(
     node && typeof node.content.text === 'string' ? node.content.text : '',
@@ -318,7 +288,14 @@ export function ElementDialog({
           if (
             onApply(
               node
-                ? { type: 'updateNode', id, text, style: appearance }
+                ? {
+                    type: 'updateNode',
+                    id,
+                    text,
+                    style: appearance,
+                    geometry: geometry === node.geometry ? undefined : geometry,
+                    ...(line ? { startArrow, endArrow } : {}),
+                  }
                 : { type: 'updateConnection', id, options, style: appearance },
             )
           )
@@ -341,6 +318,55 @@ export function ElementDialog({
         </label>
         {failed && <p role="alert">{t('diagram.error.invalid')}</p>}
         <div className="element-fields">
+          {geometry &&
+            (['x', 'y', 'width', 'height'] as const).map((key) => (
+              <label key={key}>
+                {t(`editing.${key}`)}
+                <input
+                  type="number"
+                  required
+                  min={
+                    key === 'width'
+                      ? 8
+                      : key === 'height'
+                        ? line
+                          ? 1
+                          : 8
+                        : -1e12
+                  }
+                  max={1e12}
+                  step="any"
+                  value={geometry[key]}
+                  onChange={(e) =>
+                    setGeometry({
+                      ...geometry,
+                      [key]: e.currentTarget.valueAsNumber,
+                    })
+                  }
+                />
+              </label>
+            ))}
+          {line && (
+            <>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={startArrow}
+                  onChange={(e) => setStartArrow(e.target.checked)}
+                />
+                {t('editing.startArrow')}
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={endArrow}
+                  onChange={(e) => setEndArrow(e.target.checked)}
+                />
+                {t('editing.endArrow')}
+              </label>
+            </>
+          )}
+
           {node && color('fill')}
           {color('stroke')}
           {color('textColor')}

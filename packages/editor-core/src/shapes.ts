@@ -14,6 +14,8 @@ export const shapeKinds = [
   'parallelogram',
   'text',
   'container',
+  'line',
+  'arrow',
 ] as const;
 export type ShapeKind = (typeof shapeKinds)[number];
 export type Geometry = Node['geometry'];
@@ -244,6 +246,18 @@ const rounded: Pick<ShapeDefinition, 'path' | 'contains'> = {
 };
 /** Trusted built-in registry; imported kind strings never load code. */
 export const shapeRegistry: Readonly<Record<ShapeKind, ShapeDefinition>> = {
+  line: {
+    width: 160,
+    height: 1,
+    path: (w, h) => `M 0 ${h / 2} L ${w} ${h / 2}`,
+    contains: (p, w, h) => p.x >= 0 && p.x <= w && Math.abs(p.y - h / 2) <= 4,
+  },
+  arrow: {
+    width: 160,
+    height: 1,
+    path: (w, h) => `M 0 ${h / 2} L ${w} ${h / 2}`,
+    contains: (p, w, h) => p.x >= 0 && p.x <= w && Math.abs(p.y - h / 2) <= 4,
+  },
   rectangle: { width: 160, height: 88, ...box },
   'rounded-rectangle': { width: 160, height: 88, ...rounded },
   ellipse: {
