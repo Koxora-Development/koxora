@@ -1256,8 +1256,8 @@ input[type='checkbox'] {
   color: var(--ink);
 }
 .diagram-tools [aria-pressed='true'] {
-  background: var(--accent);
-  color: white;
+  background: var(--primary);
+  color: var(--primary-ink);
 }
 .diagram-options label {
   display: flex;
