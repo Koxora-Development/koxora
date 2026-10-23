@@ -185,6 +185,7 @@ test('standalone arrows have editable endpoints, labels and heads and survive po
   await expect(page.locator('[data-node-id]')).toHaveCount(1);
   await expect(page.locator('[data-connection-id]')).toHaveCount(0);
   await expect(page.locator('.scene-arrow')).toHaveCount(1);
+  await expect(page.locator('[data-handle="end"]')).toBeVisible();
   const end = (await page.locator('[data-handle="end"]').boundingBox())!;
   await drag(
     page,
@@ -246,6 +247,8 @@ test('Escape, capture cancellation and blur discard previews; navigation never i
   await expect.poll(() => selection(page).then((s) => s.length)).toBe(0);
   await button(page, 'Arrow').click();
   await page.keyboard.down('Space');
+  // Layout changes cancel gestures, but must not forget a physically held key.
+  await page.setViewportSize({ width: 1400, height: 1080 });
   await worldDrag(page, 200, 100, 250, 150);
   await page.keyboard.up('Space');
   await expect(node).toHaveCount(1);

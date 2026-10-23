@@ -1080,6 +1080,9 @@ input[type='checkbox'] {
   flex-direction: column;
   min-width: 0;
 }
+.interactive-stage > :not(.interactive-canvas) {
+  flex-shrink: 0;
+}
 .interactive-stage .canvas-toolbar {
   gap: 12px;
 }

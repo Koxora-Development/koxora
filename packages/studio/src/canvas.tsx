@@ -97,6 +97,7 @@ export function Canvas({
     controls.current?.refresh();
   }
   const cancelInput = useRef<() => boolean>(() => false);
+  const spaceHeld = useRef(false);
   const [editError, setEditError] = useState<MessageKey | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -325,7 +326,6 @@ export function Canvas({
     const pointers = new Map<number, Point>();
     const captures = new Set<number>();
     let pendingMove: PointerEvent | null = null;
-    let space = false;
     let preview = scene;
     let marquee: Bounds | null = null;
     let snapping = false;
@@ -473,7 +473,7 @@ export function Canvas({
         element.classList.add('panning');
         return;
       }
-      if (active.tool === 'pan' || space || event.button === 1) {
+      if (active.tool === 'pan' || spaceHeld.current || event.button === 1) {
         cancelGesture();
         pointers.set(event.pointerId, point);
         element.classList.add('panning');
@@ -793,7 +793,7 @@ export function Canvas({
         );
       } else if (event.key === ' ') {
         event.preventDefault();
-        space = true;
+        spaceHeld.current = true;
         element.classList.add('hand-ready');
       }
     };
@@ -807,17 +807,16 @@ export function Canvas({
           )
         )
       )
-        space = true;
+        spaceHeld.current = true;
     };
     const keyup = (event: KeyboardEvent) => {
       if (event.key === ' ') {
-        space = false;
+        spaceHeld.current = false;
         element.classList.remove('hand-ready');
       }
     };
     const blur = () => {
       const active = !!gesture || !!pointers.size;
-      space = false;
       cancelGesture();
       element.classList.remove('hand-ready', 'panning');
       const captured = [...captures];
@@ -829,6 +828,10 @@ export function Canvas({
       return active;
     };
     cancelInput.current = blur;
+    const windowBlur = () => {
+      spaceHeld.current = false;
+      blur();
+    };
     const doubleClick = (event: MouseEvent) => {
       if (interaction.current.tool === 'select')
         interaction.current.act(
@@ -858,7 +861,7 @@ export function Canvas({
     element.addEventListener('blur', blur);
     window.addEventListener('keydown', spaceDown);
     window.addEventListener('keyup', keyup);
-    window.addEventListener('blur', blur);
+    window.addEventListener('blur', windowBlur);
     render();
     return () => {
       blur();
@@ -879,7 +882,7 @@ export function Canvas({
       element.removeEventListener('blur', blur);
       window.removeEventListener('keydown', spaceDown);
       window.removeEventListener('keyup', keyup);
-      window.removeEventListener('blur', blur);
+      window.removeEventListener('blur', windowBlur);
       renderer.clear();
     };
     // Content transactions replace the scene; navigation retains the current scene.
