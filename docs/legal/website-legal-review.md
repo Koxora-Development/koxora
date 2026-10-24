@@ -1,0 +1,103 @@
+# Website pre-publication legal review checklist
+
+**Status: prepared content for review, 2026-10-24. This checklist is not legal advice and is not a statement of compliance.** It records what the Website W1 implementation actually does, which statements were taken from Product-Owner-supplied reference material, and what the operator must verify against the deployed services before `koxora.app` is published. Implementation alone cannot establish lawfulness; a qualified legal review of the published text and the real deployment is required first.
+
+Related: [Issue #26](https://github.com/Koxora-Development/koxora/issues/26), [Issue #21](https://github.com/Koxora-Development/koxora/issues/21), [ADR 0017](../adr/0017-public-website-delivery.md), [W1 implementation notes](../platform/website-w1.md).
+
+## 1. How to read the status column
+
+| Status       | Meaning                                                                                                                                        |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Implemented  | The behaviour or text exists in this branch and is covered by an automated test or is directly inspectable.                                    |
+| Carried over | Taken from the Product-Owner-supplied Dyhntastic reference pages and adapted to Koxora; the underlying fact still needs operator confirmation. |
+| Open         | Needs a decision, a configuration check or a professional review before publication.                                                           |
+
+## 2. Provider identification, section 5 DDG
+
+| Item                                                                       | Status       | Who verifies             | Note                                                                                               |
+| -------------------------------------------------------------------------- | ------------ | ------------------------ | -------------------------------------------------------------------------------------------------- |
+| Operator name and postal address shown on a permanently reachable page     | Implemented  | Operator                 | Raphael Wiener, c/o IP-Management #2011, Ludwig-Erhard-Str. 18, 20459 Hamburg                      |
+| Authorisation to use the c/o service address for the Koxora brand          | Open         | Operator                 | The reference pages use the same address for a different brand; confirm the contract covers Koxora |
+| Electronic contact that allows rapid contact and direct communication      | Implemented  | Operator                 | `legal@koxora.app`, `privacy@koxora.app`, `support@koxora.app`                                     |
+| Mailboxes actually receive and can send                                    | Open         | Operator                 | Reported as provisioned; run an inbound and outbound delivery test                                 |
+| Legal form and register entries                                            | Carried over | Operator                 | Presented as a private individual; no register entry claimed                                       |
+| Value added tax statement                                                  | Carried over | Operator and tax adviser | Small business scheme under section 19 UStG, no identification number claimed                      |
+| Supervisory authority or professional regulation, where applicable         | Open         | Operator                 | None claimed; confirm that none applies                                                            |
+| Legal notice reachable from every page, in both languages, without consent | Implemented  | Covered by tests         | Footer link on each page; `/en/legal-notice/` and `/de/impressum/`                                 |
+
+## 3. Editorial and media law
+
+| Item                                                              | Status       | Who verifies | Note                                                                                     |
+| ----------------------------------------------------------------- | ------------ | ------------ | ---------------------------------------------------------------------------------------- |
+| Responsible person under section 18(2) MStV                       | Carried over | Operator     | Stated with the same name and address; confirm it is required for this content           |
+| Consumer dispute resolution statement, section 36 VSBG            | Carried over | Operator     | States no obligation and no willingness to participate                                   |
+| Online dispute resolution platform no longer referenced           | Implemented  | —            | The platform was discontinued on 20 July 2025 and is described as such                   |
+| No trademark or game disclaimers irrelevant to Koxora             | Implemented  | —            | The Minecraft and Mojang statements of the reference pages were not carried over         |
+| Competitor names used descriptively, without logos or endorsement | Implemented  | Operator     | Names appear as comparison targets with neutral descriptions and links to official sites |
+
+## 4. Privacy information, GDPR articles 12 to 14
+
+| Item                                                                | Status       | Who verifies | Note                                                                                                                                       |
+| ------------------------------------------------------------------- | ------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Controller identity and data protection contact                     | Implemented  | Operator     | Same operator; `privacy@koxora.app`                                                                                                        |
+| Processing described per operation with purpose and legal basis     | Implemented  | Legal review | Server logs, hosting and delivery, device storage, email contact                                                                           |
+| Server log retention period                                         | Open         | Operator     | The text says the configured period is verified before publication instead of naming an unverified number                                  |
+| Hosting provider named and processing agreement in place            | Carried over | Operator     | Hetzner Online GmbH; confirm the agreement covers the Koxora deployment                                                                    |
+| Content delivery and protection provider named, transfer safeguards | Carried over | Operator     | Cloudflare, Inc.; confirm the agreement, the transfer mechanism and whether it is actually in front of `koxora.app`                        |
+| Email infrastructure named                                          | Carried over | Operator     | Self-managed infrastructure at IONOS SE                                                                                                    |
+| Services that Koxora does not use are absent                        | Implemented  | —            | No game network, voice server, ticket system, newsletter, recruiting, translation portal, captcha or chat moderation text was carried over |
+| Local-first processing described honestly                           | Implemented  | Legal review | Browser database, service worker cache, `.koxora` archives and desktop files are distinguished from transmitted data                       |
+| No claim of zero processing                                         | Implemented  | —            | The text states that delivery necessarily processes connection data                                                                        |
+| Origin-scoped storage and the separate studio address explained     | Implemented  | —            | Stated on the privacy, local-first and settings pages                                                                                      |
+| Data subject rights, withdrawal and complaint                       | Implemented  | Legal review | Articles 15 to 21, withdrawal with future effect                                                                                           |
+| Supervisory authority for the controller                            | Carried over | Operator     | Bavarian State Office for Data Protection Supervision; confirm it is competent for this controller                                         |
+| No processing claimed for planned features                          | Implemented  | —            | Accounts, cloud, collaboration, marketplace and assistance are described as not implemented                                                |
+| Document version and date shown                                     | Implemented  | —            | Version and review date are rendered from the build configuration                                                                          |
+
+## 5. Device storage and consent, section 25 TDDDG
+
+| Item                                                      | Status      | Who verifies     | Note                                                                                                         |
+| --------------------------------------------------------- | ----------- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| Inventory of everything stored on the device              | Implemented | Covered by tests | Appearance preference and consent record; both listed with purpose, duration and legal basis                 |
+| No cookie is set by the website                           | Implemented | Covered by tests | A test asserts that no cookie and no storage entry exists before the reader acts                             |
+| No optional technology loaded before consent              | Implemented | Covered by tests | Gated scripts and embeds stay inert until the matching category is granted                                   |
+| No consent prompt where consent is not required           | Implemented | Covered by tests | The prompt is bound to the audited deployment configuration, not shown unconditionally                       |
+| Consent prompt with equal prominence and no preselection  | Implemented | Covered by tests | Accept all, reject optional and customise share one button style and width; optional toggles start unchecked |
+| Granular purposes with provider, duration and legal basis | Implemented | —                | Shown in the dialog and on the settings page                                                                 |
+| Decision stored without an identifier, with a version     | Implemented | Covered by tests | Version, time and one boolean per purpose; a version change asks again                                       |
+| Withdrawal from a permanent entry                         | Implemented | Covered by tests | Footer entry on every page; withdrawal deletes the record and the prompt returns                             |
+| Refusal does not impair the local-first studio            | Implemented | Covered by tests | Navigation, appearance and content keep working after refusal                                                |
+| Cookie names of the reference pages not reused            | Implemented | —                | No session, consent or protection cookie name was carried over                                               |
+| Audit of the real deployment before publication           | Open        | Operator         | Re-run the audit if a content delivery, protection or measurement service is enabled                         |
+
+## 6. Accessibility
+
+| Item                                                           | Status      | Who verifies     | Note                                                                       |
+| -------------------------------------------------------------- | ----------- | ---------------- | -------------------------------------------------------------------------- |
+| Applicability of the accessibility legislation to this service | Open        | Legal review     | An informational site differs from later paid services or accounts         |
+| Keyboard operation, visible focus, landmarks and labels        | Implemented | Covered by tests | Automated checks for landmarks, names, focus visibility and keyboard order |
+| Text contrast in both appearances                              | Implemented | Covered by tests | Measured against the AA ratio for the main text styles                     |
+| Usable without client-side scripting                           | Implemented | Covered by tests | Content, navigation and the storage inventory render without scripting     |
+| Claim of certified conformity                                  | Open        | —                | No conformity is claimed; a full manual audit has not been performed       |
+
+## 7. Content accuracy
+
+| Item                                               | Status      | Who verifies     | Note                                                                                     |
+| -------------------------------------------------- | ----------- | ---------------- | ---------------------------------------------------------------------------------------- |
+| Availability labels match the implementation       | Implemented | Product Owner    | Available, in development and planned are defined on the page and applied per capability |
+| No download offered while no release exists        | Implemented | —                | The download page explains why there is no button                                        |
+| Concept images marked as concepts                  | Implemented | —                | The only non-screenshot illustration carries a concept badge and caption                 |
+| Screenshots are genuine and current                | Implemented | Product Owner    | Captured from the current development version by an automated run                        |
+| No unverified statement about another product      | Implemented | Product Owner    | Only neutral descriptions; the sourced comparison is deferred to the next milestone      |
+| Structured data contains no invented product facts | Implemented | Covered by tests | Only organisation and website entries are published                                      |
+
+## 8. Open points before publication
+
+1. Confirm the c/o address may be used for the Koxora brand and that the operator details are current.
+2. Run inbound and outbound delivery tests for the three mailboxes and assign an owner to each.
+3. Confirm the tax statement and the competent supervisory authority.
+4. Confirm the processing agreements with the hosting, delivery and email providers, and whether the delivery network is actually in front of the published site.
+5. Measure and record the real log retention period, then replace the placeholder wording with the measured value.
+6. Re-run the device storage audit against the deployed configuration and keep the result with the release record.
+7. Obtain a professional legal review of both language versions.
+8. Decide the published source code licence before publication, because the legal notice refers to it.

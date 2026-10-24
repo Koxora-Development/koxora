@@ -1,0 +1,7 @@
+# Generated website output: static pages, the build-time renderer, the
+# deployment configuration and the consent demonstration variant.
+dist/
+dist-ssr/
+dist-consent/
+dist-deploy/
+dist-deploy-consent/

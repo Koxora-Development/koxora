@@ -20,6 +20,16 @@ pnpm exec playwright install --with-deps chromium firefox webkit
 pnpm test:e2e
 ```
 
+The public marketing website is a separate application in `apps/website` and is built and tested on its own:
+
+```sh
+pnpm website:build
+pnpm website:preview
+pnpm test:website
+```
+
+It renders static English and German pages, shares the brand and localization contract with the studio, and is deployed independently of it. See the [W1 implementation notes](docs/platform/website-w1.md), the [delivery ADR](docs/adr/0017-public-website-delivery.md) and the [deployment guide](docs/development/website-deployment.md). Nothing is published without a separate Product Owner decision.
+
 Project behavior, the supported file profile, manual acceptance, and current limitations are in the [project storage guide](docs/development/project-storage.md). The [storage ADR](docs/adr/0013-project-storage.md) records the versioned ZIP `.koxora` container and local persistence boundaries.
 
 Desktop commands and native prerequisites, module boundaries, license checks, verification evidence, and limitations are in the [development guide](docs/development/foundation.md). The [stack ADR](docs/adr/0011-foundation-stack.md) and [localization ADR](docs/adr/0012-localization-and-offline-shell.md) record the choices and their tradeoffs. These implementation decisions are subject to PR review; there is no production release or signing setup.

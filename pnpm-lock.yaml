@@ -90,6 +90,22 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
 
+  apps/website:
+    dependencies:
+      '@koxora/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+    devDependencies:
+      cross-env:
+        specifier: ^10.1.0
+        version: 10.1.0
+
   packages/editor-core:
     dependencies:
       '@koxora/project':

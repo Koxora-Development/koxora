@@ -1,0 +1,29 @@
+{
+  "name": "@koxora/website",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "pnpm build && pnpm preview",
+    "build": "pnpm build:client && pnpm build:server && pnpm build:pages",
+    "build:client": "vite build",
+    "build:server": "vite build --ssr src/entry-server.tsx --outDir dist-ssr",
+    "build:pages": "node scripts/emit-site.mjs",
+    "preview": "node scripts/serve-site.mjs",
+    "build:consent-demo": "cross-env KOXORA_SITE_OPTIONAL_CONSENT=statistics,media KOXORA_SITE_OUT_DIR=dist-consent KOXORA_SITE_DEPLOY_DIR=dist-deploy-consent node scripts/emit-site.mjs",
+    "preview:consent-demo": "cross-env KOXORA_SITE_DIR=dist-consent KOXORA_SITE_PORT=4176 node scripts/serve-site.mjs",
+    "images:brand": "node scripts/render-brand-images.mjs",
+    "images:studio": "node scripts/capture-studio.mjs",
+    "screenshots": "node scripts/capture-site.mjs",
+    "preview:test": "node scripts/serve-test.mjs"
+  },
+  "dependencies": {
+    "@koxora/i18n": "workspace:*",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0"
+  }
+}

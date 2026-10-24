@@ -1,4 +1,7 @@
 import { defineConfig } from 'vitest/config';
 export default defineConfig({
-  test: { include: ['packages/**/*.test.ts'], maxWorkers: 2 },
+  test: {
+    include: ['packages/**/*.test.ts', 'apps/**/src/**/*.test.ts'],
+    maxWorkers: 2,
+  },
 });
