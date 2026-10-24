@@ -2,6 +2,7 @@ import '../styles/index.css';
 import {
   activateGated,
   clearRecord,
+  deactivateGated,
   grantedCategories,
   readConfig,
   readRecord,
@@ -13,9 +14,8 @@ import {
 const themeKey = 'koxora.website.theme';
 function safeStorage(): Storage | null {
   try {
-    const probe = '__koxora__';
-    window.localStorage.setItem(probe, probe);
-    window.localStorage.removeItem(probe);
+    // Reading the property itself throws where site data is blocked. Every
+    // write is guarded as well, so nothing is stored just to test storage.
     return window.localStorage;
   } catch {
     return null;
@@ -76,6 +76,7 @@ function formatTime(value: string): string {
   try {
     return new Intl.DateTimeFormat(document.documentElement.lang || 'en', {
       dateStyle: 'long',
+      timeZone: 'UTC',
     }).format(date);
   } catch {
     return date.toISOString().slice(0, 10);
@@ -85,6 +86,14 @@ function setupConsent(): void {
   const config: ConsentRuntimeConfig | null = readConfig(document);
   if (!config) return;
   let record = readRecord(config, storage);
+  // A record left over from a configuration that offered optional purposes is
+  // meaningless once none are offered, and the page then shows no way to
+  // withdraw it, so it is removed on load.
+  if (record && config.optional.length === 0) {
+    clearRecord(config, storage);
+    record = null;
+  }
+  let persisted = true;
   const listeners = new Set<(granted: string[]) => void>();
   const managers = () => [
     ...document.querySelectorAll<HTMLElement>('[data-consent-manager]'),
@@ -94,7 +103,7 @@ function setupConsent(): void {
     '[data-consent-dialog]',
   );
   const render = () => {
-    const granted = grantedCategories(record);
+    const granted = grantedCategories(record, config);
     for (const manager of managers()) {
       for (const input of manager.querySelectorAll<HTMLInputElement>(
         '[data-consent-toggle]',
@@ -103,14 +112,17 @@ function setupConsent(): void {
       const state = manager.querySelector<HTMLElement>('[data-consent-state]');
       if (!state) continue;
       if (record && config.optional.length > 0)
-        state.textContent = (state.dataset.stateSaved ?? '').replace(
-          '{date}',
-          formatTime(record.time),
-        );
+        state.textContent = persisted
+          ? (state.dataset.stateSaved ?? '').replace(
+              '{date}',
+              formatTime(record.time),
+            )
+          : (state.dataset.stateSession ?? '');
       else if (config.optional.length > 0)
         state.textContent = state.dataset.stateNone ?? '';
     }
     document.documentElement.dataset.consent = granted.join(' ');
+    deactivateGated(document, granted);
     activateGated(document, granted);
     for (const listener of listeners) listener(granted);
   };
@@ -124,7 +136,9 @@ function setupConsent(): void {
     }
   };
   const decide = (choices: Record<string, boolean>) => {
-    record = writeRecord(config, storage, choices);
+    const result = writeRecord(config, storage, choices);
+    record = result.record;
+    persisted = result.persisted;
     showBanner(false);
     render();
     if (dialog?.open) dialog.close();
@@ -164,6 +178,7 @@ function setupConsent(): void {
     } else if (action === 'withdraw') {
       clearRecord(config, storage);
       record = null;
+      persisted = true;
       render();
       for (const manager of managers()) {
         const state = manager.querySelector<HTMLElement>(
@@ -178,8 +193,8 @@ function setupConsent(): void {
   render();
   if (config.promptRequired && !record) showBanner(true);
   const api: ConsentApi = {
-    granted: () => grantedCategories(record),
-    has: (category) => grantedCategories(record).includes(category),
+    granted: () => grantedCategories(record, config),
+    has: (category) => grantedCategories(record, config).includes(category),
     onChange(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);

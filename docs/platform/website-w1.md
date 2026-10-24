@@ -79,7 +79,7 @@ English is the default and fallback. The German record is typed against the Engl
 
 ## 7. Device storage and consent
 
-The reviewed deployment stores two items on a reader's device: the appearance they chose, and their consent decision once they make one. Both are strictly necessary under section 25(2) no. 2 TDDDG, both are listed with purpose, provider, duration and legal basis on the privacy settings page and in the privacy policy, and neither is a cookie.
+The reviewed deployment stores one item on a reader's device: the appearance they chose. Where a deployment offers an optional purpose, the consent record itself is added. Both are strictly necessary under section 25(2) no. 2 TDDDG, both are listed with purpose, provider, duration and legal basis on the privacy settings page and in the privacy policy, and neither is a cookie. The inventory is derived from the deployment, so it never lists storage that cannot occur; server-side processing such as delivery logging is described in the policy's own sections rather than presented as device storage.
 
 Because nothing optional is used, no first-visit prompt is shown. The manager is still built, localized, reachable from the footer of every page and tested. A second build with optional categories enabled is produced in the same test run, and the browser tests cover both states: prompt with equal-prominence choices, no preselected optional purpose, gated code that stays inert until consent, a stored decision that is not asked for again, a version change that asks again, withdrawal that deletes the record and brings the prompt back, and a refusal that leaves the site fully usable. See [the legal review checklist](../legal/website-legal-review.md) for what still needs operator confirmation.
 
@@ -110,13 +110,13 @@ Results:
 
 | Command | Result |
 | --- | --- |
-| `pnpm check` | Passed. Type check, lint, format, 214 unit tests in 15 files, documentation validation, dependency licence report |
-| Unit tests of the website | 31 of those 214, covering the route table, catalog completeness, the consent record and the search metadata |
-| `pnpm website:build` | Passed. 60 files emitted plus the hosting configuration |
-| `pnpm test:website` | 164 passed, 7 skipped, across the desktop, tablet and phone projects |
+| `pnpm check` | Passed. Type check, lint, format, 219 unit tests in 15 files, documentation validation, dependency licence report |
+| Unit tests of the website | 36 of those 219, covering the route table, catalog completeness, the consent record and the search metadata |
+| `pnpm website:build` | Passed. 60 files and 30 redirects emitted, plus the hosting configuration |
+| `pnpm test:website` | 182 passed, 7 skipped, across the desktop, tablet and phone projects |
 | `pnpm test:e2e --project chromium --project mobile` | 90 passed; the studio is unchanged by this branch |
 
-The browser tests cover navigation and redirects, status codes, both languages, metadata, sitemap and robots, consent in both deployment states, accessibility and responsive behaviour. The skipped cases are the ones that belong to a different layout than the project running them.
+The browser tests cover navigation and redirects, status codes, both languages, metadata, sitemap and robots, consent in both deployment states, accessibility and responsive behaviour. They run against the reference server with the security headers and the content security policy of the deployment, and one suite asserts that no page violates that policy, that the policy pins the inline script actually served, and that build artefacts are not reachable. The skipped cases are the ones that belong to a different layout than the project running them.
 
 Limitations of this run: only the bundled Chromium engine was available in the container, so the Firefox and WebKit projects of both suites were not executed; the website suite enables them with `KOXORA_BROWSERS=all`. No Lighthouse measurement and no manual screen-reader audit were performed, and no deployment was attempted. Configured remote jobs are not evidence of execution.
 
@@ -150,13 +150,19 @@ Studio screenshots used on the site are captured by `pnpm capture:studio`, which
 
 Website W1 and Studio 2.5 run in parallel on separate branches. W1 touches these shared files, additively:
 
-| File | Change |
-| --- | --- |
-| `packages/i18n/package.json` | Adds a `./catalog` entry point |
-| `packages/i18n/src/catalog.ts` | New generic catalog helper; the studio resources are untouched |
-| `package.json` | Adds website build, test and capture scripts |
-| `vitest.config.ts` | Also includes unit tests under `apps/*/src` |
-| `.github/workflows/quality.yml` | Adds the website browser test step and its report artefact |
+| File | Change | Coordination |
+| --- | --- | --- |
+| `packages/i18n/package.json` | Adds a `./catalog` entry point | None; one key inside the existing map |
+| `packages/i18n/src/catalog.ts` | New generic catalog helper and the shared locale metadata | None; the studio graph does not import it |
+| `packages/i18n/src/index.ts` | Builds its locale registry from that shared metadata; every exported signature is unchanged | Low; two lines |
+| `package.json` | Adds website build, test and capture scripts | Low; a conflict only if both add scripts in the same block |
+| `vitest.config.ts` | Includes unit tests under `apps/*/src`, also `.tsx`, and excludes the native crate | Agree the test convention: these run in the node environment |
+| `eslint.config.js`, `.prettierignore` | Ignore the website build output directories | None |
+| `.github/workflows/quality.yml` | Adds the website browser test step and its report artefact | The step runs in the existing `web` job and reports independently |
+| `AGENTS.md`, `docs/adr/README.md` | Appended entries | Append-at-end, so a textual conflict is likely and trivial to resolve |
+| `tests/assets/studio-screenshots.spec.ts` | New capture tool that drives the real studio | **Needs attention.** It is type-checked but never run by continuous integration, and it uses the editing commands and the accessible names of the studio. A studio change can make it fail the type check |
+
+The last row is the real coupling. The capture tool exists so the website shows genuine screenshots; when the studio changes its editing commands or its control names, the tool and the committed screenshots under `apps/website/public/images/studio/` have to be refreshed with `pnpm capture:studio`.
 
 W1 adds no key to `packages/i18n/src/locales/*.json`, changes no studio component and changes no existing script. The studio and the website share the brand mark, the token names of the established appearance, and the localization contract, nothing else.
 
@@ -168,7 +174,28 @@ W1 adds no key to `packages/i18n/src/locales/*.json`, changes no studio componen
 - The consent manager accepts a new purpose by adding a category and enabling it in the deployment configuration; the prompt then appears automatically.
 - Deployment, independent updates and rollback are described in [the website deployment guide](../development/website-deployment.md).
 
-## 13. Open points
+## 13. Independent review
+
+Four independent reviews examined this branch against the real diff and the built output: data protection and consent, technical search readiness with accessibility, security of the generated site and its tooling, and the shared surface with the parallel studio work. They found one defect that would have mattered to a reader and a set of smaller ones, all of which are fixed in this branch:
+
+| Finding | Effect | Fix |
+| --- | --- | --- |
+| The settings page rendered the consent manager twice with the same control identifiers | A label click in the dialog toggled the hidden copy, so saving could store the opposite of what the reader chose, including a failed withdrawal reported as success | Identifiers are scoped per instance, and the settings page no longer carries a second copy in a dialog |
+| A stored decision was honoured even for purposes the deployment no longer offers | An old record could keep a purpose active with no way to withdraw it | Granted purposes are filtered against the deployment, and an orphaned record is removed on load |
+| The emitted rewrite rules were written for a different Apache context | The language redirect for `/` could never fire and the trailing-slash rule produced a double slash | Rules rewritten for a virtual host, with both spellings of every alias matched in one hop |
+| The content security policy was never exercised by any test | A stale inline-script hash would have reached production unseen | The reference server sends the generated headers, and tests assert the policy, the hash and the absence of violations |
+| The reference server could be reached past its own guards | An encoded dot, a symbolic link or a malformed host header bypassed or crashed it | Guards run on the decoded path, links are resolved, and a bad request answers 400 |
+| Server log data was listed as storage on the reader's device | A legal-basis citation that does not apply to server-side processing | The entry is gone from the device inventory; logging stays described in its own section |
+| The menu collapsed only after the enhancement script ran | A measured layout shift of 0.43 on a phone with a slow connection | The stylesheet uses the flag the blocking inline script sets before first paint |
+| Progressive-enhancement controls stayed visible without scripting | Inert buttons a reader could focus and press | The hidden attribute is honoured, and the no-script note is now on every page |
+| A staging build published canonical addresses and a sitemap | Staging addresses could be indexed if the robots file were bypassed | A build that is not indexable emits neither |
+| The legal tables cut off their last column on a phone | The legal-basis column was unreachable with no affordance | The table scrolls inside a named, focusable region with a visible hint |
+| Meta titles and descriptions were too long in both languages | Truncated in search results | Rewritten per language within the display limits |
+| The English home page showed a German phone screenshot | A reader saw an interface in another language | Each language has its own phone screenshot |
+
+The reviews also confirmed, by measurement rather than by reading, that the studio build output is byte-identical with and without this branch, that no page makes a third-party request, that the structured data claims nothing unreleased, that the hreflang and sitemap layer is internally consistent, and that nothing is stored on a device before a reader acts.
+
+## 14. Open points
 
 1. The hosted browser studio is not published, so the primary call to action explains how to run the current version instead of linking to an address that does not answer. The Product Owner decided on 2026-10-24 to keep this configurable and to switch on the direct studio link only once `app.koxora.app` is actually reachable; setting `KOXORA_SITE_EDITOR_URL` is the single change needed.
 2. The legal pages carry prepared content; [the checklist](../legal/website-legal-review.md) lists what the operator must confirm before publication.

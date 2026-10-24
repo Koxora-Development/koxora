@@ -155,7 +155,10 @@
     gap: 18px;
     padding-bottom: 20px;
   }
-  .header-menu[data-open='false'] {
+  /* The blocking inline script sets data-js before first paint, so the menu
+     is collapsed immediately where scripting can open it again. Without
+     scripting it stays expanded and usable. */
+  html[data-js='on'] .header-menu:not([data-open='true']) {
     display: none;
   }
   .primary-nav ul {

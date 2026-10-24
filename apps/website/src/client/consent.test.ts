@@ -25,20 +25,29 @@ function memoryStorage(initial: Record<string, string> = {}): Storage {
     setItem: (key: string, value: string) => void values.set(key, value),
   };
 }
+function blockedStorage(): Storage {
+  return {
+    ...memoryStorage(),
+    setItem: () => {
+      throw new Error('Storage is blocked on this device');
+    },
+  };
+}
 describe('stored consent decision', () => {
   it('starts with no decision and no granted purpose', () => {
     expect(readRecord(config, memoryStorage())).toBeNull();
-    expect(grantedCategories(null)).toEqual([]);
+    expect(grantedCategories(null, config)).toEqual([]);
   });
   it('stores only the version, the time and one boolean per purpose', () => {
     const storage = memoryStorage();
-    const record = writeRecord(config, storage, {
+    const { record, persisted } = writeRecord(config, storage, {
       statistics: true,
       media: false,
     });
     expect(Object.keys(record).sort()).toEqual(['choices', 'time', 'version']);
+    expect(persisted).toBe(true);
     expect(JSON.parse(storage.getItem(config.storageKey)!)).toEqual(record);
-    expect(grantedCategories(record)).toEqual(['statistics']);
+    expect(grantedCategories(record, config)).toEqual(['statistics']);
   });
   it('asks again when the consent version changed', () => {
     const storage = memoryStorage({
@@ -60,6 +69,15 @@ describe('stored consent decision', () => {
     });
     expect(readRecord(config, storage)).toBeNull();
   });
+  it('never grants a purpose the deployment no longer offers', () => {
+    const record = {
+      version: 2,
+      time: '2026-01-01T00:00:00.000Z',
+      choices: { statistics: true, media: true, advertising: true },
+    };
+    expect(grantedCategories(record, config)).toEqual(['statistics', 'media']);
+    expect(grantedCategories(record, { ...config, optional: [] })).toEqual([]);
+  });
   it('ignores damaged records instead of failing', () => {
     const storage = memoryStorage({ [config.storageKey]: 'not json' });
     expect(readRecord(config, storage)).toBeNull();
@@ -72,12 +90,15 @@ describe('stored consent decision', () => {
     expect(storage.getItem(config.storageKey)).toBeNull();
     expect(readRecord(config, storage)).toBeNull();
   });
-  it('works when storage is unavailable', () => {
-    const record = writeRecord(config, null, {
-      statistics: true,
-      media: false,
-    });
-    expect(grantedCategories(record)).toEqual(['statistics']);
+  it('reports that a decision could not be kept', () => {
+    for (const storage of [null, blockedStorage()]) {
+      const { record, persisted } = writeRecord(config, storage, {
+        statistics: true,
+        media: false,
+      });
+      expect(persisted).toBe(false);
+      expect(grantedCategories(record, config)).toEqual(['statistics']);
+    }
     expect(() => clearRecord(config, null)).not.toThrow();
   });
 });

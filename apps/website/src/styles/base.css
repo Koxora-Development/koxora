@@ -1,12 +1,21 @@
 @font-face {
   font-family: Inter;
   src: local('Inter');
-  font-display: swap;
+  /* Local source only: no network request. The weight range has to be
+     declared, otherwise the family offers 400 and the browser synthesizes
+     every heavier weight the design asks for. */
+  font-weight: 100 900;
+  font-style: normal;
 }
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+/* Author display rules otherwise beat the browser default for [hidden], which
+   would leave progressively enhanced controls visible but inert. */
+[hidden] {
+  display: none !important;
 }
 html {
   scroll-behavior: smooth;

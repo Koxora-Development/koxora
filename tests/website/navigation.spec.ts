@@ -75,17 +75,20 @@ test.describe('navigation and routing', () => {
     expect(result.status).toBe(301);
     expect(result.location).toBe('/en/features/');
   });
-  test('the root address offers both languages without being indexed', async ({
+  test('the root address sends the reader to a language', async ({
     page,
     request,
   }) => {
-    expect((await status(request, '/')).status).toBe(200);
-    const body = await (await request.get('/')).text();
-    expect(body).toContain('noindex');
-    expect(body).toContain('/en/');
-    expect(body).toContain('/de/');
+    const redirect = await status(request, '/');
+    expect(redirect.status).toBe(302);
+    expect(redirect.location).toMatch(/^\/(en|de)\/$/);
     await page.goto('/');
-    await expect(page).toHaveURL(/\/en\/$/);
+    await expect(page).toHaveURL(/\/(en|de)\/$/);
+    // The gateway document stays available for a host without rewrite rules.
+    const gateway = await (await request.get('/index.html')).text();
+    expect(gateway).toContain('noindex');
+    expect(gateway).toContain('/en/');
+    expect(gateway).toContain('/de/');
   });
   test('an unknown address answers 404 with the localized page', async ({
     page,

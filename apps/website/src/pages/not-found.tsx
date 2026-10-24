@@ -19,7 +19,7 @@ export function NotFoundPage({ locale, t }: PageContext) {
       />
       <Section>
         <h2 className="minor-heading">{t('notFound.suggestions')}</h2>
-        <ul className="bullets">
+        <ul className="bullets" role="list">
           <li>
             <a href={pathFor('home', locale)}>{t('cta.backHome')}</a>
           </li>

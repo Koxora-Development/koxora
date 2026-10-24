@@ -14,7 +14,6 @@
     "build:consent-demo": "cross-env KOXORA_SITE_OPTIONAL_CONSENT=statistics,media KOXORA_SITE_OUT_DIR=dist-consent KOXORA_SITE_DEPLOY_DIR=dist-deploy-consent node scripts/emit-site.mjs",
     "preview:consent-demo": "cross-env KOXORA_SITE_DIR=dist-consent KOXORA_SITE_PORT=4176 node scripts/serve-site.mjs",
     "images:brand": "node scripts/render-brand-images.mjs",
-    "images:studio": "node scripts/capture-studio.mjs",
     "screenshots": "node scripts/capture-site.mjs",
     "preview:test": "node scripts/serve-test.mjs"
   },
@@ -24,6 +23,7 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "cross-env": "^10.1.0"
   }
 }

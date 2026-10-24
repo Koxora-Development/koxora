@@ -3,6 +3,7 @@ import type { Translate } from '../content/catalog';
 import {
   activeOptionalCategories,
   consentCategories,
+  consentPromptRequired,
   type ConsentCategory,
 } from '../content/consent';
 export interface ConsentContext {
@@ -18,7 +19,7 @@ function CategoryDetails({
 }) {
   if (category.items.length === 0) return null;
   return (
-    <ul className="consent-items">
+    <ul className="consent-items" role="list">
       {category.items.map((item) => (
         <li key={item.id}>
           <p className="consent-item-name">{t(item.nameKey)}</p>
@@ -50,13 +51,27 @@ function CategoryDetails({
  * on the privacy settings page, so the same markup is used everywhere and
  * works without client-side rendering.
  */
-export function ConsentManager({ locale, t }: ConsentContext) {
+export function ConsentManager({
+  locale,
+  t,
+  scope,
+}: ConsentContext & { scope: 'page' | 'dialog' }) {
   const optional = activeOptionalCategories();
-  const shown = consentCategories.filter(
-    (category) => !category.optional || optional.includes(category),
+  const shown = consentCategories().filter(
+    (category) =>
+      !category.optional || optional.some((entry) => entry.id === category.id),
   );
+  // Ids are scoped per instance: the settings page and the dialog can render
+  // the same categories, and a duplicated id would bind a label to the wrong
+  // control and store the opposite of what the reader chose.
+  const controlId = (category: ConsentCategory) =>
+    `consent-${scope}-${category.id}`;
   return (
-    <div className="consent-manager" data-consent-manager>
+    <div
+      className="consent-manager"
+      data-consent-manager
+      data-consent-scope={scope}
+    >
       <p className="consent-intro">{t('consent.dialog.intro')}</p>
       {optional.length === 0 ? (
         <div className="note note-info">
@@ -66,7 +81,7 @@ export function ConsentManager({ locale, t }: ConsentContext) {
           </div>
         </div>
       ) : null}
-      <ul className="consent-categories">
+      <ul className="consent-categories" role="list">
         {shown.map((category) => (
           <li className="consent-category" key={category.id}>
             <div className="consent-category-head">
@@ -75,12 +90,12 @@ export function ConsentManager({ locale, t }: ConsentContext) {
                 <span className="consent-switch">
                   <input
                     type="checkbox"
-                    id={`consent-${category.id}`}
+                    id={controlId(category)}
                     name="consent-category"
                     value={category.id}
                     data-consent-toggle={category.id}
                   />
-                  <label htmlFor={`consent-${category.id}`}>
+                  <label htmlFor={controlId(category)}>
                     {t('consent.dialog.optional')}
                   </label>
                 </span>
@@ -103,6 +118,7 @@ export function ConsentManager({ locale, t }: ConsentContext) {
         data-state-saved={t('consent.state.saved', { date: '{date}' })}
         data-state-none={t('consent.state.none')}
         data-state-withdrawn={t('consent.withdrawDone')}
+        data-state-session={t('consent.state.session')}
         role="status"
       >
         {optional.length === 0
@@ -153,9 +169,6 @@ export function ConsentManager({ locale, t }: ConsentContext) {
           {t('consent.banner.noticeLink')}
         </a>
       </p>
-      <noscript>
-        <p className="consent-noscript">{t('consent.noScript')}</p>
-      </noscript>
     </div>
   );
 }
@@ -208,6 +221,20 @@ export function ConsentBanner({ locale, t }: ConsentContext) {
     </div>
   );
 }
+export function ConsentNoScript({ locale, t }: ConsentContext) {
+  return (
+    <noscript>
+      <p className="consent-noscript">
+        {consentPromptRequired()
+          ? t('consent.noScript.optional')
+          : t('consent.noScript')}{' '}
+        <a href={pathFor('privacyPolicy', locale)}>
+          {t('consent.banner.privacyLink')}
+        </a>
+      </p>
+    </noscript>
+  );
+}
 export function ConsentDialog(context: ConsentContext) {
   const { t } = context;
   return (
@@ -228,7 +255,7 @@ export function ConsentDialog(context: ConsentContext) {
             <span className="icon-button-glyph" aria-hidden="true" />
           </button>
         </div>
-        <ConsentManager {...context} />
+        <ConsentManager {...context} scope="dialog" />
       </div>
     </dialog>
   );

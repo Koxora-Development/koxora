@@ -2,6 +2,17 @@
 // such as the public website. The application catalog in `index.ts` stays the
 // single source for the studio interface; both share the same placeholder
 // syntax, fallback rule and locale registry contract.
+/**
+ * Registry metadata of the locales this project supports, kept apart from the
+ * message resources so every surface names a language in one place only.
+ */
+export const localeMetadata: Record<
+  string,
+  { label: string; direction: 'ltr' | 'rtl' }
+> = {
+  en: { label: 'English', direction: 'ltr' },
+  de: { label: 'Deutsch', direction: 'ltr' },
+};
 export interface CatalogLocale<Key extends string> {
   label: string;
   direction: 'ltr' | 'rtl';
@@ -53,7 +64,7 @@ export function createCatalog<Key extends string>({
     direction: (locale) => locales[resolve(locale)]!.direction,
     resolve,
     translate(locale, key, values = {}) {
-      const message = locales[resolve(locale)]!.messages[key] ?? base[key];
+      const message = locales[resolve(locale)]!.messages[key] || base[key];
       if (!message) throw new Error(`Missing default translation: ${key}`);
       return interpolate(message, values);
     },

@@ -51,7 +51,9 @@ export default defineConfig({
     command:
       'pnpm --filter @koxora/website build && pnpm --filter @koxora/website build:consent-demo && pnpm --filter @koxora/website preview:test',
     url: 'http://127.0.0.1:4176/en/',
-    reuseExistingServer: !process.env.CI,
+    // Always rebuild and restart: reusing a leftover server would test the
+    // previous build without running the build command at all.
+    reuseExistingServer: false,
     timeout: 180000,
   },
 });

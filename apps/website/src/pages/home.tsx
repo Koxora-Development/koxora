@@ -90,7 +90,7 @@ export function HomePage(context: PageContext) {
             caption={t('home.preview.tabLight')}
           />
           <Screenshot
-            name="editor-small-de"
+            name={`editor-small-${locale}`}
             alt={t('home.preview.altMobile')}
             caption={t('home.preview.tabMobile')}
           />
@@ -226,7 +226,7 @@ export function HomePage(context: PageContext) {
         <div className="compare-layout">
           <div>
             <h3 className="minor-heading">{t('home.compare.focusTitle')}</h3>
-            <ul className="checklist">
+            <ul className="checklist" role="list">
               {comparisonFocus.map((entry) => (
                 <li key={entry.titleKey}>
                   <strong>{t(entry.titleKey)}</strong>
@@ -237,7 +237,7 @@ export function HomePage(context: PageContext) {
           </div>
           <div>
             <h3 className="minor-heading">{t('home.compare.peersTitle')}</h3>
-            <ul className="peer-list">
+            <ul className="peer-list" role="list">
               {peers.map((peer) => (
                 <li key={peer.id}>
                   <strong>{t(peer.nameKey)}</strong>
@@ -266,7 +266,7 @@ export function HomePage(context: PageContext) {
           title={t('home.roadmap.title')}
           description={t('home.roadmap.description')}
         />
-        <ol className="phase-list phase-list-compact">
+        <ol className="phase-list phase-list-compact" role="list">
           {phases.map((phase) => (
             <li key={phase.id} className={`phase phase-${phase.state}`}>
               <p className="phase-state">{t(`phase.state.${phase.state}`)}</p>
@@ -304,7 +304,7 @@ export function HomePage(context: PageContext) {
           >
             <ActionLink
               href={pathFor('docs', locale)}
-              label={t('cta.more')}
+              label={t('cta.moreAbout', { topic: t('nav.docs') })}
               variant="quiet"
             />
           </Card>
@@ -321,7 +321,7 @@ export function HomePage(context: PageContext) {
           >
             <ActionLink
               href={pathFor('download', locale)}
-              label={t('cta.more')}
+              label={t('cta.moreAbout', { topic: t('nav.download') })}
               variant="quiet"
             />
           </Card>
@@ -338,7 +338,7 @@ export function HomePage(context: PageContext) {
           >
             <ActionLink
               href={pathFor('releases', locale)}
-              label={t('cta.more')}
+              label={t('cta.moreAbout', { topic: t('nav.releases') })}
               variant="quiet"
             />
           </Card>

@@ -18,7 +18,7 @@ export function RoadmapPage(context: PageContext) {
           title={t('roadmap.now.title')}
           description={t('project.statusSummary')}
         />
-        <ul className="milestone-list">
+        <ul className="milestone-list" role="list">
           {milestones.map((milestone) => (
             <li key={milestone.id}>
               <p className="milestone-phase">{milestone.phase}</p>
@@ -41,7 +41,7 @@ export function RoadmapPage(context: PageContext) {
           title={t('roadmap.phases.title')}
           description={t('roadmap.phases.description')}
         />
-        <ol className="phase-list">
+        <ol className="phase-list" role="list">
           {phases.map((phase) => (
             <li key={phase.id} className={`phase phase-${phase.state}`}>
               <p className="phase-state">{t(`phase.state.${phase.state}`)}</p>

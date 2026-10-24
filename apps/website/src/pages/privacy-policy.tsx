@@ -1,17 +1,16 @@
 import { Bullets, Note, Section } from '../components/ui';
+import { DataTable } from '../components/data-table';
 import { PageIntro } from '../components/page-intro';
 import type { PageContext } from '../components/navigation';
 import { operator, privacyPolicyVersion } from '../content/legal';
-import { consentCategories } from '../content/consent';
+import { consentPromptRequired, deviceStorageItems } from '../content/consent';
 import { noTrackingKeys } from '../content/data';
 import { formatDate } from '../content/catalog';
 import { pathFor } from '../routes';
 import { site } from '../site';
 export function PrivacyPolicyPage({ locale, t }: PageContext) {
   const updated = formatDate(locale, site.contentDate);
-  const necessary = consentCategories.find(
-    (category) => category.id === 'necessary',
-  );
+  const stored = deviceStorageItems();
   return (
     <>
       <PageIntro
@@ -71,7 +70,10 @@ export function PrivacyPolicyPage({ locale, t }: PageContext) {
           <section>
             <h2>{t('privacyPolicy.device.title')}</h2>
             <p>{t('privacyPolicy.device.body')}</p>
-            <table className="data-table">
+            <DataTable
+              label={t('privacyPolicy.device.title')}
+              hint={t('a11y.tableScroll')}
+            >
               <thead>
                 <tr>
                   <th scope="col">{t('consent.dialog.purpose')}</th>
@@ -80,7 +82,7 @@ export function PrivacyPolicyPage({ locale, t }: PageContext) {
                 </tr>
               </thead>
               <tbody>
-                {(necessary?.items ?? []).map((item) => (
+                {stored.map((item) => (
                   <tr key={item.id}>
                     <td>
                       <strong>{t(item.nameKey)}</strong>
@@ -91,8 +93,12 @@ export function PrivacyPolicyPage({ locale, t }: PageContext) {
                   </tr>
                 ))}
               </tbody>
-            </table>
-            <p>{t('privacyPolicy.device.note')}</p>
+            </DataTable>
+            <p>
+              {consentPromptRequired()
+                ? t('privacyPolicy.device.note.optional')
+                : t('privacyPolicy.device.note')}
+            </p>
             <p>
               <a href={pathFor('privacySettings', locale)}>
                 {t('consent.openSettings')}

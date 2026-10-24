@@ -112,17 +112,20 @@ Paths, user accounts and virtual host names above are placeholders. Confirm the 
 
 ## 6. Checks after a deployment
 
-| Check                            | Expectation                                                              |
-| -------------------------------- | ------------------------------------------------------------------------ |
-| `/`                              | Redirects to a language, by request language                             |
-| `/en/` and `/de/`                | 200, correct language, correct canonical address                         |
-| `/en/features`                   | 301 to `/en/features/`                                                   |
-| `/de/legal-notice/`              | 301 to `/de/impressum/`                                                  |
-| An unknown address               | 404 with the not-found document of that language                         |
-| `/sitemap.xml` and `/robots.txt` | 200, sitemap lists every address of the release                          |
-| Response headers                 | Security headers present, assets immutable, HTML revalidating            |
-| Network panel on any page        | No request leaves the site's own origin                                  |
-| Studio address                   | Still reachable, offline start still works, local projects still present |
+| Check                               | Expectation                                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `/`                                 | Redirects to a language, by request language                                                    |
+| `/en/` and `/de/`                   | 200, correct language, correct canonical address                                                |
+| `/en/features`                      | 301 to `/en/features/`                                                                          |
+| `/de/legal-notice/`                 | 301 to `/de/impressum/`                                                                         |
+| An unknown address under `/de/`     | 404 with the German not-found document                                                          |
+| An unknown address under `/en/`     | 404 with the English not-found document                                                         |
+| `/sitemap.xml` and `/robots.txt`    | 200, sitemap lists every address of the release                                                 |
+| Response headers                    | Security headers present, assets immutable, HTML revalidating                                   |
+| Content security policy             | Matches `dist-deploy/build-info.json` of the deployed release, including the inline script hash |
+| `/_headers`, `/.vite/manifest.json` | 404; build artefacts are not public                                                             |
+| Network panel on any page           | No request leaves the site's own origin                                                         |
+| Studio address                      | Still reachable, offline start still works, local projects still present                        |
 
 The last row matters most: a website release must never be able to affect the studio's cache or a reader's local projects.
 

@@ -45,7 +45,9 @@ Every visible string is a key in a website-specific catalog built on the shared 
 
 ## Consent and tracking
 
-The consent manager is implemented, localized and tested, but its first-visit prompt is bound to the audited deployment configuration rather than shown unconditionally: section 25(2) no. 2 TDDDG requires consent only for device access that is not strictly necessary. The reviewed W1 configuration stores an appearance preference and the consent record itself, so no prompt is shown and no optional technology is loaded. A second build with optional categories enabled is produced and tested in the same test run, so both states are verified. See [the legal review checklist](../legal/website-legal-review.md).
+The consent manager is implemented, localized and tested, but its first-visit prompt is bound to the audited deployment configuration rather than shown unconditionally: section 25(2) no. 2 TDDDG requires consent only for device access that is not strictly necessary. The reviewed W1 configuration stores an appearance preference and the consent record itself, so no prompt is shown and no optional technology is loaded. A second build with optional categories enabled is produced and tested in the same test run, so both states are verified.
+
+The content security policy is part of this mechanism rather than next to it. The build emits a policy that allows scripts only from the site's own origin and the one inline script it pins by hash, and an optional category that needs a third-party origin declares those sources itself, so only an enabled category widens the policy. The reference server used for preview and tests sends exactly the generated headers, which is what lets the tests assert that no page violates the policy and that the pinned hash matches the script actually served. See [the legal review checklist](../legal/website-legal-review.md).
 
 ## Consequences and risks
 

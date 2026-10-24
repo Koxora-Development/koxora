@@ -136,6 +136,20 @@ test('capture studio screenshots for the website', async ({ page }) => {
   await shoot(page, 'editor-dark');
   await appearance.selectOption('light');
   await shoot(page, 'editor-light');
+  await appearance.selectOption('dark');
+  // Each language gets its own narrow-screen screenshot, so a reader never
+  // sees the interface in a language the page is not written in.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Fit content', exact: true }).click();
+  await expect(
+    page.getByText('Saved on this device', { exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    window.scrollTo(0, 0);
+  });
+  await shoot(page, 'editor-small-en');
+  await page.setViewportSize({ width: 1440, height: 980 });
   await page
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');

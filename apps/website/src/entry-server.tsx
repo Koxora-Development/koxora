@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Document } from './components/layout';
-import { themeScript, type PageContext } from './components/navigation';
+import {
+  navLabelKeys,
+  themeScript,
+  type PageContext,
+} from './components/navigation';
 import { NotFoundPage } from './pages/not-found';
 import { pageRegistry } from './pages/registry';
 import { translator } from './content/catalog';
@@ -58,12 +62,8 @@ function renderDocument(
   const structured = structuredData(locale, t);
   if (route !== 'home')
     structured.push(
-      breadcrumbs(
-        locale,
-        route,
-        t('nav.home'),
-        seoInput.title.split(' · ')[0]!,
-      ),
+      // The breadcrumb names the page, not its search engine title.
+      breadcrumbs(locale, route, t('nav.home'), t(navLabelKeys[route])),
     );
   return (
     doctype +
@@ -154,28 +154,31 @@ export function renderManifest(locale: Locale): string {
   );
 }
 export function renderSitemap(): string {
-  const entries = routes
-    .filter((route) => route.sitemap)
-    .flatMap((route) =>
-      locales.map((locale) => {
-        const alternates = [
-          ...locales.map(
-            (other) =>
-              `    <xhtml:link rel="alternate" hreflang="${other}" href="${site.origin}${pathFor(route.id, other)}"/>`,
-          ),
-          `    <xhtml:link rel="alternate" hreflang="x-default" href="${site.origin}${pathFor(route.id, defaultLocale)}"/>`,
-        ].join('\n');
-        return [
-          '  <url>',
-          `    <loc>${site.origin}${pathFor(route.id, locale)}</loc>`,
-          `    <lastmod>${site.contentDate}</lastmod>`,
-          `    <changefreq>${route.sitemap!.changeFrequency}</changefreq>`,
-          `    <priority>${route.sitemap!.priority.toFixed(1)}</priority>`,
-          alternates,
-          '  </url>',
-        ].join('\n');
-      }),
-    );
+  // A build that is kept out of the index publishes no addresses at all.
+  const entries = !site.indexable
+    ? []
+    : routes
+        .filter((route) => route.sitemap)
+        .flatMap((route) =>
+          locales.map((locale) => {
+            const alternates = [
+              ...locales.map(
+                (other) =>
+                  `    <xhtml:link rel="alternate" hreflang="${other}" href="${site.origin}${pathFor(route.id, other)}"/>`,
+              ),
+              `    <xhtml:link rel="alternate" hreflang="x-default" href="${site.origin}${pathFor(route.id, defaultLocale)}"/>`,
+            ].join('\n');
+            return [
+              '  <url>',
+              `    <loc>${site.origin}${pathFor(route.id, locale)}</loc>`,
+              `    <lastmod>${site.contentDate}</lastmod>`,
+              `    <changefreq>${route.sitemap!.changeFrequency}</changefreq>`,
+              `    <priority>${route.sitemap!.priority.toFixed(1)}</priority>`,
+              alternates,
+              '  </url>',
+            ].join('\n');
+          }),
+        );
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
@@ -203,4 +206,5 @@ export {
   site,
   themeScript,
 };
+export { consentPolicyExtras } from './content/consent';
 export type { Locale, RouteId };

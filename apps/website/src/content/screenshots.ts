@@ -5,5 +5,6 @@ export const screenshotSizes: Record<
 > = {
   'editor-dark': { width: 1440, height: 980 },
   'editor-light': { width: 1440, height: 980 },
+  'editor-small-en': { width: 390, height: 844 },
   'editor-small-de': { width: 390, height: 844 },
 };

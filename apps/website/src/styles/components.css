@@ -501,13 +501,33 @@
 .prose a {
   color: var(--violet-strong);
 }
+.table-scroll {
+  position: relative;
+  margin-block: 20px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.table-scroll:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+.table-hint {
+  display: block;
+  padding: 10px 14px 0;
+  font-size: 12px;
+  color: var(--faint);
+  text-align: left;
+}
+@media (min-width: 760px) {
+  .table-hint {
+    display: none;
+  }
+}
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  margin-block: 20px;
   font-size: 14px;
-  display: block;
-  overflow-x: auto;
 }
 .data-table th,
 .data-table td {
@@ -516,7 +536,7 @@
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   color: var(--muted);
-  min-width: 170px;
+  min-width: 150px;
 }
 .data-table th {
   color: var(--text);

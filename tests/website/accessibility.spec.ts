@@ -56,10 +56,22 @@ test.describe('accessibility', () => {
   });
   test('navigation regions are named', async ({ page }) => {
     await page.goto('/de/');
-    for (const name of ['Hauptnavigation', 'Sprache', 'Fußbereichsnavigation'])
-      await expect(
-        page.locator(`nav[aria-label="${name}"]`).first(),
-      ).toHaveCount(1);
+    for (const name of [
+      'Hauptnavigation',
+      'Sprache',
+      'Sprache, im Fußbereich',
+      'Fußbereichsnavigation',
+    ])
+      await expect(page.locator(`nav[aria-label="${name}"]`)).toHaveCount(1);
+    const names = await page
+      .locator('nav[aria-label]')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute('aria-label')!),
+      );
+    expect(
+      new Set(names).size,
+      'every navigation region has its own name',
+    ).toBe(names.length);
   });
   test('all images and decorative graphics are handled correctly', async ({
     page,
@@ -161,7 +173,8 @@ test.describe('accessibility', () => {
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.locator('.primary-nav a')).toHaveCount(5);
     await page.goto('http://127.0.0.1:4175/de/datenschutz-einstellungen/');
-    await expect(page.locator('.data-table tbody tr')).toHaveCount(3);
+    await expect(page.locator('.data-table tbody tr')).toHaveCount(1);
+    await expect(page.locator('.consent-noscript')).toBeVisible();
     await context.close();
   });
   test('reduced motion is respected', async ({ page }) => {

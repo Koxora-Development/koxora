@@ -42,8 +42,18 @@ test.describe('responsive layout', () => {
       if (box) expect(Math.round(box.width)).toBeLessThanOrEqual(width);
     }
     await page.goto('/de/datenschutz/');
-    const table = await page.locator('.data-table').first().boundingBox();
-    expect(Math.round(table!.width)).toBeLessThanOrEqual(width);
+    // A wide table scrolls inside its own named, focusable container rather
+    // than cutting a column off or widening the page.
+    const container = page.locator('.table-scroll').first();
+    const box = await container.boundingBox();
+    expect(Math.round(box!.width)).toBeLessThanOrEqual(width);
+    await expect(container).toHaveAttribute('tabindex', '0');
+    await expect(container).toHaveAttribute('aria-label', /.+/);
+    const reachable = await container.evaluate(
+      (element) => element.scrollWidth > element.clientWidth,
+    );
+    const hint = page.locator('.table-hint').first();
+    if (reachable) await expect(hint).toBeVisible();
   });
   test('touch targets on the phone are large enough', async ({
     page,

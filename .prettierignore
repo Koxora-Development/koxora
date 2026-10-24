@@ -1,10 +1,7 @@
 pnpm-lock.yaml
 node_modules
 dist
-dist-ssr
-dist-consent
-dist-deploy
-dist-deploy-consent
+**/dist-*/
 target
 playwright-report
 test-results

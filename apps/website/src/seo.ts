@@ -47,7 +47,9 @@ export function buildSeo({
     hrefLang: 'x-default',
     href: `${site.origin}${pathFor(route, defaultLocale)}`,
   });
-  const hidden = Boolean(noindex);
+  // A staging build is kept out of the index as a whole, so it must not
+  // publish a canonical address or language alternates either.
+  const hidden = Boolean(noindex) || !site.indexable;
   return {
     title,
     description,
@@ -83,7 +85,8 @@ export function structuredData(locale: Locale, t: Translate): object[] {
   };
   const website = {
     '@type': 'WebSite',
-    '@id': `${site.origin}/#website`,
+    // One identifier per language: the nodes differ in url and inLanguage.
+    '@id': `${site.origin}${pathFor('home', locale)}#website`,
     url: `${site.origin}${pathFor('home', locale)}`,
     name: t('brand.name'),
     description: t('brand.description'),
@@ -100,6 +103,8 @@ export function breadcrumbs(
 ): object {
   return {
     '@type': 'BreadcrumbList',
+    '@id': `${site.origin}${pathFor(route, locale)}#breadcrumb`,
+    isPartOf: { '@id': `${site.origin}${pathFor('home', locale)}#website` },
     itemListElement: [
       {
         '@type': 'ListItem',

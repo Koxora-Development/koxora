@@ -76,10 +76,9 @@ export const en = {
   'project.statusUpdated': 'Content last reviewed on {date}',
   'project.statusLink': 'Development status and roadmap',
 
-  'home.meta.title':
-    'Koxora — local-first diagrams, mind maps and data visualization',
+  'home.meta.title': 'Koxora — local-first diagrams and mind maps',
   'home.meta.description':
-    'Koxora is a cross-platform, local-first studio for diagrams, mind maps, data visualization and visual collaboration. Projects stay on your device: no account, no upload, portable files. In active development.',
+    'A local-first studio for diagrams, mind maps and data visualization. Works offline, needs no account, keeps your projects in portable files.',
   'home.hero.eyebrow': 'Local-first visual thinking',
   'home.hero.title': 'Ideas take shape.',
   'home.hero.titleAccent': 'On your device.',
@@ -95,11 +94,10 @@ export const en = {
   'home.preview.altLight':
     'Koxora Studio in light appearance showing the shape palette and the project inspector.',
   'home.preview.altMobile':
-    'Koxora Studio in German on a narrow phone screen with the shape palette visible.',
+    'Koxora Studio on a narrow phone screen, with the shape palette and the project details below each other.',
   'home.preview.tabDark': 'Dark',
   'home.preview.tabLight': 'Light',
-  'home.preview.tabMobile': 'Mobile · German',
-
+  'home.preview.tabMobile': 'On a phone',
   'home.features.kicker': 'What you can do today',
   'home.features.title': 'A canvas that is already useful',
   'home.features.description':
@@ -162,10 +160,9 @@ export const en = {
   'home.cta.description':
     'Issues, decisions, architecture documents and milestones are public. Feedback on the open issues is welcome.',
 
-  'features.meta.title':
-    'Features — what Koxora can do today and what is planned',
+  'features.meta.title': 'Features: available, in development and planned',
   'features.meta.description':
-    'A complete, honestly labelled overview of Koxora: shapes, text, connections, local projects, portable files and offline use that work today, plus the collaboration, import/export, data and AI capabilities that are in development or planned.',
+    'What Koxora does today — shapes, connections, local projects, offline use — and what is in development or planned, each clearly labelled.',
   'features.hero.eyebrow': 'Features',
   'features.hero.title': 'Everything Koxora does, and everything it will do',
   'features.hero.lead':
@@ -193,10 +190,9 @@ export const en = {
   'features.limits.item5':
     'There is no collaboration, no cloud and no AI assistance in the product today.',
 
-  'localFirst.meta.title':
-    'Local-first and privacy — how Koxora handles your data',
+  'localFirst.meta.title': 'Local-first: where your projects live',
   'localFirst.meta.description':
-    'Koxora keeps projects on your device: browser storage or files you control, offline use after the first visit, portable .koxora archives, no account and no project upload. Learn what stays local and what a web server necessarily sees.',
+    'Where Koxora keeps your projects, what works offline, what a web server still sees, and why browser storage belongs to one address.',
   'localFirst.hero.eyebrow': 'Local-first',
   'localFirst.hero.title': 'Software that works when the network does not',
   'localFirst.hero.lead':
@@ -223,7 +219,7 @@ export const en = {
 
   'compare.meta.title': 'Koxora compared to other diagram tools',
   'compare.meta.description':
-    'How Koxora positions itself next to draw.io, Lucidchart, Miro, Microsoft Visio and Excalidraw. The detailed, source-backed comparison is in preparation; this page explains the method and what Koxora optimizes for.',
+    'How Koxora positions itself next to draw.io, Lucidchart, Miro, Visio and Excalidraw. The sourced comparison follows; this page explains the method.',
   'compare.hero.eyebrow': 'Comparison',
   'compare.hero.title': 'An honest comparison takes evidence',
   'compare.hero.lead':
@@ -253,7 +249,7 @@ export const en = {
 
   'roadmap.meta.title': 'Roadmap and development status',
   'roadmap.meta.description':
-    'The public Koxora roadmap: which milestone is finished, which is being built and what is planned. Development happens in the open repository, without committed release dates.',
+    'The public Koxora roadmap: what is finished, what is being built and what is planned, developed in the open without committed release dates.',
   'roadmap.hero.eyebrow': 'Roadmap',
   'roadmap.hero.title': 'Built in the open, one milestone at a time',
   'roadmap.hero.lead':
@@ -271,7 +267,7 @@ export const en = {
 
   'download.meta.title': 'Download Koxora',
   'download.meta.description':
-    'Koxora has no public release yet. This page explains what exists today, how to run the current development version from source, and which platforms are planned.',
+    'Koxora has no public release yet. What exists today, how to run the current development version, and which platforms are planned.',
   'download.hero.eyebrow': 'Download',
   'download.hero.title': 'There is nothing to download yet',
   'download.hero.lead':
@@ -299,7 +295,7 @@ export const en = {
 
   'docs.meta.title': 'Documentation',
   'docs.meta.description':
-    'The Koxora user and developer documentation is in preparation. Until it is published, the architecture, decisions and development documents in the public repository are the authoritative source.',
+    'The Koxora documentation is in preparation. Until it is published, the architecture and development documents in the public repository apply.',
   'docs.hero.eyebrow': 'Documentation',
   'docs.hero.title': 'Documentation is in preparation',
   'docs.hero.lead':
@@ -316,7 +312,7 @@ export const en = {
 
   'releases.meta.title': 'Releases and changelog',
   'releases.meta.description':
-    'Koxora has no published release yet. Development milestones are tracked in the public repository; this page is prepared for versions, changelogs and migration notes.',
+    'Koxora has no published release yet. Development milestones are tracked in public; this page is prepared for versions and changelogs.',
   'releases.hero.eyebrow': 'Releases',
   'releases.hero.title': 'No published release yet',
   'releases.hero.lead':
@@ -403,11 +399,6 @@ export const en = {
     'Stores your privacy choices and their version so you are not asked again.',
   'consent.item.consent.storage':
     'Browser storage on this device, until you withdraw it',
-  'consent.item.delivery.name': 'Website delivery',
-  'consent.item.delivery.purpose':
-    'Technical delivery, security filtering and delivery of this website by the hosting provider and the content delivery network.',
-  'consent.item.delivery.storage':
-    'Connection data in server logs, short retention',
   'consent.legalBasis.necessary':
     'Strictly necessary under § 25(2) no. 2 TDDDG; legitimate interest under Art. 6(1)(f) GDPR.',
   'consent.legalBasis.consent':
@@ -418,7 +409,7 @@ export const en = {
 
   'privacySettings.meta.title': 'Privacy settings',
   'privacySettings.meta.description':
-    'Review and change the privacy choices Koxora stores on your device. This deployment uses only strictly necessary storage; optional purposes stay off until you allow them.',
+    'Review and change what Koxora keeps on your device: every entry with its purpose, where it is stored and how long it stays.',
   'privacySettings.hero.eyebrow': 'Privacy settings',
   'privacySettings.hero.title': 'Your choices on this device',
   'privacySettings.hero.lead':
@@ -432,7 +423,7 @@ export const en = {
 
   'legalNotice.meta.title': 'Legal notice',
   'legalNotice.meta.description':
-    'Legal notice for koxora.app under § 5 DDG: operator, contact addresses, editorial responsibility, dispute resolution, liability and copyright.',
+    'Legal notice for koxora.app: operator, contact addresses, editorial responsibility, dispute resolution, liability and copyright.',
   'legalNotice.hero.eyebrow': 'Legal notice',
   'legalNotice.hero.title': 'Legal notice',
   'legalNotice.hero.lead':
@@ -463,14 +454,14 @@ export const en = {
     'This website contains links to external websites whose content we do not control. The respective provider or operator of the linked pages is always responsible for their content. The linked pages were checked for possible legal violations at the time of linking; no unlawful content was apparent. Permanent monitoring without concrete evidence of an infringement is not reasonable. Links are removed without undue delay once an infringement becomes known.',
   'legalNotice.copyright.title': 'Copyright',
   'legalNotice.copyright.body':
-    'The content and works on these pages created by the operator are subject to German copyright law. Contributions by third parties are marked as such. Downloads and copies of this page are permitted for private, non-commercial use. The Koxora source code is published in the public repository under the licence stated there, which takes precedence for the code.',
+    'The content and works on these pages created by the operator are subject to German copyright law. Contributions by third parties are marked as such. Downloads and copies of this page are permitted for private, non-commercial use. The Koxora source code is developed in public; the licence that applies to it is published with it in the repository and takes precedence for the code. Until a licence is published there, no rights to use the code are granted.',
   'legalNotice.project.title': 'About this project',
   'legalNotice.project.body':
     'Koxora is a software project in development. This website is informational. No contract is concluded through it, no paid service is offered and no downloadable software is distributed through it at present.',
 
   'privacyPolicy.meta.title': 'Privacy policy',
   'privacyPolicy.meta.description':
-    'How Koxora handles personal data: the controller, hosting and content delivery, the strictly necessary storage used on your device, the local-first browser studio, email contact, your rights under the GDPR and the supervisory authority.',
+    'How Koxora handles personal data: controller, hosting, what is stored on your device, the local-first studio, your rights and the supervisory authority.',
   'privacyPolicy.hero.eyebrow': 'Privacy',
   'privacyPolicy.hero.title': 'Privacy policy',
   'privacyPolicy.hero.lead':
@@ -490,7 +481,7 @@ export const en = {
   'privacyPolicy.logs.body':
     'When you request a page, the hosting provider processes the data your browser transmits: the requested address, date and time, the amount of data transferred, the referring address, browser and operating system information and the IP address. This processing is technically necessary to deliver the page and to detect and defend against attacks.',
   'privacyPolicy.logs.basis':
-    'Legal basis: Art. 6(1)(f) GDPR. Our legitimate interest is the secure, stable and traceable operation of the service. Log data is kept only as long as necessary for that purpose and is then deleted or anonymized; the exact retention period of the deployed configuration is stated in the operator documentation and verified before publication.',
+    'Legal basis: Art. 6(1)(f) GDPR. Our legitimate interest is the secure, stable and traceable operation of the service. Log data is kept only as long as necessary for that purpose and is then deleted or anonymized. The exact retention period follows from the deployed configuration; it is measured, documented and stated here before this site is published.',
   'privacyPolicy.hosting.title': '5. Hosting and content delivery',
   'privacyPolicy.hosting.body':
     'The website is hosted in Germany by Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen. Delivery, caching and protection against attacks are handled by Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA, which therefore processes the connection data described above. Both providers act as processors on our instructions under Art. 28 GDPR.',
@@ -719,5 +710,14 @@ export const en = {
   'localFirst.how.title': 'How Koxora handles your work',
   'localFirst.how.description':
     'Five answers to the question every local-first product has to answer honestly: where the data is, what happens offline, what you can take with you, what a server sees anyway, and what the browser ties your storage to.',
+  'consent.state.session':
+    'Your choice could not be stored on this device, so it applies to this visit only.',
+  'consent.noScript.optional':
+    'Privacy settings need JavaScript in your browser. Without it nothing optional is loaded and no decision is stored, so you are not tracked; the controls on this page cannot be operated.',
+  'privacyPolicy.device.note.optional':
+    'This website also uses optional technologies that are not strictly necessary. Nothing optional is loaded before you have agreed to it, your decision is stored only once you make it, and you can change or withdraw it at any time in the privacy settings.',
+  'a11y.tableScroll': 'Scroll sideways to see every column of this table.',
+  'a11y.languageNavigationFooter': 'Language, in the footer',
+  'cta.moreAbout': 'More about {topic}',
 } as const;
 export type WebsiteMessageKey = keyof typeof en;

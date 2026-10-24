@@ -44,7 +44,7 @@ export function ComparePage({ locale, t }: PageContext) {
           title={t('compare.peers.title')}
           description={t('compare.peers.note')}
         />
-        <ul className="peer-list peer-list-wide">
+        <ul className="peer-list peer-list-wide" role="list">
           {peers.map((peer) => (
             <li key={peer.id}>
               <strong>
@@ -59,7 +59,7 @@ export function ComparePage({ locale, t }: PageContext) {
       </Section>
       <Section id="focus" tone="panel">
         <SectionHeader title={t('home.compare.focusTitle')} />
-        <ul className="checklist">
+        <ul className="checklist" role="list">
           {comparisonFocus.map((entry) => (
             <li key={entry.titleKey}>
               <strong>{t(entry.titleKey)}</strong>

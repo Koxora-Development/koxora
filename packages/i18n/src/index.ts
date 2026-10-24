@@ -1,3 +1,4 @@
+import { localeMetadata } from './catalog';
 import en from './locales/en.json';
 import de from './locales/de.json';
 export type MessageKey = keyof typeof en;
@@ -8,8 +9,8 @@ export interface LocaleDefinition {
   messages: Messages;
 }
 export const locales: Record<string, LocaleDefinition> = {
-  en: { label: 'English', direction: 'ltr', messages: en },
-  de: { label: 'Deutsch', direction: 'ltr', messages: de },
+  en: { ...localeMetadata.en!, messages: en },
+  de: { ...localeMetadata.de!, messages: de },
 };
 export const defaultLocale = 'en';
 export function resolveLocale(value: unknown, registry = locales): string {

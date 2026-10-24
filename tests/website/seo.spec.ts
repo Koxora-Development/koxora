@@ -20,8 +20,9 @@ test.describe('search engine readiness', () => {
       const title = await page.title();
       const description = (await meta(page, 'description')) ?? '';
       expect(title.length, path).toBeGreaterThan(10);
+      expect(title.length, path).toBeLessThanOrEqual(60);
       expect(description.length, path).toBeGreaterThan(60);
-      expect(description.length, path).toBeLessThan(320);
+      expect(description.length, path).toBeLessThanOrEqual(158);
       titles.add(title);
       descriptions.add(description);
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
@@ -61,6 +62,7 @@ test.describe('search engine readiness', () => {
     expect(await property(page, 'og:locale')).toBe('de_DE');
     expect(await property(page, 'og:locale:alternate')).toBe('en_US');
     expect(await meta(page, 'twitter:card')).toBe('summary_large_image');
+    expect(await meta(page, 'twitter:image:alt')).toBeTruthy();
   });
   test('structured data is valid and claims nothing unreleased', async ({
     page,

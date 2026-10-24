@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Mark } from './logo';
-import { ConsentBanner, ConsentDialog } from './consent-ui';
+import { ConsentBanner, ConsentDialog, ConsentNoScript } from './consent-ui';
 import { site } from '../site';
 import {
   locales,
@@ -21,10 +21,25 @@ import {
   consentRuntimeConfig,
 } from '../content/consent';
 import type { PageSeo } from '../seo';
-function LanguageSwitch({ locale, route, t }: PageContext) {
+// Embedded JSON must not be able to end its own script element, whatever a
+// future message or label contains.
+function scriptSafeJson(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+function LanguageSwitch({
+  locale,
+  route,
+  t,
+  inFooter,
+}: PageContext & { inFooter?: boolean }) {
   return (
-    <nav className="language" aria-label={t('a11y.languageNavigation')}>
-      <ul>
+    <nav
+      className="language"
+      aria-label={t(
+        inFooter ? 'a11y.languageNavigationFooter' : 'a11y.languageNavigation',
+      )}
+    >
+      <ul role="list">
         {locales.map((candidate) => (
           <li key={candidate}>
             <a
@@ -69,7 +84,7 @@ function Header(context: PageContext) {
         </button>
         <div className="header-menu" id="site-menu" data-menu>
           <nav className="primary-nav" aria-label={t('a11y.mainNavigation')}>
-            <ul>
+            <ul role="list">
               {navRoutes('primary').map((entry) => (
                 <li key={entry.id}>
                   <a
@@ -116,7 +131,7 @@ function FooterColumn({
   return (
     <div className="footer-column">
       <h2>{title}</h2>
-      <ul>
+      <ul role="list">
         {ids.map((id) => (
           <li key={id}>
             <a href={pathFor(id, locale)}>{t(navLabelKeys[id])}</a>
@@ -156,7 +171,7 @@ function Footer(context: PageContext) {
             />
             <div className="footer-column">
               <h2>{t('nav.groupLegal')}</h2>
-              <ul>
+              <ul role="list">
                 {navRoutes('legal').map((entry) => (
                   <li key={entry.id}>
                     <a
@@ -173,7 +188,7 @@ function Footer(context: PageContext) {
             </div>
             <div className="footer-column">
               <h2>{t('footer.contact')}</h2>
-              <ul>
+              <ul role="list">
                 <li>
                   <a href={`mailto:${site.email.support}`}>
                     {site.email.support}
@@ -195,7 +210,7 @@ function Footer(context: PageContext) {
         </div>
         <div className="footer-bottom">
           <p className="footer-copyright">{t('footer.copyright', { year })}</p>
-          <LanguageSwitch {...context} />
+          <LanguageSwitch {...context} inFooter />
           <a className="footer-top-link" href="#top">
             {t('footer.backToTop')}
           </a>
@@ -262,6 +277,7 @@ export function Document({
         <meta name="twitter:title" content={seo.title} />
         <meta name="twitter:description" content={seo.description} />
         <meta name="twitter:image" content={seo.image} />
+        <meta name="twitter:image:alt" content={seo.imageAlt} />
         <meta name="theme-color" content="#080a13" />
         <meta name="color-scheme" content="dark light" />
         <link rel="icon" href="/images/icon.svg" type="image/svg+xml" />
@@ -274,13 +290,13 @@ export function Document({
           type="application/json"
           id="koxora-consent-config"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(consentRuntimeConfig()),
+            __html: scriptSafeJson(consentRuntimeConfig()),
           }}
         />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(graph) }}
+          dangerouslySetInnerHTML={{ __html: scriptSafeJson(graph) }}
         />
         {assets.js.map((src) => (
           <script key={src} type="module" src={src} defer />
@@ -293,10 +309,15 @@ export function Document({
         <Header {...context} />
         <main id="main">{children}</main>
         <Footer {...context} />
+        <ConsentNoScript {...context} />
         {consentPromptRequired() ? (
           <>
             <ConsentBanner {...context} />
-            <ConsentDialog {...context} />
+            {/* The settings page renders the manager itself; a second copy
+                inside a dialog would duplicate its controls on that page. */}
+            {context.route === 'privacySettings' ? null : (
+              <ConsentDialog {...context} />
+            )}
           </>
         ) : null}
       </body>

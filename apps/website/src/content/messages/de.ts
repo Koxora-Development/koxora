@@ -78,10 +78,9 @@ export const de: Record<WebsiteMessageKey, string> = {
   'project.statusUpdated': 'Inhalte zuletzt geprüft am {date}',
   'project.statusLink': 'Entwicklungsstand und Roadmap',
 
-  'home.meta.title':
-    'Koxora — Local-first-Diagramme, Mindmaps und Datenvisualisierung',
+  'home.meta.title': 'Koxora — Local-first-Diagramme und Mindmaps',
   'home.meta.description':
-    'Koxora ist ein plattformübergreifendes Local-first-Studio für Diagramme, Mindmaps, Datenvisualisierung und visuelle Zusammenarbeit. Projekte bleiben auf Ihrem Gerät: ohne Konto, ohne Upload, in portablen Dateien. In aktiver Entwicklung.',
+    'Ein Local-first-Studio für Diagramme, Mindmaps und Datenvisualisierung. Funktioniert offline, braucht kein Konto, speichert in portablen Dateien.',
   'home.hero.eyebrow': 'Visuelles Denken, local-first',
   'home.hero.title': 'Ideen nehmen Form an.',
   'home.hero.titleAccent': 'Auf Ihrem Gerät.',
@@ -97,11 +96,10 @@ export const de: Record<WebsiteMessageKey, string> = {
   'home.preview.altLight':
     'Koxora Studio in heller Darstellung mit der Formenpalette und den Projektdetails.',
   'home.preview.altMobile':
-    'Koxora Studio auf Deutsch auf einem schmalen Smartphone-Bildschirm mit sichtbarer Formenpalette.',
+    'Koxora Studio auf einem schmalen Smartphone-Bildschirm, mit Formenpalette und Projektdetails untereinander.',
   'home.preview.tabDark': 'Dunkel',
   'home.preview.tabLight': 'Hell',
-  'home.preview.tabMobile': 'Mobil · Deutsch',
-
+  'home.preview.tabMobile': 'Auf dem Smartphone',
   'home.features.kicker': 'Was heute möglich ist',
   'home.features.title': 'Eine Arbeitsfläche, die schon trägt',
   'home.features.description':
@@ -165,10 +163,9 @@ export const de: Record<WebsiteMessageKey, string> = {
   'home.cta.description':
     'Issues, Entscheidungen, Architekturdokumente und Meilensteine sind öffentlich. Rückmeldungen zu den offenen Issues sind willkommen.',
 
-  'features.meta.title':
-    'Funktionen — was Koxora heute kann und was geplant ist',
+  'features.meta.title': 'Funktionen: verfügbar, in Entwicklung, geplant',
   'features.meta.description':
-    'Ein vollständiger, ehrlich gekennzeichneter Überblick über Koxora: Formen, Text, Verbindungen, lokale Projekte, portable Dateien und Offline-Nutzung, die heute funktionieren, dazu Zusammenarbeit, Import/Export, Daten und KI, die in Entwicklung oder geplant sind.',
+    'Was Koxora heute kann — Formen, Verbindungen, lokale Projekte, Offline-Nutzung — und was in Entwicklung oder geplant ist, klar gekennzeichnet.',
   'features.hero.eyebrow': 'Funktionen',
   'features.hero.title':
     'Alles, was Koxora kann, und alles, was es können wird',
@@ -197,10 +194,9 @@ export const de: Record<WebsiteMessageKey, string> = {
   'features.limits.item5':
     'Zusammenarbeit, Cloud und KI-Unterstützung gibt es im Produkt heute nicht.',
 
-  'localFirst.meta.title':
-    'Local-first und Datenschutz — wie Koxora mit Ihren Daten umgeht',
+  'localFirst.meta.title': 'Local-first: wo Ihre Projekte liegen',
   'localFirst.meta.description':
-    'Koxora hält Projekte auf Ihrem Gerät: Browserspeicher oder Dateien, die Sie kontrollieren, Offline-Nutzung nach dem ersten Besuch, portable .koxora-Archive, kein Konto und kein Projekt-Upload. Was lokal bleibt und was ein Webserver zwangsläufig sieht.',
+    'Wo Koxora Ihre Projekte speichert, was offline funktioniert, was ein Webserver dennoch sieht und warum Browserspeicher zu einer Adresse gehört.',
   'localFirst.hero.eyebrow': 'Local-first',
   'localFirst.hero.title': 'Software, die arbeitet, wenn das Netz es nicht tut',
   'localFirst.hero.lead':
@@ -225,9 +221,9 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Local-first bedeutet auch lokale Verantwortung. Browserdaten können vom Browser, von einem Aufräumwerkzeug oder von Ihnen selbst gelöscht werden. Exportieren Sie ein .koxora-Archiv von allem, dessen Verlust Sie sich nicht leisten können.',
   'localFirst.link.privacy': 'Datenschutzerklärung lesen',
 
-  'compare.meta.title': 'Koxora im Vergleich zu anderen Diagrammwerkzeugen',
+  'compare.meta.title': 'Koxora im Vergleich zu anderen Werkzeugen',
   'compare.meta.description':
-    'Wie sich Koxora neben draw.io, Lucidchart, Miro, Microsoft Visio und Excalidraw einordnet. Der ausführliche, mit Quellen belegte Vergleich ist in Vorbereitung; diese Seite erklärt die Methode und worauf Koxora optimiert.',
+    'Wie sich Koxora neben draw.io, Lucidchart, Miro, Visio und Excalidraw einordnet. Der belegte Vergleich folgt; hier steht die Methode.',
   'compare.hero.eyebrow': 'Vergleich',
   'compare.hero.title': 'Ein ehrlicher Vergleich braucht Belege',
   'compare.hero.lead':
@@ -257,7 +253,7 @@ export const de: Record<WebsiteMessageKey, string> = {
 
   'roadmap.meta.title': 'Roadmap und Entwicklungsstand',
   'roadmap.meta.description':
-    'Die öffentliche Koxora-Roadmap: welcher Meilenstein fertig ist, woran gerade gebaut wird und was geplant ist. Die Entwicklung findet im offenen Repository statt, ohne zugesagte Veröffentlichungstermine.',
+    'Die öffentliche Koxora-Roadmap: was fertig ist, woran gebaut wird und was geplant ist — offen entwickelt, ohne zugesagte Termine.',
   'roadmap.hero.eyebrow': 'Roadmap',
   'roadmap.hero.title': 'Offen entwickelt, Meilenstein für Meilenstein',
   'roadmap.hero.lead':
@@ -275,7 +271,7 @@ export const de: Record<WebsiteMessageKey, string> = {
 
   'download.meta.title': 'Koxora herunterladen',
   'download.meta.description':
-    'Koxora hat noch keine öffentliche Veröffentlichung. Diese Seite erklärt, was es heute gibt, wie sich die aktuelle Entwicklungsversion aus dem Quellcode starten lässt und welche Plattformen geplant sind.',
+    'Koxora hat noch keine öffentliche Veröffentlichung. Was es heute gibt, wie die Entwicklungsversion startet und welche Plattformen geplant sind.',
   'download.hero.eyebrow': 'Download',
   'download.hero.title': 'Es gibt noch nichts herunterzuladen',
   'download.hero.lead':
@@ -303,7 +299,7 @@ export const de: Record<WebsiteMessageKey, string> = {
 
   'docs.meta.title': 'Dokumentation',
   'docs.meta.description':
-    'Die Koxora-Benutzer- und Entwicklerdokumentation ist in Vorbereitung. Bis zur Veröffentlichung sind die Architektur-, Entscheidungs- und Entwicklungsdokumente im öffentlichen Repository die maßgebliche Quelle.',
+    'Die Koxora-Dokumentation ist in Vorbereitung. Bis dahin gelten die Architektur- und Entwicklungsdokumente im öffentlichen Repository.',
   'docs.hero.eyebrow': 'Dokumentation',
   'docs.hero.title': 'Die Dokumentation ist in Vorbereitung',
   'docs.hero.lead':
@@ -320,7 +316,7 @@ export const de: Record<WebsiteMessageKey, string> = {
 
   'releases.meta.title': 'Versionen und Änderungsprotokoll',
   'releases.meta.description':
-    'Koxora hat noch keine veröffentlichte Version. Entwicklungsmeilensteine werden im öffentlichen Repository nachgehalten; diese Seite ist für Versionen, Änderungsprotokolle und Migrationshinweise vorbereitet.',
+    'Koxora hat noch keine veröffentlichte Version. Meilensteine werden öffentlich nachgehalten; diese Seite ist für Änderungsprotokolle vorbereitet.',
   'releases.hero.eyebrow': 'Versionen',
   'releases.hero.title': 'Noch keine veröffentlichte Version',
   'releases.hero.lead':
@@ -412,11 +408,6 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Speichert Ihre Datenschutz-Auswahl und deren Version, damit Sie nicht erneut gefragt werden.',
   'consent.item.consent.storage':
     'Browserspeicher auf diesem Gerät, bis Sie widerrufen',
-  'consent.item.delivery.name': 'Auslieferung der Website',
-  'consent.item.delivery.purpose':
-    'Technische Auslieferung, Sicherheitsfilterung und Bereitstellung dieser Website durch Hosting-Anbieter und Content-Delivery-Netzwerk.',
-  'consent.item.delivery.storage':
-    'Verbindungsdaten in Serverprotokollen, kurze Speicherdauer',
   'consent.legalBasis.necessary':
     'Unbedingt erforderlich nach § 25 Abs. 2 Nr. 2 TDDDG; berechtigtes Interesse nach Art. 6 Abs. 1 lit. f DSGVO.',
   'consent.legalBasis.consent':
@@ -427,7 +418,7 @@ export const de: Record<WebsiteMessageKey, string> = {
 
   'privacySettings.meta.title': 'Datenschutz-Einstellungen',
   'privacySettings.meta.description':
-    'Prüfen und ändern Sie die Datenschutz-Entscheidungen, die Koxora auf Ihrem Gerät speichert. Diese Installation nutzt ausschließlich unbedingt erforderliche Speicherung; optionale Zwecke bleiben aus, bis Sie sie erlauben.',
+    'Prüfen und ändern Sie, was Koxora auf Ihrem Gerät behält: jeden Eintrag mit Zweck, Speicherort und Dauer sowie jeden optionalen Zweck.',
   'privacySettings.hero.eyebrow': 'Datenschutz-Einstellungen',
   'privacySettings.hero.title': 'Ihre Auswahl auf diesem Gerät',
   'privacySettings.hero.lead':
@@ -441,7 +432,7 @@ export const de: Record<WebsiteMessageKey, string> = {
 
   'legalNotice.meta.title': 'Impressum',
   'legalNotice.meta.description':
-    'Impressum für koxora.app nach § 5 DDG: Anbieter, Kontaktadressen, inhaltliche Verantwortung, Streitschlichtung, Haftung und Urheberrecht.',
+    'Impressum für koxora.app: Anbieter, Kontaktadressen, inhaltliche Verantwortung, Streitschlichtung, Haftung und Urheberrecht.',
   'legalNotice.hero.eyebrow': 'Impressum',
   'legalNotice.hero.title': 'Impressum',
   'legalNotice.hero.lead':
@@ -472,14 +463,14 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Diese Website enthält Links zu externen Websites, auf deren Inhalte wir keinen Einfluss haben. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber verantwortlich. Die verlinkten Seiten wurden zum Zeitpunkt der Verlinkung auf mögliche Rechtsverstöße überprüft; rechtswidrige Inhalte waren nicht erkennbar. Eine permanente inhaltliche Kontrolle ohne konkrete Anhaltspunkte einer Rechtsverletzung ist nicht zumutbar. Bei Bekanntwerden von Rechtsverletzungen entfernen wir derartige Links unverzüglich.',
   'legalNotice.copyright.title': 'Urheberrecht',
   'legalNotice.copyright.body':
-    'Die durch den Betreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet. Downloads und Kopien dieser Seite sind für den privaten, nicht kommerziellen Gebrauch gestattet. Der Koxora-Quellcode wird im öffentlichen Repository unter der dort angegebenen Lizenz veröffentlicht; für den Code gilt vorrangig diese Lizenz.',
+    'Die durch den Betreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet. Downloads und Kopien dieser Seite sind für den privaten, nicht kommerziellen Gebrauch gestattet. Der Koxora-Quellcode wird öffentlich entwickelt; die für ihn geltende Lizenz wird gemeinsam mit ihm im Repository veröffentlicht und geht für den Code vor. Solange dort keine Lizenz veröffentlicht ist, werden keine Nutzungsrechte am Code eingeräumt.',
   'legalNotice.project.title': 'Über dieses Projekt',
   'legalNotice.project.body':
     'Koxora ist ein Softwareprojekt in Entwicklung. Diese Website informiert darüber. Über sie kommt kein Vertrag zustande, es wird keine entgeltliche Leistung angeboten und derzeit keine herunterladbare Software verbreitet.',
 
   'privacyPolicy.meta.title': 'Datenschutzerklärung',
   'privacyPolicy.meta.description':
-    'Wie Koxora mit personenbezogenen Daten umgeht: Verantwortlicher, Hosting und Auslieferung, unbedingt erforderliche Speicherung auf Ihrem Gerät, das Local-first-Browser-Studio, E-Mail-Kontakt, Ihre Rechte nach der DSGVO und die Aufsichtsbehörde.',
+    'Wie Koxora mit personenbezogenen Daten umgeht: Verantwortlicher, Hosting, Speicherung auf Ihrem Gerät, Ihre Rechte und die Aufsichtsbehörde.',
   'privacyPolicy.hero.eyebrow': 'Datenschutz',
   'privacyPolicy.hero.title': 'Datenschutzerklärung',
   'privacyPolicy.hero.lead':
@@ -499,7 +490,7 @@ export const de: Record<WebsiteMessageKey, string> = {
   'privacyPolicy.logs.body':
     'Beim Aufruf einer Seite verarbeitet der Hosting-Anbieter die Daten, die Ihr Browser übermittelt: die angeforderte Adresse, Datum und Uhrzeit, die übertragene Datenmenge, die verweisende Adresse, Angaben zu Browser und Betriebssystem sowie die IP-Adresse. Diese Verarbeitung ist technisch erforderlich, um die Seite auszuliefern und Angriffe zu erkennen und abzuwehren.',
   'privacyPolicy.logs.basis':
-    'Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist der sichere, stabile und nachvollziehbare Betrieb des Dienstes. Protokolldaten werden nur so lange aufbewahrt, wie es für diesen Zweck erforderlich ist, und danach gelöscht oder anonymisiert; die genaue Speicherdauer der eingesetzten Konfiguration ist in der Betriebsdokumentation festgehalten und wird vor der Veröffentlichung überprüft.',
+    'Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist der sichere, stabile und nachvollziehbare Betrieb des Dienstes. Protokolldaten werden nur so lange aufbewahrt, wie es für diesen Zweck erforderlich ist, und danach gelöscht oder anonymisiert. Die genaue Speicherdauer ergibt sich aus der eingesetzten Konfiguration; sie wird vor der Veröffentlichung dieser Website gemessen, dokumentiert und hier angegeben.',
   'privacyPolicy.hosting.title': '5. Hosting und Auslieferung',
   'privacyPolicy.hosting.body':
     'Die Website wird in Deutschland von der Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, gehostet. Auslieferung, Zwischenspeicherung und Schutz vor Angriffen übernimmt Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA, das dabei die oben beschriebenen Verbindungsdaten verarbeitet. Beide Anbieter handeln als Auftragsverarbeiter nach Art. 28 DSGVO auf unsere Weisung.',
@@ -729,4 +720,14 @@ export const de: Record<WebsiteMessageKey, string> = {
   'localFirst.how.title': 'Wie Koxora mit Ihrer Arbeit umgeht',
   'localFirst.how.description':
     'Fünf Antworten auf die Fragen, die jedes Local-first-Produkt ehrlich beantworten muss: Wo die Daten liegen, was offline passiert, was Sie mitnehmen können, was ein Server dennoch sieht und woran der Browser Ihren Speicher bindet.',
+  'consent.state.session':
+    'Ihre Auswahl konnte auf diesem Gerät nicht gespeichert werden und gilt deshalb nur für diesen Besuch.',
+  'consent.noScript.optional':
+    'Die Datenschutz-Einstellungen benötigen JavaScript im Browser. Ohne JavaScript wird nichts Optionales geladen und keine Entscheidung gespeichert; Sie werden also nicht verfolgt, die Bedienelemente auf dieser Seite lassen sich jedoch nicht benutzen.',
+  'privacyPolicy.device.note.optional':
+    'Diese Website nutzt außerdem optionale Technologien, die nicht unbedingt erforderlich sind. Nichts Optionales wird geladen, bevor Sie zugestimmt haben, Ihre Entscheidung wird erst mit dem Treffen gespeichert, und Sie können sie jederzeit in den Datenschutz-Einstellungen ändern oder widerrufen.',
+  'a11y.tableScroll':
+    'Zur Seite scrollen, um alle Spalten dieser Tabelle zu sehen.',
+  'a11y.languageNavigationFooter': 'Sprache, im Fußbereich',
+  'cta.moreAbout': 'Mehr über {topic}',
 };

@@ -22,7 +22,7 @@ export function ReleasesPage({ t }: PageContext) {
           title={t('releases.milestones.title')}
           description={t('releases.milestones.description')}
         />
-        <ul className="milestone-list">
+        <ul className="milestone-list" role="list">
           {milestones.map((milestone) => (
             <li key={milestone.id}>
               <p className="milestone-phase">{milestone.phase}</p>

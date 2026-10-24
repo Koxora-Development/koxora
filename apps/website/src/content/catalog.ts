@@ -1,4 +1,4 @@
-import { createCatalog } from '@koxora/i18n/catalog';
+import { createCatalog, localeMetadata } from '@koxora/i18n/catalog';
 import { en, type WebsiteMessageKey } from './messages/en';
 import { de } from './messages/de';
 import { defaultLocale, type Locale } from '../routes';
@@ -9,8 +9,10 @@ export const catalog = createCatalog<WebsiteMessageKey>({
   defaultLocale,
   base: en,
   locales: {
-    en: { label: 'English', direction: 'ltr', messages: en },
-    de: { label: 'Deutsch', direction: 'ltr', messages: de },
+    // Labels and direction come from the application locale registry, so a
+    // new language is named in one place only.
+    en: { ...localeMetadata.en!, messages: en },
+    de: { ...localeMetadata.de!, messages: de },
   },
 });
 export type MessageKey = WebsiteMessageKey;

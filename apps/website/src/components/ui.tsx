@@ -122,10 +122,12 @@ export function Note({
   children: ReactNode;
 }) {
   return (
-    <aside className={`note note-${tone}`}>
+    // A div rather than an aside: an inline callout is not a complementary
+    // landmark, and an unnamed landmark only adds noise to a landmark list.
+    <div className={`note note-${tone}`}>
       {title ? <p className="note-title">{title}</p> : null}
       <div className="note-body">{children}</div>
-    </aside>
+    </div>
   );
 }
 export function DefinitionList({
@@ -146,7 +148,7 @@ export function DefinitionList({
 }
 export function Bullets({ items }: { items: string[] }) {
   return (
-    <ul className="bullets">
+    <ul className="bullets" role="list">
       {items.map((item) => (
         <li key={item}>{item}</li>
       ))}

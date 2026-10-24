@@ -53,7 +53,7 @@ describe('website message catalog', () => {
       ...comparisonFocus.flatMap((entry) => [entry.titleKey, entry.bodyKey]),
       ...comparisonMethod.flatMap((entry) => [entry.titleKey, entry.bodyKey]),
       ...repositoryDocuments.map((entry) => entry.labelKey),
-      ...consentCategories.flatMap((category) => [
+      ...consentCategories().flatMap((category) => [
         category.nameKey,
         category.descriptionKey,
         ...category.items.flatMap((item) => [
