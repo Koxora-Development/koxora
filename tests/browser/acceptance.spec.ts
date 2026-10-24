@@ -69,7 +69,8 @@ async function click(p: Page, x: number, y: number) {
   await p.mouse.click(pos.x, pos.y);
 }
 async function center(locator: Locator) {
-  await expect(locator).toBeVisible();
+  // Wait for layout stability after tool-context rows resize the canvas.
+  await locator.hover();
   return locator.evaluate((e) => {
     const r = e.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
@@ -240,6 +241,8 @@ test('ports keep screen-sized targets, keyboard focus and localized touch or pen
   const ids = await fixture(page);
   await button(page, 'Arrow').click();
   const first = port(page, ids[0], 'north');
+  await expect(first).toBeVisible();
+  await expect(first).toHaveAttribute('tabindex', '0');
   await canvas(page).focus();
   await page.keyboard.press('Tab');
   await expect(first).toBeFocused();
@@ -397,7 +400,7 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
       .last();
     await expect(label).toHaveCSS(
       'font-family',
-      'Georgia, "Times New Roman", serif',
+      /^Georgia, "?Times New Roman"?, serif$/,
     );
     await expect(label).toHaveAttribute('font-size', '28');
     await expect(label).toHaveAttribute('font-weight', '700');
