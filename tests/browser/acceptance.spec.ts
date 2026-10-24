@@ -89,8 +89,14 @@ async function drag(
 async function exported(p: Page) {
   if (await button(p, 'Restore workspace').isVisible())
     await button(p, 'Restore workspace').click();
+  // Expanded-view cleanup restores the background's focusability asynchronously.
+  await expect(p.locator('.inspector')).toHaveJSProperty('inert', false);
+  const exportButton = button(p, 'Export .koxora');
+  await expect(exportButton).toBeEnabled();
+  await exportButton.focus();
+  await expect(exportButton).toBeFocused();
   const download = p.waitForEvent('download');
-  await button(p, 'Export .koxora').click();
+  await exportButton.press('Enter');
   return importProject(
     new Uint8Array(readFileSync((await (await download).path())!)),
   );
