@@ -6,6 +6,7 @@ import {
   isDrawing,
 } from '@koxora/editor-core';
 import type { DiagramTool } from './diagram-tools';
+import { PALETTE_KEYS } from './shortcuts';
 
 /** Shared, compact icon toolbar with roving focus and localized tooltips. */
 export function ShapePalette({
@@ -19,18 +20,10 @@ export function ShapePalette({
   activate: (tool: DiagramTool) => void;
   writable: boolean;
 }) {
-  const tools: DiagramTool[] = [
-    'select',
-    'pan',
-    ...shapeKinds,
-    'connect',
-    'edit',
-  ];
+  const tools: DiagramTool[] = ['select', 'pan', ...shapeKinds];
   const icons = {
     select: 'M 7 4 L 25 18 L 17 19 L 13 27 Z',
     pan: 'M 16 3 V 29 M 3 16 H 29 M 11 8 L 16 3 L 21 8 M 11 24 L 16 29 L 21 24 M 8 11 L 3 16 L 8 21 M 24 11 L 29 16 L 24 21',
-    connect: 'M 3 7 H 10 V 25 H 29 M 24 20 L 29 25 L 24 30',
-    edit: 'M 6 25 L 8 19 L 23 4 L 28 9 L 13 24 Z M 7 26 H 27',
   };
   return (
     <div
@@ -38,17 +31,7 @@ export function ShapePalette({
       role="toolbar"
       aria-label={translate(locale, 'diagram.tools')}
       onKeyDown={(event) => {
-        if (
-          ![
-            'ArrowLeft',
-            'ArrowRight',
-            'ArrowUp',
-            'ArrowDown',
-            'Home',
-            'End',
-          ].includes(event.key)
-        )
-          return;
+        if (!PALETTE_KEYS.includes(event.key)) return;
         event.preventDefault();
         const buttons = [
           ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
@@ -88,11 +71,11 @@ export function ShapePalette({
           <button
             key={item}
             className="palette-tool"
-            title={name}
+            title={`${name} — ${translate(locale, isDrawing(item) ? 'diagram.linkHelp' : item === 'select' ? 'diagram.selectHelp' : item === 'pan' ? 'diagram.panHelp' : 'diagram.toolHelp')}`}
             aria-label={name}
             aria-pressed={tool === item}
             tabIndex={tool === item ? 0 : -1}
-            disabled={!writable && (isShapeKind(item) || item === 'connect')}
+            disabled={!writable && isShapeKind(item)}
             onClick={() => activate(item)}
           >
             <svg viewBox="0 0 32 32" aria-hidden="true">

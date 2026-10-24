@@ -4,9 +4,11 @@ import { Dialog } from '@koxora/ui';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
   isDrawing,
+  isShapeKind,
   LINE_KEY,
   jsonObject,
   layerStates,
+  FONT_FAMILIES,
   resolveAppearance,
   readConnection,
   CONNECTION_KEY,
@@ -14,23 +16,25 @@ import {
   type ShapeKind,
   type EditCommand,
   type ConnectionOptions,
-  type Appearance,
   DEFAULT_CONNECTION,
+  type Anchor,
 } from '@koxora/editor-core';
 import { ShapePalette } from './shape-palette';
-export type DiagramTool = 'select' | 'pan' | 'edit' | 'connect' | ShapeKind;
+import { TextFormatting } from './text-formatting';
+import { PORT_ANCHORS } from './connection-ports';
+export type DiagramTool = 'select' | 'pan' | ShapeKind;
 interface Props {
   page: Page;
-  styles: Style[];
   repeat: boolean;
   setRepeat: (value: boolean) => void;
   locale: string;
   tool: DiagramTool;
   source: string | null;
+  candidates: string[];
   layerId: string;
   setLayer: (id: string) => void;
   activate: (tool: DiagramTool) => void;
-  pick: (id: string) => void;
+  link: (id: string | null, anchor?: Anchor) => void;
   options: ConnectionOptions;
   setOptions: (options: ConnectionOptions) => void;
 }
@@ -41,15 +45,17 @@ export function DiagramTools({
   locale,
   tool,
   source,
+  candidates,
   layerId,
   setLayer,
   activate,
-  pick,
+  link,
   options,
   setOptions,
 }: Props) {
   const t = (key: MessageKey) => translate(locale, key);
   const [target, setTarget] = useState('');
+  const [anchor, setAnchor] = useState<Anchor>('auto');
   const layers = layerStates(page.layers);
   const available = page.layers.filter((l) => layers.get(l.id)?.editable);
   return (
@@ -60,119 +66,127 @@ export function DiagramTools({
         activate={activate}
         writable={!!available.length}
       />
-      <div className="diagram-tools">
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={repeat}
-            onChange={(e) => setRepeat(e.target.checked)}
-          />
-          {t('editing.repeat')}
-        </label>
-        {page.layers.length > 1 && (
-          <select
-            aria-label={t('diagram.layer')}
-            value={layerId}
-            onChange={(e) => setLayer(e.target.value)}
-          >
-            {available.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.title}
-              </option>
-            ))}
-          </select>
-        )}
-        {tool !== 'select' && (
-          <button className="button compact" onClick={() => activate('select')}>
-            {t('diagram.cancel')}
-          </button>
-        )}
-      </div>
-      {tool === 'connect' && (
-        <div className="diagram-options">
-          <RoutingSelect
-            locale={locale}
-            value={options.routing}
-            onChange={(routing) => setOptions({ ...options, routing })}
-          />
-          <label>
+      {isShapeKind(tool) && (
+        <div
+          className="tool-context"
+          role="group"
+          aria-label={t('diagram.toolOptions')}
+        >
+          <label className="checkbox-label">
             <input
               type="checkbox"
-              checked={options.arrow}
-              onChange={(e) =>
-                setOptions({ ...options, arrow: e.target.checked })
-              }
+              checked={repeat}
+              onChange={(e) => setRepeat(e.target.checked)}
             />
-            {t('diagram.arrow')}
+            {t('editing.repeat')}
           </label>
-        </div>
-      )}
-      {(tool === 'edit' || tool === 'connect') && (
-        <div className="diagram-options">
-          <select
-            aria-label={t('diagram.target')}
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-          >
-            <option value="">{t('diagram.choose')}</option>
-            {page.nodes
-              .filter((n) => layers.get(n.layerId)?.editable)
-              .map((n, i) => (
-                <option value={n.id} key={n.id}>
-                  {translate(locale, 'diagram.nodeName', {
-                    index: i + 1,
-                    text:
-                      typeof n.content.text === 'string'
-                        ? n.content.text.slice(0, 80)
-                        : n.kind,
-                  })}
-                </option>
-              ))}
-            {tool === 'edit' &&
-              page.connections
-                .filter((e) => layers.get(e.layerId)?.editable)
-                .map((e, i) => (
-                  <option value={e.id} key={e.id}>
-                    {translate(locale, 'diagram.edgeName', {
-                      index: i + 1,
-                      text: readConnection(e).label,
-                    })}
+          {page.layers.length > 1 && (
+            <label>
+              {t('diagram.layer')}
+              <select
+                value={layerId}
+                onChange={(e) => setLayer(e.target.value)}
+              >
+                {available.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.title}
                   </option>
                 ))}
-          </select>
-          <button
-            className="button compact"
-            disabled={!target}
-            onClick={() => pick(target)}
-          >
-            {t(
-              tool === 'edit'
-                ? 'diagram.edit'
-                : source
-                  ? 'diagram.targetPick'
-                  : 'diagram.sourcePick',
-            )}
-          </button>
+              </select>
+            </label>
+          )}
+          {isDrawing(tool) && (
+            <>
+              <RoutingSelect
+                locale={locale}
+                value={options.routing}
+                onChange={(routing) => setOptions({ ...options, routing })}
+              />
+              <details className="tool-picker">
+                <summary>{t('diagram.linkByName')}</summary>
+                <div className="tool-picker-content">
+                  <select
+                    aria-label={t(
+                      source ? 'ports.targetShape' : 'ports.sourceShape',
+                    )}
+                    value={candidates.includes(target) ? target : ''}
+                    onChange={(e) => setTarget(e.target.value)}
+                  >
+                    <option value="">{t('diagram.choose')}</option>
+                    {page.nodes
+                      .filter((n) => candidates.includes(n.id))
+                      .map((n, i) => (
+                        <option key={n.id} value={n.id}>
+                          {translate(locale, 'diagram.nodeName', {
+                            index: i + 1,
+                            text:
+                              typeof n.content.text === 'string' &&
+                              n.content.text
+                                ? n.content.text.slice(0, 80)
+                                : n.kind,
+                          })}
+                        </option>
+                      ))}
+                  </select>
+                  <AnchorSelect
+                    locale={locale}
+                    label="ports.point"
+                    value={anchor}
+                    onChange={setAnchor}
+                  />
+                  <button
+                    className="button compact"
+                    disabled={!candidates.includes(target)}
+                    onClick={() => {
+                      link(target, anchor);
+                      setTarget('');
+                      setAnchor('auto');
+                    }}
+                  >
+                    {t(source ? 'diagram.targetPick' : 'diagram.sourcePick')}
+                  </button>
+                </div>
+              </details>
+              <span className="tool-guidance" role="status">
+                {t(source ? 'diagram.targetHelp' : 'diagram.linkHelp')}
+              </span>
+            </>
+          )}
         </div>
       )}
-      <p className="diagram-guidance" role="status">
-        {t(
-          !available.length
-            ? 'diagram.error.layer'
-            : tool === 'select'
-              ? 'editing.selectHelp'
-              : tool === 'pan'
-                ? 'diagram.panHelp'
-                : tool === 'connect'
-                  ? source
-                    ? 'diagram.targetHelp'
-                    : 'diagram.sourceHelp'
-                  : tool === 'edit'
-                    ? 'diagram.editHelp'
-                    : 'diagram.insertHelp',
-        )}
-      </p>
+      {!available.length && (
+        <p className="diagram-guidance" role="status">
+          {t('diagram.error.layer')}
+        </p>
+      )}
     </>
+  );
+}
+function AnchorSelect({
+  locale,
+  label,
+  value,
+  onChange,
+}: {
+  locale: string;
+  label: MessageKey;
+  value: Anchor;
+  onChange: (value: Anchor) => void;
+}) {
+  return (
+    <label>
+      {translate(locale, label)}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as Anchor)}
+      >
+        {(['auto', ...PORT_ANCHORS] as const).map((anchor) => (
+          <option key={anchor} value={anchor}>
+            {translate(locale, `ports.${anchor}`)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 function RoutingSelect({
@@ -283,6 +297,12 @@ export function ElementDialog({
     <Dialog title={t('diagram.properties')} onCancel={onCancel}>
       <form
         className="element-form"
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            event.currentTarget.requestSubmit();
+          }
+        }}
         onSubmit={(e) => {
           e.preventDefault();
           if (
@@ -303,119 +323,131 @@ export function ElementDialog({
           else setFailed(true);
         }}
       >
-        <label className="field-label">
-          {t('diagram.label')}
-          <textarea
-            rows={4}
-            maxLength={MAX_TEXT}
-            value={node ? text : options.label}
-            onChange={(e) =>
-              node
-                ? setText(e.target.value)
-                : setOptions({ ...options, label: e.target.value })
-            }
+        <fieldset className="label-editor">
+          <legend>{t('text.heading')}</legend>
+          <TextFormatting
+            locale={locale}
+            value={appearance}
+            onChange={setAppearance}
           />
-        </label>
+          <p className="field-help">{t('text.scope')}</p>
+          <label className="field-label">
+            {t('diagram.label')}
+            <textarea
+              aria-label={t('diagram.label')}
+              rows={4}
+              style={{
+                fontFamily: FONT_FAMILIES[appearance.fontFamily],
+                fontWeight: appearance.fontWeight,
+                fontStyle: appearance.fontStyle,
+                textDecoration: appearance.textDecoration,
+                textAlign: appearance.align,
+              }}
+              maxLength={MAX_TEXT}
+              value={node ? text : options.label}
+              onChange={(e) =>
+                node
+                  ? setText(e.target.value)
+                  : setOptions({ ...options, label: e.target.value })
+              }
+            />
+          </label>
+        </fieldset>
         {failed && <p role="alert">{t('diagram.error.invalid')}</p>}
-        <div className="element-fields">
-          {geometry &&
-            (['x', 'y', 'width', 'height'] as const).map((key) => (
-              <label key={key}>
-                {t(`editing.${key}`)}
-                <input
-                  type="number"
-                  required
-                  min={
-                    key === 'width'
-                      ? 8
-                      : key === 'height'
-                        ? line
-                          ? 1
-                          : 8
-                        : -1e12
-                  }
-                  max={1e12}
-                  step="any"
-                  value={geometry[key]}
-                  onChange={(e) =>
-                    setGeometry({
-                      ...geometry,
-                      [key]: e.currentTarget.valueAsNumber,
-                    })
-                  }
-                />
-              </label>
-            ))}
-          {line && (
-            <>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={startArrow}
-                  onChange={(e) => setStartArrow(e.target.checked)}
-                />
-                {t('editing.startArrow')}
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={endArrow}
-                  onChange={(e) => setEndArrow(e.target.checked)}
-                />
-                {t('editing.endArrow')}
-              </label>
-            </>
-          )}
+        <details className="element-advanced">
+          <summary>{t('text.advanced')}</summary>
+          <div className="element-fields">
+            {geometry &&
+              (['x', 'y', 'width', 'height'] as const).map((key) => (
+                <label key={key}>
+                  {t(`editing.${key}`)}
+                  <input
+                    type="number"
+                    required
+                    min={
+                      key === 'width'
+                        ? 8
+                        : key === 'height'
+                          ? line
+                            ? 1
+                            : 8
+                          : -1e12
+                    }
+                    max={1e12}
+                    step="any"
+                    value={geometry[key]}
+                    onChange={(e) =>
+                      setGeometry({
+                        ...geometry,
+                        [key]: e.currentTarget.valueAsNumber,
+                      })
+                    }
+                  />
+                </label>
+              ))}
+            {line && (
+              <>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={startArrow}
+                    onChange={(e) => setStartArrow(e.target.checked)}
+                  />
+                  {t('editing.startArrow')}
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={endArrow}
+                    onChange={(e) => setEndArrow(e.target.checked)}
+                  />
+                  {t('editing.endArrow')}
+                </label>
+              </>
+            )}
 
-          {node && color('fill')}
-          {color('stroke')}
-          {color('textColor')}
-          {number('strokeWidth', 0, 32)}
-          {number('fontSize', 8, 96)}
-          {number('opacity', 0, 1, 0.05)}
-          {node && (
-            <>
-              <label>
-                {t('diagram.align')}
-                <select
-                  value={appearance.align}
-                  onChange={(e) =>
-                    setAppearance({
-                      ...appearance,
-                      align: e.target.value as Appearance['align'],
-                    })
-                  }
-                >
-                  {(['left', 'center', 'right'] as const).map((a) => (
-                    <option value={a} key={a}>
-                      {t(`align.${a}`)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {number('cornerRadius', 0, 128)}
-            </>
-          )}
-          {edge && (
-            <>
-              <RoutingSelect
-                locale={locale}
-                value={options.routing}
-                onChange={(routing) => setOptions({ ...options, routing })}
-              />
-              <label>
-                <input
-                  type="checkbox"
-                  checked={options.arrow}
-                  onChange={(e) =>
-                    setOptions({ ...options, arrow: e.target.checked })
+            {node && color('fill')}
+            {color('stroke')}
+            {number('strokeWidth', 0, 32)}
+            {number('opacity', 0, 1, 0.05)}
+            {node && number('cornerRadius', 0, 128)}
+            {edge && (
+              <>
+                <RoutingSelect
+                  locale={locale}
+                  value={options.routing}
+                  onChange={(routing) => setOptions({ ...options, routing })}
+                />
+                <AnchorSelect
+                  locale={locale}
+                  label="ports.source"
+                  value={options.sourceAnchor}
+                  onChange={(sourceAnchor) =>
+                    setOptions({ ...options, sourceAnchor })
                   }
                 />
-                {t('diagram.arrow')}
-              </label>
-            </>
-          )}
-        </div>
+                <AnchorSelect
+                  locale={locale}
+                  label="ports.target"
+                  value={options.targetAnchor}
+                  onChange={(targetAnchor) =>
+                    setOptions({ ...options, targetAnchor })
+                  }
+                />
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={options.arrow}
+                    onChange={(e) =>
+                      setOptions({ ...options, arrow: e.target.checked })
+                    }
+                  />
+                  {t('diagram.arrow')}
+                </label>
+              </>
+            )}
+          </div>
+        </details>
         <div className="dialog-actions">
           <button type="button" className="button" onClick={onCancel}>
             {t('project.cancel')}

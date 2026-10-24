@@ -8,7 +8,6 @@ import {
   type Ref,
 } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
-import { Dialog } from '@koxora/ui';
 import type { Page, Style, Node } from '@koxora/project';
 import {
   buildScene,
@@ -29,6 +28,10 @@ import {
   type Alignment,
   DEFAULT_CONNECTION,
   assertEditableElement,
+  connectionError,
+  anchorPoint,
+  readConnection,
+  type Anchor,
   screenToWorld,
   pickNode,
   layerStates,
@@ -45,6 +48,14 @@ import {
   type Point,
 } from '@koxora/editor-core';
 import { SvgRenderer } from './svg-renderer';
+import { ConnectionPorts, type Port } from './connection-ports';
+import { KeyboardShortcuts } from './keyboard-shortcuts';
+import {
+  editingShortcut,
+  helpShortcut,
+  PAN_KEYS,
+  ZOOM_KEYS,
+} from './shortcuts';
 import { DiagramTools, ElementDialog, type DiagramTool } from './diagram-tools';
 export interface CanvasHandle {
   snapshot: () => CanvasState;
@@ -99,7 +110,15 @@ export function Canvas({
   const cancelInput = useRef<() => boolean>(() => false);
   const spaceHeld = useRef(false);
   const [editError, setEditError] = useState<MessageKey | null>(null);
-  const [source, setSource] = useState<string | null>(null);
+  const [source, setSourceState] = useState<string | null>(null);
+  const sourceRef = useRef<string | null>(null);
+  const sourceAnchor = useRef<Anchor>('auto');
+  function setSource(id: string | null, anchor: Anchor = 'auto') {
+    sourceAnchor.current = anchor;
+    sourceRef.current = id;
+    setSourceState(id);
+    controls.current?.refresh();
+  }
   const [editing, setEditing] = useState<string | null>(null);
   const [options, setOptions] = useState(DEFAULT_CONNECTION);
   const [layerId, setLayerId] = useState(
@@ -132,6 +151,7 @@ export function Canvas({
     cancelInput.current();
     setTool(next);
     setSource(null);
+    setEditError(null);
     setContextMenu(false);
   }
   function pick(id: string) {
@@ -139,6 +159,10 @@ export function Canvas({
       page.nodes.find((n) => n.id === id) ??
       page.connections.find((e) => e.id === id);
     if (!item) return;
+    if (!layerStates(page.layers).get(item.layerId)?.editable) {
+      setEditError('diagram.error.layer');
+      return;
+    }
     try {
       assertEditableElement(item);
     } catch {
@@ -146,35 +170,70 @@ export function Canvas({
       return;
     }
     setEditError(null);
-    if (tool === 'connect') {
-      if (!page.nodes.some((n) => n.id === id && !isDrawing(n.kind))) return;
-      if (!source) setSource(id);
-      else if (source === id) setEditError('diagram.error.endpoint');
-      else if (
-        page.connections.some(
-          (e) =>
-            (e.sourceId === source && e.targetId === id) ||
-            (!options.arrow && e.sourceId === id && e.targetId === source),
-        )
-      )
-        setEditError('diagram.error.duplicate');
-      else if (
-        onEdit({
-          type: 'connect',
-          id: crypto.randomUUID(),
-          sourceId: source,
-          targetId: id,
-          layerId,
-          options,
-        })
-      )
-        setSource(null);
-      else setEditError('diagram.error.invalid');
-    } else {
-      select([id]);
-      setEditing(id);
-    }
+    select([id]);
+    setEditing(id);
   }
+  function link(id: string | null, anchor: Anchor = 'auto', from?: Port) {
+    if (!isDrawing(tool)) return;
+    if (!id) {
+      setSource(null);
+      return;
+    }
+    const start = sourceRef.current
+      ? { id: sourceRef.current, anchor: sourceAnchor.current }
+      : from;
+    const error = connectionError(
+      page,
+      start?.id ?? id,
+      start ? id : null,
+      layerId,
+      tool === 'arrow',
+    );
+    if (error) {
+      setEditError(`diagram.error.${error}`);
+      return;
+    }
+    setEditError(null);
+    if (!start) {
+      setSource(id, anchor);
+      return;
+    }
+    const edgeId = crypto.randomUUID();
+    if (
+      onEdit({
+        type: 'connect',
+        id: edgeId,
+        sourceId: start.id,
+        targetId: id,
+        layerId,
+        options: {
+          ...options,
+          arrow: tool === 'arrow',
+          sourceAnchor: start.anchor,
+          targetAnchor: anchor,
+        },
+      })
+    ) {
+      setSource(null);
+      select([edgeId]);
+      controls.current?.focus();
+      if (!repeat) activate('select');
+    } else setEditError('diagram.error.invalid');
+  }
+  const candidates = useMemo(() => {
+    if (!isDrawing(tool) || !layerStates(page.layers).get(layerId)?.editable)
+      return [];
+    const excluded = new Set([source]);
+    if (source)
+      for (const edge of page.connections) {
+        if (edge.sourceId === source) excluded.add(edge.targetId);
+        if (tool === 'line' && edge.targetId === source)
+          excluded.add(edge.sourceId);
+      }
+    return scene.nodes
+      .filter((n) => n.editable && !isDrawing(n.kind) && !excluded.has(n.id))
+      .map((n) => n.id);
+  }, [scene, source, tool, page.layers, page.connections, layerId]);
   function act(point: Point, id?: string, geometry?: Geometry, snap?: boolean) {
     if (isShapeKind(tool)) {
       const id = crypto.randomUUID();
@@ -199,7 +258,7 @@ export function Canvas({
       const edge =
         id && scene.connections.find((e) => e.id === id && e.editable);
       if (node) pick(node.id);
-      else if (edge && tool !== 'connect') pick(edge.id);
+      else if (edge) pick(edge.id);
     }
   }
   const editableSelection = selected.filter((id) =>
@@ -220,6 +279,7 @@ export function Canvas({
   ) {
     cancelInput.current();
     if (action !== 'properties') controls.current?.focus();
+    setSource(null);
     setContextMenu(false);
     setFeedback(null);
     const ids = selection.current.filter((id) =>
@@ -278,10 +338,13 @@ export function Canvas({
     drawing = useRef<SVGGElement>(null),
     pattern = useRef<SVGPatternElement>(null),
     gridRect = useRef<SVGRectElement>(null),
+    portRoot = useRef<HTMLDivElement>(null),
     percent = useRef<HTMLOutputElement>(null);
   const interaction = useRef<{
     tool: DiagramTool;
     act: typeof act;
+    link: typeof link;
+    candidates: string[];
     activate: typeof activate;
     source: string | null;
     command: typeof command;
@@ -292,6 +355,8 @@ export function Canvas({
     interaction.current = {
       tool,
       act,
+      link,
+      candidates,
       activate,
       source,
       command,
@@ -314,6 +379,9 @@ export function Canvas({
       gridRect.current!,
     );
 
+    const ports = new ConnectionPorts(portRoot.current!, locale);
+    let cursorPoint: Point | null = null;
+    const writableLayer = layerStates(content.layers).get(layerId)?.editable;
     const measure = () => {
       const rect = element.getBoundingClientRect();
       return { width: rect.width, height: rect.height };
@@ -336,14 +404,48 @@ export function Canvas({
         updateGesture(move);
       }
       frame = 0;
+      const active = interaction.current;
+      const pendingSource = sourceRef.current
+        ? { id: sourceRef.current, anchor: sourceAnchor.current }
+        : gesture?.kind === 'link' && gesture.moved
+          ? (gesture.linkStart ?? null)
+          : null;
+      const origin =
+        pendingSource && scene.nodes.find((n) => n.id === pendingSource.id);
+      const validSource =
+        origin?.editable && !isDrawing(origin.kind) && writableLayer;
+      const cursorWorld =
+        cursorPoint && screenToWorld(cursorPoint, state.current.camera, size);
+      const linkPreview =
+        validSource && origin && cursorWorld && pendingSource
+          ? {
+              start: anchorPoint(
+                origin,
+                cursorWorld,
+                pendingSource.anchor,
+                origin.style.cornerRadius,
+              ),
+              end: cursorWorld,
+              arrow: active.tool === 'arrow',
+            }
+          : null;
+      ports.render(
+        scene,
+        state.current,
+        size,
+        isDrawing(active.tool) ? active.candidates : [],
+        validSource ? pendingSource : null,
+      );
       const nextLimited = renderer.render(
         preview,
         state.current,
         size,
-        interaction.current.source,
-        selection.current,
+        sourceRef.current,
+        isDrawing(active.tool) ? [] : selection.current,
         marquee,
         snapping,
+        sourceRef.current ? active.candidates : [],
+        linkPreview,
       );
       if (nextLimited !== lastLimited) {
         lastLimited = nextLimited;
@@ -432,7 +534,7 @@ export function Canvas({
     };
     type Gesture = {
       id: number;
-      kind: 'move' | 'resize' | 'marquee' | 'insert' | 'pick';
+      kind: 'move' | 'resize' | 'marquee' | 'insert' | 'link';
       start: Point;
       screen: Point;
       moved: boolean;
@@ -440,6 +542,7 @@ export function Canvas({
       base: string[];
       handle?: string;
       edgeId?: string;
+      linkStart?: Port;
       single?: string;
       geometries: Record<string, Geometry>;
       geometry?: Geometry;
@@ -488,13 +591,18 @@ export function Canvas({
       const edge = scene.connections.find((e) => e.id === edgeId && e.editable);
       if (edge && node && edge.layerOrder > node.layerOrder) node = undefined;
       const hit = node?.id ?? edge?.id;
-      let kind: Gesture['kind'] = isShapeKind(active.tool)
-        ? 'insert'
-        : active.tool === 'connect' || active.tool === 'edit'
-          ? 'pick'
-          : hit
-            ? 'move'
-            : 'marquee';
+      const port = isDrawing(active.tool) ? ports.hit(point) : undefined;
+      const drawingHit = isDrawing(active.tool)
+        ? pickNode(scene, start, 6 / state.current.camera.zoom, false)
+        : undefined;
+      let kind: Gesture['kind'] =
+        isDrawing(active.tool) && (port || drawingHit || sourceRef.current)
+          ? 'link'
+          : isShapeKind(active.tool)
+            ? 'insert'
+            : hit
+              ? 'move'
+              : 'marquee';
       let originals: Node[] = [];
       if (active.tool === 'select') {
         if (handle) {
@@ -530,6 +638,9 @@ export function Canvas({
         base: [...selection.current],
         handle: handle?.getAttribute('data-handle') ?? undefined,
         edgeId: edge?.id,
+        linkStart:
+          port ??
+          (drawingHit ? { id: drawingHit.id, anchor: 'auto' } : undefined),
         single: !event.shiftKey ? hit : undefined,
         geometries: {},
       };
@@ -628,6 +739,8 @@ export function Canvas({
       return true;
     };
     const move = (event: PointerEvent) => {
+      cursorPoint = local(event);
+      if (isDrawing(interaction.current.tool)) schedule();
       if (gesture?.id === event.pointerId) {
         pendingMove = event;
         schedule();
@@ -695,9 +808,28 @@ export function Canvas({
             done.geometry,
             state.current.grid.snap && !event.altKey,
           );
-        else if (done.kind === 'pick' && !done.moved)
-          interaction.current.act(done.start, done.edgeId);
+        else if (done.kind === 'link') {
+          const p = local(event);
+          const node = pickNode(
+            scene,
+            world(p),
+            6 / state.current.camera.zoom,
+            false,
+          );
+          const target =
+            ports.hit(p) ??
+            (node ? { id: node.id, anchor: 'auto' as const } : undefined);
+          if (done.moved) {
+            const start = sourceRef.current
+              ? { id: sourceRef.current, anchor: sourceAnchor.current }
+              : done.linkStart;
+            if (start && target && target.id !== start.id)
+              interaction.current.link(target.id, target.anchor, start);
+            else interaction.current.link(null);
+          } else interaction.current.link(target?.id ?? null, target?.anchor);
+        }
       }
+      if (event.type === 'pointercancel') interaction.current.link(null);
       resetPreview();
       if (!pointers.size) {
         element.classList.remove('panning');
@@ -706,29 +838,32 @@ export function Canvas({
     };
     const key = (event: KeyboardEvent) => {
       const active = interaction.current;
-      const modifier = event.ctrlKey || event.metaKey;
-      const letter = event.key.toLowerCase();
-      if (modifier && ['a', 'd', 'c', 'v', 'z', 'y'].includes(letter)) {
+      if (ports.key(event)) return;
+      if (
+        event.target instanceof HTMLButtonElement &&
+        event.target.dataset.portNode &&
+        ['Enter', ' '].includes(event.key)
+      ) {
         event.preventDefault();
-        if (letter === 'a') {
+        active.link(
+          event.target.dataset.portNode,
+          event.target.dataset.portAnchor as Anchor,
+        );
+        schedule();
+        return;
+      }
+      const modifier = event.ctrlKey || event.metaKey;
+      const shortcut = editingShortcut(event);
+      if (shortcut) {
+        event.preventDefault();
+        if (shortcut === 'selectAll') {
           cancelGesture();
           active.select(
             [...scene.nodes, ...scene.connections]
               .filter((n) => n.editable)
               .map((n) => n.id),
           );
-        } else
-          active.command(
-            letter === 'd'
-              ? 'duplicate'
-              : letter === 'c'
-                ? 'copy'
-                : letter === 'v'
-                  ? 'paste'
-                  : letter === 'y' || event.shiftKey
-                    ? 'redo'
-                    : 'undo',
-          );
+        } else active.command(shortcut);
         return;
       }
       if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -739,17 +874,13 @@ export function Canvas({
       if (event.key === 'Enter') {
         event.preventDefault();
         commit();
-        if (isShapeKind(active.tool)) active.act(state.current.camera);
-        else active.command('properties');
+        if (isShapeKind(active.tool)) {
+          if (!sourceRef.current) active.act(state.current.camera);
+        } else active.command('properties');
         return;
       }
       if (modifier) return;
-      const directions: Record<string, Point> = {
-        ArrowLeft: { x: -1, y: 0 },
-        ArrowRight: { x: 1, y: 0 },
-        ArrowUp: { x: 0, y: -1 },
-        ArrowDown: { x: 0, y: 1 },
-      };
+      const directions: Record<string, Point> = PAN_KEYS;
       if (directions[event.key]) {
         event.preventDefault();
         const direction = directions[event.key];
@@ -780,7 +911,7 @@ export function Canvas({
           );
           commit();
         }
-      } else if (['+', '=', '-', '0', 'Home'].includes(event.key)) {
+      } else if (ZOOM_KEYS.includes(event.key)) {
         event.preventDefault();
         controls.current?.camera(
           event.key === '-'
@@ -798,6 +929,7 @@ export function Canvas({
       }
     };
     const spaceDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       if (
         event.key === ' ' &&
         !(
@@ -831,6 +963,7 @@ export function Canvas({
     const windowBlur = () => {
       spaceHeld.current = false;
       blur();
+      interaction.current.link(null);
     };
     const doubleClick = (event: MouseEvent) => {
       if (interaction.current.tool === 'select')
@@ -841,6 +974,17 @@ export function Canvas({
             ?.getAttribute('data-connection-id') ?? undefined,
         );
     };
+    const portClick = (event: MouseEvent) => {
+      const button = (event.target as Element).closest<HTMLButtonElement>(
+        '[data-port-node]',
+      );
+      if (button && event.detail === 0)
+        interaction.current.link(
+          button.dataset.portNode!,
+          button.dataset.portAnchor as Anchor,
+        );
+    };
+    element.addEventListener('click', portClick);
     element.addEventListener('dblclick', doubleClick);
     const observer = new ResizeObserver(() => {
       const next = measure();
@@ -865,6 +1009,7 @@ export function Canvas({
     render();
     return () => {
       blur();
+      element.removeEventListener('click', portClick);
       element.removeEventListener('dblclick', doubleClick);
       observer.disconnect();
       cancelAnimationFrame(frame);
@@ -884,6 +1029,7 @@ export function Canvas({
       window.removeEventListener('keyup', keyup);
       window.removeEventListener('blur', windowBlur);
       renderer.clear();
+      ports.clear();
     };
     // Content transactions replace the scene; navigation retains the current scene.
   }, [content, scene, locale, layerId, styles]);
@@ -945,7 +1091,7 @@ export function Canvas({
   }, [expanded]);
   useEffect(() => {
     controls.current?.refresh();
-  }, [source]);
+  }, [source, tool, candidates]);
   function updateGrid(next: typeof grid) {
     state.current = { ...state.current, grid: next };
     setGrid(next);
@@ -955,6 +1101,22 @@ export function Canvas({
     <section
       ref={stage}
       onKeyDown={(event) => {
+        if (event.target instanceof Element && event.target.closest('dialog'))
+          return;
+        if (
+          helpShortcut(event.key) &&
+          !(
+            event.target instanceof Element &&
+            event.target.closest(
+              'input,textarea,select,dialog,[contenteditable="true"]',
+            )
+          )
+        ) {
+          event.preventDefault();
+          cancelInput.current();
+          setHelp(true);
+          return;
+        }
         if (
           (event.ctrlKey || event.metaKey) &&
           !event.defaultPrevented &&
@@ -963,22 +1125,17 @@ export function Canvas({
             'input, textarea, select, dialog, [contenteditable="true"], .interactive-canvas',
           )
         ) {
-          const letter = event.key.toLowerCase();
-          if (letter === 'z' || letter === 'y') {
-            event.preventDefault();
-            command(letter === 'y' || event.shiftKey ? 'redo' : 'undo');
-          } else if (letter === 'a') {
+          const shortcut = editingShortcut(event);
+          if (shortcut === 'selectAll') {
             event.preventDefault();
             select(
               [...scene.nodes, ...scene.connections]
                 .filter((n) => n.editable)
                 .map((n) => n.id),
             );
-          } else if (['d', 'c', 'v'].includes(letter)) {
+          } else if (shortcut) {
             event.preventDefault();
-            command(
-              letter === 'd' ? 'duplicate' : letter === 'c' ? 'copy' : 'paste',
-            );
+            command(shortcut);
           }
         }
 
@@ -1007,24 +1164,33 @@ export function Canvas({
           <span className="breadcrumb-separator">/</span>
           <span dir="auto">{page.title}</span>
         </span>
-        <button
-          className="button compact"
-          aria-pressed={expanded}
-          onClick={() => setExpanded(!expanded)}
-        >
-          {t(expanded ? 'canvas.restore' : 'canvas.expand')}
-        </button>
+        <div className="canvas-header-actions">
+          <button className="button compact" onClick={() => setHelp(true)}>
+            {t('canvas.help')}
+          </button>
+          <button
+            className="button compact"
+            aria-pressed={expanded}
+            onClick={() => setExpanded(!expanded)}
+          >
+            {t(expanded ? 'canvas.restore' : 'canvas.expand')}
+          </button>
+        </div>
       </div>
       <DiagramTools
         page={page}
-        styles={styles}
         locale={locale}
         tool={tool}
         source={source}
+        candidates={candidates}
         layerId={layerId}
-        setLayer={setLayerId}
+        setLayer={(id) => {
+          cancelInput.current();
+          setSource(null);
+          setLayerId(id);
+        }}
         activate={activate}
-        pick={pick}
+        link={link}
         options={options}
         setOptions={setOptions}
         repeat={repeat}
@@ -1056,30 +1222,69 @@ export function Canvas({
             count: editableSelection.length,
           })}
         </span>
-        <button
-          className="button compact"
-          disabled={editableSelection.length !== 1}
-          onClick={() => command('properties')}
-        >
-          {t('diagram.properties')}
-        </button>
-        <button
-          className="button compact"
-          disabled={!editableSelection.length}
-          onClick={() => command('duplicate')}
-        >
-          {t('editing.duplicate')}
-        </button>
-        <button
-          className="button compact"
-          disabled={!editableSelection.length}
-          onClick={() => command('delete')}
-        >
-          {t('editing.delete')}
-        </button>
+        {!!editableSelection.length && (
+          <>
+            <button
+              className="button compact"
+              disabled={editableSelection.length !== 1}
+              onClick={() => command('properties')}
+            >
+              {t('diagram.properties')}
+            </button>
+            <button
+              className="button compact"
+              disabled={!editableSelection.length}
+              onClick={() => command('duplicate')}
+            >
+              {t('editing.duplicate')}
+            </button>
+            <button
+              className="button compact"
+              disabled={!editableSelection.length}
+              onClick={() => command('delete')}
+            >
+              {t('editing.delete')}
+            </button>
+          </>
+        )}
         <details className="editing-more">
           <summary>{t('editing.more')}</summary>
           <div>
+            <label className="element-picker">
+              {t('diagram.target')}
+              <select
+                aria-label={t('diagram.target')}
+                defaultValue=""
+                onChange={(event) => {
+                  const id = event.target.value;
+                  if (id) pick(id);
+                  event.target.value = '';
+                }}
+              >
+                <option value="">{t('diagram.choose')}</option>
+                {[
+                  ...page.nodes.map((item) => ({
+                    id: item.id,
+                    text:
+                      typeof item.content.text === 'string' && item.content.text
+                        ? item.content.text
+                        : item.kind,
+                  })),
+                  ...page.connections.map((item) => ({
+                    id: item.id,
+                    text:
+                      readConnection(item).label || t('diagram.connectionName'),
+                  })),
+                ].map((item, i) => (
+                  <option key={item.id} value={item.id}>
+                    {translate(locale, 'diagram.nodeName', {
+                      index: i + 1,
+                      text: item.text.slice(0, 80),
+                    })}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               className="button compact"
               disabled={!editableSelection.length}
@@ -1142,44 +1347,6 @@ export function Canvas({
           onCancel={() => setEditing(null)}
         />
       )}
-      <div className="canvas-options">
-        <button
-          className="button compact"
-          aria-pressed={grid.visible}
-          disabled={!initial.writable}
-          onClick={() => updateGrid({ ...grid, visible: !grid.visible })}
-        >
-          {t('canvas.grid')}
-        </button>
-        <button
-          className="button compact"
-          aria-pressed={grid.snap}
-          title={t('canvas.snapHelp')}
-          disabled={!initial.writable}
-          onClick={() => updateGrid({ ...grid, snap: !grid.snap })}
-        >
-          {t('canvas.snap')}
-        </button>
-        <label>
-          {t('canvas.spacing')}
-          <input
-            type="number"
-            min={1}
-            max={1024}
-            step={1}
-            value={grid.spacing}
-            disabled={!initial.writable}
-            onChange={(event) => {
-              const spacing = event.currentTarget.valueAsNumber;
-              if (spacing >= 1 && spacing <= 1024)
-                updateGrid({ ...grid, spacing });
-            }}
-          />
-        </label>
-        <button className="button compact" onClick={() => setHelp(true)}>
-          {t('canvas.help')}
-        </button>
-      </div>
       <div
         ref={host}
         onContextMenu={(event) => {
@@ -1212,6 +1379,12 @@ export function Canvas({
           />
           <g ref={drawing} />
         </svg>
+        <div
+          ref={portRoot}
+          className="connection-ports"
+          role="group"
+          aria-label={t('ports.heading')}
+        />
         {!page.nodes.length && !page.connections.length && (
           <div className="canvas-welcome">
             <h2>{t('canvas.emptyTitle')}</h2>
@@ -1257,7 +1430,7 @@ export function Canvas({
           </button>
         </div>
       )}
-      <div className="canvas-navigation">
+      <div className="canvas-navigation canvas-options">
         <button
           className="button compact"
           aria-label={t('canvas.zoomOut')}
@@ -1285,6 +1458,39 @@ export function Canvas({
         >
           {t('canvas.fit')}
         </button>
+        <button
+          className="button compact"
+          aria-pressed={grid.visible}
+          disabled={!initial.writable}
+          onClick={() => updateGrid({ ...grid, visible: !grid.visible })}
+        >
+          {t('canvas.grid')}
+        </button>
+        <button
+          className="button compact"
+          aria-pressed={grid.snap}
+          title={t('canvas.snapHelp')}
+          disabled={!initial.writable}
+          onClick={() => updateGrid({ ...grid, snap: !grid.snap })}
+        >
+          {t('canvas.snap')}
+        </button>
+        <label>
+          {t('canvas.spacing')}
+          <input
+            type="number"
+            min={1}
+            max={1024}
+            step={1}
+            value={grid.spacing}
+            disabled={!initial.writable}
+            onChange={(event) => {
+              const spacing = event.currentTarget.valueAsNumber;
+              if (spacing >= 1 && spacing <= 1024)
+                updateGrid({ ...grid, spacing });
+            }}
+          />
+        </label>
       </div>
       <div className="canvas-status">
         <span>
@@ -1309,13 +1515,7 @@ export function Canvas({
         </p>
       )}
       {help && (
-        <Dialog title={t('canvas.help')} onCancel={() => setHelp(false)}>
-          <p>{t('canvas.helpBody')}</p>
-          <p>{t('canvas.snapHelp')}</p>
-          <button className="button" onClick={() => setHelp(false)}>
-            {t('project.cancel')}
-          </button>
-        </Dialog>
+        <KeyboardShortcuts locale={locale} onClose={() => setHelp(false)} />
       )}
     </section>
   );

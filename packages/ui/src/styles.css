@@ -1155,7 +1155,6 @@ input[type='checkbox'] {
 }
 .scene-label,
 .scene-edge-label {
-  font-family: system-ui, sans-serif;
   pointer-events: none;
   unicode-bidi: plaintext;
 }
@@ -1479,4 +1478,207 @@ input[type='checkbox'] {
 
 .interactive-canvas.select-active {
   cursor: default;
+}
+
+.canvas-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+.tool-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.75rem;
+}
+.tool-context label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.tool-context select,
+.element-picker select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.3rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+}
+.tool-guidance {
+  color: var(--muted);
+  flex: 1 1 16rem;
+}
+.tool-picker summary {
+  cursor: pointer;
+}
+.tool-picker[open] {
+  flex-basis: 100%;
+}
+.tool-picker-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.5rem;
+}
+.element-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+}
+.label-editor {
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  padding: 0.75rem;
+  min-width: 0;
+}
+.label-editor legend {
+  font-weight: 600;
+  padding-inline: 0.35rem;
+}
+.text-formatting {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+.text-formatting label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  min-width: 0;
+}
+.text-formatting select,
+.text-formatting input {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+.text-formatting input[type='number'] {
+  width: 5rem;
+}
+.text-formatting input[type='color'] {
+  width: 3rem;
+  height: 2rem;
+  padding: 0.15rem;
+}
+.text-style-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.format-bold {
+  font-weight: 700;
+}
+.format-italic {
+  font-style: italic;
+}
+.format-underline {
+  text-decoration: underline;
+}
+.field-help {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.element-advanced summary {
+  cursor: pointer;
+  padding-block: 0.5rem;
+}
+.shortcut-guide {
+  max-height: 65vh;
+  overflow: auto;
+  padding: 0.2rem;
+}
+.shortcut-guide h3 {
+  margin-block: 1.25rem 0.5rem;
+  font-size: 1rem;
+}
+.shortcut-guide dl {
+  margin: 0;
+}
+.shortcut-guide dl > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) 2fr;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.shortcut-guide dd {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.shortcut-guide kbd {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.connection-target .scene-node {
+  stroke-dasharray: 5 3;
+}
+.connection-preview {
+  fill: none;
+  stroke: var(--accent);
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+.connection-ports {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.connection-port {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: transparent;
+  pointer-events: auto;
+  cursor: crosshair;
+}
+.connection-port::after {
+  content: '';
+  display: block;
+  margin: auto;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--surface);
+}
+.connection-port:hover::after,
+.connection-port:focus-visible::after,
+.connection-port[aria-pressed='true']::after {
+  background: var(--accent);
+  width: 13px;
+  height: 13px;
+}
+.connection-port:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+@media (max-width: 600px) {
+  .shortcut-guide dl > div {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
 }

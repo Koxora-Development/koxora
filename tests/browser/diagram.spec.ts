@@ -45,15 +45,14 @@ async function shape(p: Page, kind: string, x: number, y: number) {
   await clickWorld(p, x, y);
 }
 async function edit(p: Page, id: string, label: string) {
-  await p
-    .getByRole('toolbar', { name: 'Diagram tools' })
-    .getByRole('button', { name: 'Edit', exact: true })
-    .click();
+  if (
+    !(await p.locator('.editing-more').getAttribute('open')) &&
+    !(await p
+      .locator('.editing-more')
+      .evaluate((e) => (e as HTMLDetailsElement).open))
+  )
+    await p.getByText('Align & more', { exact: true }).click();
   await p.getByLabel('Diagram element', { exact: true }).selectOption(id);
-  await p
-    .locator('.diagram-options')
-    .getByRole('button', { name: 'Edit', exact: true })
-    .click();
   await p
     .getByRole('textbox', { name: 'Label / text', exact: true })
     .fill(label);
@@ -96,12 +95,14 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
   ].entries()) {
     await edit(page, ids[i], label);
     if (!i) {
+      await page.getByText('Geometry and appearance', { exact: true }).click();
       await page.getByLabel('Fill', { exact: true }).fill('#cffafe');
       await page.getByLabel('Text size', { exact: true }).fill('18');
     }
     await button(page, 'Apply changes').click();
   }
-  await button(page, 'Connect').click();
+  await button(page, 'Arrow').click();
+  await page.getByLabel('Repeat insertion', { exact: true }).check();
   await page
     .getByRole('combobox', { name: 'Connection path', exact: true })
     .selectOption('orthogonal');
@@ -266,13 +267,9 @@ test('German tools and modal focus stay usable after resize', async ({
     .focus();
   await page.keyboard.press('Enter');
   await page.keyboard.press('Escape');
-  await button(page, 'Bearbeiten').click();
+  await page.getByText('Ausrichten & mehr', { exact: true }).click();
   const id = await page.locator('[data-node-id]').getAttribute('data-node-id');
   await page.getByLabel('Diagrammelement', { exact: true }).selectOption(id!);
-  await page
-    .locator('.diagram-options')
-    .getByRole('button', { name: 'Bearbeiten', exact: true })
-    .click();
   await page
     .getByRole('textbox', { name: 'Beschriftung / Text', exact: true })
     .fill('Prüfung bestanden');
@@ -366,14 +363,10 @@ test('untrusted optional fields render safely and oversized imported labels cann
     'clip-path',
     /^url\(#label-/,
   );
-  await button(page, 'Edit').click();
+  await page.getByText('Align & more', { exact: true }).click();
   await page
     .getByLabel('Diagram element', { exact: true })
     .selectOption(model.connections[0].id);
-  await page
-    .locator('.diagram-options')
-    .getByRole('button', { name: 'Edit', exact: true })
-    .click();
   await expect(page.getByRole('alert')).toContainText('unsupported content');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect((await exported(page)).project.documents).toEqual(project.documents);

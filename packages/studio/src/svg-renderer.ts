@@ -1,5 +1,6 @@
 import {
   gridStep,
+  FONT_FAMILIES,
   isDrawing,
   lineEndpoints,
   resizeHandles,
@@ -14,6 +15,7 @@ import {
   type CanvasState,
   type Scene,
   type Size,
+  type Point,
 } from '@koxora/editor-core';
 const NS = 'http://www.w3.org/2000/svg';
 const MAX_VISIBLE = 1500;
@@ -35,6 +37,12 @@ export class SvgRenderer {
     selected: readonly string[] = [],
     marquee: Bounds | null = null,
     snapping = false,
+    targets: readonly string[] = [],
+    connectionPreview: {
+      start: Point;
+      end: Point;
+      arrow: boolean;
+    } | null = null,
   ): boolean {
     const { camera, grid } = state;
     const step = gridStep(grid.spacing, camera.zoom) * camera.zoom;
@@ -51,6 +59,7 @@ export class SvgRenderer {
     this.grid.style.display = grid.visible ? '' : 'none';
     const visible = visibleScene(scene, visibleBounds(camera, size));
     const wanted = new Set<string>();
+    const targetIds = new Set(targets);
     const add = (
       key: string,
       model: SceneNode | SceneConnection,
@@ -70,6 +79,9 @@ export class SvgRenderer {
       this.elements
         .get(key)!
         .classList.toggle('connection-source', key === `node:${sourceId}`);
+      this.elements
+        .get(key)!
+        .classList.toggle('connection-target', targetIds.has(model.id));
     };
     const entries = [
       ...visible.connections.slice(0, MAX_VISIBLE).map((edge) => ({
@@ -100,6 +112,26 @@ export class SvgRenderer {
       cursor = element.nextElementSibling;
     }
     this.overlay.replaceChildren();
+    if (connectionPreview) {
+      const { start, end, arrow } = connectionPreview;
+      this.overlay.append(
+        svg('path', {
+          d: `M ${start.x} ${start.y} L ${end.x} ${end.y}`,
+          class: 'connection-preview',
+          'stroke-width': 2 / camera.zoom,
+        }),
+      );
+      if (arrow)
+        this.overlay.append(
+          arrowhead(
+            end.x,
+            end.y,
+            (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI,
+            'var(--accent)',
+            2 / camera.zoom,
+          ),
+        );
+    }
     const selection = new Set(selected);
     for (const n of visible.nodes
       .slice(0, MAX_VISIBLE)
@@ -279,6 +311,10 @@ function renderNode(node: SceneNode): SVGElement {
         : 'scene-label',
     fill: s.textColor,
     'font-size': s.fontSize,
+    'font-family': FONT_FAMILIES[s.fontFamily],
+    'font-weight': s.fontWeight,
+    'font-style': s.fontStyle,
+    'text-decoration': s.textDecoration,
     'text-anchor':
       s.align === 'left' ? 'start' : s.align === 'right' ? 'end' : 'middle',
     opacity: s.opacity,
@@ -342,7 +378,12 @@ function renderEdge(edge: SceneConnection): SVGElement {
       y: edge.labelPoint.y - 8,
       fill: s.textColor,
       'font-size': s.fontSize,
-      'text-anchor': 'middle',
+      'font-family': FONT_FAMILIES[s.fontFamily],
+      'font-weight': s.fontWeight,
+      'font-style': s.fontStyle,
+      'text-decoration': s.textDecoration,
+      'text-anchor':
+        s.align === 'left' ? 'start' : s.align === 'right' ? 'end' : 'middle',
     });
     textLines(edge.label, 240, s.fontSize)
       .slice(0, 8)

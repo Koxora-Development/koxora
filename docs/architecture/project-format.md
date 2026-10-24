@@ -119,3 +119,10 @@ Interactive editors, rendering fidelity across export formats, CRDT logs, cloud 
 ## Phase 2.4 standalone lines and interactive editing
 
 [ADR 0016](../adr/0016-interactive-editing-history.md) adds trusted node kinds `line` and `arrow`, using existing rotated geometry for a local horizontal segment. Optional `node.extensions["org.koxora.line"]` contains `version: 1`, `startArrow` and `endArrow` booleans. Drawing lines need no graph endpoints; semantic connections retain their existing endpoint identities. Older readers preserve the new kinds as unsupported previews; newer or invalid options are read-only. ZIP/schema versions remain 1.0.0. Selection, clipboard, gesture drafts and command history are session state, never serialized. Renaming only changes the manifest title/update time. Unknown compatible fields and binary resources retain the existing preservation contract.
+
+
+### Phase 2.4 appearance and explicit ports
+
+Line/Arrow interactions also create existing semantic connections with `org.koxora.connection` version 1, `arrow: false/true`, and explicit `sourceAnchor`/`targetAnchor` values `north`, `east`, `south`, `west` or `auto`. Cardinal anchors are local to the endpoint shape and follow its rotation, translation and resizing. UI port markers and draft previews do not enter the archive.
+
+The existing element/connection `style` dictionary and shared style properties accept additive `fontFamily` tokens `sans`/`serif`/`mono`, `fontWeight` 400/700, `fontStyle` `normal`/`italic`, and `textDecoration` `none`/`underline`. Defaults are sans/400/normal/none. Fonts resolve only to trusted local fallback stacks; arbitrary imported CSS is never rendered. Size 8–96, text color, alignment and multiline text remain supported. These fields style the whole label, without a rich-text run model. Older readers preserve additive properties; unknown values survive unrelated edits. ZIP and schema remain 1.0.0. See ADR 0016 for history and inheritance behavior.

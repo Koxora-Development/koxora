@@ -81,6 +81,16 @@ async function exported(p: Page) {
   const download = p.waitForEvent('download');
   await button(p, 'Export .koxora').click();
   const path = (await (await download).path())!;
+  // Wait for the async export notification before the next geometry gesture.
+  await expect(
+    p
+      .locator('.notification.success')
+      .getByText(
+        'Project download started. Your local project remains saved separately.',
+        { exact: true },
+      ),
+  ).toBeVisible();
+  await button(p, 'Dismiss notification').click();
   return {
     path,
     project: await importProject(new Uint8Array(readFileSync(path))),
@@ -152,7 +162,7 @@ test('shift and marquee selection move together, duplicate linked nodes, delete 
   await page.setViewportSize({ width: 1440, height: 1100 });
   await shape(page, 'Rectangle', -200, -50);
   await shape(page, 'Diamond', 100, -50);
-  await button(page, 'Connect').click();
+  await button(page, 'Arrow').click();
   await click(page, -200, -50);
   await click(page, 100, -50);
   await button(page, 'Select').click();
@@ -210,6 +220,7 @@ test('standalone arrows have editable endpoints, labels and heads and survive po
   await page
     .getByLabel('Label / text', { exact: true })
     .fill('Standalone 世界');
+  await page.getByText('Geometry and appearance', { exact: true }).click();
   await page.getByLabel('Arrowhead at start', { exact: true }).check();
   await button(page, 'Apply changes').click();
   await expect(page.locator('.scene-arrow')).toHaveCount(2);
@@ -442,6 +453,30 @@ test('hidden, locked and future elements stay protected and edge hit area is sel
       mimeType: 'application/zip',
       buffer: Buffer.from(await exportProject(project)),
     });
+  await button(page, 'Arrow').click();
+  await expect(page.locator('.connection-port')).toHaveCount(8);
+  await expect(
+    page.locator(
+      `[data-port-node="${ids[0]}"], [data-port-node="${ids[3]}"], [data-port-node="${ids[4]}"]`,
+    ),
+  ).toHaveCount(0);
+  for (const x of [-360, 360]) {
+    const a = await point(page, x, 0),
+      b = await point(page, -180, 0);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 5 });
+    await expect(
+      page.locator(
+        `[data-port-node="${ids[0]}"], [data-port-node="${ids[4]}"]`,
+      ),
+    ).toHaveCount(0);
+    await expect(page.locator('.connection-preview')).toHaveCount(0);
+    await page.mouse.up();
+    await expect(page.getByRole('alert')).toBeVisible();
+  }
+
+  await page.keyboard.press('Escape');
   await canvas(page).focus();
   await page.keyboard.press('Control+a');
   await expect.poll(() => selection(page).then((s) => s.length)).toBe(3);
@@ -460,6 +495,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
 }) => {
   await create(page);
   await page.setViewportSize({ width: 1440, height: 1100 });
+  await button(page, 'Rectangle').click();
   await page.getByLabel('Repeat insertion', { exact: true }).check();
   await shape(page, 'Rectangle', -220, -60);
   await click(page, 0, 20);
@@ -483,7 +519,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
   await expect(
     page
       .getByRole('toolbar')
-      .getByRole('button', { name: 'Edit', exact: true }),
+      .getByRole('button', { name: 'Arrow', exact: true }),
   ).toBeFocused();
   if (process.env.KOXORA_CAPTURE && test.info().project.name === 'chromium') {
     await page.getByText('Align & more', { exact: true }).click();
@@ -503,7 +539,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
         .fill(['Draft & review', 'Validate', 'Ready to ship'][i]);
       await button(page, 'Apply changes').click();
     }
-    await button(page, 'Connect').click();
+    await button(page, 'Arrow').click();
     for (let i = 0; i < 2; i++) {
       await click(page, centers[i].x, centers[i].y);
       await click(page, centers[i + 1].x, centers[i + 1].y);

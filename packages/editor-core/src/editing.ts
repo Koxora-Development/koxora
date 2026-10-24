@@ -166,6 +166,38 @@ function updateAppearance(
     throw new EditError('unsupported');
   return { ...extension, style: { ...jsonObject(raw), ...changes } };
 }
+/** Shared eligibility for pointer/keyboard linking, target hints and committed commands. */
+export function connectionError(
+  page: Pick<Page, 'nodes' | 'connections' | 'layers'>,
+  sourceId: string,
+  targetId: string | null,
+  layerId: string,
+  arrow: boolean,
+): EditError['code'] | null {
+  const layers = layerStates(page.layers);
+  if (!layers.get(layerId)?.editable) return 'layer';
+  for (const id of [sourceId, ...(targetId ? [targetId] : [])]) {
+    const node = page.nodes.find((n) => n.id === id);
+    if (!node || isDrawing(node.kind)) return 'endpoint';
+    if (!layers.get(node.layerId)?.editable) return 'layer';
+    try {
+      assertEditableElement(node);
+    } catch {
+      return 'unsupported';
+    }
+  }
+  if (targetId === sourceId) return 'endpoint';
+  if (
+    targetId &&
+    page.connections.some(
+      (c) =>
+        (c.sourceId === sourceId && c.targetId === targetId) ||
+        (!arrow && c.sourceId === targetId && c.targetId === sourceId),
+    )
+  )
+    return 'duplicate';
+  return null;
+}
 /** One validated immutable transaction. IDs and time are supplied, so commands can be replayed by future history. */
 export function applyEdit(
   project: Project,
@@ -235,25 +267,15 @@ export function applyEdit(
     };
     nodes = [...nodes, created];
   } else if (command.type === 'connect') {
-    editable(command.layerId);
-    if (
-      isDrawing(node(command.sourceId).kind) ||
-      isDrawing(node(command.targetId).kind)
-    )
-      throw new EditError('endpoint');
+    const error = connectionError(
+      page,
+      command.sourceId,
+      command.targetId,
+      command.layerId,
+      command.options.arrow,
+    );
+    if (error) throw new EditError(error);
     options(command.options);
-    if (command.sourceId === command.targetId) throw new EditError('endpoint');
-    if (
-      connections.some(
-        (c) =>
-          (c.sourceId === command.sourceId &&
-            c.targetId === command.targetId) ||
-          (!command.options.arrow &&
-            c.sourceId === command.targetId &&
-            c.targetId === command.sourceId),
-      )
-    )
-      throw new EditError('duplicate');
     const edge: Connection = {
       id: command.id,
       sourceId: command.sourceId,

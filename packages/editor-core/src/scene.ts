@@ -11,7 +11,6 @@ import { intersects, type Bounds, type Point } from './viewport';
 import {
   containsShape,
   geometryBounds,
-  isShapeKind,
   layerStates,
   MAX_TEXT,
   appearanceResolver,
@@ -144,12 +143,6 @@ export function buildScene(
         s.style.cornerRadius,
         t.style.cornerRadius,
       );
-      const labelBounds = {
-        x: path.labelPoint.x - (options.label.length * style.fontSize) / 2,
-        y: path.labelPoint.y - style.fontSize * 2,
-        width: options.label.length * style.fontSize,
-        height: style.fontSize * 12,
-      };
       return [
         {
           ...path,
@@ -162,7 +155,9 @@ export function buildScene(
           layerOrder: layer.order,
           bounds: unionBounds([
             path.bounds,
-            labelBounds,
+            ...(options.label
+              ? [connectionLabelBounds(path.labelPoint, options.label, style)]
+              : []),
             {
               x:
                 path.points.at(-1)!.x -
@@ -201,13 +196,13 @@ export function pickNode(
   scene: Scene,
   point: Point,
   tolerance = 6,
+  editableOnly = true,
 ): SceneNode | undefined {
   return [...scene.nodes]
     .reverse()
     .find(
       (n) =>
-        n.editable &&
-        isShapeKind(n.kind) &&
+        (!editableOnly || n.editable) &&
         (isDrawing(n.kind)
           ? segmentDistance(point, ...lineEndpoints(n.geometry)) <=
             tolerance + n.style.strokeWidth / 2
@@ -253,12 +248,9 @@ export function transformScene(
       ...path,
       bounds: unionBounds([
         path.bounds,
-        {
-          x: path.labelPoint.x - 128,
-          y: path.labelPoint.y - e.style.fontSize * 2,
-          width: 256,
-          height: e.style.fontSize * 12,
-        },
+        ...(e.label
+          ? [connectionLabelBounds(path.labelPoint, e.label, e.style)]
+          : []),
         {
           x: path.points.at(-1)!.x - e.style.strokeWidth * 4,
           y: path.points.at(-1)!.y - e.style.strokeWidth * 4,
@@ -286,11 +278,36 @@ function nodeBounds(
   if (!isDrawing(kind) || !label) return bounds;
   return unionBounds([
     bounds,
-    {
-      x: g.x + g.width / 2 - 128,
-      y: g.y + g.height / 2 - style.fontSize * 2,
-      width: 256,
-      height: style.fontSize * 12,
-    },
+    connectionLabelBounds(
+      { x: g.x + g.width / 2, y: g.y + g.height / 2 },
+      label,
+      style,
+    ),
   ])!;
+}
+
+/** Conservative local-font bounds, matching the renderer's wrapped label budget. */
+function connectionLabelBounds(
+  point: Point,
+  label: string,
+  style: Appearance,
+): Bounds {
+  const characters = Math.min(
+    label.length,
+    Math.max(1, Math.floor(240 / (style.fontSize * 0.62))),
+  );
+  const width = characters * style.fontSize * 1.5;
+  return {
+    x:
+      point.x -
+      (style.align === 'left'
+        ? 0
+        : style.align === 'right'
+          ? width
+          : width / 2) -
+      8,
+    y: point.y - style.fontSize * 2,
+    width: width + 16,
+    height: style.fontSize * 12,
+  };
 }
