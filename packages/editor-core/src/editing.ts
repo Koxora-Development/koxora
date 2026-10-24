@@ -3,7 +3,10 @@ import {
   type Project,
   type Node,
   type Connection,
+  type Page,
 } from '@koxora/project';
+import { isDrawing, LINE_KEY, MIN_SIZE, movedGeometries } from './interaction';
+import type { Geometry } from './shapes';
 import { snapPoint, type Point } from './viewport';
 import { readCanvas } from './project-view';
 import {
@@ -29,6 +32,8 @@ export type EditCommand =
       position: Point;
       layerId: string;
       text?: string;
+      geometry?: Geometry;
+      snap?: boolean;
     }
   | {
       type: 'connect';
@@ -38,7 +43,38 @@ export type EditCommand =
       layerId: string;
       options: ConnectionOptions;
     }
-  | { type: 'updateNode'; id: string; text: string; style: Appearance }
+  | {
+      type: 'move';
+      ids: string[];
+      delta: Point;
+      spacing: number;
+      snap: boolean;
+    }
+  | { type: 'transform'; geometries: Record<string, Geometry> }
+  | { type: 'delete'; ids: string[] }
+  | {
+      type: 'duplicate';
+      ids: string[];
+      idMap: Record<string, string>;
+      offset: Point;
+    }
+  | {
+      type: 'paste';
+      nodes: Node[];
+      connections: Connection[];
+      idMap: Record<string, string>;
+      offset: Point;
+      layerId: string;
+    }
+  | {
+      type: 'updateNode';
+      id: string;
+      text: string;
+      style: Appearance;
+      geometry?: Geometry;
+      startArrow?: boolean;
+      endArrow?: boolean;
+    }
   | {
       type: 'updateConnection';
       id: string;
@@ -81,6 +117,12 @@ export function assertEditableElement(item: Node | Connection): void {
     if (
       !isShapeKind(n.kind) ||
       !editableExtension(n.extensions[ELEMENT_KEY]) ||
+      (isDrawing(n.kind) &&
+        (!editableExtension(n.extensions[LINE_KEY]) ||
+          ['startArrow', 'endArrow'].some((k) => {
+            const v = jsonObject(n.extensions[LINE_KEY])[k];
+            return v !== undefined && typeof v !== 'boolean';
+          }))) ||
       (n.content.text !== undefined &&
         (typeof n.content.text !== 'string' ||
           n.content.text.length > MAX_TEXT))
@@ -123,6 +165,38 @@ function updateAppearance(
   )
     throw new EditError('unsupported');
   return { ...extension, style: { ...jsonObject(raw), ...changes } };
+}
+/** Shared eligibility for pointer/keyboard linking, target hints and committed commands. */
+export function connectionError(
+  page: Pick<Page, 'nodes' | 'connections' | 'layers'>,
+  sourceId: string,
+  targetId: string | null,
+  layerId: string,
+  arrow: boolean,
+): EditError['code'] | null {
+  const layers = layerStates(page.layers);
+  if (!layers.get(layerId)?.editable) return 'layer';
+  for (const id of [sourceId, ...(targetId ? [targetId] : [])]) {
+    const node = page.nodes.find((n) => n.id === id);
+    if (!node || isDrawing(node.kind)) return 'endpoint';
+    if (!layers.get(node.layerId)?.editable) return 'layer';
+    try {
+      assertEditableElement(node);
+    } catch {
+      return 'unsupported';
+    }
+  }
+  if (targetId === sourceId) return 'endpoint';
+  if (
+    targetId &&
+    page.connections.some(
+      (c) =>
+        (c.sourceId === sourceId && c.targetId === targetId) ||
+        (!arrow && c.sourceId === targetId && c.targetId === sourceId),
+    )
+  )
+    return 'duplicate';
+  return null;
 }
 /** One validated immutable transaction. IDs and time are supplied, so commands can be replayed by future history. */
 export function applyEdit(
@@ -171,13 +245,20 @@ export function applyEdit(
         y: command.position.y - def.height / 2,
       },
       grid.spacing,
-      grid.snap,
+      command.snap ?? grid.snap,
     );
+    if (command.geometry)
+      assertGeometry(command.geometry, isDrawing(command.kind));
     const created: Node = {
       id: command.id,
       kind: command.kind,
       layerId: command.layerId,
-      geometry: { ...p, width: def.width, height: def.height, rotation: 0 },
+      geometry: command.geometry ?? {
+        ...p,
+        width: def.width,
+        height: def.height,
+        rotation: 0,
+      },
       content: { text: command.text ?? '' },
       metadata: {},
       assetIds: [],
@@ -186,22 +267,15 @@ export function applyEdit(
     };
     nodes = [...nodes, created];
   } else if (command.type === 'connect') {
-    editable(command.layerId);
-    node(command.sourceId);
-    node(command.targetId);
+    const error = connectionError(
+      page,
+      command.sourceId,
+      command.targetId,
+      command.layerId,
+      command.options.arrow,
+    );
+    if (error) throw new EditError(error);
     options(command.options);
-    if (command.sourceId === command.targetId) throw new EditError('endpoint');
-    if (
-      connections.some(
-        (c) =>
-          (c.sourceId === command.sourceId &&
-            c.targetId === command.targetId) ||
-          (!command.options.arrow &&
-            c.sourceId === command.targetId &&
-            c.targetId === command.sourceId),
-      )
-    )
-      throw new EditError('duplicate');
     const edge: Connection = {
       id: command.id,
       sourceId: command.sourceId,
@@ -212,9 +286,135 @@ export function applyEdit(
       extensions: { [CONNECTION_KEY]: { version: 1, ...command.options } },
     };
     connections = [...connections, edge];
+  } else if (command.type === 'transform' || command.type === 'move') {
+    const geometries =
+      command.type === 'move'
+        ? movedGeometries(
+            command.ids.map(node),
+            command.delta,
+            command.spacing,
+            command.snap,
+          )
+        : command.geometries;
+    for (const [id, geometry] of Object.entries(geometries)) {
+      const n = node(id);
+      assertGeometry(
+        geometry,
+        isDrawing(n.kind),
+        geometry.width !== n.geometry.width ||
+          geometry.height !== n.geometry.height,
+      );
+    }
+    nodes = nodes.map((n) =>
+      geometries[n.id]
+        ? { ...n, geometry: { ...n.geometry, ...geometries[n.id] } }
+        : n,
+    );
+  } else if (command.type === 'delete') {
+    const removed = new Set(command.ids);
+    for (const id of removed) {
+      const n = nodes.find((n) => n.id === id);
+      if (n) node(id);
+      else {
+        const edge = connections.find((e) => e.id === id);
+        if (!edge) throw new EditError('endpoint');
+        editable(edge.layerId);
+        assertEditableElement(edge);
+      }
+    }
+    for (const edge of connections) {
+      if (removed.has(edge.sourceId) || removed.has(edge.targetId)) {
+        editable(edge.layerId);
+        assertEditableElement(edge);
+        removed.add(edge.id);
+      }
+    }
+    // Specialized references are protected, never silently rewritten or cascaded.
+    for (const d of project.documents) {
+      if (
+        d.domainModels.some((m) =>
+          m.references.some((id) => removed.has(id)),
+        ) ||
+        d.actions.some(
+          (a) =>
+            removed.has(a.targetId) ||
+            (typeof a.parameters.nodeId === 'string' &&
+              removed.has(a.parameters.nodeId)),
+        ) ||
+        d.animations.some((a) => removed.has(a.targetId)) ||
+        d.pages.some((p) =>
+          p.relationships.some(
+            (r) => removed.has(r.sourceId) || removed.has(r.targetId),
+          ),
+        )
+      )
+        throw new EditError('unsupported');
+    }
+    nodes = nodes.filter((n) => !removed.has(n.id));
+    connections = connections.filter((e) => !removed.has(e.id));
+  } else if (command.type === 'duplicate' || command.type === 'paste') {
+    const clipboard =
+      command.type === 'paste' ? command : copyElements(page, command.ids);
+    if (command.type === 'paste') editable(command.layerId);
+    if (![command.offset.x, command.offset.y].every(Number.isFinite))
+      throw new EditError('invalid');
+    const ids = new Set(clipboard.nodes.map((n) => n.id));
+    const copyId = (id: string) => {
+      if (!command.idMap[id]) throw new EditError('invalid');
+      return command.idMap[id];
+    };
+    const copiedNodes = clipboard.nodes.map((n) => {
+      assertEditableElement(n);
+      if (command.type === 'duplicate') editable(n.layerId);
+      const geometry = {
+        ...n.geometry,
+        x: n.geometry.x + command.offset.x,
+        y: n.geometry.y + command.offset.y,
+      };
+      assertGeometry(geometry, isDrawing(n.kind), false);
+      return {
+        ...n,
+        id: copyId(n.id),
+        layerId: command.type === 'paste' ? command.layerId : n.layerId,
+        geometry,
+      };
+    });
+    const copiedEdges = clipboard.connections.map((e) => {
+      assertEditableElement(e);
+      if (command.type === 'duplicate') editable(e.layerId);
+      if (!ids.has(e.sourceId) || !ids.has(e.targetId))
+        throw new EditError('endpoint');
+      return {
+        ...e,
+        id: copyId(e.id),
+        sourceId: copyId(e.sourceId),
+        targetId: copyId(e.targetId),
+        layerId: command.type === 'paste' ? command.layerId : e.layerId,
+        waypoints: e.waypoints.map((p) => ({
+          ...p,
+          x: p.x + command.offset.x,
+          y: p.y + command.offset.y,
+        })),
+      };
+    });
+    nodes = [...nodes, ...copiedNodes];
+    connections = [...connections, ...copiedEdges];
   } else if (command.type === 'updateNode') {
     const n = node(command.id);
     text(command.text);
+    if (command.geometry)
+      assertGeometry(
+        command.geometry,
+        isDrawing(n.kind),
+        command.geometry.width !== n.geometry.width ||
+          command.geometry.height !== n.geometry.height,
+      );
+    if (
+      [command.startArrow, command.endArrow].some(
+        (v) => v !== undefined && typeof v !== 'boolean',
+      )
+    )
+      throw new EditError('invalid');
     style(command.style);
     if (
       typeof n.content.text !== 'undefined' &&
@@ -226,9 +426,28 @@ export function applyEdit(
         ? item
         : {
             ...item,
+            geometry: command.geometry
+              ? { ...item.geometry, ...command.geometry }
+              : item.geometry,
             content: { ...item.content, text: command.text },
             extensions: {
               ...item.extensions,
+              ...(isDrawing(item.kind) &&
+              (command.startArrow !== undefined ||
+                command.endArrow !== undefined)
+                ? {
+                    [LINE_KEY]: {
+                      ...jsonObject(item.extensions[LINE_KEY]),
+                      version: 1,
+                      ...(command.startArrow !== undefined
+                        ? { startArrow: command.startArrow }
+                        : {}),
+                      ...(command.endArrow !== undefined
+                        ? { endArrow: command.endArrow }
+                        : {}),
+                    },
+                  }
+                : {}),
               [ELEMENT_KEY]: {
                 ...updateAppearance(
                   item,
@@ -291,6 +510,74 @@ export function applyEdit(
             ),
           },
     ),
+  };
+  validateProject(next);
+  return next;
+}
+
+export function assertGeometry(
+  g: Geometry,
+  line = false,
+  minimum = true,
+): void {
+  if (
+    ![g.x, g.y, g.width, g.height, g.rotation].every(
+      (v) => Number.isFinite(v) && Math.abs(v) <= 1e12,
+    ) ||
+    g.width < (minimum ? MIN_SIZE : 0) ||
+    g.height < (minimum ? (line ? 1 : MIN_SIZE) : 0)
+  )
+    throw new EditError('invalid');
+}
+export function copyElements(
+  page: Page,
+  selected: readonly string[],
+): { nodes: Node[]; connections: Connection[] } {
+  const ids = new Set(selected),
+    layers = layerStates(page.layers);
+  const nodes = page.nodes.filter((n) => ids.has(n.id));
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const connections = page.connections.filter(
+    (e) =>
+      ids.has(e.id) || (nodeIds.has(e.sourceId) && nodeIds.has(e.targetId)),
+  );
+  for (const item of [...nodes, ...connections]) {
+    if (!layers.get(item.layerId)?.editable) throw new EditError('layer');
+    assertEditableElement(item);
+  }
+  if (
+    !nodes.length ||
+    connections.some(
+      (e) => !nodeIds.has(e.sourceId) || !nodeIds.has(e.targetId),
+    )
+  )
+    throw new EditError('endpoint');
+  return { nodes, connections };
+}
+export function renameProject(
+  project: Project,
+  name: string,
+  now: string,
+): Project {
+  const title = name.trim();
+  if (
+    !title ||
+    title.length > 1024 ||
+    Array.from(title).some(
+      (c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127,
+    )
+  )
+    throw new EditError('invalid');
+  if (title === project.manifest.title) return project;
+  const next = {
+    ...project,
+    manifest: {
+      ...project.manifest,
+      title,
+      updatedAt: new Date(
+        Math.max(Date.parse(now), Date.parse(project.manifest.updatedAt)),
+      ).toISOString(),
+    },
   };
   validateProject(next);
   return next;

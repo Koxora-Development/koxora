@@ -71,6 +71,12 @@ export function Dialog({
       aria-label={title}
       tabIndex={-1}
       onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          onCancel();
+          return;
+        }
         if (event.key !== 'Tab') return;
         const elements = [
           ...event.currentTarget.querySelectorAll<HTMLElement>(

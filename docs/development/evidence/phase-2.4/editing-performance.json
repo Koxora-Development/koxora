@@ -1,0 +1,55 @@
+{
+  "measuredAt": "2026-10-23T20:06:18.493Z",
+  "platform": "linux",
+  "architecture": "x64",
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
+  "browser": "154.0.8037.57",
+  "method": "110 core previews (10 warm-ups); one validated command/undo; 65 synthetic pointer frames on the actual SVG adapter, detail view. Shared host; excludes import/export and persistence from core timing.",
+  "results": [
+    {
+      "nodes": 100,
+      "connections": 50,
+      "corePreviewMedianMs": 0.2534640000001218,
+      "corePreviewP95Ms": 0.5185950000000048,
+      "commandMs": 4.151501000000053,
+      "undoMs": 1.71665199999984,
+      "frameGapMedianMs": 16.699999999999818,
+      "frameGapP95Ms": 16.700000000000273,
+      "moveDispatchP95Ms": 0.19999999925494194,
+      "commitDispatchMs": 4.300000000745058,
+      "retainedSvg": true,
+      "renderedNodes": 6,
+      "dpr": 1
+    },
+    {
+      "nodes": 1000,
+      "connections": 500,
+      "corePreviewMedianMs": 1.1663790000002336,
+      "corePreviewP95Ms": 1.6760810000000674,
+      "commandMs": 7.258009000000129,
+      "undoMs": 27.100580000000264,
+      "frameGapMedianMs": 16.699999999999818,
+      "frameGapP95Ms": 16.700000000000728,
+      "moveDispatchP95Ms": 0.20000000298023224,
+      "commitDispatchMs": 6.5,
+      "retainedSvg": true,
+      "renderedNodes": 6,
+      "dpr": 1
+    },
+    {
+      "nodes": 3000,
+      "connections": 1500,
+      "corePreviewMedianMs": 1.6484900000004927,
+      "corePreviewP95Ms": 4.038364000000001,
+      "commandMs": 13.417121999999836,
+      "undoMs": 15.442347000000154,
+      "frameGapMedianMs": 16.699999999999818,
+      "frameGapP95Ms": 50,
+      "moveDispatchP95Ms": 0.30000000074505806,
+      "commitDispatchMs": 18,
+      "retainedSvg": true,
+      "renderedNodes": 6,
+      "dpr": 1
+    }
+  ]
+}
