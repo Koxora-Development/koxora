@@ -31,7 +31,7 @@
 | T-005 | Layout | ELK.js/Dagre | Reference diagrams and deterministic tests |
 | T-006 | Data charts | Apache ECharts | Integration/license review |
 | T-007 | Realtime | Yjs/CRDT and WebSockets; optional WebRTC | Conflict, offline, authorization spike |
-| T-008 | Website | Astro or Next.js | SEO, CMS, localization, integration |
+| T-008 | Website | Decided 2026-10-24 for Website W1: static multilingual pages built with the accepted React, TypeScript and Vite stack instead of a second framework; Astro and Next.js remain untaken options for a later content-management need | [ADR 0017](adr/0017-public-website-delivery.md); indexable output, localization and tests verified in the W1 pull request |
 | T-009 | Cloud API | Laravel, PostgreSQL, S3-compatible storage | Operation, realtime, permissions, cost |
 | T-010 | Native extension | .koxora ZIP plus JSON | Security, versions, migrations |
 | T-011 | AI | User keys and local models such as Ollama | Secret handling and privacy |

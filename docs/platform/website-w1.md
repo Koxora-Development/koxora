@@ -170,7 +170,7 @@ W1 adds no key to `packages/i18n/src/locales/*.json`, changes no studio componen
 
 ## 13. Open points
 
-1. The hosted browser studio is not published, so the primary call to action explains how to run the current version instead of linking to an address that does not answer. Setting one environment variable turns it into a direct studio link.
+1. The hosted browser studio is not published, so the primary call to action explains how to run the current version instead of linking to an address that does not answer. The Product Owner decided on 2026-10-24 to keep this configurable and to switch on the direct studio link only once `app.koxora.app` is actually reachable; setting `KOXORA_SITE_EDITOR_URL` is the single change needed.
 2. The legal pages carry prepared content; [the checklist](../legal/website-legal-review.md) lists what the operator must confirm before publication.
-3. The website technology candidate recorded as T-008 remains an open Product Owner decision; this milestone deliberately reused the accepted foundation stack instead.
+3. T-008 is decided for this milestone: the Product Owner accepted the static approach on the accepted foundation stack on 2026-10-24. A dedicated website framework stays an option for a later content-management need.
 4. No content management system exists. Content changes are code changes until a later milestone decides otherwise.

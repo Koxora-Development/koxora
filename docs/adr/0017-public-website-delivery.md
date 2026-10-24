@@ -1,6 +1,6 @@
 # ADR 0017: Static multilingual delivery for the public website
 
-- Status: Implemented for Website W1 review; Product Owner acceptance, merge and publication pending
+- Status: Delivery approach accepted by the Product Owner on 2026-10-24; implementation under review; merge and publication pending
 - Date: 2026-10-24
 - References: [Issue #21](https://github.com/Koxora-Development/koxora/issues/21), [Issue #25](https://github.com/Koxora-Development/koxora/issues/25), [Issue #26](https://github.com/Koxora-Development/koxora/issues/26), [Issue #27](https://github.com/Koxora-Development/koxora/issues/27), [Issue #22](https://github.com/Koxora-Development/koxora/issues/22); SITE-001, SITE-003, SITE-007, SITE-008, SITE-009, SITE-017, SITE-018, SITE-019, SITE-022, WEB-001, WEB-002; K-002, K-007, T-008, O-009, O-014
 - Roles: agent implementation; Product Owner acceptance, merge and publication decision
@@ -19,7 +19,7 @@ Three options were considered.
 
 ## Decision
 
-Website W1 renders every page to static HTML at build time with React's static markup renderer, inside the already accepted Vite and React toolchain, as a separate workspace application `@koxora/website`. **T-008 is not decided by this ADR.** If the Product Owner later adopts a dedicated website framework, the content, route table and localized resources in this application are portable because they are plain data and plain components.
+Website W1 renders every page to static HTML at build time with React's static markup renderer, inside the already accepted Vite and React toolchain, as a separate workspace application `@koxora/website`. The Product Owner accepted this approach for Website W1 on 2026-10-24 and recorded it against T-008; Astro and Next.js remain untaken options should a later milestone need a content management system. If such a move happens, the content, route table and localized resources in this application are portable because they are plain data and plain components.
 
 ```text
 content catalogs (en, de) + route table + status data
