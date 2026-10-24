@@ -1,5 +1,7 @@
 # Shapes, text and connections (Phase 2.3)
 
+> Historical Phase 2.3 workflow. Phase 2.4 supersedes the separate Connect/Edit tools and fixed-size limitations below; use the current [interactive editing and acceptance guide](interactive-editing.md) for unified Line/Arrow ports, direct editing, typography and shortcuts.
+
 Phase 2.3 turns the shared browser/Tauri canvas into a basic diagram editor. See [ADR 0015](../adr/0015-shapes-text-connections.md) for domain fields, compatibility, geometry and transaction boundaries. The implementation starts from accepted Phase 2.2 main commit `1485dccb95e08f679987be80902cbebabf71e720`.
 
 ## Creating a diagram

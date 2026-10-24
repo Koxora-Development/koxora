@@ -14,9 +14,17 @@ export const shapeKinds = [
   'parallelogram',
   'text',
   'container',
+  'line',
+  'arrow',
 ] as const;
 export type ShapeKind = (typeof shapeKinds)[number];
 export type Geometry = Node['geometry'];
+/** Only local, fixed font stacks cross the rendering boundary. Stored values are tokens. */
+export const FONT_FAMILIES = {
+  sans: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  serif: 'Georgia, "Times New Roman", serif',
+  mono: 'ui-monospace, "SFMono-Regular", Consolas, monospace',
+} as const;
 export interface Appearance {
   fill: string;
   stroke: string;
@@ -24,6 +32,10 @@ export interface Appearance {
   opacity: number;
   textColor: string;
   fontSize: number;
+  fontFamily: keyof typeof FONT_FAMILIES;
+  fontWeight: 400 | 700;
+  fontStyle: 'normal' | 'italic';
+  textDecoration: 'none' | 'underline';
   align: 'left' | 'center' | 'right';
   cornerRadius: number;
 }
@@ -34,6 +46,10 @@ export const DEFAULT_APPEARANCE: Appearance = {
   opacity: 1,
   textColor: '#18243d',
   fontSize: 16,
+  fontFamily: 'sans',
+  fontWeight: 400,
+  fontStyle: 'normal',
+  textDecoration: 'none',
   align: 'center',
   cornerRadius: 16,
 };
@@ -70,6 +86,15 @@ export function readAppearance(
     opacity: number(properties.opacity, d.opacity, 0, 1),
     textColor: color(properties.textColor, d.textColor),
     fontSize: number(properties.fontSize, d.fontSize, 8, 96),
+    fontFamily:
+      typeof properties.fontFamily === 'string' &&
+      Object.hasOwn(FONT_FAMILIES, properties.fontFamily)
+        ? (properties.fontFamily as Appearance['fontFamily'])
+        : d.fontFamily,
+    fontWeight: properties.fontWeight === 700 ? 700 : 400,
+    fontStyle: properties.fontStyle === 'italic' ? 'italic' : 'normal',
+    textDecoration:
+      properties.textDecoration === 'underline' ? 'underline' : 'none',
     align:
       typeof properties.align === 'string' &&
       ['left', 'center', 'right'].includes(properties.align)
@@ -244,6 +269,18 @@ const rounded: Pick<ShapeDefinition, 'path' | 'contains'> = {
 };
 /** Trusted built-in registry; imported kind strings never load code. */
 export const shapeRegistry: Readonly<Record<ShapeKind, ShapeDefinition>> = {
+  line: {
+    width: 160,
+    height: 1,
+    path: (w, h) => `M 0 ${h / 2} L ${w} ${h / 2}`,
+    contains: (p, w, h) => p.x >= 0 && p.x <= w && Math.abs(p.y - h / 2) <= 4,
+  },
+  arrow: {
+    width: 160,
+    height: 1,
+    path: (w, h) => `M 0 ${h / 2} L ${w} ${h / 2}`,
+    contains: (p, w, h) => p.x >= 0 && p.x <= w && Math.abs(p.y - h / 2) <= 4,
+  },
   rectangle: { width: 160, height: 88, ...box },
   'rounded-rectangle': { width: 160, height: 88, ...rounded },
   ellipse: {
@@ -365,7 +402,7 @@ export function boundaryPoint(
 }
 export type Anchor = 'auto' | 'north' | 'east' | 'south' | 'west';
 export function anchorPoint(
-  node: Node,
+  node: Pick<Node, 'kind' | 'geometry'>,
   toward: Point,
   anchor: Anchor = 'auto',
   radius = 16,

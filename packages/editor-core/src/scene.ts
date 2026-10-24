@@ -1,9 +1,16 @@
+import { assertEditableElement } from './editing';
+import {
+  isDrawing,
+  lineEndpoints,
+  LINE_KEY,
+  segmentDistance,
+} from './interaction';
+import { jsonObject } from './shapes';
 import type { Page, Style } from '@koxora/project';
 import { intersects, type Bounds, type Point } from './viewport';
 import {
   containsShape,
   geometryBounds,
-  isShapeKind,
   layerStates,
   MAX_TEXT,
   appearanceResolver,
@@ -25,6 +32,8 @@ export interface SceneNode {
   style: Appearance;
   editable: boolean;
   layerOrder: number;
+  startArrow?: boolean;
+  endArrow?: boolean;
 }
 export interface SceneConnection extends ConnectionPath {
   id: string;
@@ -53,6 +62,14 @@ export function unionBounds(bounds: Bounds[]): Bounds | null {
   }
   return { x, y, width: right - x, height: bottom - y };
 }
+function supported(item: Parameters<typeof assertEditableElement>[0]): boolean {
+  try {
+    assertEditableElement(item);
+    return true;
+  } catch {
+    return false;
+  }
+}
 /** Only safe, bounded geometry and declarative appearance cross into the renderer. Originals are retained. */
 export function buildScene(
   page: Pick<Page, 'nodes' | 'connections' | 'layers'>,
@@ -77,13 +94,30 @@ export function buildScene(
           id: node.id,
           kind: node.kind,
           geometry: g,
-          bounds: geometryBounds(g, style.strokeWidth / 2),
+          bounds: nodeBounds(
+            g,
+            node.kind,
+            typeof node.content.text === 'string'
+              ? node.content.text.slice(0, MAX_TEXT)
+              : '',
+            style,
+          ),
+          startArrow:
+            isDrawing(node.kind) &&
+            jsonObject(node.extensions[LINE_KEY]).version === 1 &&
+            jsonObject(node.extensions[LINE_KEY]).startArrow === true,
+          endArrow:
+            isDrawing(node.kind) &&
+            (jsonObject(node.extensions[LINE_KEY]).version === 1 &&
+            typeof jsonObject(node.extensions[LINE_KEY]).endArrow === 'boolean'
+              ? jsonObject(node.extensions[LINE_KEY]).endArrow === true
+              : node.kind === 'arrow'),
           label:
             typeof node.content.text === 'string'
               ? node.content.text.slice(0, MAX_TEXT)
               : node.kind.slice(0, 120),
           style,
-          editable: layer.editable,
+          editable: layer.editable && supported(node),
           layerOrder: layer.order,
         },
       ];
@@ -109,12 +143,6 @@ export function buildScene(
         s.style.cornerRadius,
         t.style.cornerRadius,
       );
-      const labelBounds = {
-        x: path.labelPoint.x - (options.label.length * style.fontSize) / 2,
-        y: path.labelPoint.y - style.fontSize * 2,
-        width: options.label.length * style.fontSize,
-        height: style.fontSize * 12,
-      };
       return [
         {
           ...path,
@@ -122,11 +150,14 @@ export function buildScene(
           label: options.label,
           arrow: options.arrow,
           style,
-          editable: layer.editable,
+          editable:
+            layer.editable && s.editable && t.editable && supported(edge),
           layerOrder: layer.order,
           bounds: unionBounds([
             path.bounds,
-            labelBounds,
+            ...(options.label
+              ? [connectionLabelBounds(path.labelPoint, options.label, style)]
+              : []),
             {
               x:
                 path.points.at(-1)!.x -
@@ -161,13 +192,122 @@ export function visibleScene(scene: Scene, viewport: Bounds): Scene {
   };
 }
 /** Topmost actual contour wins; locked/hidden layers cannot become editing targets. */
-export function pickNode(scene: Scene, point: Point): SceneNode | undefined {
+export function pickNode(
+  scene: Scene,
+  point: Point,
+  tolerance = 6,
+  editableOnly = true,
+): SceneNode | undefined {
   return [...scene.nodes]
     .reverse()
     .find(
       (n) =>
-        n.editable &&
-        isShapeKind(n.kind) &&
-        containsShape(n.kind, n.geometry, point, n.style.cornerRadius),
+        (!editableOnly || n.editable) &&
+        (isDrawing(n.kind)
+          ? segmentDistance(point, ...lineEndpoints(n.geometry)) <=
+            tolerance + n.style.strokeWidth / 2
+          : containsShape(n.kind, n.geometry, point, n.style.cornerRadius)),
     );
+}
+
+/** Reuse immutable scene entries and resolved styles; only moved nodes and incident routes change. */
+export function transformScene(
+  scene: Scene,
+  page: Pick<Page, 'nodes' | 'connections'>,
+  geometries: Record<string, Geometry>,
+): Scene {
+  const nodes = scene.nodes.map((n) =>
+    geometries[n.id]
+      ? {
+          ...n,
+          geometry: geometries[n.id],
+          bounds: nodeBounds(geometries[n.id], n.kind, n.label, n.style),
+        }
+      : n,
+  );
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const originals = new Map(page.nodes.map((n) => [n.id, n]));
+  const edges = new Map(page.connections.map((e) => [e.id, e]));
+  const connections = scene.connections.map((e) => {
+    const edge = edges.get(e.id)!;
+    if (!geometries[edge.sourceId] && !geometries[edge.targetId]) return e;
+    const source = byId.get(edge.sourceId)!,
+      target = byId.get(edge.targetId)!;
+    const path = connectionPath(
+      { ...originals.get(source.id)!, geometry: source.geometry },
+      { ...originals.get(target.id)!, geometry: target.geometry },
+      readConnection(edge),
+      edge.waypoints
+        .filter((p) => Math.abs(p.x) <= 1e12 && Math.abs(p.y) <= 1e12)
+        .slice(0, 2048),
+      source.style.cornerRadius,
+      target.style.cornerRadius,
+    );
+    return {
+      ...e,
+      ...path,
+      bounds: unionBounds([
+        path.bounds,
+        ...(e.label
+          ? [connectionLabelBounds(path.labelPoint, e.label, e.style)]
+          : []),
+        {
+          x: path.points.at(-1)!.x - e.style.strokeWidth * 4,
+          y: path.points.at(-1)!.y - e.style.strokeWidth * 4,
+          width: e.style.strokeWidth * 8,
+          height: e.style.strokeWidth * 8,
+        },
+      ])!,
+    };
+  });
+  return { nodes, connections, bounds: scene.bounds };
+}
+
+function nodeBounds(
+  g: Geometry,
+  kind: string,
+  label: string,
+  style: Appearance,
+): Bounds {
+  const bounds = geometryBounds(
+    g,
+    isDrawing(kind)
+      ? Math.max(16, style.strokeWidth * 4)
+      : style.strokeWidth / 2,
+  );
+  if (!isDrawing(kind) || !label) return bounds;
+  return unionBounds([
+    bounds,
+    connectionLabelBounds(
+      { x: g.x + g.width / 2, y: g.y + g.height / 2 },
+      label,
+      style,
+    ),
+  ])!;
+}
+
+/** Conservative local-font bounds, matching the renderer's wrapped label budget. */
+function connectionLabelBounds(
+  point: Point,
+  label: string,
+  style: Appearance,
+): Bounds {
+  const characters = Math.min(
+    label.length,
+    Math.max(1, Math.floor(240 / (style.fontSize * 0.62))),
+  );
+  const width = characters * style.fontSize * 1.5;
+  return {
+    x:
+      point.x -
+      (style.align === 'left'
+        ? 0
+        : style.align === 'right'
+          ? width
+          : width / 2) -
+      8,
+    y: point.y - style.fontSize * 2,
+    width: width + 16,
+    height: style.fontSize * 12,
+  };
 }

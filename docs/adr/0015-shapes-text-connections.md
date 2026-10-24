@@ -54,6 +54,8 @@ Readers accept optional compatible content without rewriting it. Known appearanc
 
 ## Transactions and application boundary
 
+Phase 2.4 extends these commands with interactive selection/manipulation and bounded forward/inverse history in [ADR 0016](0016-interactive-editing-history.md). Its line/arrow node kinds retain this ADR's appearance and preservation rules.
+
 `applyEdit(project, documentId, pageId, command, now)` returns a new project or throws without mutating its input. Commands provide explicit UUID identities and timestamps, so future undo/history can retain before/after snapshots or replay the same request. Insert, connect, node update and connection update each form one transaction. Validation precedes the application state replacement. Unrelated collections, binary assets, styles, specialized domain models and optional fields retain their values.
 
 Studio snapshots pending navigation before applying a content edit. The current load generation isolates old callbacks from reopened/recovered projects. Content commits reuse autosave, compare-and-swap conflicts, failure retention, export and recovery. Rendering receives a derived scene only and cannot persist anything. Editing-target and tool state are transient and reset when the page/session changes.

@@ -69,10 +69,13 @@ test('pointer-centered zoom, wheel pan, drag, keyboard, resize and expanded canv
   await expect
     .poll(async () => (await camera(page)).x)
     .toBeCloseTo(zoomed.x + 30 / zoomed.zoom, 3);
+  await page.getByRole('button', { name: 'Navigate', exact: true }).click();
+  await canvas(page).scrollIntoViewIfNeeded();
   const beforeDrag = await camera(page);
-  await page.mouse.move(box.x + 100, box.y + 80);
+  const dragBox = (await canvas(page).boundingBox())!;
+  await page.mouse.move(dragBox.x + 100, dragBox.y + 80);
   await page.mouse.down();
-  await page.mouse.move(box.x + 160, box.y + 120, { steps: 8 });
+  await page.mouse.move(dragBox.x + 160, dragBox.y + 120, { steps: 8 });
   await page.mouse.up();
   await expect
     .poll(async () => (await camera(page)).x)
@@ -98,10 +101,10 @@ test('pointer-centered zoom, wheel pan, drag, keyboard, resize and expanded canv
     .click();
   await expect(page.locator('.canvas-expanded')).toBeVisible();
   expect(await camera(page)).toEqual(stable);
-  await page.getByRole('button', { name: 'Fit content', exact: true }).focus();
+  await page.getByLabel('Spacing', { exact: true }).focus();
   await page.keyboard.press('Tab');
   await expect(
-    page.getByRole('button', { name: 'Restore workspace', exact: true }),
+    page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }),
   ).toBeFocused();
   await page
     .getByRole('button', { name: 'Restore workspace', exact: true })
@@ -242,14 +245,14 @@ test('German controls, focus help and grid styling work in both themes', async (
 }) => {
   await create(page);
   await page
-    .getByRole('button', { name: 'Navigation help', exact: true })
+    .getByRole('button', { name: 'Keyboard shortcuts', exact: true })
     .click();
   await expect(page.getByRole('dialog')).toContainText(
-    'future element editing',
+    'Move, resize and arrange',
   );
   await page.keyboard.press('Escape');
   await expect(
-    page.getByRole('button', { name: 'Navigation help', exact: true }),
+    page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }),
   ).toBeFocused();
   await page
     .getByRole('combobox', { name: 'Language', exact: true })
@@ -373,18 +376,18 @@ test('expanded help closes independently and keeps background fields inaccessibl
     .getByRole('button', { name: 'Expand canvas', exact: true })
     .click();
   await page
-    .getByRole('button', { name: 'Navigation help', exact: true })
+    .getByRole('button', { name: 'Keyboard shortcuts', exact: true })
     .click();
   await expect(
-    page.getByRole('dialog', { name: 'Navigation help', exact: true }),
+    page.getByRole('dialog', { name: 'Keyboard shortcuts', exact: true }),
   ).toBeVisible();
   await page.keyboard.press('Tab');
   await page.keyboard.press('Escape');
   await expect(
-    page.getByRole('dialog', { name: 'Navigation help', exact: true }),
+    page.getByRole('dialog', { name: 'Keyboard shortcuts', exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole('button', { name: 'Navigation help', exact: true }),
+    page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }),
   ).toBeFocused();
   await expect(page.locator('.canvas-expanded')).toBeVisible();
   await expect(page.locator('.inspector')).toHaveJSProperty('inert', true);
@@ -460,6 +463,7 @@ test('resizing during a captured drag ends the gesture without a coordinate jump
   page,
 }) => {
   await create(page);
+  await page.getByRole('button', { name: 'Navigate', exact: true }).click();
   await canvas(page).scrollIntoViewIfNeeded();
   const box = (await canvas(page).boundingBox())!;
   await page.mouse.move(box.x + 80, box.y + 80);

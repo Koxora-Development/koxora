@@ -33,3 +33,7 @@ The navigation foundation now lives in `packages/editor-core`, with a shared Stu
 ## Phase 2.3 implementation
 
 The same core now supplies a trusted vector shape registry, rotation/contour/anchor geometry, safe scene styles, connection paths and immutable editing transactions. Studio integrates insertion, plain-text/style dialogs and endpoint picking with the existing SVG adapter and repository. See [ADR 0015](../adr/0015-shapes-text-connections.md) and [editing acceptance](../development/shapes-text-connections.md). Container manipulation, full selection, drag/resize and history remain later work.
+
+## Phase 2.4 implementation
+
+The existing core now owns validated manipulation commands and bounded per-page undo/redo. Studio owns transient selection/tools and frame-batched previews; the SVG adapter retains unchanged elements. Independent drawing lines use existing shape records. See [ADR 0016](../adr/0016-interactive-editing-history.md) and [interactive editing](../development/interactive-editing.md) for data boundaries, controls, compatibility and acceptance.

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog, Icon } from '@koxora/ui';
+import { ProjectTitle, ProjectNameField } from './project-title';
 import { Canvas, type CanvasHandle } from './canvas';
 import {
   activePageId,
-  applyEdit,
+  CommandHistory,
+  renameProject,
   EditError,
   type EditCommand,
   selectPage,
@@ -39,9 +41,19 @@ export function Projects({ locale }: { locale: string }) {
         native ? new NativeStore(native.invoke) : new IndexedDbStore(),
       ),
   );
-  const [project, setProject] = useState<Project | null>(null),
+  const [project, setProjectState] = useState<Project | null>(null),
     [saved, setSaved] = useState<Project | null>(null),
     [token, setToken] = useState<string | null>(null);
+  const projectRef = useRef<Project | null>(null);
+  const setProject = useCallback(
+    (next: Project | null | ((current: Project | null) => Project | null)) => {
+      const value =
+        typeof next === 'function' ? next(projectRef.current) : next;
+      projectRef.current = value;
+      setProjectState(value);
+    },
+    [],
+  );
   const [items, setItems] = useState<ProjectSummary[]>([]),
     [operation, setOperation] = useState<Operation | null>('loading');
   const [view, setView] = useState<'dashboard' | 'workspace'>('dashboard'),
@@ -58,6 +70,7 @@ export function Projects({ locale }: { locale: string }) {
   const [focusVersion, setFocusVersion] = useState(0);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const session = useRef(0);
+  const [history] = useState(() => new CommandHistory());
   const [loadVersion, setLoadVersion] = useState(0);
   const canvasRef = useRef<CanvasHandle>(null);
   const [pendingNavigation, setPendingNavigation] = useState(false);
@@ -86,6 +99,7 @@ export function Projects({ locale }: { locale: string }) {
   }
   const renderStyles = styleCache.styles;
   const snapshot = useCallback(() => {
+    const project = projectRef.current;
     if (!project || !activeDocument || !activePage || view !== 'workspace')
       return project;
     const state = canvasRef.current?.snapshot();
@@ -94,7 +108,7 @@ export function Projects({ locale }: { locale: string }) {
       : project;
     if (next !== project) setProject(next);
     return next;
-  }, [project, activeDocument, activePage, view]);
+  }, [activeDocument, activePage, view, setProject]);
   const commitCanvas = useCallback(
     (state: CanvasState) => {
       const projectId = project?.manifest.projectId;
@@ -115,6 +129,7 @@ export function Projects({ locale }: { locale: string }) {
       activeDocument?.id,
       activePage?.id,
       loadVersion,
+      setProject,
     ],
   );
   function edit(command: EditCommand): boolean {
@@ -127,7 +142,7 @@ export function Projects({ locale }: { locale: string }) {
       return false;
     try {
       const current = snapshot() ?? project;
-      const next = applyEdit(
+      const next = history.execute(
         current,
         activeDocument.id,
         activePage.id,
@@ -144,6 +159,75 @@ export function Projects({ locale }: { locale: string }) {
       );
       setErrorPath(null);
       return false;
+    }
+  }
+  function travel(direction: 'undo' | 'redo'): boolean {
+    if (
+      !project ||
+      !activeDocument ||
+      !activePage ||
+      session.current !== loadVersion
+    )
+      return false;
+    try {
+      const current = snapshot() ?? project;
+      const next = history.travel(
+        current,
+        activeDocument.id,
+        activePage.id,
+        direction,
+        new Date().toISOString(),
+      );
+      if (next === current) return false;
+      setProject(next);
+      setError(null);
+      setPendingNavigation(false);
+      return true;
+    } catch {
+      setError('diagram.error.invalid');
+      return false;
+    }
+  }
+  function renameActive(title: string): boolean {
+    if (!project) return false;
+    try {
+      setProject(
+        renameProject(snapshot() ?? project, title, new Date().toISOString()),
+      );
+      setError(null);
+      return true;
+    } catch {
+      setError('editing.invalidName');
+      return false;
+    }
+  }
+  async function renameStored(id: string, title: string): Promise<boolean> {
+    if (project?.manifest.projectId === id) {
+      if (!renameActive(title)) return false;
+      setItems((items) =>
+        items.map((item) =>
+          item.id === id ? { ...item, title: title.trim() } : item,
+        ),
+      );
+      return true;
+    }
+    setOperation('saving');
+    try {
+      const opened = await repository.open(id);
+      const next = renameProject(
+        opened.project,
+        title,
+        new Date().toISOString(),
+      );
+      await repository.save(next, opened.token);
+      await refresh();
+      setError(null);
+      return true;
+    } catch (error) {
+      report(error);
+      return false;
+    } finally {
+      setOperation(null);
     }
   }
   const date = (value: string) =>
@@ -249,6 +333,7 @@ export function Projects({ locale }: { locale: string }) {
     else action();
   }
   function enter(next: Project) {
+    history.clear();
     session.current += 1;
     setLoadVersion(session.current);
     setProject(next);
@@ -621,9 +706,16 @@ export function Projects({ locale }: { locale: string }) {
                       </div>
                       <div className="card-body">
                         <div className="card-title">
-                          <h3 dir="auto">
-                            {item.title ?? t('project.unreadable')}
-                          </h3>
+                          <ProjectTitle
+                            title={
+                              project?.manifest.projectId === item.id
+                                ? project.manifest.title
+                                : (item.title ?? t('project.unreadable'))
+                            }
+                            locale={locale}
+                            disabled={busy || item.title === null}
+                            onRename={(name) => renameStored(item.id, name)}
+                          />
                           {project?.manifest.projectId === item.id && (
                             <span className="badge">
                               {t('workspace.activeBadge')}
@@ -685,9 +777,14 @@ export function Projects({ locale }: { locale: string }) {
             <header className="workspace-header">
               <div>
                 <p className="eyebrow">{t('nav.workspace')}</p>
-                <h1 ref={titleRef} tabIndex={-1} dir="auto">
-                  {project.manifest.title}
-                </h1>
+                <ProjectTitle
+                  title={project.manifest.title}
+                  locale={locale}
+                  disabled={busy}
+                  onRename={renameActive}
+                  heading="h1"
+                  titleRef={titleRef}
+                />
                 <p
                   className={`save-status ${dirty ? 'pending' : ''}`}
                   aria-live="polite"
@@ -748,6 +845,12 @@ export function Projects({ locale }: { locale: string }) {
                   page={activePage}
                   styles={renderStyles}
                   onEdit={edit}
+                  history={history.status(
+                    project,
+                    activeDocument.id,
+                    activePage.id,
+                  )}
+                  onHistory={travel}
                   documentTitle={activeDocument.title}
                   locale={locale}
                   onCommit={commitCanvas}
@@ -756,31 +859,12 @@ export function Projects({ locale }: { locale: string }) {
               )}
               <aside className="inspector" aria-label={t('workspace.details')}>
                 <h2>{t('workspace.details')}</h2>
-                <label className="field-label">
-                  {t('project.name')}
-                  <input
-                    value={project.manifest.title}
-                    maxLength={1024}
-                    disabled={busy}
-                    onChange={(e) => {
-                      setError(null);
-                      const current = snapshot() ?? project;
-                      setProject({
-                        ...current,
-                        manifest: {
-                          ...current.manifest,
-                          title: e.target.value,
-                          updatedAt: new Date(
-                            Math.max(
-                              Date.now(),
-                              Date.parse(project.manifest.updatedAt),
-                            ),
-                          ).toISOString(),
-                        },
-                      });
-                    }}
-                  />
-                </label>
+                <ProjectNameField
+                  title={project.manifest.title}
+                  locale={locale}
+                  disabled={busy}
+                  onRename={renameActive}
+                />
                 <dl className="project-properties">
                   <div>
                     <dt>{t('workspace.documents')}</dt>

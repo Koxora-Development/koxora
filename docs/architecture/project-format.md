@@ -115,3 +115,14 @@ Interactive editors, rendering fidelity across export formats, CRDT logs, cloud 
 ## Phase 2.3 basic diagram presentation
 
 [ADR 0015](../adr/0015-shapes-text-connections.md) defines optional version-1 `org.koxora.element` and `org.koxora.connection` extension namespaces for basic appearance, text/edge labels, routing, arrowheads and local cardinal/automatic anchors. Existing node geometry/content, page layers, connection endpoints and styles remain authoritative; ZIP and schema versions remain 1.0.0. Label-only edits preserve unsupported style values, unknown fields, assets and unrelated domain models. Newer namespaces and unsupported connection payloads remain read-only rather than being silently normalized. An explicit routing-type change replaces the connection's retained waypoints. See the ADR for exact bounds and preservation rules.
+
+## Phase 2.4 standalone lines and interactive editing
+
+[ADR 0016](../adr/0016-interactive-editing-history.md) adds trusted node kinds `line` and `arrow`, using existing rotated geometry for a local horizontal segment. Optional `node.extensions["org.koxora.line"]` contains `version: 1`, `startArrow` and `endArrow` booleans. Drawing lines need no graph endpoints; semantic connections retain their existing endpoint identities. Older readers preserve the new kinds as unsupported previews; newer or invalid options are read-only. ZIP/schema versions remain 1.0.0. Selection, clipboard, gesture drafts and command history are session state, never serialized. Renaming only changes the manifest title/update time. Unknown compatible fields and binary resources retain the existing preservation contract.
+
+
+### Phase 2.4 appearance and explicit ports
+
+Line/Arrow interactions also create existing semantic connections with `org.koxora.connection` version 1, `arrow: false/true`, and explicit `sourceAnchor`/`targetAnchor` values `north`, `east`, `south`, `west` or `auto`. Cardinal anchors are local to the endpoint shape and follow its rotation, translation and resizing. UI port markers and draft previews do not enter the archive.
+
+The existing element/connection `style` dictionary and shared style properties accept additive `fontFamily` tokens `sans`/`serif`/`mono`, `fontWeight` 400/700, `fontStyle` `normal`/`italic`, and `textDecoration` `none`/`underline`. Defaults are sans/400/normal/none. Fonts resolve only to trusted local fallback stacks; arbitrary imported CSS is never rendered. Size 8–96, text color, alignment and multiline text remain supported. These fields style the whole label, without a rich-text run model. Older readers preserve additive properties; unknown values survive unrelated edits. ZIP and schema remain 1.0.0. See ADR 0016 for history and inheritance behavior.

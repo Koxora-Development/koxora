@@ -1,5 +1,11 @@
 import {
   gridStep,
+  FONT_FAMILIES,
+  isDrawing,
+  lineEndpoints,
+  resizeHandles,
+  handlePoint,
+  type Bounds,
   shapeRegistry,
   isShapeKind,
   type SceneNode,
@@ -9,12 +15,15 @@ import {
   type CanvasState,
   type Scene,
   type Size,
+  type Point,
 } from '@koxora/editor-core';
 const NS = 'http://www.w3.org/2000/svg';
 const MAX_VISIBLE = 1500;
 /** Owns only the SVG subtree passed to it. Never reads or writes project data. */
 export class SvgRenderer {
   private elements = new Map<string, SVGElement>();
+  private models = new Map<string, SceneNode | SceneConnection>();
+  private overlay = svg('g', { class: 'selection-overlay' });
   constructor(
     private root: SVGGElement,
     private pattern: SVGPatternElement,
@@ -25,6 +34,15 @@ export class SvgRenderer {
     state: CanvasState,
     size: Size,
     sourceId: string | null = null,
+    selected: readonly string[] = [],
+    marquee: Bounds | null = null,
+    snapping = false,
+    targets: readonly string[] = [],
+    connectionPreview: {
+      start: Point;
+      end: Point;
+      arrow: boolean;
+    } | null = null,
   ): boolean {
     const { camera, grid } = state;
     const step = gridStep(grid.spacing, camera.zoom) * camera.zoom;
@@ -41,8 +59,18 @@ export class SvgRenderer {
     this.grid.style.display = grid.visible ? '' : 'none';
     const visible = visibleScene(scene, visibleBounds(camera, size));
     const wanted = new Set<string>();
-    const add = (key: string, create: () => SVGElement) => {
+    const targetIds = new Set(targets);
+    const add = (
+      key: string,
+      model: SceneNode | SceneConnection,
+      create: () => SVGElement,
+    ) => {
       wanted.add(key);
+      if (this.models.get(key) !== model) {
+        this.elements.get(key)?.remove();
+        this.elements.delete(key);
+      }
+      this.models.set(key, model);
       if (!this.elements.has(key)) {
         const element = create();
         this.elements.set(key, element);
@@ -51,24 +79,30 @@ export class SvgRenderer {
       this.elements
         .get(key)!
         .classList.toggle('connection-source', key === `node:${sourceId}`);
+      this.elements
+        .get(key)!
+        .classList.toggle('connection-target', targetIds.has(model.id));
     };
     const entries = [
       ...visible.connections.slice(0, MAX_VISIBLE).map((edge) => ({
         key: `edge:${edge.id}`,
+        model: edge,
         order: edge.layerOrder,
         create: () => renderEdge(edge),
       })),
       ...visible.nodes.slice(0, MAX_VISIBLE).map((node) => ({
         key: `node:${node.id}`,
+        model: node,
         order: node.layerOrder,
         create: () => renderNode(node),
       })),
     ].sort((a, b) => a.order - b.order);
-    for (const entry of entries) add(entry.key, entry.create);
+    for (const entry of entries) add(entry.key, entry.model, entry.create);
     for (const [key, element] of this.elements)
       if (!wanted.has(key)) {
         element.remove();
         this.elements.delete(key);
+        this.models.delete(key);
       }
     // Culling must not change paint order when earlier elements re-enter the view.
     let cursor = this.root.firstElementChild;
@@ -77,6 +111,95 @@ export class SvgRenderer {
       if (element !== cursor) this.root.insertBefore(element, cursor);
       cursor = element.nextElementSibling;
     }
+    this.overlay.replaceChildren();
+    if (connectionPreview) {
+      const { start, end, arrow } = connectionPreview;
+      this.overlay.append(
+        svg('path', {
+          d: `M ${start.x} ${start.y} L ${end.x} ${end.y}`,
+          class: 'connection-preview',
+          'stroke-width': 2 / camera.zoom,
+        }),
+      );
+      if (arrow)
+        this.overlay.append(
+          arrowhead(
+            end.x,
+            end.y,
+            (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI,
+            'var(--accent)',
+            2 / camera.zoom,
+          ),
+        );
+    }
+    const selection = new Set(selected);
+    for (const n of visible.nodes
+      .slice(0, MAX_VISIBLE)
+      .filter((n) => selection.has(n.id))) {
+      const g = n.geometry;
+      if (isDrawing(n.kind)) {
+        const [a, b] = lineEndpoints(g);
+        this.overlay.append(
+          svg('path', {
+            d: `M ${a.x} ${a.y} L ${b.x} ${b.y}`,
+            class: 'selection-outline',
+            'stroke-width': 5 / camera.zoom,
+          }),
+        );
+      } else
+        this.overlay.append(
+          svg('rect', {
+            x: g.x,
+            y: g.y,
+            width: g.width,
+            height: g.height,
+            transform: `rotate(${g.rotation} ${g.x + g.width / 2} ${g.y + g.height / 2})`,
+            class: 'selection-outline',
+            'stroke-width': 1.5 / camera.zoom,
+          }),
+        );
+      if (selected.length === 1) {
+        const handles = isDrawing(n.kind)
+          ? lineEndpoints(g).map((p, i) => ({ p, handle: i ? 'end' : 'start' }))
+          : resizeHandles.map((handle) => ({
+              p: handlePoint(g, handle),
+              handle,
+            }));
+        for (const { p, handle } of handles)
+          this.overlay.append(
+            svg('rect', {
+              x: p.x - 5 / camera.zoom,
+              y: p.y - 5 / camera.zoom,
+              width: 10 / camera.zoom,
+              height: 10 / camera.zoom,
+              rx: 2 / camera.zoom,
+              'stroke-width': 1.5 / camera.zoom,
+              class: 'resize-handle',
+              'data-resize-id': n.id,
+              'data-handle': handle,
+            }),
+          );
+      }
+    }
+    for (const e of visible.connections
+      .slice(0, MAX_VISIBLE)
+      .filter((e) => selection.has(e.id)))
+      this.overlay.append(
+        svg('path', {
+          d: e.path,
+          class: 'selection-outline',
+          'stroke-width': 5 / camera.zoom,
+        }),
+      );
+    if (marquee)
+      this.overlay.append(
+        svg('rect', {
+          ...marquee,
+          class: snapping ? 'creation-preview' : 'selection-marquee',
+          'stroke-width': 1 / camera.zoom,
+        }),
+      );
+    this.root.append(this.overlay);
     return (
       visible.nodes.length > MAX_VISIBLE ||
       visible.connections.length > MAX_VISIBLE
@@ -85,6 +208,7 @@ export class SvgRenderer {
   clear() {
     this.root.replaceChildren();
     this.elements.clear();
+    this.models.clear();
   }
 }
 
@@ -110,6 +234,31 @@ function textLines(label: string, width: number, fontSize: number): string[] {
   return lines;
 }
 function renderNode(node: SceneNode): SVGElement {
+  if (isDrawing(node.kind)) {
+    const [a, b] = lineEndpoints(node.geometry);
+    const angle = node.geometry.rotation;
+    const group = renderEdge({
+      ...node,
+      path: `M ${a.x} ${a.y} L ${b.x} ${b.y}`,
+      points: [a, b],
+      labelPoint: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+      angle,
+      arrow: !!node.endArrow,
+    });
+    group.removeAttribute('data-connection-id');
+    group.setAttribute('data-node-id', node.id);
+    if (node.startArrow)
+      group.append(
+        arrowhead(
+          a.x,
+          a.y,
+          angle + 180,
+          node.style.stroke,
+          node.style.strokeWidth,
+        ),
+      );
+    return group;
+  }
   const g = node.geometry,
     s = node.style;
   const group = svg('g', {
@@ -162,6 +311,10 @@ function renderNode(node: SceneNode): SVGElement {
         : 'scene-label',
     fill: s.textColor,
     'font-size': s.fontSize,
+    'font-family': FONT_FAMILIES[s.fontFamily],
+    'font-weight': s.fontWeight,
+    'font-style': s.fontStyle,
+    'text-decoration': s.textDecoration,
     'text-anchor':
       s.align === 'left' ? 'start' : s.align === 'right' ? 'end' : 'middle',
     opacity: s.opacity,
@@ -196,6 +349,16 @@ function renderEdge(edge: SceneConnection): SVGElement {
       'stroke-width': s.strokeWidth,
     }),
   );
+  group.append(
+    svg('path', {
+      d: edge.path,
+      fill: 'none',
+      stroke: 'transparent',
+      'stroke-width': Math.max(12, s.strokeWidth),
+      'vector-effect': 'non-scaling-stroke',
+      class: 'connection-hit',
+    }),
+  );
   if (edge.arrow) {
     const end = edge.points.at(-1)!;
     const size = Math.max(8, s.strokeWidth * 3);
@@ -215,7 +378,12 @@ function renderEdge(edge: SceneConnection): SVGElement {
       y: edge.labelPoint.y - 8,
       fill: s.textColor,
       'font-size': s.fontSize,
-      'text-anchor': 'middle',
+      'font-family': FONT_FAMILIES[s.fontFamily],
+      'font-weight': s.fontWeight,
+      'font-style': s.fontStyle,
+      'text-decoration': s.textDecoration,
+      'text-anchor':
+        s.align === 'left' ? 'start' : s.align === 'right' ? 'end' : 'middle',
     });
     textLines(edge.label, 240, s.fontSize)
       .slice(0, 8)
@@ -230,4 +398,20 @@ function renderEdge(edge: SceneConnection): SVGElement {
     group.append(label);
   }
   return group;
+}
+
+function arrowhead(
+  x: number,
+  y: number,
+  angle: number,
+  color: string,
+  stroke: number,
+) {
+  const size = Math.max(8, stroke * 3);
+  return svg('path', {
+    class: 'scene-arrow',
+    d: `M 0 0 L ${-size} ${-size / 2} L ${-size} ${size / 2} Z`,
+    fill: color,
+    transform: `translate(${x} ${y}) rotate(${angle})`,
+  });
 }
