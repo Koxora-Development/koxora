@@ -1,0 +1,57 @@
+# The website container, as the running deployment already arranges it: one
+# service, bound to the loopback address only, with the public Apache in front
+# of it. Nothing here publishes a new external port, and nothing here touches
+# another container.
+#
+# From the repository root:
+#   docker compose -f deploy/website/compose.yaml --project-directory . build
+#   docker compose -f deploy/website/compose.yaml --project-directory . up -d
+#
+# Verify a new image beside the running one before replacing anything:
+#   KOXORA_WEBSITE_CONTAINER=koxora-website-next KOXORA_WEBSITE_PORT=9403 \
+#     docker compose -f deploy/website/compose.yaml --project-directory . \
+#     -p koxora-website-next up -d
+name: koxora-website
+services:
+  website:
+    # The tag is the revision that was built, so a rollback is naming the
+    # previous one. `local` is the development default and is never deployed.
+    image: koxora-website:${KOXORA_WEBSITE_TAG:-local}
+    build:
+      context: .
+      dockerfile: deploy/website/Dockerfile
+      args:
+        KOXORA_SITE_ORIGIN: ${KOXORA_SITE_ORIGIN:-https://koxora.app}
+        KOXORA_SITE_EDITOR_URL: ${KOXORA_SITE_EDITOR_URL:-}
+        KOXORA_SITE_INDEXABLE: ${KOXORA_SITE_INDEXABLE:-true}
+        KOXORA_SITE_PUBLISHED: ${KOXORA_SITE_PUBLISHED:-false}
+        KOXORA_SITE_OPTIONAL_CONSENT: ${KOXORA_SITE_OPTIONAL_CONSENT:-}
+        KOXORA_SITE_CONTENT_DATE: ${KOXORA_SITE_CONTENT_DATE:-}
+    container_name: ${KOXORA_WEBSITE_CONTAINER:-koxora-website}
+    restart: unless-stopped
+    # Loopback only. The address Apache proxies to does not change, and no
+    # port becomes reachable from outside the host.
+    ports:
+      - '127.0.0.1:${KOXORA_WEBSITE_PORT:-9402}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --quiet --spider --tries=1 http://127.0.0.1:8080/healthz || exit 1',
+        ]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
