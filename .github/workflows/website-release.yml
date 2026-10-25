@@ -222,14 +222,30 @@ jobs:
           echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
           docker pull "$IMAGE"
           # Start the new container beside the running one, on another port,
-          # and ask it for a page before anything is swapped.
+          # and ask it for a page before anything is swapped. 9404 is the
+          # port reserved for this check: 9402 is the website the public
+          # Apache proxies to and 9403 is the contact service, so binding
+          # either would fail the release instead of verifying it.
           docker rm -f koxora-website-next 2>/dev/null || true
+          # The probe opens its socket in a subshell, which closes it on
+          # exit. Do not add `exec 3>&-` here: `exec` with redirections and
+          # no command applies them to this shell for good, so a stray
+          # `2>/dev/null` on it would silence every message below.
+          if (exec 3<>/dev/tcp/127.0.0.1/9404) 2>/dev/null; then
+            echo "127.0.0.1:9404 is already in use, so this release cannot" >&2
+            echo "verify the new image beside the running one. Nothing was" >&2
+            echo "changed and the running release is untouched. Free that" >&2
+            echo "port, or set KOXORA_SITE_VERIFICATION_PORT and the port in" >&2
+            echo "this workflow to one nothing holds; see the port table in" >&2
+            echo "docs/development/website-container.md." >&2
+            exit 1
+          fi
           docker run --detach --name koxora-website-next \
-            --restart no --publish 127.0.0.1:9403:8080 "$IMAGE"
+            --restart no --publish 127.0.0.1:9404:8080 "$IMAGE"
           healthy=false
           for attempt in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:9403/healthz > /dev/null \
-               && curl -fsS -o /dev/null http://127.0.0.1:9403/en/; then
+            if curl -fsS http://127.0.0.1:9404/healthz > /dev/null \
+               && curl -fsS -o /dev/null http://127.0.0.1:9404/en/; then
               healthy=true
               break
             fi
