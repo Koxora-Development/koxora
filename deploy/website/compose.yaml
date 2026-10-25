@@ -8,7 +8,7 @@
 #   docker compose -f deploy/website/compose.yaml --project-directory . up -d
 #
 # Verify a new image beside the running one before replacing anything:
-#   KOXORA_WEBSITE_CONTAINER=koxora-website-next KOXORA_WEBSITE_PORT=9404 \
+#   KOXORA_WEBSITE_CONTAINER=koxora-website-next KOXORA_WEBSITE_PORT=9403 \
 #     docker compose -f deploy/website/compose.yaml --project-directory . \
 #     -p koxora-website-next up -d
 name: koxora-website

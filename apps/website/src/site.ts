@@ -98,9 +98,10 @@ export const site: SiteConfig = {
     listenPort: Number(env('KOXORA_SITE_LISTEN_PORT') ?? 8080),
     // Where a new image answers while it is checked beside the running one.
     // It must differ from every permanently bound loopback port on the host,
-    // because a release that cannot bind this one cannot verify anything:
-    // 9402 is the website Apache proxies to and 9403 is the contact service.
-    verificationPort: Number(env('KOXORA_SITE_VERIFICATION_PORT') ?? 9404),
+    // because a release that cannot bind this one cannot verify anything.
+    // 9402 is the website Apache proxies to; nothing else here binds a port,
+    // because the contact endpoint runs under PHP-FPM through Apache.
+    verificationPort: Number(env('KOXORA_SITE_VERIFICATION_PORT') ?? 9403),
   },
   editorUrl: env('KOXORA_SITE_EDITOR_URL')?.replace(/\/?$/, '/') ?? null,
   optionalConsent: (env('KOXORA_SITE_OPTIONAL_CONSENT') ?? '')

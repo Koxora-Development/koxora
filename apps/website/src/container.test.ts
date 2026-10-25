@@ -120,13 +120,13 @@ describe('the compose file', () => {
   });
   it('verifies a new image on a port no permanent service holds', () => {
     // The side-by-side check starts a second container while the first one
-    // keeps serving. Every loopback port a permanent service binds is
-    // therefore unusable for it: 9402 is the website the public Apache
-    // proxies to, and 9403 is the contact service of Website W2.2. Binding
-    // either would fail the release instead of verifying it.
+    // keeps serving, so it cannot use a port a permanent service binds.
+    // 9402 is the website the public Apache proxies to; binding it would
+    // fail the release instead of verifying it. The contact endpoint of
+    // Website W2.2 binds no port at all: it runs under PHP-FPM, which
+    // Apache reaches over its own socket, so 9403 is free for this check.
     const reserved = new Map([
       [site.container.port, 'the website the public proxy forwards to'],
-      [9403, 'the contact service (Website W2.2)'],
     ]);
     const held = reserved.get(site.container.verificationPort);
     expect(held, `the verification port is ${held}`).toBeUndefined();
