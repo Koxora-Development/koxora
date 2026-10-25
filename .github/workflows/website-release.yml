@@ -1,0 +1,286 @@
+# Releasing the marketing website, and nothing else.
+#
+# The studio and the desktop application have their own releases; this
+# workflow touches only the website image and the website container, and its
+# paths, its image name and its deployment target all say so.
+#
+# It never runs on a push. Building a release and deploying one are two
+# separate manual steps, and the deployment step waits for a human in a
+# protected environment. docs/development/website-release.md describes the
+# environments, the secrets and the one-time setup this needs; until that
+# setup exists the deployment job fails at its first step rather than doing
+# half a release.
+#
+# Only first-party actions are used, each pinned to the commit the rest of
+# this repository already pins. Everything else is a shell command, so no
+# third-party action receives the registry token or the deployment key.
+name: Website release
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: 'Commit on main to release. Defaults to the current main.'
+        required: false
+        type: string
+      deploy:
+        description: 'Deploy the image after building it'
+        required: true
+        type: boolean
+        default: false
+      content_date:
+        description: 'Editorial review date (YYYY-MM-DD), printed on the site'
+        required: true
+        type: string
+      published:
+        description: 'Render the launched copy (KOXORA_SITE_PUBLISHED)'
+        required: true
+        type: boolean
+        default: true
+      indexable:
+        description: 'Allow search engines (KOXORA_SITE_INDEXABLE)'
+        required: true
+        type: boolean
+        default: true
+      editor_url:
+        description: 'Address of the published studio, or empty while there is none'
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  # One website release at a time. A second dispatch waits rather than racing
+  # the first one onto the same host.
+  group: website-release
+  cancel-in-progress: false
+jobs:
+  build:
+    name: Build and publish the image
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      revision: ${{ steps.resolve.outputs.revision }}
+      image: ${{ steps.publish.outputs.image }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ inputs.revision || 'main' }}
+          fetch-depth: 0
+      - name: Resolve the revision being released
+        id: resolve
+        run: |
+          set -euo pipefail
+          revision="$(git rev-parse HEAD)"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          # A release is cut from main. Releasing an arbitrary branch would
+          # put unreviewed code on the public site.
+          git merge-base --is-ancestor "$revision" origin/main
+          echo "Releasing $revision"
+      - name: Check the content date is a date, and not in the past year
+        run: |
+          set -euo pipefail
+          date -d '${{ inputs.content_date }}' +%Y-%m-%d > /dev/null
+          # The security contact file expires a year after this date, so a
+          # stale one would publish an expired contact.
+          if [ "$(date -d '${{ inputs.content_date }}' +%s)" -lt "$(date -d '-30 days' +%s)" ]; then
+            echo "The content date is more than 30 days old; review the content first." >&2
+            exit 1
+          fi
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The same checks the pull request ran, against the exact revision being
+      # released. A release is not the moment to trust an earlier run.
+      - run: pnpm check
+      - run: pnpm audit --audit-level high
+      - name: Install NGINX with the njs module
+        run: sudo apt-get update && sudo apt-get install -y nginx-light libnginx-mod-http-js
+      - name: Build the site with the deployment inputs
+        env:
+          KOXORA_SITE_ORIGIN: https://koxora.app
+          KOXORA_SITE_CONTENT_DATE: ${{ inputs.content_date }}
+          KOXORA_SITE_PUBLISHED: ${{ inputs.published }}
+          KOXORA_SITE_INDEXABLE: ${{ inputs.indexable }}
+          KOXORA_SITE_EDITOR_URL: ${{ inputs.editor_url }}
+        run: pnpm website:build
+      - name: Prove the generated configuration against a real NGINX
+        run: pnpm website:nginx
+      - run: pnpm website:container
+      - name: Log in to the container registry
+        run: |
+          set -euo pipefail
+          echo '${{ secrets.GITHUB_TOKEN }}' \
+            | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+      - name: Build and publish the image under an immutable tag
+        id: publish
+        env:
+          REVISION: ${{ steps.resolve.outputs.revision }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/koxora-website"
+          # The tag is the revision. It is never moved, never reused, and
+          # never `latest`: a rollback is naming the previous one.
+          tag="$image:$REVISION"
+          docker build \
+            --file deploy/website/Dockerfile \
+            --build-arg "KOXORA_SITE_ORIGIN=https://koxora.app" \
+            --build-arg "KOXORA_SITE_CONTENT_DATE=${{ inputs.content_date }}" \
+            --build-arg "KOXORA_SITE_PUBLISHED=${{ inputs.published }}" \
+            --build-arg "KOXORA_SITE_INDEXABLE=${{ inputs.indexable }}" \
+            --build-arg "KOXORA_SITE_EDITOR_URL=${{ inputs.editor_url }}" \
+            --label "org.opencontainers.image.revision=$REVISION" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            --tag "$tag" \
+            .
+          # The image proves itself: its own build ran nginx -t, and this
+          # runs the container and asks it for a page before it is published.
+          docker run --rm --detach --name release-check --publish 127.0.0.1:8099:8080 "$tag"
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8099/healthz > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8099/healthz
+          curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8099/en/ | grep -q '^200$'
+          curl -fsS -o /dev/null -D - --max-redirs 0 \
+            -H 'Accept-Language: de-DE,de;q=0.9' http://127.0.0.1:8099/ | grep -qi 'location: /de/'
+          docker logs release-check > image-logs.txt 2>&1 || true
+          docker stop release-check
+          docker push "$tag"
+          echo "image=$tag" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: website-release-${{ steps.resolve.outputs.revision }}
+          path: |
+            apps/website/dist-deploy/build-info.json
+            image-logs.txt
+          retention-days: 30
+  deploy:
+    name: Deploy to the website host
+    needs: build
+    if: inputs.deploy
+    runs-on: ubuntu-24.04
+    # The release gate. The environment carries the required reviewers, so
+    # this job waits for a person before anything reaches the public host,
+    # and it holds the host, the user and the key, which exist nowhere in
+    # this repository.
+    environment: website-production
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check the deployment settings exist
+        env:
+          HOST: ${{ secrets.WEBSITE_HOST }}
+          USER: ${{ secrets.WEBSITE_USER }}
+          KEY: ${{ secrets.WEBSITE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          for name in HOST USER KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "The website-production environment is missing $name." >&2
+              echo "See docs/development/website-release.md for the setup." >&2
+              exit 1
+            fi
+          done
+      - name: Open an authenticated connection to the host
+        env:
+          KEY: ${{ secrets.WEBSITE_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.WEBSITE_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_release
+          chmod 600 ~/.ssh/id_release
+          # The host key is pinned, so this cannot be pointed at another
+          # machine by a changed DNS answer.
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Swap the container, and put the old one back if it is not healthy
+        env:
+          HOST: ${{ secrets.WEBSITE_HOST }}
+          USER: ${{ secrets.WEBSITE_USER }}
+          IMAGE: ${{ needs.build.outputs.image }}
+          REVISION: ${{ needs.build.outputs.revision }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          # The whole deployment is one script on the host, so a connection
+          # that drops halfway cannot leave the swap half done.
+          ssh -i ~/.ssh/id_release -o BatchMode=yes "$USER@$HOST" \
+            REGISTRY_USER="$REGISTRY_USER" REGISTRY_TOKEN="$REGISTRY_TOKEN" \
+            IMAGE="$IMAGE" REVISION="$REVISION" 'bash -euo pipefail -s' <<'REMOTE'
+          cd /opt/koxora-website
+          previous="$(docker inspect --format '{{.Config.Image}}' koxora-website 2>/dev/null || true)"
+          echo "Currently running: ${previous:-nothing}"
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
+          docker pull "$IMAGE"
+          # Start the new container beside the running one, on another port,
+          # and ask it for a page before anything is swapped.
+          docker rm -f koxora-website-next 2>/dev/null || true
+          docker run --detach --name koxora-website-next \
+            --restart no --publish 127.0.0.1:9403:8080 "$IMAGE"
+          healthy=false
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:9403/healthz > /dev/null \
+               && curl -fsS -o /dev/null http://127.0.0.1:9403/en/; then
+              healthy=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$healthy" != true ]; then
+            echo "The new container did not become healthy; nothing was swapped." >&2
+            docker logs --tail 100 koxora-website-next >&2 || true
+            docker rm -f koxora-website-next
+            exit 1
+          fi
+          docker rm -f koxora-website-next
+          # Only now is the running container replaced. The previous image is
+          # kept, so putting it back needs no build.
+          echo "KOXORA_WEBSITE_TAG=$REVISION" > .env.release
+          docker rm -f koxora-website 2>/dev/null || true
+          docker run --detach --name koxora-website \
+            --restart unless-stopped --read-only --tmpfs /tmp \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            --publish 127.0.0.1:9402:8080 "$IMAGE"
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:9402/healthz > /dev/null; then
+              echo "The new release is serving."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "The new release did not answer on the published port; rolling back." >&2
+          docker logs --tail 100 koxora-website >&2 || true
+          docker rm -f koxora-website
+          if [ -n "$previous" ]; then
+            docker run --detach --name koxora-website \
+              --restart unless-stopped --read-only --tmpfs /tmp \
+              --cap-drop ALL --security-opt no-new-privileges:true \
+              --publish 127.0.0.1:9402:8080 "$previous"
+            echo "The previous image is running again." >&2
+          fi
+          exit 1
+          REMOTE
+      - name: Check the public address answers
+        env:
+          HOST: ${{ secrets.WEBSITE_HOST }}
+          USER: ${{ secrets.WEBSITE_USER }}
+        run: |
+          set -euo pipefail
+          curl -fsS -o /dev/null -w 'home: %{http_code}\n' https://koxora.app/en/
+          curl -fsS -o /dev/null -D - --max-redirs 0 \
+            -H 'Accept-Language: de-DE,de;q=0.9' https://koxora.app/ \
+            | grep -qi 'location: /de/'
+          curl -fsS https://koxora.app/sitemap.xml > /dev/null
+          echo "The public address is serving the release."
+      - name: Forget the key
+        if: always()
+        run: shred --remove ~/.ssh/id_release 2>/dev/null || rm -f ~/.ssh/id_release

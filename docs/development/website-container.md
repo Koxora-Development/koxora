@@ -114,5 +114,5 @@ The old directory and the old image are not deleted by any of this. Nothing in t
 
 - No image was built and no container was run, because there is no Docker daemon in the development environment.
 - No migration, no production change, no DNS, Cloudflare or TinyCP change.
-- No release automation: that is W2.4b, which builds the image in continuous integration, tags it immutably, deploys it behind an approval and rolls back on a failed healthcheck.
+- No release automation in this document: that is [the release workflow](website-release.md), which builds the image, tags it immutably, deploys it behind an approval and rolls back on a failed healthcheck.
 - No change to the website's content, addresses or behaviour. The image serves exactly what `pnpm website:build` produces.

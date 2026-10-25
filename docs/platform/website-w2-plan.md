@@ -28,7 +28,7 @@ Each row is one pull request against `main`.
 | W2.1 | Comparisons and comparison SEO | Sourced comparison table, per-claim sources and review dates, the three comparison landing pages and their localized addresses | W2.0 for the route table only |
 | W2.2 | Contact form | Architecture first, then the form, the server-side delivery component, rate limiting, spam defence, privacy text | W2.4a, because the form needs a service next to the static site |
 | W2.3 | Documentation, FAQ, product content | The eight documentation areas, real studio screenshots, the available/in development/planned distinction | W2.1 for the shared content components |
-| W2.4b | Release automation | Reproducible build, immutable tags, approval-gated deployment, healthcheck, rollback | W2.4a |
+| W2.4b | Release automation | Reproducible build, immutable tags, approval-gated deployment, healthcheck, rollback. **Implemented; see [the release document](../development/website-release.md)** | W2.4a |
 
 The order is deliberate: W2.0 and W2.4a make the live deployment reproducible before anything new is added to it, and the contact form is the only slice that introduces a server-side component, so it stays last among the content slices and carries its own security review.
 
