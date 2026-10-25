@@ -25,7 +25,7 @@ Each row is one pull request against `main`.
 | --- | --- | --- | --- |
 | W2.0 | Domains, language detection, remembered language | Shared negotiation algorithm, stored choice, reworked root gateway, generated NGINX container configuration, generated Apache reverse-proxy and alias-domain fragments, storage inventory and privacy text, unit and browser tests, operator runbook | — |
 | W2.4a | Versioned container | Multi-stage `Dockerfile` including the NGINX njs module the language decision needs, Compose file, healthcheck, image tags, and the documented migration of the running container onto the generated configuration | W2.0 (it produces the NGINX files the image needs) |
-| W2.1 | Comparisons and comparison SEO | Sourced comparison table, per-claim sources and review dates, the three comparison landing pages and their localized addresses | W2.0 for the route table only |
+| W2.1 | Comparisons and comparison SEO | Sourced comparison table, per-claim sources and review dates, the three comparison landing pages and their localized addresses. **Implemented; see [the comparison document](website-comparison.md)** | W2.0 for the route table only |
 | W2.2 | Contact form | Architecture first, then the form, the server-side delivery component, rate limiting, spam defence, privacy text | W2.4a, because the form needs a service next to the static site |
 | W2.3 | Documentation, FAQ, product content | The eight documentation areas, real studio screenshots, the available/in development/planned distinction | W2.1 for the shared content components |
 | W2.4b | Release automation | Reproducible build, immutable tags, approval-gated deployment, healthcheck, rollback | W2.4a |

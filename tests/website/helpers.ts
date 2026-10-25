@@ -6,6 +6,17 @@ export const pages = [
   { id: 'features', en: '/en/features/', de: '/de/funktionen/' },
   { id: 'localFirst', en: '/en/local-first/', de: '/de/local-first/' },
   { id: 'compare', en: '/en/compare/', de: '/de/vergleich/' },
+  {
+    id: 'compareDrawio',
+    en: '/en/compare/drawio/',
+    de: '/de/vergleich/drawio/',
+  },
+  { id: 'compareMiro', en: '/en/compare/miro/', de: '/de/vergleich/miro/' },
+  {
+    id: 'compareLucidchart',
+    en: '/en/compare/lucidchart/',
+    de: '/de/vergleich/lucidchart/',
+  },
   { id: 'roadmap', en: '/en/roadmap/', de: '/de/roadmap/' },
   { id: 'download', en: '/en/download/', de: '/de/download/' },
   { id: 'docs', en: '/en/docs/', de: '/de/dokumentation/' },
