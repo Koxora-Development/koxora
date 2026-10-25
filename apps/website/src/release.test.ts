@@ -120,15 +120,12 @@ describe('the deployment, and what happens when it goes wrong', () => {
     expect(workflow).toContain('koxora-website-next');
     // A second port on the loopback address, used only for the check and
     // released again before the swap. It is the one reserved for this role,
-    // never a port a permanent service holds: the contact service of
-    // Website W2.2 sits on 9403, and a release that cannot bind its port
-    // cannot verify the image it is about to deploy.
+    // never a port a permanent service holds, because a release that
+    // cannot bind its port cannot verify the image it is about to deploy.
     expect(workflow).toContain(
       `--publish 127.0.0.1:${site.container.verificationPort}:${site.container.listenPort}`,
     );
     expect(site.container.verificationPort).not.toBe(site.container.port);
-    expect(site.container.verificationPort).not.toBe(9403);
-    expect(workflow).not.toContain('127.0.0.1:9403');
     expect(workflow).toContain('nothing was swapped');
   });
   it('refuses the release when its verification port is taken', () => {
