@@ -6,7 +6,8 @@
   "license": "UNLICENSED",
   "exports": {
     ".": "./src/index.tsx",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./control-icons": "./src/control-icons.ts"
   },
   "dependencies": {
     "react": "19.3.1"

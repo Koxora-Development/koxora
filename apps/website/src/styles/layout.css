@@ -95,45 +95,152 @@
   gap: 14px;
   flex-wrap: wrap;
 }
-.language ul {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-.language li + li::before {
-  content: '';
-  display: inline-block;
-  width: 1px;
-  height: 11px;
-  margin-right: 8px;
-  background: var(--border-strong);
-  vertical-align: -1px;
-}
-.language a {
-  color: var(--faint);
-  text-decoration: none;
-}
-.language a:hover {
-  color: var(--text);
-}
-.language .language-active {
-  color: var(--text);
-  font-weight: 700;
-}
-.theme-toggle {
-  width: 36px;
-  height: 36px;
+/* Header controls. The appearance switch and the language switch are one
+   shared pattern with the studio: a round icon button of the same size, the
+   same border and surface, the same focus treatment, and for the language
+   switch a popover of the same width. See
+   docs/design/shared-header-controls.md. */
+.control-button {
+  position: relative;
+  width: var(--control-size);
+  height: var(--control-size);
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--panel-2);
+  color: var(--text);
   display: inline-grid;
   place-items: center;
   cursor: pointer;
 }
+/* The visible circle stays small while the area a finger has to hit does not. */
+.control-button::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--control-size) - var(--control-touch)) / 2);
+}
+.control-button:hover {
+  border-color: var(--border-strong);
+  background: var(--panel-3);
+}
+.control-button .icon {
+  width: var(--control-icon);
+  height: var(--control-icon);
+  color: var(--violet-strong);
+}
+.language-popover {
+  position: relative;
+}
+/* Without scripting there is nothing for this button to open, so it does not
+   exist for a pointer or for assistive technology either. */
+.language-toggle {
+  display: none;
+}
+html[data-js='on'] .language-toggle {
+  display: inline-grid;
+}
+.language-menu {
+  font-size: 13px;
+}
+.language-menu-title {
+  display: none;
+}
+.language-inline ul,
+html:not([data-js='on']) .language-menu ul {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--faint);
+  text-decoration: none;
+}
+.language-option:hover {
+  color: var(--text);
+}
+.language-option.language-current {
+  color: var(--text);
+  font-weight: 650;
+}
+.language-pictogram {
+  font-size: 15px;
+  line-height: 1;
+}
+.language-name {
+  flex: 1;
+}
+.control-selected {
+  width: 15px;
+  height: 15px;
+  color: var(--violet-strong);
+  flex: none;
+}
+.language-inline .control-selected,
+html:not([data-js='on']) .language-menu .control-selected {
+  display: none;
+}
+/* With scripting the list becomes a popover under the globe button. The
+   stylesheet collapses it before first paint, using the flag the blocking
+   inline script sets, so the header never shows the open list first. */
+html[data-js='on'] .language-menu {
+  position: absolute;
+  top: calc(100% + var(--control-menu-offset));
+  right: 0;
+  z-index: 60;
+  width: min(var(--control-menu-width), calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+html[data-js='on'] .language-menu:not([data-open='true']) {
+  display: none;
+}
+/* The gap between the button and the menu belongs to the menu, so a pointer
+   travelling from one to the other never leaves the control. */
+html[data-js='on'] .language-menu::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--control-menu-offset);
+}
+html[data-js='on'] .language-menu-title {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 750;
+  color: var(--faint);
+  margin-bottom: 10px;
+}
+html[data-js='on'] .language-menu li + li {
+  margin-top: 2px;
+}
+html[data-js='on'] .language-option {
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+html[data-js='on'] .language-option:hover {
+  background: var(--panel-2);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .language-option,
+  .control-button {
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+}
 .theme-toggle .theme-icon {
-  width: 17px;
-  height: 17px;
+  width: var(--control-icon);
+  height: var(--control-icon);
   color: var(--violet-strong);
 }
 /* The control offers the appearance it would switch to: a sun while the dark
@@ -166,6 +273,12 @@
      scripting it stays expanded and usable. */
   html[data-js='on'] .header-menu:not([data-open='true']) {
     display: none;
+  }
+  /* In the collapsed layout the controls sit at the left edge, so the menu
+     opens to the right of its button instead of running off the screen. */
+  html[data-js='on'] .language-menu {
+    right: auto;
+    left: 0;
   }
   .primary-nav ul {
     flex-direction: column;

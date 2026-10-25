@@ -53,3 +53,13 @@ export async function openNavigation(page: Page) {
   const toggle = page.locator('[data-menu-toggle]');
   if (await toggle.isVisible()) await toggle.click();
 }
+/** Opens the language popover, after the collapsed header menu where needed. */
+export async function openLanguageMenu(page: Page) {
+  await openNavigation(page);
+  const toggle = page.locator('[data-language-toggle]');
+  if (
+    (await toggle.isVisible()) &&
+    (await toggle.getAttribute('aria-expanded')) !== 'true'
+  )
+    await toggle.click();
+}

@@ -95,6 +95,9 @@ importers:
       '@koxora/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@koxora/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       react:
         specifier: 19.3.1
         version: 19.3.1

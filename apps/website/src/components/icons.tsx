@@ -1,4 +1,9 @@
 import type { IconName } from '../content/data';
+import {
+  controlIconGrid,
+  controlIcons,
+  type ControlIconName,
+} from '@koxora/ui/control-icons';
 // Single-path line icons drawn on a 24-unit grid, inlined so that the page
 // needs no icon font and no extra request.
 const paths: Record<IconName, string> = {
@@ -48,40 +53,48 @@ export function Icon({ name }: { name: IconName }) {
     </svg>
   );
 }
-export function SunIcon() {
+// The appearance and language controls share their artwork with the studio,
+// so both are drawn from the same data rather than from a copied path string.
+export function ControlGlyph({
+  name,
+  className,
+}: {
+  name: ControlIconName;
+  className?: string;
+}) {
+  const glyph = controlIcons[name];
   return (
     <svg
-      className="icon theme-icon theme-icon-sun"
-      viewBox="0 0 24 24"
+      className={className ? `icon ${className}` : 'icon'}
+      viewBox={controlIconGrid.viewBox}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeWidth={controlIconGrid.strokeWidth}
+      strokeLinecap={controlIconGrid.strokeLinecap}
+      strokeLinejoin={controlIconGrid.strokeLinejoin}
       aria-hidden="true"
       focusable="false"
     >
-      <circle cx="12" cy="12" r="4.2" />
-      <path d="M12 2.6v2.1M12 19.3v2.1M4.4 4.4l1.5 1.5M18.1 18.1l1.5 1.5M2.6 12h2.1M19.3 12h2.1M4.4 19.6l1.5-1.5M18.1 5.9l1.5-1.5" />
+      {glyph.circles?.map(([cx, cy, r]) => (
+        <circle key={`${cx} ${cy} ${r}`} cx={cx} cy={cy} r={r} />
+      ))}
+      {glyph.paths.map((d) => (
+        <path key={d} d={d} />
+      ))}
     </svg>
   );
 }
+export function SunIcon() {
+  return <ControlGlyph name="sun" className="theme-icon theme-icon-sun" />;
+}
 export function MoonIcon() {
-  return (
-    <svg
-      className="icon theme-icon theme-icon-moon"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M20.2 14.2A8.4 8.4 0 0 1 9.8 3.8a8.4 8.4 0 1 0 10.4 10.4" />
-    </svg>
-  );
+  return <ControlGlyph name="moon" className="theme-icon theme-icon-moon" />;
+}
+export function GlobeIcon() {
+  return <ControlGlyph name="globe" className="control-icon" />;
+}
+export function SelectedIcon() {
+  return <ControlGlyph name="check" className="control-selected" />;
 }
 export function ArrowIcon() {
   return (

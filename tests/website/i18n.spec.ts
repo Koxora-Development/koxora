@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { allPaths, openNavigation, pages } from './helpers';
+import { allPaths, openLanguageMenu, pages } from './helpers';
 import { catalog } from '../../apps/website/src/content/catalog';
 import { pageRegistry } from '../../apps/website/src/pages/registry';
 test.describe('languages', () => {
@@ -29,10 +29,10 @@ test.describe('languages', () => {
   }) => {
     for (const entry of pages) {
       await page.goto(entry.en);
-      await openNavigation(page);
+      await openLanguageMenu(page);
       await page.locator('.site-header .language a[hreflang="de"]').click();
       await expect(page, entry.id).toHaveURL(new RegExp(`${entry.de}$`));
-      await openNavigation(page);
+      await openLanguageMenu(page);
       await page.locator('.site-header .language a[hreflang="en"]').click();
       await expect(page, entry.id).toHaveURL(new RegExp(`${entry.en}$`));
     }

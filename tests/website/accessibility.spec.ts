@@ -58,15 +58,28 @@ test.describe('accessibility', () => {
     await page.goto('/de/');
     for (const name of [
       'Hauptnavigation',
-      'Sprache',
       'Sprache, im Fußbereich',
       'Fußbereichsnavigation',
     ])
       await expect(page.locator(`nav[aria-label="${name}"]`)).toHaveCount(1);
+    // The language popover in the header is named by its own heading, which a
+    // reader sees as well, rather than by a label only assistive technology
+    // reaches.
+    await expect(
+      page.locator('.site-header nav[aria-labelledby="language-menu-title"]'),
+    ).toHaveCount(1);
+    await expect(page.locator('#language-menu-title')).toHaveText(
+      'Sprache wählen',
+    );
     const names = await page
-      .locator('nav[aria-label]')
+      .locator('nav[aria-label], nav[aria-labelledby]')
       .evaluateAll((nodes) =>
-        nodes.map((node) => node.getAttribute('aria-label')!),
+        nodes.map((node) => {
+          const label = node.getAttribute('aria-label');
+          if (label) return label;
+          const id = node.getAttribute('aria-labelledby')!;
+          return document.getElementById(id)?.textContent ?? '';
+        }),
       );
     expect(
       new Set(names).size,

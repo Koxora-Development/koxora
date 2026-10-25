@@ -104,6 +104,103 @@ function setupMenu(): void {
     }
   });
 }
+// The language switch is a popover around ordinary links. Without this script
+// the links stay visible and usable, which is why nothing here creates them.
+function setupLanguageMenu(): void {
+  const root = document.querySelector<HTMLElement>('[data-language]');
+  const toggle = root?.querySelector<HTMLButtonElement>(
+    '[data-language-toggle]',
+  );
+  const menu = root?.querySelector<HTMLElement>('[data-language-menu]');
+  if (!root || !toggle || !menu) return;
+  const options = () => [...menu.querySelectorAll<HTMLAnchorElement>('a')];
+  let closeTimer = 0;
+  const setOpen = (open: boolean) => {
+    window.clearTimeout(closeTimer);
+    menu.dataset.open = open ? 'true' : 'false';
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  setOpen(false);
+  const close = (restoreFocus: boolean) => {
+    if (toggle.getAttribute('aria-expanded') !== 'true') return false;
+    setOpen(false);
+    if (restoreFocus) toggle.focus();
+    return true;
+  };
+  // A pointer user hovers the button before pressing it, so a plain toggle
+  // would close the menu the hover just opened. The first press after a hover
+  // therefore keeps it open; the next one closes it, as it does without hover.
+  let openedByHover = false;
+  toggle.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') === 'true';
+    if (open && openedByHover) {
+      openedByHover = false;
+      return;
+    }
+    setOpen(!open);
+  });
+  toggle.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    setOpen(true);
+    const entries = options();
+    (event.key === 'ArrowDown' ? entries[0] : entries.at(-1))?.focus();
+  });
+  menu.addEventListener('keydown', (event) => {
+    const entries = options();
+    const index = entries.indexOf(document.activeElement as HTMLAnchorElement);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      const next = (index + step + entries.length) % entries.length;
+      entries[next]?.focus();
+    } else if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      (event.key === 'Home' ? entries[0] : entries.at(-1))?.focus();
+    }
+  });
+  // Escape closes from anywhere inside the control, and the trigger takes the
+  // focus back so the keyboard order does not jump to the top of the page. It
+  // closes this menu only: the collapsed header menu around it listens for the
+  // same key, and the innermost open thing is the one a reader means.
+  root.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && close(true)) event.stopPropagation();
+  });
+  // Leaving the control by Tab closes it without stealing the focus back.
+  root.addEventListener('focusout', (event) => {
+    const next = event.relatedTarget;
+    if (next instanceof Node && root.contains(next)) return;
+    close(false);
+  });
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target instanceof Node && root.contains(target)) return;
+    close(false);
+  });
+  // Hover opens the menu only where a precise pointer exists. Touch and
+  // keyboard never depend on it, and the menu covers the gap below the button
+  // so moving the pointer into it does not close the menu.
+  try {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches)
+      return;
+  } catch {
+    return;
+  }
+  root.addEventListener('pointerenter', (event) => {
+    if (event.pointerType === 'touch') return;
+    openedByHover = toggle.getAttribute('aria-expanded') !== 'true';
+    setOpen(true);
+  });
+  root.addEventListener('pointerleave', (event) => {
+    if (event.pointerType === 'touch') return;
+    window.clearTimeout(closeTimer);
+    closeTimer = window.setTimeout(() => {
+      if (root.contains(document.activeElement)) return;
+      openedByHover = false;
+      close(false);
+    }, 140);
+  });
+}
 function formatTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -243,6 +340,7 @@ function setupActiveSection(): void {
 }
 setupTheme();
 setupMenu();
+setupLanguageMenu();
 setupConsent();
 setupActiveSection();
 export type { ConsentRecord };

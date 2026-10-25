@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Mark } from './logo';
-import { MoonIcon, SunIcon } from './icons';
+import { GlobeIcon, MoonIcon, SelectedIcon, SunIcon } from './icons';
 import { ConsentBanner, ConsentDialog, ConsentNoScript } from './consent-ui';
 import { site } from '../site';
 import {
@@ -10,7 +10,7 @@ import {
   type Locale,
   type RouteId,
 } from '../routes';
-import type { Translate } from '../content/catalog';
+import { catalog, type Translate } from '../content/catalog';
 import {
   navLabelKeys,
   studioLink,
@@ -22,43 +22,84 @@ import {
   consentRuntimeConfig,
 } from '../content/consent';
 import type { PageSeo } from '../seo';
+import { languagePictogram } from '@koxora/ui/control-icons';
 // Embedded JSON must not be able to end its own script element, whatever a
 // future message or label contains.
 function scriptSafeJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, '\\u003c');
 }
-function LanguageSwitch({
-  locale,
-  route,
-  t,
-  inFooter,
-}: PageContext & { inFooter?: boolean }) {
+// One list of languages, used by the header popover and by the plain footer
+// navigation. The entries are ordinary links to the equivalent page, so they
+// work before the enhancement script runs and without it entirely.
+function LanguageOptions({ locale, route, t }: PageContext) {
   return (
-    <nav
-      className="language"
-      aria-label={t(
-        inFooter ? 'a11y.languageNavigationFooter' : 'a11y.languageNavigation',
-      )}
-    >
-      <ul role="list">
-        {locales.map((candidate) => (
+    <ul role="list">
+      {locales.map((candidate) => {
+        const current = candidate === locale;
+        return (
           <li key={candidate}>
             <a
+              className={
+                current ? 'language-option language-current' : 'language-option'
+              }
               href={pathFor(route, candidate)}
               hrefLang={candidate}
               lang={candidate}
-              className={candidate === locale ? 'language-active' : undefined}
-              {...(candidate === locale ? { 'aria-current': 'true' } : {})}
+              {...(current ? { 'aria-current': 'true' } : {})}
             >
-              {t(
-                candidate === 'de'
-                  ? 'nav.languageGerman'
-                  : 'nav.languageEnglish',
-              )}
+              <span className="language-pictogram" aria-hidden="true">
+                {languagePictogram(candidate)}
+              </span>
+              <span className="language-name">{catalog.label(candidate)}</span>
+              {current ? (
+                <>
+                  <SelectedIcon />
+                  <span className="sr-only">{t('nav.languageCurrent')}</span>
+                </>
+              ) : null}
             </a>
           </li>
-        ))}
-      </ul>
+        );
+      })}
+    </ul>
+  );
+}
+function HeaderLanguage(context: PageContext) {
+  const { t } = context;
+  return (
+    <div className="language language-popover" data-language>
+      <button
+        className="control-button language-toggle"
+        type="button"
+        data-language-toggle
+        aria-expanded="false"
+        aria-controls="language-menu"
+        aria-label={t('nav.languageMenu')}
+        title={t('nav.languageMenu')}
+      >
+        <GlobeIcon />
+      </button>
+      <nav
+        className="language-menu"
+        id="language-menu"
+        data-language-menu
+        aria-labelledby="language-menu-title"
+      >
+        <p className="language-menu-title" id="language-menu-title">
+          {t('nav.languageMenu')}
+        </p>
+        <LanguageOptions {...context} />
+      </nav>
+    </div>
+  );
+}
+function FooterLanguage(context: PageContext) {
+  return (
+    <nav
+      className="language language-inline"
+      aria-label={context.t('a11y.languageNavigationFooter')}
+    >
+      <LanguageOptions {...context} />
     </nav>
   );
 }
@@ -99,9 +140,9 @@ function Header(context: PageContext) {
             </ul>
           </nav>
           <div className="header-tools">
-            <LanguageSwitch {...context} />
+            <HeaderLanguage {...context} />
             <button
-              className="theme-toggle"
+              className="control-button theme-toggle"
               type="button"
               data-theme-toggle
               data-label-light={t('nav.themeToLight')}
@@ -219,7 +260,7 @@ function Footer(context: PageContext) {
         </div>
         <div className="footer-bottom">
           <p className="footer-copyright">{t('footer.copyright', { year })}</p>
-          <LanguageSwitch {...context} inFooter />
+          <FooterLanguage {...context} />
           <a className="footer-top-link" href="#top">
             {t('footer.backToTop')}
           </a>

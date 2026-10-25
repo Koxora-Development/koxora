@@ -53,6 +53,29 @@ const shots = [
     theme: 'light',
     clip: { x: 0, y: 0, width: 1280, height: 420 },
   },
+  // The language popover in both languages and both appearances.
+  {
+    file: 'language-menu-en',
+    url: `${base}/en/`,
+    viewport: 'desktop',
+    language: true,
+    clip: { x: 0, y: 0, width: 1280, height: 420 },
+  },
+  {
+    file: 'language-menu-de',
+    url: `${base}/de/`,
+    viewport: 'desktop',
+    theme: 'light',
+    language: true,
+    clip: { x: 0, y: 0, width: 1280, height: 420 },
+  },
+  {
+    file: 'language-menu-de-mobile',
+    url: `${base}/de/`,
+    viewport: 'mobile',
+    menu: true,
+    language: true,
+  },
   {
     file: 'home-de-mobile',
     url: `${base}/de/`,
@@ -150,6 +173,7 @@ try {
         }, shot.theme);
       if (shot.theme) await page.reload({ waitUntil: 'load' });
       if (shot.menu) await page.locator('[data-menu-toggle]').click();
+      if (shot.language) await page.locator('[data-language-toggle]').click();
       if (shot.dialog)
         await page.locator('[data-consent-action="customize"]').click();
       await page.waitForTimeout(250);
