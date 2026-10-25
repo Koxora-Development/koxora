@@ -59,6 +59,8 @@ if (!existsSync(resolve(root, 'apps/contact-php/vendor/autoload.php'))) {
 }
 
 const port = 8411;
+// A second virtual host on the same server, which must stay untouched.
+const otherPort = 8412;
 const containerPort = 9452;
 // Apache refuses to serve as root, and it is right to. Where these checks
 // run as root — a container, continuous integration — they use the web
@@ -156,25 +158,39 @@ try {
   if (site.contactHandler.script !== script)
     throw new Error('the script path was rejected by the site configuration');
 
-  const fragment = server.renderApacheProxy({
+  const proxyFragment = server.renderApacheProxy({
     canonicalHost: new URL(site.origin).host,
     containerHost: site.container.host,
     containerPort: site.container.port,
     passThroughPrefixes: site.aliasPassThroughPrefixes,
-    contactHandler: {
-      path: site.contactEndpoint,
-      script: site.contactHandler.script,
-      fpm: site.contactHandler.fpm,
-    },
   });
+  const contactFragment = server.renderApacheContact({
+    path: site.contactEndpoint,
+    script: site.contactHandler.script,
+    fpm: site.contactHandler.fpm,
+    canonicalHost: new URL(site.origin).host,
+  });
+  check(
+    'the contact fragment adds no proxy rule for the website',
+    !contactFragment.includes(
+      `http://${site.container.host}:${site.container.port}`,
+    ),
+  );
+  check(
+    'the virtual host fragment carries no contact rule of its own',
+    !proxyFragment.includes(site.contactEndpoint) &&
+      !proxyFragment.includes('SetHandler'),
+  );
   // Everything the generated fragment needs around it, and nothing it
   // contains. The fragment is included verbatim: what is tested is the file
   // the emitter writes, not a copy of it.
-  writeFileSync(join(prefix, 'koxora-contact.conf'), fragment);
+  writeFileSync(join(prefix, 'koxora-contact.conf'), contactFragment);
+  writeFileSync(join(prefix, 'koxora-proxy.conf'), proxyFragment);
   writeFileSync(
     join(prefix, 'httpd.conf'),
     `ServerName koxora.test
 Listen 127.0.0.1:${port}
+Listen 127.0.0.1:${otherPort}
 # The account is this harness's own, so it can run wherever the checks run.
 # The generated fragment deliberately contains no User directive: on the
 # production host Apache already runs as its own account and TinyCP owns that
@@ -198,7 +214,23 @@ TypesConfig /etc/mime.types
 <Directory ${documentRoot}>
   Require all granted
 </Directory>
-Include ${prefix}/koxora-contact.conf
+# The site the contact endpoint belongs to. The contact fragment is included
+# inside this host and before its proxy rules, which is what the operator
+# document says to do, and nowhere else on the server.
+<VirtualHost 127.0.0.1:${port}>
+  ServerName koxora.test
+  DocumentRoot ${documentRoot}
+  Include ${prefix}/koxora-contact.conf
+  Include ${prefix}/koxora-proxy.conf
+</VirtualHost>
+# Another site on the same server, with its own proxy and no contact rule.
+# Nothing the contact fragment does may be visible here: that is the whole
+# reason it is not enabled server-wide.
+<VirtualHost 127.0.0.1:${otherPort}>
+  ServerName other.test
+  DocumentRoot ${documentRoot}
+  Include ${prefix}/koxora-proxy.conf
+</VirtualHost>
 `,
   );
 
@@ -277,7 +309,12 @@ env[KOXORA_CONTACT_STATE_DIR] = "${stateDirectory}"
     try {
       // The contact path, not the root: it is the one that proves Apache and
       // PHP-FPM are both up and talking to each other.
-      const probe = await fetch(`${base}/api/contact`);
+      // With a timeout: a request that never answers would stop the deadline
+      // below from being reached again, and this script would hang rather
+      // than report what is wrong. That happened once while it was written.
+      const probe = await fetch(`${base}/api/contact`, {
+        signal: AbortSignal.timeout(2000),
+      });
       if (probe.status === 405) break;
     } catch {
       // not up yet
@@ -470,6 +507,42 @@ env[KOXORA_CONTACT_STATE_DIR] = "${stateDirectory}"
       answer.split('\r\n')[0] ?? '',
     );
   }
+
+  // 9c. The other virtual host on this server never sees any of it. This is
+  //     the property the server-wide installation would have destroyed, and
+  //     it is the reason that option was removed from the document.
+  const otherBase = `http://127.0.0.1:${otherPort}`;
+  const otherContact = await fetch(`${otherBase}/api/contact`);
+  const otherBody = await otherContact.text();
+  check(
+    'the second virtual host does not hand /api/contact to PHP',
+    otherContact.status === 200 && otherBody.includes('the website container'),
+    `status ${otherContact.status}: ${otherBody.slice(0, 80)}`,
+  );
+  const otherPost = await fetch(`${otherBase}/api/contact`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      origin: 'https://koxora.app',
+    },
+    body: JSON.stringify(Object.fromEntries([['subject', 'x']])),
+  });
+  check(
+    'and a submission there reaches the website, not the endpoint',
+    otherPost.status === 200,
+    `status ${otherPost.status}`,
+  );
+  const otherSource = await rawRequest(
+    '/api/contact/../src/Config.php',
+    '127.0.0.1',
+    otherPort,
+  );
+  check(
+    'and nothing of the endpoint is reachable from it',
+    !otherSource.includes('<?php') &&
+      !otherSource.includes('ConfigurationError'),
+    otherSource.split('\r\n')[0] ?? '',
+  );
 
   // 10. The endpoint's own source is not downloadable through the alias.
   const source = await ask('/api/contact', {

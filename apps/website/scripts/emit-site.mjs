@@ -217,21 +217,25 @@ const apacheProxy = server.renderApacheProxy({
   containerHost: server.site.container.host,
   containerPort: server.site.container.port,
   passThroughPrefixes: server.site.aliasPassThroughPrefixes,
-  // Only where the form is actually configured, only when it posts to a path
-  // on this site rather than to another address, and only once the host has
-  // said where the PHP file and PHP-FPM actually are. Without all three there
-  // is no contact rule at all, rather than one pointing at a guess.
-  contactHandler:
-    server.site.contactEndpoint?.startsWith('/') &&
-    server.site.contactHandler.script &&
-    server.site.contactHandler.fpm
-      ? {
-          path: server.site.contactEndpoint,
-          script: server.site.contactHandler.script,
-          fpm: server.site.contactHandler.fpm,
-        }
-      : null,
 });
+// The contact endpoint's rules are a file of their own, never part of the
+// virtual host fragment above: they belong inside one HTTPS virtual host, and
+// the fragment above describes the whole host. Emitted only where the form is
+// actually configured, only when it posts to a path on this site rather than
+// to another address, and only once the host has said where the PHP file and
+// PHP-FPM actually are. Without all three there is no contact rule at all,
+// rather than one pointing at a guess.
+const apacheContact =
+  server.site.contactEndpoint?.startsWith('/') &&
+  server.site.contactHandler.script &&
+  server.site.contactHandler.fpm
+    ? server.renderApacheContact({
+        path: server.site.contactEndpoint,
+        script: server.site.contactHandler.script,
+        fpm: server.site.contactHandler.fpm,
+        canonicalHost: new URL(server.site.origin).host,
+      })
+    : null;
 const apacheAliases = server.renderApacheAliases({
   canonicalOrigin: server.site.origin,
   aliasHosts: server.site.aliasHosts,
@@ -265,6 +269,12 @@ await writeFile(
   apacheAliases,
   'utf8',
 );
+if (apacheContact)
+  await writeFile(
+    join(deployDir, 'apache-koxora-contact.conf'),
+    apacheContact,
+    'utf8',
+  );
 await writeFile(
   join(deployDir, '_redirects'),
   `${platformRedirects}\n`,
