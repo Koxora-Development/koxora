@@ -29,8 +29,18 @@ export interface SiteConfig {
    * domains and would break if every request were sent to the canonical host.
    */
   aliasPassThroughPrefixes: string[];
-  /** Address the public host proxies to; the container binds it alone. */
-  container: { host: string; port: number; listenPort: number };
+  /**
+   * Address the public host proxies to; the container binds it alone.
+   * `verificationPort` is where a new image answers while it is checked
+   * beside the running one, so it must be free of every permanently bound
+   * loopback port. See the port table in the container document.
+   */
+  container: {
+    host: string;
+    port: number;
+    listenPort: number;
+    verificationPort: number;
+  };
   /**
    * Absolute URL of the deployed browser editor, or `null` while it is not
    * published. The site never links to an address that does not answer.
@@ -86,6 +96,11 @@ export const site: SiteConfig = {
     host: env('KOXORA_SITE_CONTAINER_HOST') ?? '127.0.0.1',
     port: Number(env('KOXORA_SITE_CONTAINER_PORT') ?? 9402),
     listenPort: Number(env('KOXORA_SITE_LISTEN_PORT') ?? 8080),
+    // Where a new image answers while it is checked beside the running one.
+    // It must differ from every permanently bound loopback port on the host,
+    // because a release that cannot bind this one cannot verify anything:
+    // 9402 is the website Apache proxies to and 9403 is the contact service.
+    verificationPort: Number(env('KOXORA_SITE_VERIFICATION_PORT') ?? 9404),
   },
   editorUrl: env('KOXORA_SITE_EDITOR_URL')?.replace(/\/?$/, '/') ?? null,
   optionalConsent: (env('KOXORA_SITE_OPTIONAL_CONSENT') ?? '')
