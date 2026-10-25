@@ -26,3 +26,5 @@ SECURITY.md
 .github/pull_request_template.md
 # Golden migration input retains the original serializer's exact bytes.
 packages/project/fixtures/legacy-json-v1.json
+# Composer's installed tree is not ours to format.
+apps/contact-php/vendor/

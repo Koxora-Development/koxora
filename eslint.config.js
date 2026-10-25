@@ -11,6 +11,9 @@ export default tseslint.config(
       '**/dist-*/**',
       '**/target/**',
       '**/node_modules/**',
+      // Composer's installed tree. PHPUnit's HTML coverage report ships
+      // minified jQuery and d3 as template assets; they are not ours.
+      'apps/contact-php/vendor/**',
       'playwright-report/**',
       'test-results/**',
     ],

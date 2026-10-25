@@ -12,6 +12,37 @@ function flag(name: string, fallback: boolean): boolean {
   return value === '1' || value === 'true' || value === 'yes';
 }
 /**
+ * The one file the web server may execute, as an absolute path on the host.
+ *
+ * It is validated rather than trusted because it is written into a generated
+ * Apache `Alias`: a value with a space, a quotation mark or a newline in it
+ * would change what that directive means. Anything but a plain absolute path
+ * to a `.php` file yields no contact routing at all.
+ */
+function contactScript(value: string | undefined): string | null {
+  const candidate = value?.trim();
+  if (!candidate) return null;
+  return /^\/[A-Za-z0-9._\-/]*\.php$/.test(candidate) &&
+    !candidate.includes('..')
+    ? candidate
+    : null;
+}
+/**
+ * The PHP-FPM address Apache hands the request to: a Unix socket, which is
+ * what Debian configures, or a TCP address. Held to the same rule as the
+ * script path, and for the same reason.
+ */
+function contactFpm(value: string | undefined): string | null {
+  const candidate = value?.trim();
+  if (!candidate) return null;
+  const unix = /^unix:\/[A-Za-z0-9._/-]*\|fcgi:\/\/[A-Za-z0-9.-]+$/;
+  const tcp = /^fcgi:\/\/[A-Za-z0-9.-]+:\d+$/;
+  return (unix.test(candidate) || tcp.test(candidate)) &&
+    !candidate.includes('..')
+    ? candidate
+    : null;
+}
+/**
  * The address the form posts to, or `null`.
  *
  * It becomes a form action and a policy source, so only a web address or a
@@ -51,11 +82,17 @@ export interface SiteConfig {
   /** Address the public host proxies to; the container binds it alone. */
   container: { host: string; port: number; listenPort: number };
   /**
-   * The contact delivery service, a second container on its own loopback
-   * port. The public host routes the contact path to it directly, so the
-   * website container never sees a submission and stays a static server.
+   * Where the public host sends a submission. The contact endpoint is PHP
+   * under the existing Apache rather than a service of its own, so nothing
+   * here is a port: `script` is the one file Apache may execute and `fpm` is
+   * the PHP-FPM address it hands the request to. The website container never
+   * sees a submission either way and stays a static server.
+   *
+   * Both are `null` until an operator sets them. Neither has a default,
+   * because a guessed deployment path produces a generated rule that points
+   * at nothing, and no contact routing is emitted until both are known.
    */
-  contactService: { host: string; port: number; listenPort: number };
+  contactHandler: { script: string | null; fpm: string | null };
   /**
    * Absolute URL of the deployed browser editor, or `null` while it is not
    * published. The site never links to an address that does not answer.
@@ -121,10 +158,9 @@ export const site: SiteConfig = {
   },
   editorUrl: env('KOXORA_SITE_EDITOR_URL')?.replace(/\/?$/, '/') ?? null,
   contactEndpoint: contactEndpoint(env('KOXORA_SITE_CONTACT_ENDPOINT')),
-  contactService: {
-    host: env('KOXORA_SITE_CONTACT_SERVICE_HOST') ?? '127.0.0.1',
-    port: Number(env('KOXORA_SITE_CONTACT_SERVICE_PORT') ?? 9403),
-    listenPort: Number(env('KOXORA_SITE_CONTACT_LISTEN_PORT') ?? 8081),
+  contactHandler: {
+    script: contactScript(env('KOXORA_SITE_CONTACT_SCRIPT')),
+    fpm: contactFpm(env('KOXORA_SITE_CONTACT_FPM')),
   },
   optionalConsent: (env('KOXORA_SITE_OPTIONAL_CONSENT') ?? '')
     .split(',')

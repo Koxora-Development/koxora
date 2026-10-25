@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { contactPolicyExtras } from './contact';
+import { locales, pathFor } from '../routes';
 describe('what the contact form adds to the content security policy', () => {
   const origin = 'https://koxora.app';
   it('adds nothing at all when no delivery service is configured', () => {
@@ -43,5 +46,35 @@ describe('what the contact form adds to the content security policy', () => {
     // is a connection. Allowing only one would break half the readers.
     const extras = contactPolicyExtras('/api/contact', origin);
     expect(Object.keys(extras).sort()).toEqual(['connect-src', 'form-action']);
+  });
+});
+describe('the result pages a submission without JavaScript lands on', () => {
+  // A classic form post cannot show a JSON answer, so the endpoint redirects
+  // to a page on the website. The endpoint is PHP and cannot import this
+  // route table, so it carries the four addresses as its own defaults. If a
+  // slug is renamed here and not there, a reader without JavaScript lands on
+  // a page that does not exist — and nothing else would notice, because the
+  // reader who hits it is the one least likely to report it.
+  const config = readFileSync(
+    resolve(import.meta.dirname, '../../../contact-php/src/Config.php'),
+    'utf8',
+  );
+  for (const [id, label] of [
+    ['contactSent', 'accepted'],
+    ['contactProblem', 'problem'],
+  ] as const)
+    for (const locale of locales)
+      it(`agrees with the endpoint about the ${label} page in ${locale}`, () => {
+        const path = pathFor(id, locale);
+        expect(path.startsWith('/') && path.endsWith('/')).toBe(true);
+        expect(
+          config,
+          `${id} in ${locale} is ${path}, which the endpoint does not know`,
+        ).toContain(`'${path}'`);
+      });
+  it('finds those defaults in the endpoint at all', () => {
+    // So a renamed constant cannot make the assertions above vacuous.
+    expect(config).toContain('KOXORA_CONTACT_RESULT_ACCEPTED_EN');
+    expect(config).toContain('KOXORA_CONTACT_RESULT_PROBLEM_DE');
   });
 });
