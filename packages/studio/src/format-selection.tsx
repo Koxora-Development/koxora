@@ -34,9 +34,11 @@ export function FormatSelection({
   const applicable = (key: keyof Appearance) =>
     items.filter(
       (item) =>
-        !['fill', 'cornerRadius'].includes(key) ||
-        ('kind' in item &&
-          !['text', 'line', 'arrow'].includes(String(item.kind))),
+        (!['fill', 'cornerRadius'].includes(key) ||
+          ('kind' in item &&
+            !['text', 'line', 'arrow'].includes(String(item.kind)))) &&
+        (!['stroke', 'strokeWidth'].includes(key) ||
+          !('kind' in item && item.kind === 'text')),
     );
   function values(key: keyof Appearance) {
     return applicable(key).flatMap((item) => {
@@ -89,24 +91,26 @@ export function FormatSelection({
               )}
             </label>
           ))}
-        {(['strokeWidth', 'opacity', 'fontSize'] as const).map((k) => (
-          <label key={k}>
-            {t(`diagram.${k}`)}
-            <input
-              type="number"
-              key={String(current(k) ?? 'mixed')}
-              defaultValue={current(k) ?? ''}
-              placeholder={t('format.mixed')}
-              min={k === 'fontSize' ? 8 : 0}
-              max={k === 'fontSize' ? 96 : k === 'opacity' ? 1 : 32}
-              step={k === 'opacity' ? 0.05 : 'any'}
-              onBlur={(e) => {
-                if (e.currentTarget.validity.valid && e.target.value !== '')
-                  change(k, e.target.valueAsNumber);
-              }}
-            />
-          </label>
-        ))}
+        {(['strokeWidth', 'opacity', 'fontSize'] as const)
+          .filter((k) => applicable(k).length)
+          .map((k) => (
+            <label key={k}>
+              {t(`diagram.${k}`)}
+              <input
+                type="number"
+                key={String(current(k) ?? 'mixed')}
+                defaultValue={current(k) ?? ''}
+                placeholder={t('format.mixed')}
+                min={k === 'fontSize' ? 8 : 0}
+                max={k === 'fontSize' ? 96 : k === 'opacity' ? 1 : 32}
+                step={k === 'opacity' ? 0.05 : 'any'}
+                onBlur={(e) => {
+                  if (e.currentTarget.validity.valid && e.target.value !== '')
+                    change(k, e.target.valueAsNumber);
+                }}
+              />
+            </label>
+          ))}
         <label>
           {t('text.family')}
           <select

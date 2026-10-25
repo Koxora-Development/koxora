@@ -601,3 +601,38 @@ test('protected page deletion reports its reason in the dialog and keeps content
   await expect(page.getByRole('tab').first()).toBeFocused();
   expect((await exported(page)).documents).toEqual(project.documents);
 });
+
+test('text-only batch selection hides shape fill and border controls', async ({
+  page,
+}) => {
+  const project = await setup(page, false),
+    nodes = project.documents[0].pages[0].nodes;
+  nodes[0].kind = 'text';
+  nodes[1].kind = 'text';
+  await open(page, project);
+  const bounds = await Promise.all(
+    nodes
+      .slice(0, 2)
+      .map((node) => page.locator(`[data-node-id="${node.id}"]`).boundingBox()),
+  );
+  await page.mouse.click(
+    bounds[0]!.x + bounds[0]!.width / 2,
+    bounds[0]!.y + bounds[0]!.height / 2,
+  );
+  await page.keyboard.down('Shift');
+  await page.mouse.click(
+    bounds[1]!.x + bounds[1]!.width / 2,
+    bounds[1]!.y + bounds[1]!.height / 2,
+  );
+  await page.keyboard.up('Shift');
+  await button(page, 'Element properties').click();
+  const dialog = page.getByRole('dialog', { name: 'Format selection' });
+  await expect(dialog.getByLabel('Fill', { exact: true })).toHaveCount(0);
+  await expect(dialog.getByLabel('Outline', { exact: true })).toHaveCount(0);
+  await expect(dialog.getByLabel('Outline width', { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(dialog.getByLabel('Text color', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Done', exact: true }).click();
+  expect((await exported(page)).documents).toEqual(project.documents);
+});

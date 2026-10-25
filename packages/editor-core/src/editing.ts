@@ -284,6 +284,11 @@ export function applyEdit(
         delete patch.fill;
         delete patch.cornerRadius;
       }
+      if ('kind' in item && item.kind === 'text') {
+        delete patch.stroke;
+        delete patch.strokeWidth;
+      }
+      if (!Object.keys(patch).length) return item;
       const desired = { ...old, ...patch };
       style(desired);
       const rich = readRichText(item);

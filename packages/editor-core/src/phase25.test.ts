@@ -565,3 +565,27 @@ it.each(['Hello\r\nworld', 'Hello\rworld', 'Hello\nworld'])(
     expect(node.content.text).toBe(text);
   },
 );
+
+it('leaves text-only nodes untouched when batch editing shape borders and fills', () => {
+  const project = fixture(),
+    doc = project.documents[0],
+    page = doc.pages[0];
+  page.nodes[1].kind = 'text';
+  const next = applyEdit(
+    project,
+    doc.id,
+    page.id,
+    {
+      type: 'format',
+      ids: page.nodes.map((n) => n.id),
+      patch: { fill: '#123456', stroke: '#654321', strokeWidth: 4 },
+    },
+    now,
+  );
+  expect(resolveAppearance(next.documents[0].pages[0].nodes[0])).toMatchObject({
+    fill: '#123456',
+    stroke: '#654321',
+    strokeWidth: 4,
+  });
+  expect(next.documents[0].pages[0].nodes[1]).toEqual(page.nodes[1]);
+});
