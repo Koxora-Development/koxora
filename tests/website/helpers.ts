@@ -21,27 +21,6 @@ export const pages = [
   { id: 'contact', en: '/en/contact/', de: '/de/kontakt/' },
   { id: 'download', en: '/en/download/', de: '/de/download/' },
   { id: 'docs', en: '/en/docs/', de: '/de/dokumentation/' },
-  {
-    id: 'docsStart',
-    en: '/en/docs/getting-started/',
-    de: '/de/dokumentation/erste-schritte/',
-  },
-  {
-    id: 'docsEditing',
-    en: '/en/docs/editing/',
-    de: '/de/dokumentation/bearbeiten/',
-  },
-  {
-    id: 'docsProjects',
-    en: '/en/docs/projects/',
-    de: '/de/dokumentation/projekte/',
-  },
-  { id: 'docsFaq', en: '/en/docs/faq/', de: '/de/dokumentation/faq/' },
-  {
-    id: 'docsSupport',
-    en: '/en/docs/support/',
-    de: '/de/dokumentation/support/',
-  },
   { id: 'releases', en: '/en/releases/', de: '/de/releases/' },
   { id: 'legalNotice', en: '/en/legal-notice/', de: '/de/impressum/' },
   { id: 'privacyPolicy', en: '/en/privacy-policy/', de: '/de/datenschutz/' },

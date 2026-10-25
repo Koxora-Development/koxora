@@ -3,11 +3,8 @@ export const screenshotSizes: Record<
   string,
   { width: number; height: number }
 > = {
-  'docs-dashboard': { width: 1440, height: 980 },
   'editor-dark': { width: 1440, height: 980 },
   'editor-light': { width: 1440, height: 980 },
   'editor-small-en': { width: 390, height: 844 },
-  'docs-properties': { width: 1440, height: 980 },
-  'docs-shortcuts': { width: 1440, height: 980 },
   'editor-small-de': { width: 390, height: 844 },
 };

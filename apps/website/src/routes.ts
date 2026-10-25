@@ -21,11 +21,6 @@ export type RouteId =
   | 'roadmap'
   | 'download'
   | 'docs'
-  | 'docsStart'
-  | 'docsEditing'
-  | 'docsProjects'
-  | 'docsFaq'
-  | 'docsSupport'
   | 'releases'
   | 'legalNotice'
   | 'privacyPolicy'
@@ -136,44 +131,6 @@ export const routes: RouteDefinition[] = [
     aliases: { de: ['docs'] },
     nav: ['resources'],
     sitemap: { priority: 0.6, changeFrequency: 'monthly' },
-  },
-  // The documentation sections. Each is its own address under the
-  // documentation path in both languages, so a link to one survives the
-  // section list growing.
-  {
-    id: 'docsStart',
-    slugs: { en: 'docs/getting-started', de: 'dokumentation/erste-schritte' },
-    aliases: {},
-    nav: [],
-    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
-  },
-  {
-    id: 'docsEditing',
-    slugs: { en: 'docs/editing', de: 'dokumentation/bearbeiten' },
-    aliases: {},
-    nav: [],
-    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
-  },
-  {
-    id: 'docsProjects',
-    slugs: { en: 'docs/projects', de: 'dokumentation/projekte' },
-    aliases: {},
-    nav: [],
-    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
-  },
-  {
-    id: 'docsFaq',
-    slugs: { en: 'docs/faq', de: 'dokumentation/faq' },
-    aliases: { de: ['dokumentation/haeufige-fragen'] },
-    nav: [],
-    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
-  },
-  {
-    id: 'docsSupport',
-    slugs: { en: 'docs/support', de: 'dokumentation/support' },
-    aliases: {},
-    nav: [],
-    sitemap: { priority: 0.5, changeFrequency: 'monthly' },
   },
   {
     id: 'releases',
