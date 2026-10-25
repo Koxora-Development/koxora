@@ -8,17 +8,18 @@ Related: [the canonical domains runbook](website-canonical-domains.md), [the dep
 
 ### Loopback ports this host allocates
 
-Every Koxora service on this server binds the loopback address only and is reached through Apache. Two of them run permanently and one exists for a few seconds during a release, so the three must not overlap: a release that cannot bind its port cannot verify the image it is about to deploy. The Product Owner found exactly that collision between W2.2 and W2.4a in review, and this table is where it is now settled.
+The Product Owner compared the planned configurations and found that two W2 sub-phases both reached for `127.0.0.1:9403`. That is settled here, and the resolution is this table. Only the website binds a loopback port permanently.
 
-| Port   | Bound by                                                                                    | Lifetime                  | May it move?                                                                               |
-| ------ | ------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
-| `9402` | The website container the public Apache proxies to                                          | Permanent                 | **No.** Confirmed and final; Apache forwards to it                                         |
-| `9403` | The contact service of [Website W2.2](https://github.com/Koxora-Development/koxora/pull/36) | Permanent, once activated | Only together with its own Apache location; it is a long-running service with a proxy rule |
-| `9404` | A new website image, while it answers beside the running one                                | Seconds, during a release | Yes. Nothing proxies to it and nothing holds it between releases                           |
+| Port   | Bound by                                                     | Lifetime                  | May it move?                                                     |
+| ------ | ------------------------------------------------------------ | ------------------------- | ---------------------------------------------------------------- |
+| `9402` | The website container the public Apache proxies to           | Permanent                 | **No.** Confirmed and final; Apache forwards to it               |
+| `9403` | A new website image, while it answers beside the running one | Seconds, during a release | Yes. Nothing proxies to it and nothing holds it between releases |
 
-So the side-by-side check uses `9404`, not `9403`: a temporary port can be moved without touching Apache, a permanently proxied one cannot. `site.container.verificationPort` is the single place the number is written, `KOXORA_SITE_VERIFICATION_PORT` overrides it for a host that has something else there, and `apps/website/src/container.test.ts` fails if it is ever set to a port a permanent service holds or if this document and the compose comment stop agreeing with it.
+The contact endpoint of Website W2.2 appears in neither row, and that is the resolution: the Product Owner chose PHP-FPM behind the existing Apache over a contact service of its own, so nothing listens on a TCP port for it. Apache reaches PHP over its own socket. `9403` is therefore free, and the side-by-side release check keeps it.
 
-A release binds `9402` only at the final swap, after the new image has answered on `9404` — and never while the old container still holds it.
+`site.container.verificationPort` is the single place that number is written, `KOXORA_SITE_VERIFICATION_PORT` overrides it for a host that has something else there, and `apps/website/src/container.test.ts` fails if it is ever set to a port a permanent service holds or if this document and the compose comment stop agreeing with it.
+
+A release binds `9402` only at the final swap, after the new image has answered on `9403` — and never while the old container still holds it.
 
 ## 1. What is in the repository now
 
@@ -61,13 +62,13 @@ docker compose -f deploy/website/compose.yaml --project-directory . build
 docker image inspect koxora-website:local --format '{{.Size}}'
 
 # beside anything already running, on a different port and under a different name
-KOXORA_WEBSITE_CONTAINER=koxora-website-next KOXORA_WEBSITE_PORT=9404 \
+KOXORA_WEBSITE_CONTAINER=koxora-website-next KOXORA_WEBSITE_PORT=9403 \
   docker compose -f deploy/website/compose.yaml --project-directory . \
   -p koxora-website-next up -d
 docker inspect --format '{{.State.Health.Status}}' koxora-website-next
 curl -sS -o /dev/null -D - --max-redirs 0 \
-  -H 'Accept-Language: de-DE,de;q=0.9' http://127.0.0.1:9404/ | head -5
-curl -sS http://127.0.0.1:9404/healthz
+  -H 'Accept-Language: de-DE,de;q=0.9' http://127.0.0.1:9403/ | head -5
+curl -sS http://127.0.0.1:9403/healthz
 docker compose -p koxora-website-next down
 ```
 
@@ -114,9 +115,9 @@ With those in hand, the next step is a written comparison between the versioned 
 **Not authorized by this branch, and not to be run before section 4 is answered.** The shape it would take, so it can be reviewed now:
 
 1. Build the image from a reviewed revision, on the server or pulled from a registry, tagged with the revision.
-2. Start it beside the running container, under a different name and on `127.0.0.1:9404`, as in section 3.
+2. Start it beside the running container, under a different name and on `127.0.0.1:9403`, as in section 3.
 3. Verify it there: the healthcheck reports healthy, both languages answer, the language negotiation behaves as [the runbook](website-canonical-domains.md) describes, the redirects answer, and `build-info.json` names the expected revision.
-4. Point Apache at `9404` for one request, or compare both ports directly, and confirm the answers match the live site.
+4. Point Apache at `9403` for one request, or compare both ports directly, and confirm the answers match the live site.
 5. Stop the old container, start the new one on `9402` under the final name, and confirm `https://koxora.app` within seconds.
 6. Keep the previous image and the previous `/opt/koxora-website` directory untouched for at least one release, so a rollback needs no rebuild.
 
