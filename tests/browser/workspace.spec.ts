@@ -27,6 +27,7 @@ test('opening a project visibly enters its workspace, focuses its title and surv
   await expect(
     page.getByRole('complementary', { name: 'Project details' }),
   ).toBeVisible();
+  await page.getByText('Project pages', { exact: true }).click();
   const pages = page
     .getByRole('navigation', { name: 'Documents' })
     .getByRole('button');

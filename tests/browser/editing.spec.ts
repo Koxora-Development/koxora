@@ -508,7 +508,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
   await canvas(page).focus();
   await page.keyboard.press('Escape');
   await page.keyboard.press('Control+a');
-  await page.getByText('Align & more', { exact: true }).click();
+  await page.getByText('Align / Distribute', { exact: true }).click();
   await button(page, 'Align top').click();
   const model = (await exported(page)).project.documents[0].pages[0];
   expect(new Set(model.nodes.map((n) => n.geometry.y)).size).toBe(1);
@@ -522,7 +522,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
       .getByRole('button', { name: 'Arrow', exact: true }),
   ).toBeFocused();
   if (process.env.KOXORA_CAPTURE && test.info().project.name === 'chromium') {
-    await page.getByText('Align & more', { exact: true }).click();
+    await page.getByText('Align / Distribute', { exact: true }).click();
     await page
       .getByLabel('Project name', { exact: true })
       .fill('Release readiness');

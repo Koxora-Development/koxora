@@ -1,3 +1,4 @@
+import { readRichText, type RichText } from './rich-text';
 import { assertEditableElement } from './editing';
 import {
   isDrawing,
@@ -29,6 +30,7 @@ export interface SceneNode {
   bounds: Bounds;
   geometry: Geometry;
   label: string;
+  richText?: RichText;
   style: Appearance;
   editable: boolean;
   layerOrder: number;
@@ -38,6 +40,7 @@ export interface SceneNode {
 export interface SceneConnection extends ConnectionPath {
   id: string;
   label: string;
+  richText?: RichText;
   style: Appearance;
   arrow: boolean;
   editable: boolean;
@@ -92,6 +95,7 @@ export function buildScene(
       return [
         {
           id: node.id,
+          richText: readRichText(node),
           kind: node.kind,
           geometry: g,
           bounds: nodeBounds(
@@ -101,6 +105,7 @@ export function buildScene(
               ? node.content.text.slice(0, MAX_TEXT)
               : '',
             style,
+            readRichText(node),
           ),
           startArrow:
             isDrawing(node.kind) &&
@@ -147,6 +152,7 @@ export function buildScene(
         {
           ...path,
           id: edge.id,
+          richText: readRichText(edge),
           label: options.label,
           arrow: options.arrow,
           style,
@@ -156,7 +162,14 @@ export function buildScene(
           bounds: unionBounds([
             path.bounds,
             ...(options.label
-              ? [connectionLabelBounds(path.labelPoint, options.label, style)]
+              ? [
+                  connectionLabelBounds(
+                    path.labelPoint,
+                    options.label,
+                    style,
+                    readRichText(edge),
+                  ),
+                ]
               : []),
             {
               x:
@@ -221,7 +234,13 @@ export function transformScene(
       ? {
           ...n,
           geometry: geometries[n.id],
-          bounds: nodeBounds(geometries[n.id], n.kind, n.label, n.style),
+          bounds: nodeBounds(
+            geometries[n.id],
+            n.kind,
+            n.label,
+            n.style,
+            n.richText,
+          ),
         }
       : n,
   );
@@ -249,7 +268,14 @@ export function transformScene(
       bounds: unionBounds([
         path.bounds,
         ...(e.label
-          ? [connectionLabelBounds(path.labelPoint, e.label, e.style)]
+          ? [
+              connectionLabelBounds(
+                path.labelPoint,
+                e.label,
+                e.style,
+                e.richText,
+              ),
+            ]
           : []),
         {
           x: path.points.at(-1)!.x - e.style.strokeWidth * 4,
@@ -268,6 +294,7 @@ function nodeBounds(
   kind: string,
   label: string,
   style: Appearance,
+  richText?: RichText,
 ): Bounds {
   const bounds = geometryBounds(
     g,
@@ -282,6 +309,7 @@ function nodeBounds(
       { x: g.x + g.width / 2, y: g.y + g.height / 2 },
       label,
       style,
+      richText,
     ),
   ])!;
 }
@@ -291,7 +319,17 @@ function connectionLabelBounds(
   point: Point,
   label: string,
   style: Appearance,
+  richText?: RichText,
 ): Bounds {
+  if (richText)
+    return {
+      x:
+        point.x -
+        (style.align === 'left' ? 0 : style.align === 'right' ? 240 : 120),
+      y: point.y - 24,
+      width: 240,
+      height: 512,
+    };
   const characters = Math.min(
     label.length,
     Math.max(1, Math.floor(240 / (style.fontSize * 0.62))),

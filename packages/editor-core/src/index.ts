@@ -6,3 +6,6 @@ export * from './connections';
 export * from './editing';
 export * from './interaction';
 export * from './history';
+export * from './rich-text';
+export * from './workbook';
+export * from './studio-history';

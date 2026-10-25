@@ -8,11 +8,12 @@ import {
   LINE_KEY,
   jsonObject,
   layerStates,
-  FONT_FAMILIES,
+  readRichText,
+  fromPlainText,
+  plainText,
   resolveAppearance,
   readConnection,
   CONNECTION_KEY,
-  MAX_TEXT,
   type ShapeKind,
   type EditCommand,
   type ConnectionOptions,
@@ -20,7 +21,7 @@ import {
   type Anchor,
 } from '@koxora/editor-core';
 import { ShapePalette } from './shape-palette';
-import { TextFormatting } from './text-formatting';
+import { RichTextEditor } from './rich-text-editor';
 import { PORT_ANCHORS } from './connection-ports';
 export type DiagramTool = 'select' | 'pan' | ShapeKind;
 interface Props {
@@ -247,9 +248,6 @@ export function ElementDialog({
       : false,
   );
   const [failed, setFailed] = useState(false);
-  const [text, setText] = useState(
-    node && typeof node.content.text === 'string' ? node.content.text : '',
-  );
   const [appearance, setAppearance] = useState(() =>
     resolveAppearance(
       (node ?? edge)!,
@@ -259,6 +257,14 @@ export function ElementDialog({
   );
   const [options, setOptions] = useState(() =>
     edge ? readConnection(edge) : DEFAULT_CONNECTION,
+  );
+  const [richText, setRichText] = useState(
+    () =>
+      readRichText((node ?? edge)!) ??
+      fromPlainText(
+        node ? String(node.content.text ?? '') : options.label,
+        appearance.align,
+      ),
   );
   const color = (key: 'fill' | 'stroke' | 'textColor') => (
     <label>
@@ -311,12 +317,19 @@ export function ElementDialog({
                 ? {
                     type: 'updateNode',
                     id,
-                    text,
+                    text: plainText(richText),
+                    richText,
                     style: appearance,
                     geometry: geometry === node.geometry ? undefined : geometry,
                     ...(line ? { startArrow, endArrow } : {}),
                   }
-                : { type: 'updateConnection', id, options, style: appearance },
+                : {
+                    type: 'updateConnection',
+                    id,
+                    options: { ...options, label: plainText(richText) },
+                    richText,
+                    style: appearance,
+                  },
             )
           )
             onCancel();
@@ -325,33 +338,12 @@ export function ElementDialog({
       >
         <fieldset className="label-editor">
           <legend>{t('text.heading')}</legend>
-          <TextFormatting
+          <RichTextEditor
+            value={richText}
+            base={appearance}
             locale={locale}
-            value={appearance}
-            onChange={setAppearance}
+            onChange={setRichText}
           />
-          <p className="field-help">{t('text.scope')}</p>
-          <label className="field-label">
-            {t('diagram.label')}
-            <textarea
-              aria-label={t('diagram.label')}
-              rows={4}
-              style={{
-                fontFamily: FONT_FAMILIES[appearance.fontFamily],
-                fontWeight: appearance.fontWeight,
-                fontStyle: appearance.fontStyle,
-                textDecoration: appearance.textDecoration,
-                textAlign: appearance.align,
-              }}
-              maxLength={MAX_TEXT}
-              value={node ? text : options.label}
-              onChange={(e) =>
-                node
-                  ? setText(e.target.value)
-                  : setOptions({ ...options, label: e.target.value })
-              }
-            />
-          </label>
         </fieldset>
         {failed && <p role="alert">{t('diagram.error.invalid')}</p>}
         <details className="element-advanced">

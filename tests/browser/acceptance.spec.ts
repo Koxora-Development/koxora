@@ -8,10 +8,7 @@ import {
 import {
   applyEdit,
   readConnection,
-  readAppearance,
-  ELEMENT_KEY,
-  CONNECTION_KEY,
-  jsonObject,
+  readRichText,
 } from '../../packages/editor-core/src/index';
 const button = (p: Page, name: string) =>
   p.getByRole('button', { name, exact: true });
@@ -102,9 +99,8 @@ async function exported(p: Page) {
   );
 }
 async function properties(p: Page, id: string) {
-  const more = p.locator('.editing-more');
-  if (!(await more.evaluate((e) => (e as HTMLDetailsElement).open)))
-    await more.locator('summary').click();
+  if (!(await p.locator('.objects-panel').isVisible()))
+    await button(p, 'Objects').click();
   await p
     .getByRole('combobox', { name: 'Diagram element', exact: true })
     .selectOption(id);
@@ -269,6 +265,7 @@ test('ports keep screen-sized targets, keyboard focus and localized touch or pen
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
   await button(page, 'Zeichenfläche erweitern').click();
+  await button(page, 'Inhalt einpassen').click();
   await button(page, 'Pfeil').click();
   const a = port(page, ids[2], 'south'),
     b = port(page, ids[3], 'north');
@@ -386,9 +383,17 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
     .getAttribute('data-node-id'))!;
   for (const id of [ids[0], free, text, edge]) {
     await properties(page, id);
+    const editor = page.getByRole('textbox', {
+      name: 'Label / text',
+      exact: true,
+    });
+    await editor.fill('Release\nGrüße 世界');
+    await editor.press('ControlOrMeta+a');
+    await page.locator('.font-picker summary').click();
     await page
-      .getByRole('combobox', { name: 'Font family', exact: true })
-      .selectOption('serif');
+      .locator('.font-menu')
+      .getByRole('button', { name: 'Serif', exact: true })
+      .click();
     await page.getByLabel('Text size', { exact: true }).fill('28');
     for (const style of ['Bold', 'Italic', 'Underline'])
       await button(page, style).click();
@@ -396,23 +401,22 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
       .getByRole('combobox', { name: 'Text alignment', exact: true })
       .selectOption('right');
     await page.getByLabel('Text color', { exact: true }).fill('#8b2459');
-    await page
-      .getByLabel('Label / text', { exact: true })
-      .fill('Release\nGrüße 世界');
     if (id === edge) await capture(page, 'text-formatting');
     await page.keyboard.press('Control+Enter');
     const label = page
-      .locator(`[data-node-id="${id}"] text, [data-connection-id="${id}"] text`)
-      .last();
+      .locator(
+        `[data-node-id="${id}"] .scene-rich-label span, [data-connection-id="${id}"] .scene-rich-label span`,
+      )
+      .first();
     await expect(label).toHaveCSS(
       'font-family',
       /^Georgia, "?Times New Roman"?, serif$/,
     );
-    await expect(label).toHaveAttribute('font-size', '28');
-    await expect(label).toHaveAttribute('font-weight', '700');
-    await expect(label).toHaveAttribute('font-style', 'italic');
-    await expect(label).toHaveAttribute('text-decoration', 'underline');
-    await expect(label).toHaveAttribute('text-anchor', 'end');
+    await expect(label).toHaveCSS('font-size', '28px');
+    await expect(label).toHaveCSS('font-weight', '700');
+    await expect(label).toHaveCSS('font-style', 'italic');
+    await expect(label).toHaveCSS('text-decoration-line', 'underline');
+    await expect(label.locator('..')).toHaveCSS('text-align', 'right');
   }
   await button(page, 'Undo').click();
   await expect(
@@ -430,20 +434,14 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
     model.nodes.at(-1)!,
     model.connections[0],
   ]) {
-    const style = readAppearance(
-      jsonObject(
-        jsonObject(
-          item.extensions['content' in item ? ELEMENT_KEY : CONNECTION_KEY],
-        ).style,
-      ),
-    );
-    expect(style).toMatchObject({
+    const rich = readRichText(item)!;
+    expect(rich.paragraphs[0].align).toBe('right');
+    expect(rich.paragraphs[0].runs[0].style).toMatchObject({
       fontFamily: 'serif',
       fontSize: 28,
       fontWeight: 700,
       fontStyle: 'italic',
       textDecoration: 'underline',
-      align: 'right',
     });
   }
   await button(page, 'Save project').click();
@@ -466,13 +464,16 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
   await capture(page, 'shortcuts-small-de');
   await page.keyboard.press('Escape');
   await expect(button(page, 'Tastenkürzel')).toBeFocused();
-  await page.getByText('Ausrichten & mehr', { exact: true }).click();
+  await page.getByRole('button', { name: 'Objekte', exact: true }).click();
   await page
     .getByRole('combobox', { name: 'Diagrammelement', exact: true })
     .selectOption(text);
   await expect(
     page.getByRole('group', { name: 'Textformatierung', exact: true }),
   ).toBeVisible();
+  await page
+    .getByRole('textbox', { name: 'Beschriftung / Text', exact: true })
+    .click();
   await expect(button(page, 'Fett')).toHaveAttribute('aria-pressed', 'true');
   expect(
     await page.evaluate(

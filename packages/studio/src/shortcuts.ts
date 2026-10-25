@@ -42,6 +42,15 @@ export const SHORTCUT_GROUPS: {
   entries: { keys: MessageKey; action: MessageKey }[];
 }[] = [
   {
+    title: 'shortcuts.workbook',
+    entries: [
+      { keys: 'shortcuts.keys.tabs', action: 'shortcuts.tabs' },
+      { keys: 'shortcuts.keys.moveTab', action: 'shortcuts.moveTab' },
+      { keys: 'shortcuts.keys.renameTab', action: 'shortcuts.renameTab' },
+      { keys: 'shortcuts.keys.formatText', action: 'shortcuts.formatText' },
+    ],
+  },
+  {
     title: 'shortcuts.navigation',
     entries: [
       { keys: 'shortcuts.keys.pan', action: 'shortcuts.pan' },

@@ -1,3 +1,5 @@
+import { InlineText } from './inline-text';
+import { FormatSelection } from './format-selection';
 import {
   useEffect,
   useMemo,
@@ -11,6 +13,8 @@ import { translate, type MessageKey } from '@koxora/i18n';
 import type { Page, Style, Node } from '@koxora/project';
 import {
   buildScene,
+  plainText,
+  type RichText,
   alignedGeometries,
   copyElements,
   movedGeometries,
@@ -61,6 +65,8 @@ export interface CanvasHandle {
   snapshot: () => CanvasState;
 }
 interface Props {
+  expanded: boolean;
+  onExpanded: (value: boolean) => void;
   page: Page;
   styles: Style[];
   onEdit: (command: EditCommand) => boolean;
@@ -73,6 +79,8 @@ interface Props {
   ref?: Ref<CanvasHandle>;
 }
 export function Canvas({
+  expanded,
+  onExpanded: setExpanded,
   page,
   styles,
   onEdit,
@@ -102,6 +110,15 @@ export function Canvas({
   const [hasClipboard, setHasClipboard] = useState(false);
   const [feedback, setFeedback] = useState<MessageKey | null>(null);
   const [contextMenu, setContextMenu] = useState(false);
+  const contextRoot = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (contextMenu)
+      contextRoot.current
+        ?.querySelector<HTMLElement>('button:not(:disabled)')
+        ?.focus();
+  }, [contextMenu]);
+  const [formatting, setFormatting] = useState<string[] | null>(null);
+  const [objects, setObjects] = useState(false);
   function select(ids: string[]) {
     selection.current = ids;
     setSelectedState(ids);
@@ -120,6 +137,15 @@ export function Canvas({
     controls.current?.refresh();
   }
   const [editing, setEditing] = useState<string | null>(null);
+  const [inline, setInline] = useState(false);
+  const [textPreview, setTextPreview] = useState<RichText | null>(null);
+  const [textAnchor, setTextAnchor] = useState({ x: 120, y: 240 });
+  function closeEditing() {
+    setEditing(null);
+    setInline(false);
+    setTextPreview(null);
+  }
+
   const [options, setOptions] = useState(DEFAULT_CONNECTION);
   const [layerId, setLayerId] = useState(
     () =>
@@ -135,7 +161,7 @@ export function Canvas({
     }),
     [page.id, page.nodes, page.connections, page.layers],
   );
-  const scene = useMemo(
+  const baseScene = useMemo(
     () =>
       buildScene(
         {
@@ -147,6 +173,25 @@ export function Canvas({
       ),
     [page.nodes, page.connections, page.layers, styles],
   );
+  const scene = useMemo(
+    () =>
+      textPreview && editing
+        ? {
+            ...baseScene,
+            nodes: baseScene.nodes.map((n) =>
+              n.id === editing
+                ? { ...n, richText: textPreview, label: plainText(textPreview) }
+                : n,
+            ),
+            connections: baseScene.connections.map((e) =>
+              e.id === editing
+                ? { ...e, richText: textPreview, label: plainText(textPreview) }
+                : e,
+            ),
+          }
+        : baseScene,
+    [baseScene, textPreview, editing],
+  );
   function activate(next: DiagramTool) {
     cancelInput.current();
     setTool(next);
@@ -154,7 +199,7 @@ export function Canvas({
     setEditError(null);
     setContextMenu(false);
   }
-  function pick(id: string) {
+  function pick(id: string, direct = false) {
     const item =
       page.nodes.find((n) => n.id === id) ??
       page.connections.find((e) => e.id === id);
@@ -171,6 +216,26 @@ export function Canvas({
     }
     setEditError(null);
     select([id]);
+    setInline(direct);
+    setTextPreview(null);
+    const box = host.current?.getBoundingClientRect();
+    if (box) {
+      const n = scene.nodes.find((n) => n.id === id);
+      const e = scene.connections.find((e) => e.id === id);
+      const p = n ? n.geometry : e?.labelPoint;
+      if (p)
+        setTextAnchor({
+          x:
+            box.left +
+            box.width / 2 +
+            (p.x - state.current.camera.x) * state.current.camera.zoom,
+          y:
+            box.top +
+            box.height / 2 +
+            (p.y - state.current.camera.y) * state.current.camera.zoom -
+            100,
+        });
+    }
     setEditing(id);
   }
   function link(id: string | null, anchor: Anchor = 'auto', from?: Port) {
@@ -251,14 +316,18 @@ export function Canvas({
       ) {
         select([id]);
         if (!repeat) activate('select');
-        if (tool === 'text') setEditing(id);
+        if (tool === 'text') {
+          setInline(true);
+          setTextPreview(null);
+          setEditing(id);
+        }
       }
     } else {
       const node = pickNode(scene, point, 6 / state.current.camera.zoom);
       const edge =
         id && scene.connections.find((e) => e.id === id && e.editable);
-      if (node) pick(node.id);
-      else if (edge) pick(edge.id);
+      if (node) pick(node.id, true);
+      else if (edge) pick(edge.id, true);
     }
   }
   const editableSelection = selected.filter((id) =>
@@ -293,6 +362,7 @@ export function Canvas({
         else setFeedback('editing.noHistory');
       } else if (action === 'properties') {
         if (ids.length === 1) pick(ids[0]);
+        else if (ids.length > 1) setFormatting(ids);
       } else if (action === 'delete') {
         if (ids.length && onEdit({ type: 'delete', ids })) select([]);
       } else if (action === 'copy') {
@@ -330,7 +400,6 @@ export function Canvas({
       setEditError('diagram.error.unsupported');
     }
   }
-  const [expanded, setExpanded] = useState(false);
   const [help, setHelp] = useState(false);
   const [limited, setLimited] = useState(false);
   const stage = useRef<HTMLElement>(null);
@@ -455,9 +524,9 @@ export function Canvas({
         style: 'percent',
         maximumFractionDigits: 0,
       }).format(state.current.camera.zoom);
-      element.dataset.snapping = String(snapping);
-      element.dataset.selection = JSON.stringify(selection.current);
-      element.dataset.camera = JSON.stringify(state.current.camera);
+      element.setAttribute('data-snapping', String(snapping));
+      element.setAttribute('data-selection', JSON.stringify(selection.current));
+      element.setAttribute('data-camera', JSON.stringify(state.current.camera));
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(render);
@@ -1035,7 +1104,8 @@ export function Canvas({
   }, [content, scene, locale, layerId, styles]);
   useEffect(() => {
     if (!expanded) return;
-    const root = stage.current!;
+    const root =
+      stage.current!.closest<HTMLElement>('.canvas-workbook') ?? stage.current!;
     const previous = document.activeElement as HTMLElement | null;
     const hidden: { element: HTMLElement; inert: boolean }[] = [];
     let branch: HTMLElement = root;
@@ -1088,7 +1158,7 @@ export function Canvas({
       for (const item of hidden) item.element.inert = item.inert;
       if (previous?.isConnected) previous.focus();
     };
-  }, [expanded]);
+  }, [expanded, setExpanded]);
   useEffect(() => {
     controls.current?.refresh();
   }, [source, tool, candidates]);
@@ -1153,8 +1223,6 @@ export function Canvas({
           select([]);
         }
       }}
-      role={expanded ? 'dialog' : undefined}
-      aria-modal={expanded ? true : undefined}
       className={`canvas-stage interactive-stage ${expanded ? 'canvas-expanded' : ''}`}
       aria-label={t('workspace.canvas')}
     >
@@ -1226,11 +1294,18 @@ export function Canvas({
           <>
             <button
               className="button compact"
-              disabled={editableSelection.length !== 1}
               onClick={() => command('properties')}
             >
               {t('diagram.properties')}
             </button>
+            {editableSelection.length === 1 && (
+              <button
+                className="button compact"
+                onClick={() => pick(editableSelection[0], true)}
+              >
+                {t('rich.edit')}
+              </button>
+            )}
             <button
               className="button compact"
               disabled={!editableSelection.length}
@@ -1247,85 +1322,107 @@ export function Canvas({
             </button>
           </>
         )}
-        <details className="editing-more">
-          <summary>{t('editing.more')}</summary>
-          <div>
-            <label className="element-picker">
-              {t('diagram.target')}
-              <select
-                aria-label={t('diagram.target')}
-                defaultValue=""
-                onChange={(event) => {
-                  const id = event.target.value;
-                  if (id) pick(id);
-                  event.target.value = '';
-                }}
-              >
-                <option value="">{t('diagram.choose')}</option>
-                {[
-                  ...page.nodes.map((item) => ({
-                    id: item.id,
-                    text:
-                      typeof item.content.text === 'string' && item.content.text
-                        ? item.content.text
-                        : item.kind,
-                  })),
-                  ...page.connections.map((item) => ({
-                    id: item.id,
-                    text:
-                      readConnection(item).label || t('diagram.connectionName'),
-                  })),
-                ].map((item, i) => (
-                  <option key={item.id} value={item.id}>
-                    {translate(locale, 'diagram.nodeName', {
-                      index: i + 1,
-                      text: item.text.slice(0, 80),
-                    })}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              className="button compact"
-              disabled={!editableSelection.length}
-              onClick={() => command('copy')}
-            >
-              {t('editing.copy')}
-            </button>
-            <button
-              className="button compact"
-              disabled={!hasClipboard}
-              onClick={() => command('paste')}
-            >
-              {t('editing.paste')}
-            </button>
-            {(
-              [
-                'left',
-                'center',
-                'right',
-                'top',
-                'middle',
-                'bottom',
-                'horizontal',
-                'vertical',
-              ] as const
-            ).map((mode) => (
-              <button
-                key={mode}
-                className="button compact"
-                disabled={
-                  editableSelection.length <
-                  (mode === 'horizontal' || mode === 'vertical' ? 3 : 2)
-                }
-                onClick={() => command(mode)}
-              >
-                {t(`editing.align.${mode}`)}
-              </button>
-            ))}
-          </div>
-        </details>
+        <button
+          className="button compact"
+          onClick={() => setObjects(!objects)}
+          aria-expanded={objects}
+        >
+          {t('format.objects')}
+        </button>
+        <button
+          className="button compact"
+          disabled={!hasClipboard}
+          onClick={() => command('paste')}
+        >
+          {t('editing.paste')}
+        </button>
+        {editableSelection.filter((id) => scene.nodes.some((n) => n.id === id))
+          .length >= 2 && (
+          <details className="selection-align">
+            <summary>{t('format.align')}</summary>
+            <div>
+              {(
+                [
+                  'left',
+                  'center',
+                  'right',
+                  'top',
+                  'middle',
+                  'bottom',
+                  'horizontal',
+                  'vertical',
+                ] as const
+              ).map((mode) => (
+                <button
+                  key={mode}
+                  className="button compact"
+                  disabled={
+                    editableSelection.filter((id) =>
+                      scene.nodes.some((n) => n.id === id),
+                    ).length <
+                    (mode === 'horizontal' || mode === 'vertical' ? 3 : 2)
+                  }
+                  onClick={() => command(mode)}
+                >
+                  {t(`editing.align.${mode}`)}
+                </button>
+              ))}
+            </div>
+          </details>
+        )}
       </div>
+      {objects && (
+        <aside className="objects-panel" aria-label={t('format.objects')}>
+          <label className="element-picker">
+            {t('diagram.target')}
+            <select
+              aria-label={t('diagram.target')}
+              defaultValue=""
+              onChange={(event) => {
+                const id = event.target.value;
+                if (id) pick(id);
+                event.target.value = '';
+              }}
+            >
+              <option value="">{t('diagram.choose')}</option>
+              {[
+                ...page.nodes.map((item) => ({
+                  id: item.id,
+                  text:
+                    typeof item.content.text === 'string' && item.content.text
+                      ? item.content.text
+                      : item.kind,
+                })),
+                ...page.connections.map((item) => ({
+                  id: item.id,
+                  text:
+                    readConnection(item).label || t('diagram.connectionName'),
+                })),
+              ].map((item, i) => (
+                <option key={item.id} value={item.id}>
+                  {translate(locale, 'diagram.nodeName', {
+                    index: i + 1,
+                    text: item.text.slice(0, 80),
+                  })}
+                </option>
+              ))}
+            </select>
+          </label>{' '}
+        </aside>
+      )}
+      {formatting && (
+        <FormatSelection
+          ids={formatting}
+          page={page}
+          styles={styles}
+          locale={locale}
+          onApply={onEdit}
+          onClose={() => {
+            setFormatting(null);
+            requestAnimationFrame(() => controls.current?.focus());
+          }}
+        />
+      )}
       {feedback && (
         <p className="diagram-guidance" role="status">
           {t(feedback)}
@@ -1336,7 +1433,22 @@ export function Canvas({
           {t(editError)}
         </p>
       )}
-      {editing && (
+      {editing && inline && (
+        <InlineText
+          key={editing}
+          item={
+            (page.nodes.find((n) => n.id === editing) ??
+              page.connections.find((e) => e.id === editing))!
+          }
+          styles={styles}
+          locale={locale}
+          anchor={textAnchor}
+          onApply={onEdit}
+          onPreview={setTextPreview}
+          onCancel={closeEditing}
+        />
+      )}
+      {editing && !inline && (
         <ElementDialog
           key={editing}
           page={page}
@@ -1344,14 +1456,31 @@ export function Canvas({
           id={editing}
           locale={locale}
           onApply={onEdit}
-          onCancel={() => setEditing(null)}
+          onCancel={closeEditing}
         />
       )}
       <div
         ref={host}
         onContextMenu={(event) => {
           event.preventDefault();
+          const id =
+            (event.target as Element)
+              .closest('[data-node-id],[data-connection-id]')
+              ?.getAttribute('data-node-id') ??
+            (event.target as Element)
+              .closest('[data-connection-id]')
+              ?.getAttribute('data-connection-id');
+          if (id && !selection.current.includes(id)) select([id]);
           setContextMenu(true);
+        }}
+        onKeyDown={(event) => {
+          if (
+            event.key === 'ContextMenu' ||
+            (event.shiftKey && event.key === 'F10')
+          ) {
+            event.preventDefault();
+            setContextMenu(true);
+          }
         }}
         className={`interactive-canvas ${tool === 'select' ? 'select-active' : tool !== 'pan' ? 'tool-active' : ''}`}
         tabIndex={0}
@@ -1400,8 +1529,45 @@ export function Canvas({
       </div>
       {contextMenu && (
         <div
+          ref={contextRoot}
           className="editing-context"
-          role="group"
+          role="menu"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              e.stopPropagation();
+              setContextMenu(false);
+              controls.current?.focus();
+            } else if (
+              [
+                'ArrowLeft',
+                'ArrowRight',
+                'ArrowDown',
+                'ArrowUp',
+                'Home',
+                'End',
+              ].includes(e.key)
+            ) {
+              e.preventDefault();
+              const items = [
+                  ...e.currentTarget.querySelectorAll<HTMLButtonElement>(
+                    'button:not(:disabled)',
+                  ),
+                ],
+                i = items.indexOf(document.activeElement as HTMLButtonElement);
+              items[
+                e.key === 'Home'
+                  ? 0
+                  : e.key === 'End'
+                    ? items.length - 1
+                    : (i +
+                        (['ArrowRight', 'ArrowDown'].includes(e.key)
+                          ? 1
+                          : items.length - 1)) %
+                      items.length
+              ]?.focus();
+            }
+          }}
           aria-label={t('editing.actions')}
         >
           {(
@@ -1409,6 +1575,7 @@ export function Canvas({
           ).map((action) => (
             <button
               key={action}
+              role="menuitem"
               className="button compact"
               disabled={
                 action === 'paste' ? !hasClipboard : !editableSelection.length
@@ -1424,7 +1591,11 @@ export function Canvas({
           ))}
           <button
             className="button compact"
-            onClick={() => setContextMenu(false)}
+            role="menuitem"
+            onClick={() => {
+              setContextMenu(false);
+              controls.current?.focus();
+            }}
           >
             {t('project.cancel')}
           </button>

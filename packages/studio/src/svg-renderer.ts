@@ -1,5 +1,7 @@
 import {
   gridStep,
+  type RichText,
+  type Appearance,
   FONT_FAMILIES,
   isDrawing,
   lineEndpoints,
@@ -286,6 +288,19 @@ function renderNode(node: SceneNode): SVGElement {
     width: Math.max(1, g.width - 20),
     height: Math.max(1, g.height - 12),
   };
+  if (node.richText) {
+    group.append(
+      renderRich(
+        node.richText,
+        s,
+        labelBox.x,
+        labelBox.y,
+        labelBox.width,
+        labelBox.height,
+      ),
+    );
+    return group;
+  }
   const lines = textLines(node.label, Math.max(1, labelBox.width), s.fontSize);
   const maxLines = Math.max(
     1,
@@ -371,6 +386,21 @@ function renderEdge(edge: SceneConnection): SVGElement {
       }),
     );
   }
+  if (edge.richText) {
+    group.append(
+      renderRich(
+        edge.richText,
+        s,
+        edge.labelPoint.x -
+          (s.align === 'left' ? 0 : s.align === 'right' ? 240 : 120),
+        edge.labelPoint.y - 24,
+        240,
+        512,
+        false,
+      ),
+    );
+    return group;
+  }
   if (edge.label) {
     const label = svg('text', {
       class: 'scene-edge-label',
@@ -414,4 +444,72 @@ function arrowhead(
     fill: color,
     transform: `translate(${x} ${y}) rotate(${angle})`,
   });
+}
+
+/** HTML namespace text layout uses the same safe run model and fonts as the editor. No imported markup. */
+function renderRich(
+  value: RichText,
+  base: Appearance,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  center = true,
+): SVGElement {
+  const foreign = svg('foreignObject', {
+    x,
+    y,
+    width,
+    height,
+    class: center
+      ? 'scene-rich-label scene-label'
+      : 'scene-rich-label scene-edge-label',
+    opacity: base.opacity,
+  });
+  const box = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+  Object.assign(box.style, {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: center ? 'safe center' : 'start',
+    overflow: 'hidden',
+    overflowWrap: 'anywhere',
+    whiteSpace: 'pre-wrap',
+    fontFamily: FONT_FAMILIES[base.fontFamily],
+    fontSize: `${base.fontSize}px`,
+    lineHeight: '1.25',
+    color: base.textColor === 'none' ? 'transparent' : base.textColor,
+    fontWeight: String(base.fontWeight),
+    fontStyle: base.fontStyle,
+  });
+  for (const p of value.paragraphs) {
+    const paragraph = document.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'p',
+    );
+    paragraph.style.margin = '0';
+    paragraph.style.textAlign = p.align;
+    paragraph.style.minHeight = '1.25em';
+    for (const r of p.runs) {
+      const span = document.createElementNS(
+        'http://www.w3.org/1999/xhtml',
+        'span',
+      );
+      const a = { ...base, ...r.style };
+      Object.assign(span.style, {
+        fontFamily: FONT_FAMILIES[a.fontFamily],
+        fontSize: `${a.fontSize}px`,
+        fontWeight: String(a.fontWeight),
+        fontStyle: a.fontStyle,
+        textDecoration: a.textDecoration,
+        color: a.textColor === 'none' ? 'transparent' : a.textColor,
+      });
+      span.textContent = r.text;
+      paragraph.append(span);
+    }
+    box.append(paragraph);
+  }
+  foreign.append(box);
+  return foreign;
 }

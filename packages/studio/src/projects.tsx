@@ -1,3 +1,4 @@
+import { PageTabs } from './page-tabs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog, Icon } from '@koxora/ui';
@@ -5,7 +6,9 @@ import { ProjectTitle, ProjectNameField } from './project-title';
 import { Canvas, type CanvasHandle } from './canvas';
 import {
   activePageId,
-  CommandHistory,
+  StudioHistory,
+  WorkbookError,
+  type WorkbookCommand,
   renameProject,
   EditError,
   type EditCommand,
@@ -70,10 +73,11 @@ export function Projects({ locale }: { locale: string }) {
   const [focusVersion, setFocusVersion] = useState(0);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const session = useRef(0);
-  const [history] = useState(() => new CommandHistory());
+  const [history] = useState(() => new StudioHistory());
   const [loadVersion, setLoadVersion] = useState(0);
   const canvasRef = useRef<CanvasHandle>(null);
   const [pendingNavigation, setPendingNavigation] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const dirty = project !== saved || pendingNavigation,
     busy = operation !== null;
   const activeDocument =
@@ -180,11 +184,41 @@ export function Projects({ locale }: { locale: string }) {
       );
       if (next === current) return false;
       setProject(next);
+      setPageId(activePageId(next));
       setError(null);
       setPendingNavigation(false);
       return true;
     } catch {
       setError('diagram.error.invalid');
+      return false;
+    }
+  }
+  function switchPage(documentId: string, id: string) {
+    const current = snapshot();
+    if (current) setProject(selectPage(current, documentId, id));
+    setPageId(id);
+    setPendingNavigation(false);
+  }
+  function workbook(command: WorkbookCommand): boolean {
+    const current = snapshot();
+    if (!current) return false;
+    try {
+      const next = history.workbook(
+        current,
+        command,
+        () => crypto.randomUUID(),
+        new Date().toISOString(),
+      );
+      setProject(next);
+      setPageId(activePageId(next));
+      setPendingNavigation(false);
+      setError(null);
+      return true;
+    } catch (error) {
+      setError(
+        `tabs.error.${error instanceof WorkbookError ? error.code : 'invalid'}`,
+      );
+      setErrorPath(null);
       return false;
     }
   }
@@ -510,35 +544,38 @@ export function Projects({ locale }: { locale: string }) {
               <span dir="auto">{project.manifest.title}</span>
             </button>
             {view === 'workspace' && (
-              <nav
-                className="document-navigation"
-                aria-label={t('workspace.documents')}
-              >
-                {project.documents.map((doc) => (
-                  <div key={doc.id}>
-                    <p dir="auto">{doc.title}</p>
-                    {doc.pages.map((page, index) => (
-                      <button
-                        key={page.id}
-                        className={`page-nav ${activePage?.id === page.id ? 'selected' : ''}`}
-                        aria-current={
-                          activePage?.id === page.id ? 'page' : undefined
-                        }
-                        onClick={() => {
-                          const current = snapshot();
-                          if (current)
-                            setProject(selectPage(current, doc.id, page.id));
-                          setPageId(page.id);
-                          setPendingNavigation(false);
-                        }}
-                      >
-                        <span className="page-number">{index + 1}</span>
-                        <span dir="auto">{page.title}</span>
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </nav>
+              <details className="project-outline">
+                <summary>{t('tabs.overview')}</summary>
+                <nav
+                  className="document-navigation"
+                  aria-label={t('workspace.documents')}
+                >
+                  {project.documents.map((doc) => (
+                    <div key={doc.id}>
+                      <p dir="auto">{doc.title}</p>
+                      {doc.pages.map((page, index) => (
+                        <button
+                          key={page.id}
+                          className={`page-nav ${activePage?.id === page.id ? 'selected' : ''}`}
+                          aria-current={
+                            activePage?.id === page.id ? 'page' : undefined
+                          }
+                          onClick={() => {
+                            const current = snapshot();
+                            if (current)
+                              setProject(selectPage(current, doc.id, page.id));
+                            setPageId(page.id);
+                            setPendingNavigation(false);
+                          }}
+                        >
+                          <span className="page-number">{index + 1}</span>
+                          <span dir="auto">{page.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </nav>
+              </details>
             )}
           </>
         )}
@@ -839,23 +876,56 @@ export function Projects({ locale }: { locale: string }) {
             </header>
             <div className="workspace-layout">
               {activePage && activeDocument && (
-                <Canvas
-                  key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
-                  ref={canvasRef}
-                  page={activePage}
-                  styles={renderStyles}
-                  onEdit={edit}
-                  history={history.status(
-                    project,
-                    activeDocument.id,
-                    activePage.id,
-                  )}
-                  onHistory={travel}
-                  documentTitle={activeDocument.title}
-                  locale={locale}
-                  onCommit={commitCanvas}
-                  onPending={setPendingNavigation}
-                />
+                <div
+                  className={`canvas-workbook ${expanded ? 'canvas-workbook-expanded' : ''}`}
+                  onKeyDown={(event) => {
+                    if (
+                      event.defaultPrevented ||
+                      !(event.ctrlKey || event.metaKey) ||
+                      !(event.target instanceof Element) ||
+                      !event.target.closest('.workbook') ||
+                      event.target.closest('input,select,dialog')
+                    )
+                      return;
+                    const key = event.key.toLowerCase();
+                    if (key === 'z' || key === 'y') {
+                      event.preventDefault();
+                      travel(key === 'y' || event.shiftKey ? 'redo' : 'undo');
+                    }
+                  }}
+                  role={expanded ? 'dialog' : undefined}
+                  aria-modal={expanded ? true : undefined}
+                  aria-label={t('workspace.canvas')}
+                >
+                  <Canvas
+                    expanded={expanded}
+                    onExpanded={setExpanded}
+                    key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
+                    ref={canvasRef}
+                    page={activePage}
+                    styles={renderStyles}
+                    onEdit={edit}
+                    history={history.status(
+                      project,
+                      activeDocument.id,
+                      activePage.id,
+                    )}
+                    onHistory={travel}
+                    documentTitle={activeDocument.title}
+                    locale={locale}
+                    onCommit={commitCanvas}
+                    onPending={setPendingNavigation}
+                  />
+                  <PageTabs
+                    errorMessage={error}
+                    project={project}
+                    saved={saved}
+                    pageId={activePage.id}
+                    locale={locale}
+                    onSelect={switchPage}
+                    onCommand={workbook}
+                  />
+                </div>
               )}
               <aside className="inspector" aria-label={t('workspace.details')}>
                 <h2>{t('workspace.details')}</h2>

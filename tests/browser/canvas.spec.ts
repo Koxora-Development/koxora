@@ -104,6 +104,11 @@ test('pointer-centered zoom, wheel pan, drag, keyboard, resize and expanded canv
   await page.getByLabel('Spacing', { exact: true }).focus();
   await page.keyboard.press('Tab');
   await expect(
+    page.getByRole('combobox', { name: 'Document', exact: true }),
+  ).toBeFocused();
+  await page.getByRole('button', { name: 'Page actions', exact: true }).focus();
+  await page.keyboard.press('Tab');
+  await expect(
     page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }),
   ).toBeFocused();
   await page
@@ -183,6 +188,7 @@ test('page changes flush a pending wheel gesture and restore independent viewpor
   page,
 }) => {
   await imported(page);
+  await page.getByText('Project pages', { exact: true }).click();
   const pages = page
     .getByRole('navigation', { name: 'Documents' })
     .getByRole('button');
@@ -212,6 +218,7 @@ test('page changes flush a pending wheel gesture and restore independent viewpor
   await saved(page);
   await page.reload();
   await page.getByRole('button', { name: 'Open project', exact: true }).click();
+  await page.getByText('Project pages', { exact: true }).click();
   await expect(pages.last()).toHaveAttribute('aria-current', 'page');
   expect(await camera(page)).toEqual(last);
   await pages.first().click();

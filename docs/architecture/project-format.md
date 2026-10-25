@@ -126,3 +126,9 @@ Interactive editors, rendering fidelity across export formats, CRDT logs, cloud 
 Line/Arrow interactions also create existing semantic connections with `org.koxora.connection` version 1, `arrow: false/true`, and explicit `sourceAnchor`/`targetAnchor` values `north`, `east`, `south`, `west` or `auto`. Cardinal anchors are local to the endpoint shape and follow its rotation, translation and resizing. UI port markers and draft previews do not enter the archive.
 
 The existing element/connection `style` dictionary and shared style properties accept additive `fontFamily` tokens `sans`/`serif`/`mono`, `fontWeight` 400/700, `fontStyle` `normal`/`italic`, and `textDecoration` `none`/`underline`. Defaults are sans/400/normal/none. Fonts resolve only to trusted local fallback stacks; arbitrary imported CSS is never rendered. Size 8–96, text color, alignment and multiline text remain supported. These fields style the whole label, without a rich-text run model. Older readers preserve additive properties; unknown values survive unrelated edits. ZIP and schema remain 1.0.0. See ADR 0016 for history and inheritance behavior.
+
+## Phase 2.5 workbook and rich text
+
+[ADR 0018](../adr/0018-workbook-rich-text.md) retains the existing document/page arrays, UUIDs and per-page views. Tab order is page-array order. No ZIP or core-schema migration is required.
+
+Optional node/connection extension `org.koxora.rich-text` version 1 contains `paragraphs`, each with `align` and `runs` of literal `text` and safe style overrides. The existing plain-text label is an exact newline-joined projection. Rich data never contains executable HTML, CSS declarations, URLs or ProseMirror runtime state. Unknown versions/fields and projection mismatches remain preserved and read-only. The trusted font-token catalog expands additively to 20 local family preferences; no font is fetched or embedded. See the ADR for bounds, older-reader behavior and exact fields.
