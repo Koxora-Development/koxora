@@ -30,6 +30,54 @@ When a studio phase merges into `main`, walk this list. It is short on purpose.
 | The screenshots               | `apps/website/public/images/studio/`                                                        | Does the interface still look like the picture, and are the accessible names in the capture tool still correct? |
 | The studio link               | `KOXORA_SITE_EDITOR_URL`                                                                    | Has the studio been published, so the call to action can point at it?                                           |
 
+## 2a. Studio Phase 2.5, prepared in advance
+
+**Nothing in this section has been changed yet, and nothing in it may be changed before Phase 2.5 is merged into `main` and the Product Owner has accepted it.** It is written now so that the change afterwards is mechanical rather than a search, and so the Product Owner can see exactly what the website will claim once it is true.
+
+Phase 2.5 ([Issue #19](https://github.com/Koxora-Development/koxora/issues/19)) brings two things the website currently describes as unfinished: **workbook-style diagram tabs** and an **Office-style rich-text editor** with twelve or more font families and formatting inside a single label.
+
+### What the site says today, and why that is still right
+
+The two capabilities are already on the site as `in-development`, and both say _"Being implemented in the current studio milestone."_ That is accurate and must stay until the merge. The statuses are in `apps/website/src/content/data.ts`:
+
+| Entry      | Status today     | After the merge            |
+| ---------- | ---------------- | -------------------------- |
+| `pages`    | `in-development` | `available`, once accepted |
+| `richText` | `in-development` | `available`, once accepted |
+
+Moving either one also means removing the "being implemented" sentence from its body text, and reconsidering `highlight: true`, which exists to draw attention to what is coming next.
+
+### What becomes false, and has to be corrected in the same pass
+
+These are claims that are true today and will be wrong the moment 2.5 merges. Each is a message key in both `en.ts` and `de.ts`:
+
+| Key                       | What it claims now                                                                                                                         | Why 2.5 breaks it                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `feature.typography.body` | "Serif, sans serif and monospace families from your own system … applied to a label as a whole"                                            | 2.5 asks for twelve or more families, and formatting within a label |
+| `features.limits.item4`   | "Rich text is applied to a whole label; per-character formatting is not implemented"                                                       | That limit is exactly what 2.5 removes                              |
+| `docsEditing.text.body`   | "a sans-serif, serif or monospace family … Formatting applies to the whole label. Formatting single words differently is not possible yet" | Both sentences                                                      |
+| `docsEditing.limits.body` | "no formatting of single words inside a label"                                                                                             | Same limit, named a second time                                     |
+| `cmp.diagramTypes.koxora` | "The merged version draws shapes, plain text and connections with visible ports"                                                           | Several diagrams per project through tabs changes what a project is |
+
+A claim changed in the comparison also moves `comparisonCheckedOn` in `apps/website/src/content/comparison.ts`, because every comparison page prints that date.
+
+### The screenshots that go stale
+
+All seven live in `apps/website/public/images/studio/` and are captured by `tests/assets/studio-screenshots.spec.ts`:
+
+| Picture                                                             | Why it changes                                                                         |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `docs-properties`                                                   | **Certainly.** It shows the 2.4 properties dialog, which the rich-text editor replaces |
+| `editor-dark`, `editor-light`, `editor-small-en`, `editor-small-de` | **Certainly.** Diagram tabs appear in the editor chrome these four show                |
+| `docs-shortcuts`                                                    | **Probably.** 2.5 adds Ctrl/Cmd+B, I and U to the shortcut list                        |
+| `docs-dashboard`                                                    | **Only if** the project list itself changes                                            |
+
+The capture clicks buttons by their accessible names — "Element properties", "Keyboard shortcuts", "Fit content", "Import .koxora". If 2.5 renames the properties button, **the capture fails rather than producing a wrong picture**, which is the behaviour we want.
+
+### What this does not authorize
+
+No status moves, no sentence is rewritten and no picture is recaptured before the merge. A website pull request that marks either capability available while Phase 2.5 is still open would be exactly the mistake this whole document exists to prevent — and `docs.test.ts` and `comparison.test.ts` do not catch it, because neither can know what has merged.
+
 ## 3. Regenerating the screenshots
 
 The pictures on the site are captures of the real studio, driven by `tests/assets/studio-screenshots.spec.ts`. They are not drawings and nothing is retouched.
