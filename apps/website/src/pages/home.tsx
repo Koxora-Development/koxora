@@ -81,6 +81,7 @@ export function HomePage(context: PageContext) {
         />
         <Screenshot
           name="editor-dark"
+          label={t('shot.frameLabel')}
           alt={t('home.preview.altDark')}
           caption={t('home.preview.caption', { date: reviewed })}
           priority
@@ -88,11 +89,13 @@ export function HomePage(context: PageContext) {
         <div className="shot-row">
           <Screenshot
             name="editor-light"
+            label={t('shot.frameLabel')}
             alt={t('home.preview.altLight')}
             caption={t('home.preview.tabLight')}
           />
           <Screenshot
             name={`editor-small-${locale}`}
+            label={t('shot.frameLabel')}
             alt={t('home.preview.altMobile')}
             caption={t('home.preview.tabMobile')}
           />

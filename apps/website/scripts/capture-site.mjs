@@ -81,7 +81,7 @@ const shots = [
     file: 'sticky-header-en',
     url: `${base}/en/`,
     viewport: 'desktop',
-    scrollTo: 1400,
+    scrollTo: 1066,
     clip: { x: 0, y: 0, width: 1280, height: 320 },
   },
   // The footer, grouped by errand, in both languages and on the phone.

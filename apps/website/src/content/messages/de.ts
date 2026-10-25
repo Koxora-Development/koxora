@@ -90,6 +90,7 @@ export const de: Record<WebsiteMessageKey, string> = {
   'home.hero.note':
     'Koxora wird aktiv entwickelt. Alles auf dieser Seite ist als Verfügbar, In Entwicklung oder Geplant gekennzeichnet.',
   'home.preview.title': 'Das Studio heute',
+  'shot.frameLabel': 'Bildschirmfoto · Koxora Studio',
   'home.preview.caption':
     'Echter Screenshot der aktuellen Entwicklungsversion von Koxora Studio, aufgenommen am {date}. Keine Montage.',
   'home.preview.altDark':

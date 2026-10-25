@@ -88,6 +88,7 @@ export const en = {
   'home.hero.note':
     'Koxora is in active development. Everything on this page is labelled Available, In development or Planned.',
   'home.preview.title': 'The studio today',
+  'shot.frameLabel': 'Screenshot · Koxora Studio',
   'home.preview.caption':
     'Real screenshot of the current development version of Koxora Studio, captured on {date}. Not a mock-up.',
   'home.preview.altDark':

@@ -114,7 +114,7 @@ Results:
 | `pnpm check` | Passed. Type check, lint, format, 227 unit tests in 17 files, documentation validation, dependency licence report |
 | Unit tests of the website | 44 of those 227, covering the route table, catalog completeness, the consent record, the search metadata, the launch copy and the shared control metrics |
 | `pnpm website:build` | Passed. 61 files and 30 redirects emitted, plus the hosting configuration |
-| `pnpm test:website` | 242 passed, 7 skipped, across the desktop, tablet and phone projects |
+| `pnpm test:website` | 245 passed, 7 skipped, across the desktop, tablet and phone projects |
 | `pnpm test:e2e --project chromium --project mobile` | 90 passed; the studio build output is byte-identical with and without this branch |
 
 The browser tests cover navigation and redirects, status codes, both languages, metadata, sitemap and robots, consent in both deployment states, accessibility and responsive behaviour. They run against the reference server with the security headers and the content security policy of the deployment, and one suite asserts that no page violates that policy, that the policy pins the inline script actually served, and that build artefacts are not reachable. The skipped cases are the ones that belong to a different layout than the project running them.
@@ -133,7 +133,7 @@ Captured with `pnpm capture:website` against the preview server and the consent 
 | Appearance control, dark and light with a stored choice | `theme-dark-en.png`, `theme-light-en.png` |
 | Language menu, English dark and German light | `language-menu-en.png`, `language-menu-de.png` |
 | Language menu, German, phone | `language-menu-de-mobile.png` |
-| Header over scrolled content | `sticky-header-en.png` |
+| Stuck header where the studio screenshot begins | `sticky-header-en.png` |
 | Footer, English dark and German light | `footer-en-desktop.png`, `footer-de-desktop.png` |
 | Footer, German and English, phone | `footer-de-mobile.png`, `footer-en-mobile.png` |
 | Home, German, phone | `home-de-mobile.png` |
@@ -203,6 +203,8 @@ A marketing website that is still being reviewed says so; once it is live, that 
 | The security contact is deliverable and owned | The legal review checklist |
 
 ## 14. Header that follows the page, and a footer sorted by errand
+
+Every studio picture is a framed, named screenshot. The frame carries a strip at its top edge reading "Screenshot · Koxora Studio", because the stuck site header comes to rest exactly there while a reader scrolls, and the picture's own chrome begins immediately below it. Without the strip the two headers read as one application, with two Koxora word marks above each other. The pictures themselves are unaltered captures of the running studio, including its own toolbar and side panels, taken by `pnpm capture:studio`; nothing is drawn by hand and nothing is a web page wrapped around the studio.
 
 The header is `position: sticky` at the top. Nothing inside it is clipped, because no ancestor is a scroll container: the body uses `overflow-x: clip`, which prevents sideways scrolling without becoming one, so the language popover and the expanded phone menu still draw over the content below. `scroll-padding-top` keeps a fragment target, the skip link and the back-to-top link clear of the header instead of landing underneath it. Sticky positioning leaves the element in flow, so nothing shifts when it engages. On a viewport shorter than 520 pixels, a phone held sideways, the header scrolls away with the page rather than taking most of the screen.
 

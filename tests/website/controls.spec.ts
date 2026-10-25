@@ -206,6 +206,28 @@ test.describe('header controls', () => {
     await expect(skip).toBeFocused();
     await expect(skip).toBeVisible();
   });
+  test('every studio picture is framed and named as a screenshot', async ({
+    page,
+  }) => {
+    for (const locale of ['en', 'de'] as const) {
+      await page.goto(locale === 'en' ? '/en/' : '/de/');
+      const frames = page.locator('.shot-frame');
+      const count = await frames.count();
+      expect(count, locale).toBeGreaterThan(0);
+      for (let index = 0; index < count; index += 1) {
+        const frame = frames.nth(index);
+        // The label sits at the frame's top edge, where the stuck site header
+        // comes to rest, so the picture cannot be read as live chrome.
+        const label = frame.locator('.shot-label');
+        await expect(label, `${locale} ${index}`).toHaveText(
+          catalog.translate(locale, 'shot.frameLabel'),
+        );
+        const labelBox = (await label.boundingBox())!;
+        const imageBox = (await frame.locator('img').boundingBox())!;
+        expect(labelBox.y, `${locale} ${index}`).toBeLessThan(imageBox.y);
+      }
+    }
+  });
   test('the appearance control offers the appearance it switches to', async ({
     page,
   }) => {

@@ -302,6 +302,19 @@
   background: var(--panel);
   box-shadow: var(--shadow);
 }
+/* Names the picture at its own top edge. The site header is sticky and comes
+   to rest right above this strip, which is exactly where a reader would
+   otherwise take the screenshot's own chrome for a continuation of the page. */
+.shot-label {
+  padding: 9px 16px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 750;
+  color: var(--faint);
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--border-strong);
+}
 .shot img {
   display: block;
   width: 100%;
