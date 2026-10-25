@@ -1,6 +1,7 @@
 pnpm-lock.yaml
 node_modules
 dist
+**/dist-*/
 target
 playwright-report
 test-results

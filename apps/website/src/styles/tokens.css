@@ -1,0 +1,63 @@
+/* Brand tokens. The dark palette is the established Koxora appearance used by
+   the current public site; the light palette mirrors it with the contrast
+   ratios the same content needs on a bright background. */
+:root {
+  color-scheme: dark;
+  --bg: #080a13;
+  --bg-glow-1: rgba(76, 48, 156, 0.19);
+  --bg-glow-2: rgba(27, 57, 124, 0.16);
+  --panel: #101323;
+  --panel-2: #14182a;
+  --panel-3: #181d33;
+  --text: #f3f4ff;
+  --muted: #b3b8d0;
+  --faint: #8d96b2;
+  --violet: #a584ff;
+  --violet-strong: #c2afff;
+  --cyan: #64e4ed;
+  --amber: #e7b765;
+  --border: rgba(188, 191, 255, 0.14);
+  --border-strong: rgba(188, 191, 255, 0.28);
+  --tint: rgba(152, 123, 255, 0.12);
+  --tint-cyan: rgba(81, 203, 220, 0.11);
+  --tint-amber: rgba(231, 183, 101, 0.12);
+  --shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
+  --ink-on-accent: #130e24;
+  --max: 1160px;
+  --radius: 15px;
+  --radius-sm: 9px;
+  --step: clamp(72px, 9vw, 130px);
+  /* Metrics of the header controls that the studio shares. They repeat
+     `controlMetrics` of @koxora/ui/control-icons, and a unit test fails if
+     the two ever disagree. */
+  /* Height the sticky header keeps, used to keep anchors clear of it. */
+  --header-height: 76px;
+  --control-size: 36px;
+  --control-touch: 44px;
+  --control-icon: 17px;
+  --control-menu-width: 232px;
+  --control-menu-offset: 10px;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f6f7fd;
+  --bg-glow-1: rgba(140, 112, 232, 0.14);
+  --bg-glow-2: rgba(84, 134, 214, 0.12);
+  --panel: #ffffff;
+  --panel-2: #f0f2fb;
+  --panel-3: #e7eaf8;
+  --text: #15172a;
+  --muted: #4d5571;
+  --faint: #5f6880;
+  --violet: #5a3dc0;
+  --violet-strong: #4a2fa8;
+  --cyan: #0a6f7c;
+  --amber: #8a5a10;
+  --border: rgba(31, 36, 84, 0.14);
+  --border-strong: rgba(31, 36, 84, 0.26);
+  --tint: rgba(110, 78, 214, 0.09);
+  --tint-cyan: rgba(10, 111, 124, 0.09);
+  --tint-amber: rgba(138, 90, 16, 0.1);
+  --shadow: 0 16px 44px rgba(26, 30, 70, 0.12);
+  --ink-on-accent: #120d22;
+}

@@ -1,0 +1,268 @@
+# Website W1 implementation
+
+**Status: implemented for review, 2026-10-24. Product Owner acceptance, merge and publication are separate decisions and have not been given.** This document describes what the public marketing website in `apps/website` does, how it is built and tested, and what is deliberately left for later milestones.
+
+Scope and acceptance criteria come from [Issue #21](https://github.com/Koxora-Development/koxora/issues/21) with the legal requirements in [Issue #26](https://github.com/Koxora-Development/koxora/issues/26), the technical search requirements in [Issue #27](https://github.com/Koxora-Development/koxora/issues/27), the comparison teaser in [Issue #25](https://github.com/Koxora-Development/koxora/issues/25) and the deployment handover in [Issue #22](https://github.com/Koxora-Development/koxora/issues/22). The delivery decision is recorded in [ADR 0017](../adr/0017-public-website-delivery.md); the long-term site plan stays in [the website and platform specification](website.md).
+
+## 1. What was built
+
+A separate workspace application, `@koxora/website`, that renders eleven pages in English and German to static HTML at build time, plus a localized not-found page, a language gateway for the root address, a sitemap, a robots file, web manifests, a redirect table and the hosting configuration derived from it. The browser editor in `apps/studio-web` is untouched.
+
+| Area | Result |
+| --- | --- |
+| Pages per language | Home, features, local-first, comparison, roadmap, download, documentation, releases, legal notice, privacy policy, privacy settings |
+| Languages | English as default and fallback, German complete and enforced by the type system |
+| Client payload | One stylesheet and one enhancement module; no framework runtime, no third-party request |
+| Consent | Full manager, localized and tested, with the first-visit prompt bound to the audited deployment |
+| Screenshots | Captured from the current development version of the studio by an automated run |
+
+## 2. Structure
+
+```text
+apps/website
+  src/site.ts                  deployment configuration read from the environment
+  src/routes.ts                route table, localized slugs, redirects, alternates
+  src/seo.ts                   canonical, hreflang, social and structured data
+  src/entry-server.tsx         build-time rendering of pages, sitemap, robots, manifests
+  src/content/messages/*.ts    English and German resources (one flat key space)
+  src/content/data.ts          capabilities, phases, milestones, comparison data
+  src/content/consent.ts       consent categories, purposes and runtime configuration
+  src/components/*             layout, navigation, cards, consent surfaces, illustrations
+  src/pages/*                  one module per page, registered in pages/registry.ts
+  src/client/*                 appearance toggle, collapsed navigation, consent controller
+  src/styles/*                 brand tokens, base, layout and component styles
+  scripts/emit-site.mjs        writes the static output and the hosting configuration
+  scripts/serve-site.mjs       reference static server used for preview and tests
+  scripts/render-brand-images.mjs   icons and social preview images from the approved mark
+  scripts/capture-site.mjs     website screenshots for review
+```
+
+## 3. Addresses
+
+Each page has its own search-friendly path per language. Navigation, `hreflang`, canonical addresses, the sitemap and the redirect table are derived from one table, so a slug cannot drift between them.
+
+| Page | English | German |
+| --- | --- | --- |
+| Home | `/en/` | `/de/` |
+| Features | `/en/features/` | `/de/funktionen/` |
+| Local-first | `/en/local-first/` | `/de/local-first/` |
+| Comparison | `/en/compare/` | `/de/vergleich/` |
+| Roadmap | `/en/roadmap/` | `/de/roadmap/` |
+| Download | `/en/download/` | `/de/download/` |
+| Documentation | `/en/docs/` | `/de/dokumentation/` |
+| Releases | `/en/releases/` | `/de/releases/` |
+| Legal notice | `/en/legal-notice/` | `/de/impressum/` |
+| Privacy policy | `/en/privacy-policy/` | `/de/datenschutz/` |
+| Privacy settings | `/en/privacy-settings/` | `/de/datenschutz-einstellungen/` |
+
+Cross-language aliases and unprefixed paths redirect permanently, including the four legal paths named in Issue #26. The root address is a no-index gateway that offers both languages; the generated hosting configuration redirects it by the request language. Unknown addresses answer with the status code 404 and the not-found page of the language segment they were requested under.
+
+## 4. Honest status labels
+
+Every capability on the site carries one of three labels, and the definitions are printed on the pages that use them.
+
+| Label | Meaning on this site |
+| --- | --- |
+| Available | Implemented and merged in the current development version. Koxora has no public release, so this never means downloadable today. |
+| In development | Being implemented in the current milestone; scope and behaviour can still change. |
+| Planned | Documented product scope, not started, no committed date. |
+
+The single illustration that shows a future capability carries a concept badge and a caption saying it is a drawing of an idea. All product images are screenshots of the real application. The features page additionally names the current limits: no image export, no import from other tools, session-only history, whole-label text formatting, and no collaboration, cloud or assistance in the product today.
+
+## 5. Comparison teaser
+
+The home page positions Koxora without making claims about other products: it lists what Koxora optimises for, names the five comparison targets with neutral one-line descriptions and links to their official sites, and states that the sourced comparison follows later. The comparison page itself is marked as in preparation and describes the method that the later milestone will follow, including per-claim sources, the plan and version tested, the date checked, and more answers than a checkmark. No capability claim about another product is made anywhere on the site.
+
+## 6. Languages
+
+English is the default and fallback. The German record is typed against the English keys, so a missing or removed translation fails the type check. A unit test additionally asserts that no key falls back, that no message is empty and that both languages use the same interpolation placeholders. Browser tests assert that each page shows the title of its own language, that the language switch keeps the reader on the same page in both directions, that the German pages contain no English page description, and that navigation and footer are translated.
+
+## 7. Device storage and consent
+
+The reviewed deployment stores one item on a reader's device: the appearance they chose. Where a deployment offers an optional purpose, the consent record itself is added. Both are strictly necessary under section 25(2) no. 2 TDDDG, both are listed with purpose, provider, duration and legal basis on the privacy settings page and in the privacy policy, and neither is a cookie. The inventory is derived from the deployment, so it never lists storage that cannot occur; server-side processing such as delivery logging is described in the policy's own sections rather than presented as device storage.
+
+Because nothing optional is used, no first-visit prompt is shown. The manager is still built, localized, reachable from the footer of every page and tested. A second build with optional categories enabled is produced in the same test run, and the browser tests cover both states: prompt with equal-prominence choices, no preselected optional purpose, gated code that stays inert until consent, a stored decision that is not asked for again, a version change that asks again, withdrawal that deletes the record and brings the prompt back, and a refusal that leaves the site fully usable. See [the legal review checklist](../legal/website-legal-review.md) for what still needs operator confirmation.
+
+## 8. Search engines and performance
+
+Real HTML, one unique title and description per page, canonical addresses, bidirectional `hreflang` with `x-default`, a sitemap with language alternates, a robots file, social preview images per language, and structured data limited to the organisation and the website. No `SoftwareApplication`, rating, price, version or download entry is published while no release exists. Staging builds can set an environment variable that emits `noindex` and a disallow-all robots file. The content plan is in [the website search plan](website-seo.md).
+
+The published page requests one stylesheet, one script and the images on it. There is no web font request, no analytics, no advertising network and no embedded third-party content; a browser test fails if any request leaves the site's own origin.
+
+| Artefact | Size |
+| --- | --- |
+| Stylesheet | 20,257 bytes, 5,145 bytes compressed |
+| Enhancement script | 4,576 bytes, 1,755 bytes compressed |
+| Home page document | 35,091 bytes in English, 36,404 bytes in German, before compression |
+
+## 9. Verification
+
+Run in the development container on 2026-10-25, against this branch:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm check                 # typecheck, lint, format, unit tests, docs, licenses
+pnpm website:build         # static output plus hosting configuration
+pnpm test:website          # browser tests on desktop, tablet and phone layouts
+pnpm capture:website       # documentation screenshots, preview servers running
+```
+
+Results:
+
+| Command | Result |
+| --- | --- |
+| `pnpm check` | Passed. Type check, lint, format, 231 unit tests in 18 files, documentation validation, dependency licence report |
+| Unit tests of the website | 48 of those 231, covering the route table, catalog completeness, the consent record, the search metadata, the launch copy, the shared control metrics and the rendered privacy policy in both publication states |
+| `pnpm website:build` | Passed. 61 files and 30 redirects emitted, plus the hosting configuration |
+| `pnpm test:website` | 245 passed, 7 skipped, across the desktop, tablet and phone projects |
+| `pnpm test:e2e --project chromium --project mobile` | 90 passed; the studio build output is byte-identical with and without this branch |
+
+The browser tests cover navigation and redirects, status codes, both languages, metadata, sitemap and robots, consent in both deployment states, accessibility and responsive behaviour. They run against the reference server with the security headers and the content security policy of the deployment, and one suite asserts that no page violates that policy, that the policy pins the inline script actually served, and that build artefacts are not reachable. The skipped cases are the ones that belong to a different layout than the project running them.
+
+Limitations of this run: only the bundled Chromium engine was available in the container, so the Firefox and WebKit projects of both suites were not executed; the website suite enables them with `KOXORA_BROWSERS=all`. No Lighthouse measurement and no manual screen-reader audit were performed, and no deployment was attempted. Configured remote jobs are not evidence of execution.
+
+## 10. Screenshots
+
+Captured with `pnpm capture:website` against the preview server, the consent demonstration server and the published-variant server (`pnpm --filter @koxora/website build:published` and `preview:published`; those two shots are skipped when it is not running), and stored in `docs/design/screenshots/website/`. Desktop shots use a 1280 pixel wide viewport. Every capture states the operating system appearance it emulates, because the site follows that preference while no choice is stored. `python3 scripts/optimize_screenshots.py` then rewrites the images with an indexed palette, which is why they are about a third of the captured size; the step is optional and needs Pillow.
+
+| View | File |
+| --- | --- |
+| Home, English, desktop | `home-en-desktop.png` |
+| Home, German, desktop | `home-de-desktop.png` |
+| Home, English, light appearance from the system preference | `home-en-light.png` |
+| Appearance control, dark and light with a stored choice | `theme-dark-en.png`, `theme-light-en.png` |
+| Language menu, English dark and German light | `language-menu-en.png`, `language-menu-de.png` |
+| Language menu, German, phone | `language-menu-de-mobile.png` |
+| Stuck header where the studio screenshot begins | `sticky-header-en.png` |
+| Footer, English dark and German light | `footer-en-desktop.png`, `footer-de-desktop.png` |
+| Footer, German and English, phone | `footer-de-mobile.png`, `footer-en-mobile.png` |
+| Privacy policy as a launched build renders it | `privacy-published-en.png`, `privacy-published-de.png` |
+| Home, German, phone | `home-de-mobile.png` |
+| Home, English, tablet | `home-en-tablet.png` |
+| Navigation menu, German, phone | `menu-de-mobile.png` |
+| Features, English | `features-en-desktop.png` |
+| Comparison, German | `compare-de-desktop.png` |
+| Roadmap, English | `roadmap-en-desktop.png` |
+| Download, German | `download-de-desktop.png` |
+| Local-first, English | `local-first-en-desktop.png` |
+| Legal notice, German | `legal-notice-de.png` |
+| Privacy policy, German | `privacy-policy-de.png` |
+| Privacy settings, English | `privacy-settings-en.png` |
+| Not found, English | `not-found-en.png` |
+| Consent prompt in the demonstration build, German | `consent-banner-de.png` |
+| Consent dialog in the demonstration build, English | `consent-dialog-en.png` |
+
+Studio screenshots used on the site are captured by `pnpm capture:studio`, which drives the real application and writes the images together with their intrinsic sizes.
+
+## 11. Interface contract with the parallel studio work
+
+Website W1 and Studio 2.5 run in parallel on separate branches. W1 touches these shared files, additively:
+
+| File | Change | Coordination |
+| --- | --- | --- |
+| `packages/i18n/package.json` | Adds a `./catalog` entry point | None; one key inside the existing map |
+| `packages/ui/package.json` | Adds a `./control-icons` entry point | None; one key inside the existing map |
+| `packages/ui/src/control-icons.ts` | **New.** The shared artwork and metrics of the header controls | **Shared on purpose.** Studio 2.5 reads the same module for its own controls; see [the control specification](../design/shared-header-controls.md). It imports no React and no asset, so a build-time renderer can read it too |
+| `apps/website/package.json` | Depends on `@koxora/ui` | Low; the lockfile gains three lines |
+| `packages/i18n/src/catalog.ts` | New generic catalog helper and the shared locale metadata | None; the studio graph does not import it |
+| `packages/i18n/src/index.ts` | Builds its locale registry from that shared metadata; every exported signature is unchanged | Low; two lines |
+| `package.json` | Adds website build, test and capture scripts | Low; a conflict only if both add scripts in the same block |
+| `vitest.config.ts` | Includes unit tests under `apps/*/src`, also `.tsx`, and excludes the native crate | Agree the test convention: these run in the node environment |
+| `eslint.config.js`, `.prettierignore` | Ignore the website build output directories | None |
+| `.github/workflows/quality.yml` | Adds the website browser test step and its report artefact | The step runs in the existing `web` job and reports independently |
+| `AGENTS.md`, `docs/adr/README.md` | Appended entries | Append-at-end, so a textual conflict is likely and trivial to resolve |
+| `tests/assets/studio-screenshots.spec.ts` | New capture tool that drives the real studio | **Needs attention.** It is type-checked but never run by continuous integration, and it uses the editing commands and the accessible names of the studio. A studio change can make it fail the type check |
+
+The last row is the real coupling. The capture tool exists so the website shows genuine screenshots; when the studio changes its editing commands or its control names, the tool and the committed screenshots under `apps/website/public/images/studio/` have to be refreshed with `pnpm capture:studio`.
+
+W1 adds no key to `packages/i18n/src/locales/*.json`, changes no studio component and changes no existing script. The control module is new rather than a change to an existing shared file, so the studio branch can adopt it when it is ready without a conflict. One subtlety is worth knowing: the studio's stylesheet is generated by scanning the shared packages for class names, so even a comment in `packages/ui` can add an unused utility rule to the studio bundle. The studio output of this branch was compared byte for byte against the same build without it, and is identical. The studio and the website share the brand mark, the token names of the established appearance, and the localization contract, nothing else.
+
+## 12. Prepared for later milestones
+
+- Documentation, download and release pages exist with their navigation, structure and status labels, and say plainly that they are in preparation. The later milestones fill them; the addresses do not change.
+- The comparison page is prepared for the sourced comparison and the per-tool pages of the next website milestone.
+- The route table accepts a new language by adding a resource file and its slugs; no page or component changes.
+- The consent manager accepts a new purpose by adding a category and enabling it in the deployment configuration; the prompt then appears automatically.
+- Deployment, independent updates and rollback are described in [the website deployment guide](../development/website-deployment.md).
+
+## 13. Going live without stale copy
+
+A marketing website that is still being reviewed says so; once it is live, that sentence has to disappear without taking the truthful ones with it. Two things keep that honest.
+
+**The statement is derived, not written twice.** `KOXORA_SITE_PUBLISHED` switches the two launch-sensitive messages, which `apps/website/src/content/launch.ts` holds in one place, and a unit test asserts that the launched variants contain none of the pre-launch phrases while still carrying the sentence about the studio and downloads.
+
+**Publishing the website says nothing about the product.** The studio entry stays governed by `KOXORA_SITE_EDITOR_URL` and the download page by the release process. A live website with no published studio and no signed build is an ordinary state, and the site states it plainly.
+
+| Before switching the launch flag on | Where |
+| --- | --- |
+| No page, heading, lead or call to action says that this website is in review or not yet published | The two messages in `launch.ts`; the unit test fails otherwise |
+| The studio entry points at a reachable address, or still explains how to run the current version | `KOXORA_SITE_EDITOR_URL`, left unset until the studio is deployed |
+| The download page still says there is no public release, unless a signed release exists | Release process, never this flag |
+| Status labels still match the implementation | The features page and the status legend |
+| The content review date is current | `KOXORA_SITE_CONTENT_DATE` |
+| Indexing is intended | `KOXORA_SITE_INDEXABLE`, which stays `false` for staging |
+| The security contact is deliverable and owned | The legal review checklist |
+
+## 14. What a published build changes on the legal pages
+
+While this site is unpublished, the privacy policy carries a notice addressed to the operator: the text has not been checked against the deployed services. That is true today and belongs in a review build, but on a public page it reads as a disclaimer about a document a reader is being asked to rely on. `KOXORA_SITE_PUBLISHED=true` therefore removes it, and removes nothing else: the version, the review date, every processing description, the rights, the supervisory authority and every statement about what is not available yet all stay.
+
+Two guards keep that honest. A unit test renders both privacy pages, in both languages and in both states, and asserts the notice is there while unpublished, absent once published, and that the version, the review date and the required sections survive. After the pages are written, the emitter searches the whole published output for that family of wording and refuses to finish the build if any of it survived, so a new page or a new sentence cannot reintroduce it unnoticed.
+
+The same pass corrected two statements that a published page cannot make. The policy no longer reads as if the hosted studio were already operated: it covers the website, and section 7 says what will apply to the studio once it is published at its own address. And the retention period no longer promises to be measured "before this site is published", which would contradict itself on a published page; it says instead that the period follows from the providers' configuration, has not been measured yet, is added once it has been, and that the data protection contact answers in the meantime.
+
+`KOXORA_SITE_INDEXABLE` stays a separate switch. A review deployment sets it to `false` and gets `noindex`, no canonical address and a disallow-all robots file, whatever the launch flag says.
+
+## 15. Header that follows the page, and a footer sorted by errand
+
+Every studio picture is a framed, named screenshot. The frame carries a strip at its top edge reading "Screenshot · Koxora Studio", because the stuck site header comes to rest exactly there while a reader scrolls, and the picture's own chrome begins immediately below it. Without the strip the two headers read as one application, with two Koxora word marks above each other. The pictures themselves are unaltered captures of the running studio, including its own toolbar and side panels, taken by `pnpm capture:studio`; nothing is drawn by hand and nothing is a web page wrapped around the studio.
+
+The header is `position: sticky` at the top. Nothing inside it is clipped, because no ancestor is a scroll container: the body uses `overflow-x: clip`, which prevents sideways scrolling without becoming one, so the language popover and the expanded phone menu still draw over the content below. `scroll-padding-top` keeps a fragment target, the skip link and the back-to-top link clear of the header instead of landing underneath it. Sticky positioning leaves the element in flow, so nothing shifts when it engages. On a viewport shorter than 520 pixels, a phone held sideways, the header scrolls away with the page rather than taking most of the screen.
+
+The footer keeps the layout it had. Product, Resources and Legal stay as they were, with their column widths, the brand block and the bottom bar untouched; the repository link moved out of the contact column into Resources, where it belongs, and appears nowhere else. The contact column is a concise support point plus one named security action: a question about Koxora goes to the support mailbox, a security problem goes to the security policy, which says what is safe to send before a private channel exists. The security address itself is not printed there, so nothing in the footer suggests that the mailbox has been verified.
+
+## 16. Appearance and language controls
+
+The header carries two controls that Koxora shares across its surfaces: one round button for the appearance and one for the language. [The control specification](../design/shared-header-controls.md) is the contract, and `packages/ui/src/control-icons.ts` is the artwork and the metrics both surfaces draw from, as plain data rather than as a React component, because this website ships no client React runtime.
+
+The appearance button shows the appearance it switches to: a sun while the dark one is active, a moon while the light one is. Its accessible name and its tooltip say the same thing and change with the state. With no stored choice the site follows the operating system preference, before the first paint and while it changes during the visit.
+
+The language button is a globe that opens a popover: a heading, the native name of each language, an optional flag that is decoration rather than meaning, and a check mark plus `aria-current` on the current one. It opens on a press, on Enter, on Space and on the arrow keys, and on hover where a precise pointer exists; Escape closes it and gives the focus back without also closing the collapsed header menu around it. The entries are ordinary links to the equivalent page, so without scripting they stay visible as a plain row and the button that would open nothing is not rendered at all.
+
+Studio 2.5 owns its side of this contract on its own branch. Until that lands the two surfaces differ, which is why nothing here claims they already match.
+
+## 17. Security contact
+
+`security@koxora.app` is the address for a first contact about a vulnerability. It appears in the legal notice next to the other contacts, in `SECURITY.md`, and in `/.well-known/security.txt` in the format of RFC 9116. That file states the contact, the languages, the policy address and an expiry one year after the content review date, and deliberately claims no response time, no encryption key and no reward. The hidden-path guard of the hosting configuration exempts the well-known directory and nothing else.
+
+The Product Owner has provisioned the mailbox, but its delivery and the access to it are untested, so the policy does not ask anyone to send exploit details to it. A first message says only that a problem exists, roughly where, and how to reply; the technical part follows through a channel agreed in that reply. The footer therefore links to the policy under "Report a vulnerability" rather than printing the address next to the support mailbox, where it would read as an invitation to send details straight away. When the operator has verified delivery and access, that restriction can be lifted and the policy updated; until then it stays an open point in the legal review checklist.
+
+## 18. Independent review
+
+Four independent reviews examined this branch against the real diff and the built output: data protection and consent, technical search readiness with accessibility, security of the generated site and its tooling, and the shared surface with the parallel studio work. They found one defect that would have mattered to a reader and a set of smaller ones, all of which are fixed in this branch:
+
+| Finding | Effect | Fix |
+| --- | --- | --- |
+| The settings page rendered the consent manager twice with the same control identifiers | A label click in the dialog toggled the hidden copy, so saving could store the opposite of what the reader chose, including a failed withdrawal reported as success | Identifiers are scoped per instance, and the settings page no longer carries a second copy in a dialog |
+| A stored decision was honoured even for purposes the deployment no longer offers | An old record could keep a purpose active with no way to withdraw it | Granted purposes are filtered against the deployment, and an orphaned record is removed on load |
+| The emitted rewrite rules were written for a different Apache context | The language redirect for `/` could never fire and the trailing-slash rule produced a double slash | Rules rewritten for a virtual host, with both spellings of every alias matched in one hop |
+| The content security policy was never exercised by any test | A stale inline-script hash would have reached production unseen | The reference server sends the generated headers, and tests assert the policy, the hash and the absence of violations |
+| The reference server could be reached past its own guards | An encoded dot, a symbolic link or a malformed host header bypassed or crashed it | Guards run on the decoded path, links are resolved, and a bad request answers 400 |
+| Server log data was listed as storage on the reader's device | A legal-basis citation that does not apply to server-side processing | The entry is gone from the device inventory; logging stays described in its own section |
+| The menu collapsed only after the enhancement script ran | A measured layout shift of 0.43 on a phone with a slow connection | The stylesheet uses the flag the blocking inline script sets before first paint |
+| Progressive-enhancement controls stayed visible without scripting | Inert buttons a reader could focus and press | The hidden attribute is honoured, and the no-script note is now on every page |
+| A staging build published canonical addresses and a sitemap | Staging addresses could be indexed if the robots file were bypassed | A build that is not indexable emits neither |
+| The legal tables cut off their last column on a phone | The legal-basis column was unreachable with no affordance | The table scrolls inside a named, focusable region with a visible hint |
+| Meta titles and descriptions were too long in both languages | Truncated in search results | Rewritten per language within the display limits |
+| The English home page showed a German phone screenshot | A reader saw an interface in another language | Each language has its own phone screenshot |
+
+The reviews also confirmed, by measurement rather than by reading, that the studio build output is byte-identical with and without this branch, that no page makes a third-party request, that the structured data claims nothing unreleased, that the hreflang and sitemap layer is internally consistent, and that nothing is stored on a device before a reader acts.
+
+## 19. Open points
+
+1. The hosted browser studio is not published, so the primary call to action explains how to run the current version instead of linking to an address that does not answer. The Product Owner decided on 2026-10-24 to keep this configurable and to switch on the direct studio link only once `app.koxora.app` is actually reachable; setting `KOXORA_SITE_EDITOR_URL` is the single change needed.
+2. The legal pages carry prepared content; [the checklist](../legal/website-legal-review.md) lists what the operator must confirm before publication.
+3. T-008 is decided for this milestone: the Product Owner accepted the static approach on the accepted foundation stack on 2026-10-24. A dedicated website framework stays an option for a later content-management need.
+4. No content management system exists. Content changes are code changes until a later milestone decides otherwise.
+5. **No contact form.** The Product Owner decided on 2026-10-25 that a real form belongs to the next website milestone, because it needs mail delivery, rate limiting, spam handling, a privacy assessment and an operator-verified service, none of which a static site can carry. W1 therefore offers addresses that work today and advertises no form, no placeholder and no third-party collection service. The follow-up is tracked as [Issue #30](https://github.com/Koxora-Development/koxora/issues/30) and does not widen W1.
+6. **The security address is a first contact, not a channel for details.** Its delivery and the access to it are untested, so `SECURITY.md` asks for a first message without reproduction steps or proof of concept and agrees a channel before the technical part. When the operator has verified delivery and access, that restriction can be lifted and the policy updated.

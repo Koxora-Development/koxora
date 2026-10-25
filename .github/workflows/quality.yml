@@ -35,6 +35,8 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium firefox webkit
       - if: runner.os == 'Linux'
         run: pnpm test:e2e
+      - if: always() && runner.os == 'Linux'
+        run: pnpm test:website
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -42,6 +44,8 @@ jobs:
           include-hidden-files: true
           path: |
             node_modules/.cache/koxora/playwright-report
+            node_modules/.cache/koxora/website-report
             node_modules/.cache/koxora/test-results
+            node_modules/.cache/koxora/website-results
             node_modules/.cache/koxora/dependency-licenses.json
           retention-days: 7

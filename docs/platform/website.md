@@ -6,6 +6,8 @@
 
 Koxora is the confirmed project name. The planning source records `koxora.app`, `koxora.com`, and `koxora.de` as registered. Public website, web editor, documentation, API, community/marketplace, administration, and optional status surfaces are logical targets. Subdomains, routing, and redirects require separate authorization; trademark clearance remains open despite the confirmed name.
 
+The first implementation milestone is described in [the Website W1 implementation notes](website-w1.md), with its delivery decision in [ADR 0017](../adr/0017-public-website-delivery.md), its content plan in [the website search plan](website-seo.md) and its legal review in [the pre-publication checklist](../legal/website-legal-review.md).
+
 ## 2. Sitemap
 
 | Area | Pages and functions | Account required? |

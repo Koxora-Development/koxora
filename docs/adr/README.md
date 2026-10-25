@@ -11,3 +11,5 @@ Initial topics: license/open-core boundaries, canvas engine, schema/commands, lo
 - [0015: Portable basic elements and connection editing](0015-shapes-text-connections.md) — Phase 2.3 implementation, pending Product Owner review.
 
 - [0016: Interactive editing and bounded command history](0016-interactive-editing-history.md) — Phase 2.4 implementation, pending Product Owner acceptance.
+
+- [0017: Static multilingual delivery for the public website](0017-public-website-delivery.md) — Website W1 implementation, pending Product Owner acceptance.

@@ -1,0 +1,3 @@
+# Generated website output: static pages, the build-time renderer, the
+# deployment configuration and every build variant.
+dist*/

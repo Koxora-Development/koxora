@@ -1,0 +1,597 @@
+/* Header, footer and page scaffolding. */
+/* The header follows the page. Nothing inside it is clipped, because no
+   ancestor is a scroll container: the body uses `overflow-x: clip`, which does
+   not create one, so the language popover and the expanded phone menu still
+   draw over the content below. */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 60%, transparent);
+}
+/* Landscape on a phone leaves so little height that a stuck header, and above
+   all an expanded menu inside it, would take most of the screen. There it
+   scrolls away with the page instead. */
+@media (max-height: 520px) {
+  .site-header {
+    position: relative;
+  }
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: var(--header-height);
+  flex-wrap: wrap;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  font-weight: 760;
+  font-size: 23px;
+  letter-spacing: -0.055em;
+  text-decoration: none;
+}
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  flex: none;
+}
+.menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 9px 15px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.menu-toggle-bars,
+.menu-toggle-bars::before,
+.menu-toggle-bars::after {
+  display: block;
+  width: 16px;
+  height: 1.6px;
+  background: currentColor;
+  border-radius: 2px;
+}
+.menu-toggle-bars {
+  position: relative;
+}
+.menu-toggle-bars::before,
+.menu-toggle-bars::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+.menu-toggle-bars::before {
+  top: -5px;
+}
+.menu-toggle-bars::after {
+  top: 5px;
+}
+.header-menu {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+.primary-nav ul {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+.primary-nav a {
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: none;
+  padding-block: 6px;
+}
+.primary-nav a:hover,
+.primary-nav a[aria-current='page'] {
+  color: var(--text);
+}
+.primary-nav a[aria-current='page'] {
+  box-shadow: inset 0 -2px 0 var(--violet);
+}
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+/* Header controls. The appearance switch and the language switch are one
+   shared pattern with the studio: a round icon button of the same size, the
+   same border and surface, the same focus treatment, and for the language
+   switch a popover of the same width. See
+   docs/design/shared-header-controls.md. */
+.control-button {
+  position: relative;
+  width: var(--control-size);
+  height: var(--control-size);
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+/* The visible circle stays small while the area a finger has to hit does not. */
+.control-button::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--control-size) - var(--control-touch)) / 2);
+}
+.control-button:hover {
+  border-color: var(--border-strong);
+  background: var(--panel-3);
+}
+.control-button .icon {
+  width: var(--control-icon);
+  height: var(--control-icon);
+  color: var(--violet-strong);
+}
+.language-popover {
+  position: relative;
+}
+/* Without scripting there is nothing for this button to open, so it does not
+   exist for a pointer or for assistive technology either. */
+.language-toggle {
+  display: none;
+}
+html[data-js='on'] .language-toggle {
+  display: inline-grid;
+}
+.language-menu {
+  font-size: 13px;
+}
+.language-menu-title {
+  display: none;
+}
+.language-inline ul,
+html:not([data-js='on']) .language-menu ul {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--faint);
+  text-decoration: none;
+}
+.language-option:hover {
+  color: var(--text);
+}
+.language-option.language-current {
+  color: var(--text);
+  font-weight: 650;
+}
+.language-pictogram {
+  font-size: 15px;
+  line-height: 1;
+}
+.language-name {
+  flex: 1;
+}
+.control-selected {
+  width: 15px;
+  height: 15px;
+  color: var(--violet-strong);
+  flex: none;
+}
+.language-inline .control-selected,
+html:not([data-js='on']) .language-menu .control-selected {
+  display: none;
+}
+/* With scripting the list becomes a popover under the globe button. The
+   stylesheet collapses it before first paint, using the flag the blocking
+   inline script sets, so the header never shows the open list first. */
+html[data-js='on'] .language-menu {
+  position: absolute;
+  top: calc(100% + var(--control-menu-offset));
+  right: 0;
+  z-index: 60;
+  width: min(var(--control-menu-width), calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+html[data-js='on'] .language-menu:not([data-open='true']) {
+  display: none;
+}
+/* The gap between the button and the menu belongs to the menu, so a pointer
+   travelling from one to the other never leaves the control. */
+html[data-js='on'] .language-menu::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--control-menu-offset);
+}
+html[data-js='on'] .language-menu-title {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 750;
+  color: var(--faint);
+  margin-bottom: 10px;
+}
+html[data-js='on'] .language-menu li + li {
+  margin-top: 2px;
+}
+html[data-js='on'] .language-option {
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+html[data-js='on'] .language-option:hover {
+  background: var(--panel-2);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .language-option,
+  .control-button {
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+}
+.theme-toggle .theme-icon {
+  width: var(--control-icon);
+  height: var(--control-icon);
+  color: var(--violet-strong);
+}
+/* The control offers the appearance it would switch to: a sun while the dark
+   appearance is active, a moon while the light one is. */
+.theme-icon-moon,
+:root[data-theme='light'] .theme-icon-sun {
+  display: none;
+}
+:root[data-theme='light'] .theme-icon-moon {
+  display: block;
+}
+.header-cta {
+  font-size: 13px;
+  padding: 10px 15px;
+}
+@media (max-width: 919px) {
+  .header-inner {
+    align-items: center;
+  }
+  .header-menu {
+    order: 3;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    padding-bottom: 20px;
+  }
+  /* The blocking inline script sets data-js before first paint, so the menu
+     is collapsed immediately where scripting can open it again. Without
+     scripting it stays expanded and usable. */
+  html[data-js='on'] .header-menu:not([data-open='true']) {
+    display: none;
+  }
+  /* In the collapsed layout the controls sit at the left edge, so the menu
+     opens to the right of its button instead of running off the screen. */
+  html[data-js='on'] .language-menu {
+    right: auto;
+    left: 0;
+  }
+  .primary-nav ul {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+  }
+  .primary-nav a {
+    display: block;
+    width: 100%;
+    padding: 10px 0;
+    font-size: 15px;
+    border-bottom: 1px solid var(--border);
+  }
+}
+@media (min-width: 920px) {
+  .menu-toggle {
+    display: none !important;
+  }
+}
+.hero {
+  padding-block: clamp(56px, 8vw, 104px) 0;
+  text-align: center;
+}
+.hero h1 {
+  margin: 20px auto 18px;
+  max-width: 16ch;
+}
+.gradient {
+  background: linear-gradient(
+    95deg,
+    var(--violet-strong) 10%,
+    var(--violet) 48%,
+    var(--cyan) 98%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 760;
+  color: var(--violet-strong);
+}
+.eyebrow::before,
+.eyebrow::after {
+  content: '';
+  width: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--violet));
+}
+.eyebrow::after {
+  transform: rotate(180deg);
+}
+.lead {
+  font-size: clamp(16px, 1.6vw, 19px);
+  line-height: 1.75;
+  color: var(--muted);
+  max-width: 62ch;
+  margin-inline: auto;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 32px;
+  align-items: center;
+}
+.hero .hero-actions,
+.hero-actions-center {
+  justify-content: center;
+}
+.hero-note {
+  margin-top: 22px;
+  font-size: 13px;
+  color: var(--faint);
+}
+.status-strip {
+  display: grid;
+  gap: 14px;
+  margin: 40px auto 0;
+  padding: 20px 22px;
+  max-width: 880px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.status-strip dt {
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 750;
+  color: var(--violet-strong);
+  margin-bottom: 4px;
+}
+.status-strip dd {
+  font-size: 14px;
+  color: var(--muted);
+}
+@media (min-width: 760px) {
+  .status-strip {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+}
+.page-intro {
+  padding-block: clamp(44px, 6vw, 80px) 0;
+}
+.page-intro h1 {
+  margin: 18px 0 16px;
+  max-width: 20ch;
+}
+.page-intro .lead {
+  margin-inline: 0;
+}
+.section {
+  padding-block: var(--step);
+}
+.section-panel {
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  border-block: 1px solid var(--border);
+}
+.section-header {
+  max-width: 62ch;
+  margin-bottom: 36px;
+}
+.section-header-center {
+  margin-inline: auto;
+  text-align: center;
+}
+.kicker {
+  font-size: 11px;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--violet-strong);
+  margin-bottom: 14px;
+}
+.section-desc {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.8;
+}
+.section-link {
+  margin-top: 32px;
+}
+.minor-heading {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 750;
+  margin-bottom: 16px;
+}
+.split {
+  display: grid;
+  gap: 40px;
+  align-items: center;
+}
+@media (min-width: 980px) {
+  .split {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 64px;
+  }
+}
+.split-figure {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 42%, var(--tint), transparent 58%),
+    var(--panel);
+  padding: 24px;
+}
+.figure-art {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.art-panel {
+  fill: color-mix(in srgb, var(--panel-3) 92%, transparent);
+  stroke: var(--border-strong);
+}
+.art-panel-head {
+  fill: color-mix(in srgb, var(--violet) 16%, transparent);
+  stroke: none;
+}
+.art-line {
+  stroke: var(--faint);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.art-cloud {
+  stroke: var(--faint);
+  fill: none;
+  stroke-linecap: round;
+}
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding-block: 54px 36px;
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
+}
+.footer-top {
+  display: grid;
+  gap: 36px;
+}
+@media (min-width: 900px) {
+  .footer-top {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 2.4fr);
+    gap: 48px;
+  }
+}
+.footer-brand .brand {
+  font-size: 20px;
+  margin-bottom: 14px;
+}
+.footer-tagline {
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 34ch;
+}
+.footer-status {
+  margin-top: 12px;
+  color: var(--faint);
+  font-size: 12px;
+  max-width: 40ch;
+}
+.footer-nav {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.footer-contacts {
+  display: grid;
+  gap: 16px;
+}
+.footer-contacts dt {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+.footer-contacts dd a {
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.footer-contacts dd a:hover {
+  color: var(--text);
+}
+.footer-column h2 {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 750;
+  margin-bottom: 14px;
+}
+.footer-column li + li {
+  margin-top: 9px;
+}
+.footer-column a {
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.footer-column a:hover {
+  color: var(--text);
+}
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 44px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--faint);
+}
+.footer-top-link {
+  text-decoration: none;
+}
+.gateway {
+  padding-block: 80px;
+  text-align: center;
+}
+.gateway ul {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  margin-top: 24px;
+}
