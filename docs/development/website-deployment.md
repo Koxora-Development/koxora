@@ -33,6 +33,8 @@ apps/website/dist/          what the web server publishes
   images/                   icons, social previews, studio screenshots
   sitemap.xml robots.txt
 apps/website/dist-deploy/   configuration, not published content
+  nginx-koxora-main.conf      the container main configuration, loads the njs module
+  nginx-koxora-language.js    the language algorithm the container runs
   nginx-koxora-website.conf   the website container: headers, redirects, language
   apache-koxora-proxy.conf    canonical virtual host, forwards to the container
   apache-koxora-aliases.conf  the alias domains, redirecting to the canonical one
@@ -88,8 +90,14 @@ RewriteRule ^/?$ /en/ [R=302,L]
 RedirectMatch 301 "^\/features\/?$" "/en/features/"
 ```
 
+The rewrite conditions above are the one place that cannot compare quality
+values, because no rewrite condition can. They read the list in written order,
+which agrees with the algorithm on every header a browser sends. The container
+has no such limitation: it runs the algorithm itself through the njs module.
+
 Since Website W2.0 the production layout is the container rather than this
-fragment: `nginx-koxora-website.conf` belongs in the website container and
+fragment: `nginx-koxora-main.conf`, `nginx-koxora-language.js` and
+`nginx-koxora-website.conf` belong in the website container and
 `apache-koxora-proxy.conf` in the canonical virtual host in front of it, with
 `apache-koxora-aliases.conf` for the other domains. What each file does, in
 what order it is installed and how to prove it afterwards is [the canonical

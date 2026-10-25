@@ -21,18 +21,33 @@ Related: [W2.0 implementation notes](../platform/website-w2-0.md), [deployment a
 
 `pnpm website:build` writes them into `apps/website/dist-deploy/`, which is configuration and is never copied into the published root.
 
-| File                         | Where it belongs                                                                                                                                                                           |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `nginx-koxora-website.conf`  | In the website container, included inside the `http` block (`/etc/nginx/conf.d/`). It serves the emitted files, owns the redirects, the headers, the cache rules and the language decision |
-| `apache-koxora-proxy.conf`   | In the `koxora.app` HTTPS virtual host on the Hetzner host. It forwards to the container and adds nothing                                                                                  |
-| `apache-koxora-aliases.conf` | One virtual host per alias name, on ports 80 and 443                                                                                                                                       |
-| `apache-koxora-app.conf`     | Only for a host that serves the emitted files directly, without a container. Not used by the current production layout                                                                     |
-| `build-info.json`            | The record of the release: origin, alias hosts, redirect status, container address, policy and the hashes it pins                                                                          |
+| File                         | Where it belongs                                                                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nginx-koxora-main.conf`     | In the website container as `/etc/nginx/nginx.conf`. It loads the njs module, which is only valid in the main context, and includes the file below                           |
+| `nginx-koxora-language.js`   | In the website container as `/etc/nginx/njs/koxora-language.js`. The language algorithm the server runs                                                                      |
+| `nginx-koxora-website.conf`  | In the website container as `/etc/nginx/conf.d/koxora-website.conf`. It serves the emitted files, owns the redirects, the headers, the cache rules and the language decision |
+| `apache-koxora-proxy.conf`   | In the `koxora.app` HTTPS virtual host on the Hetzner host. It forwards to the container and adds nothing                                                                    |
+| `apache-koxora-aliases.conf` | One virtual host per alias name, on ports 80 and 443                                                                                                                         |
+| `apache-koxora-app.conf`     | Only for a host that serves the emitted files directly, without a container. Not used by the current production layout                                                       |
+| `build-info.json`            | The record of the release: origin, alias hosts, redirect status, container address, policy and the hashes it pins                                                            |
+
+The image must provide `ngx_http_js_module.so`: the configuration loads it, and NGINX refuses to start without it. On the official Debian-based image that is `apt-get install nginx-module-njs`, on the Alpine image `apk add nginx-module-njs`, pinned to the image's own NGINX version. Versioning the image is W2.4a; until then this is the one prerequisite these files carry.
+
+Before installing anything, prove the files are accepted and behave as described:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm website:build
+pnpm website:nginx     # nginx -t plus 111 assertions over HTTP
+```
+
+That check needs NGINX with the njs module on the machine running it (`apt-get install nginx-light libnginx-mod-http-js` on Debian or Ubuntu). Without them it reports what is missing and passes, so it never gives false assurance; continuous integration installs both and a failure there is a real failure.
 
 Three properties of the generated files matter and are asserted by `apps/website/src/deploy-config.test.ts`:
 
 - **`absolute_redirect off`.** Without it, NGINX builds absolute redirect targets from the address it is listening on, so a reader behind the proxy receives a `Location` naming `127.0.0.1`. Every generated redirect is relative.
 - **No redirect target is built from a request.** The alias target is the configured origin, written into the file. `%{HTTP_HOST}` appears nowhere, so no `Host` header can turn an alias into an open redirect, and the stored-language cookie is only ever matched against the two literal values this site writes.
+- **The language decision is the algorithm, not an approximation.** A `map` cannot compare quality values, so the container loads `apps/website/src/nginx/koxora-language.js` through the njs module. It is the same algorithm the browser and the reference server run, quality values and `q=0` included, and two tests hold the two implementations together.
 - **The security headers exist in one place.** The container sets them; the proxy fragment sets none. An `add_header` inside an NGINX location would silently replace the inherited set, so the generated file sets every header once on the server and uses no `add_header` in any location.
 
 ## 3. Installing it, in this order

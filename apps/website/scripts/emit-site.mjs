@@ -194,6 +194,14 @@ const nginx = server.renderNginx({
   ...configurationInput,
   listenPort: server.site.container.listenPort,
 });
+const nginxMain = server.renderNginxMain();
+// The language decision the container runs is this file, copied rather than
+// regenerated, so what the tests compare against the application algorithm is
+// what the image ships.
+const nginxLanguageModule = await readFile(
+  resolve(root, 'src/nginx/koxora-language.js'),
+  'utf8',
+);
 const apacheProxy = server.renderApacheProxy({
   canonicalHost: new URL(server.site.origin).host,
   containerHost: server.site.container.host,
@@ -217,6 +225,12 @@ await rm(deployDir, { recursive: true, force: true });
 await mkdir(deployDir, { recursive: true });
 await writeFile(join(deployDir, 'apache-koxora-app.conf'), apache, 'utf8');
 await writeFile(join(deployDir, 'nginx-koxora-website.conf'), nginx, 'utf8');
+await writeFile(join(deployDir, 'nginx-koxora-main.conf'), nginxMain, 'utf8');
+await writeFile(
+  join(deployDir, 'nginx-koxora-language.js'),
+  nginxLanguageModule,
+  'utf8',
+);
 await writeFile(
   join(deployDir, 'apache-koxora-proxy.conf'),
   apacheProxy,

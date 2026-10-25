@@ -31,7 +31,7 @@ The server cannot read device storage, and a reader without JavaScript cannot ru
 
 | Layer | Reads | Covers |
 | --- | --- | --- |
-| The hosting layer, generated | The language cookie and `Accept-Language` | Every reader, including one without JavaScript, and crawlers |
+| The container, running the same algorithm through the NGINX njs module | The language cookie and `Accept-Language` | Every reader, including one without JavaScript, and crawlers |
 | The inline script of the gateway document, pinned in the policy by hash | The cookie, then device storage, then `navigator.languages` | A host that does not redirect `/`, and a reader whose cookies are refused but whose storage works |
 | The gateway document itself | Nothing | A reader with neither, who gets a language-selection page rather than a guess |
 
@@ -43,9 +43,16 @@ Because nothing localized is rendered before the decision, there is no first-pai
 
 Nothing is written before a reader has chosen. Opening a localized address, including a shared deep link, writes nothing and changes nothing.
 
-### The one documented difference between the layers
+### The server runs the algorithm, not an approximation
 
-Neither an Apache rewrite condition nor an NGINX `map` can compare quality values. Both generated configurations therefore read `Accept-Language` in the order it was written and take the first entry this site has a language for, looking eight entries deep. Browsers write that list in descending quality, so the two agree on every header a browser sends; a hand-written header whose quality values contradict its order resolves by order on the server and by quality in the browser and in the reference server. `apps/website/src/deploy-config.test.ts` executes the generated patterns against the authoritative algorithm and asserts they agree on browser-shaped headers, and asserts the ordering property directly: `fr,en;q=0.9,de;q=0.8` resolves to English, not German.
+An NGINX `map` and an Apache rewrite condition cannot compare quality values at all, so a configuration written out of either can only read `Accept-Language` in the order it happens to be written. That is an approximation, and it is wrong for any header whose quality values contradict its order and for every `q=0` refusal.
+
+The container therefore does not use a map for this. `apps/website/src/nginx/koxora-language.js` is loaded through the NGINX njs module and is the same algorithm as `src/language.ts`: it orders the whole list by quality value, drops a `q=0` refusal, breaks a tie by the order written, ignores a malformed quality value, and reads the stored cookie first. Two tests keep it honest:
+
+- **Parity.** `src/nginx/koxora-language.test.ts` imports that exact file and compares it against the TypeScript implementation over a generated matrix of more than ten thousand headers — every pair drawn from eleven language tags and ten quality spellings, including `q=0`, `q=0.0`, `q=x` and `*` — plus stored values that must be refused. Every case must agree.
+- **Reality.** `pnpm website:nginx` renders the configuration, starts a real NGINX with the module loaded and asserts 111 answers over HTTP, including `en;q=0.5,de;q=0.9` resolving to German, `de;q=0,en` to English and `en;q=0,de;q=0.1` to German.
+
+The one place that still carries the approximation is `apache-koxora-app.conf`, the fragment for a host that serves the emitted files **without** the container. It is not the production path — production is Apache proxying to the container — and the limitation is documented there and in the deployment guide. Nothing else in the repository reads `Accept-Language` without the full algorithm.
 
 ## 3. The canonical domain redirects
 
@@ -67,6 +74,8 @@ W1's Dockerfile, Compose file and NGINX configuration were created directly on t
 
 | File | Purpose |
 | --- | --- |
+| `nginx-koxora-main.conf` | The container's main configuration: it loads the njs module, which is only valid in the main context, and keeps everything writable under a temporary directory so the container can run read-only |
+| `nginx-koxora-language.js` | The language module the container loads, copied from `src/nginx/koxora-language.js` rather than regenerated, so what the tests check is what the image ships |
 | `nginx-koxora-website.conf` | The container: headers, cache rules, the 30 redirects of the route table with their query strings, trailing-slash normalization, localized not-found documents, a `/healthz` endpoint, and the language decision |
 | `apache-koxora-proxy.conf` | The canonical virtual host: forwards to `127.0.0.1:9402` and adds nothing |
 | `apache-koxora-aliases.conf` | The alias virtual hosts |
@@ -78,6 +87,8 @@ Two details that are easy to get wrong and are asserted:
 
 - The security headers are set once on the server block and in no location, because an `add_header` inside an NGINX location replaces the inherited set instead of extending it. The per-address `Cache-Control` and `Vary` values come from maps, so no location needs one.
 - The locale prefixes are plain prefix locations, not `^~`. A `^~` prefix would stop the regular-expression locations from being tested and an address without its trailing slash would then be served at a second address instead of redirecting to the canonical one.
+- The container listens on IPv4 only. The proxy in front of it connects to a loopback address, and an IPv6 listener is one more way for the container to refuse to start where IPv6 is switched off.
+- A `return` whose target comes from a variable does **not** carry the query string over, so the root redirect appends it explicitly. The first version of this branch did not, and real NGINX is what found it; see section 8.
 
 ## 5. Caching and search engines
 
@@ -93,6 +104,11 @@ The language choice is now part of the device-storage inventory, which is derive
 | --- | --- |
 | `apps/website/src/language.ts` | **New.** The negotiation algorithm, the cookie contract and the gateway script |
 | `apps/website/src/language.test.ts` | **New.** 20 cases, including the gateway script executed in a sandbox |
+| `apps/website/src/nginx/koxora-language.js` | **New.** The same algorithm for the NGINX njs module, with its type declaration |
+| `apps/website/src/nginx/koxora-language.test.ts` | **New.** The parity matrix against the TypeScript implementation |
+| `apps/website/scripts/check-nginx.mjs` | **New.** Renders the configuration, starts a real NGINX and asserts 111 answers |
+| `.github/workflows/quality.yml`, `package.json` | Install NGINX with the njs module on Linux and run that check |
+| `eslint.config.js` | One scoped rule: njs has no optional catch binding, so a defensive catch names a parameter it does not use |
 | `apps/website/src/deploy-config.ts` | **New.** The NGINX, reverse-proxy, alias and static-Apache generators as pure functions |
 | `apps/website/src/deploy-config.test.ts` | **New.** 21 cases over the generated text and the executed language patterns |
 | `apps/website/src/entry-server.tsx` | The gateway document: the inline decision, both languages naming the choice, no meta refresh; the new exports |
@@ -115,17 +131,25 @@ Run in the development container on 2026-10-25, against this branch:
 
 | Command | Result |
 | --- | --- |
-| `pnpm check` | Type check, lint, format and documentation validation pass; **272 unit tests in 20 files**, of which 89 belong to the website |
-| `pnpm website:build` | Passes. 61 files and 30 redirects, plus four hosting configurations |
+| `pnpm check` | Type check, lint, format and documentation validation pass; **280 unit tests in 21 files**, of which 97 belong to the website |
+| `pnpm website:build` | Passes. 61 files and 30 redirects, plus the hosting configurations |
 | `pnpm test:website` | **287 passed, 7 skipped** across the desktop, tablet and phone projects; the 7 belong to a different layout than the project running them |
-| `pnpm test:website` (language suite alone) | 14 of those cases per project |
+| `pnpm website:nginx` | **111 checks pass** against nginx/1.24.0 with njs 0.8.2 and the generated configuration |
 
 What the browser cases cover: every row of the language table above; regional variants and complex quality lists, including `q=0` and a quality order that contradicts the written order; a stored choice winning in both directions; a crafted cookie being ignored; the query string surviving the hop; `no-store` and `Vary` on the root; no second redirect after the negotiated hop; a localized address never being negotiated and never changing the stored choice; a selection persisting into a fresh browser session and being changed back; nothing stored before a choice; the gateway deciding in the browser; the gateway without JavaScript being a usable selection page with no meta refresh; the root without JavaScript still landing on a real page; and the language menu being operable and correctly marked by keyboard.
 
+### What the real NGINX run covers, and what it found
+
+`pnpm website:nginx` renders the configuration, writes it into a temporary prefix with the njs module beside it, runs `nginx -t`, starts the server and asserts over HTTP: the 21 language cases above including quality values, `q=0`, ties and malformed quality values; seven stored-choice cases including values that must be refused; `no-store`, `Vary` and the full header set on the negotiated answer; the query string surviving the root redirect, an alias redirect and the trailing-slash redirect; seven entries of the redirect table; that no `Location` names the container's own address; both languages and all three localized not-found documents with status 404; four build artefacts answering 404 while `/.well-known/security.txt` answers 200; the cache rule of each prefix; every security header; `/healthz`; a `HEAD` request; and the gateway document still being reachable and not indexed.
+
+It found a real defect that the earlier regular-expression test could not: **a `return` whose target comes from a variable drops the query string**, so `https://koxora.app/?ref=example` lost its parameter on the way to `/de/`. The configuration now appends `$is_args$args` explicitly and both the unit test and the NGINX run assert it.
+
 ### Limitations of this run
 
-- **The generated NGINX configuration was not executed.** No NGINX binary and no Docker daemon exist in this container, so `nginx -t` could not be run. The configuration is asserted structurally by unit tests and the language patterns are executed as regular expressions, which is not the same as a server parsing the file. `nginx -t` against the generated file is a required step of W2.4a and of the runbook before any deployment.
-- The same applies to Apache: no `apachectl configtest` was run.
+- **No container image was built.** There is no Docker daemon in this environment, so the image, its `nginx -t` at build time and the healthcheck were not executed. The NGINX configuration itself was executed, by a locally installed nginx/1.24.0 with njs 0.8.2, which is the part that decides the language. Building the image belongs to W2.4a.
+- **The image must carry the njs module.** The configuration loads `ngx_http_js_module.so`. An image without it refuses to start, which is a W2.4a task and a release blocker until it is proven by a build.
+- No `apachectl configtest` was run: the Apache fragments are asserted structurally only, and Apache is not installed here.
+- The version here is nginx/1.24.0; the production container may run a different one. The configuration uses no directive newer than 1.9, and njs `js_import`/`js_set` need njs 0.4 or later, but the exact version pairing has to be confirmed by the image build.
 - Only the bundled Chromium engine is available, so the Firefox and WebKit projects were not executed; `KOXORA_BROWSERS=all` enables them.
 - No Lighthouse measurement, no screen-reader audit and no deployment were performed. Configured remote jobs are not evidence of execution.
 
@@ -133,7 +157,8 @@ What the browser cases cover: every row of the language table above; regional va
 
 | Risk | Effect | Mitigation |
 | --- | --- | --- |
-| The generated NGINX file is rejected by the server | The container does not start, so the site is down | `nginx -t` before the swap, and the previous container stays running until the new one is healthy (W2.4a) |
+| The generated NGINX file is rejected by the server | The container does not start, so the site is down | `nginx -t` runs in continuous integration on every change, and again in the image build and before the swap; the previous container stays running until the new one is healthy (W2.4a) |
+| The image lacks the njs module | The container does not start | W2.4a installs it in the image and the build fails without it; `pnpm website:nginx` reports the module as missing rather than passing quietly |
 | An alias redirect is installed before its certificate | A certificate warning instead of a redirect | The install order in the runbook, with verification between each step |
 | The permanent code is turned on too early | Browsers cache a wrong redirect | Roll out with 302, switch after the smoke tests pass |
 | A cache serves `/` to the wrong reader | One reader sees another's language | `no-store` and `Vary` on `/`, asserted in tests and in the runbook |

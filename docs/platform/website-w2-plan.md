@@ -24,7 +24,7 @@ Each row is one pull request against `main`.
 | # | Slice | Contents | Depends on |
 | --- | --- | --- | --- |
 | W2.0 | Domains, language detection, remembered language | Shared negotiation algorithm, stored choice, reworked root gateway, generated NGINX container configuration, generated Apache reverse-proxy and alias-domain fragments, storage inventory and privacy text, unit and browser tests, operator runbook | — |
-| W2.4a | Versioned container | Multi-stage `Dockerfile`, Compose file, healthcheck, image tags, migration of the running container onto the generated configuration | W2.0 (it produces the NGINX file the image needs) |
+| W2.4a | Versioned container | Multi-stage `Dockerfile` including the NGINX njs module the language decision needs, Compose file, healthcheck, image tags, and the documented migration of the running container onto the generated configuration | W2.0 (it produces the NGINX files the image needs) |
 | W2.1 | Comparisons and comparison SEO | Sourced comparison table, per-claim sources and review dates, the three comparison landing pages and their localized addresses | W2.0 for the route table only |
 | W2.2 | Contact form | Architecture first, then the form, the server-side delivery component, rate limiting, spam defence, privacy text | W2.4a, because the form needs a service next to the static site |
 | W2.3 | Documentation, FAQ, product content | The eight documentation areas, real studio screenshots, the available/in development/planned distinction | W2.1 for the shared content components |
@@ -39,7 +39,7 @@ Common to all: existing W1 behaviour preserved; `pnpm check` clean; unit tests f
 | Slice | Additional proof |
 | --- | --- |
 | W2.0 | Every example of the issue's language table, both alias-domain redirect families with path and query preserved, no redirect built from a request header, no internal address in a `Location`, the storage inventory and the privacy text naming the new cookie |
-| W2.4a | The image builds without a Node toolchain in the runtime layer, `nginx -t` accepts the generated configuration, the healthcheck answers, and the running site is unchanged after the migration |
+| W2.4a | The image builds without a Node toolchain in the runtime layer, carries `ngx_http_js_module.so`, `nginx -t` accepts the generated configuration inside the image, the healthcheck answers, and the running site is unchanged after the migration |
 | W2.1 | Every claim about another product carries a source, a tested plan and a date; nothing unreleased in Koxora is presented as available |
 | W2.2 | Integration tests for the delivery path, header-injection and rate-limit tests, no credential in the repository, no success message before the backend accepted the message |
 | W2.3 | Screenshots come from the real studio; each capability carries the label that matches the merged state |

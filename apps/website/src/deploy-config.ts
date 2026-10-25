@@ -37,16 +37,21 @@ function literal(path: string): string {
 }
 
 /**
- * How many entries of `Accept-Language` a web server examines.
+ * How many entries of `Accept-Language` the Apache fragment examines.
  *
- * The authoritative algorithm is in `apps/website/src/language.ts`: it orders
- * the whole list by quality and takes the first supported language. Neither a
- * rewrite condition nor an NGINX map can compare quality values, so both
- * servers read the list in the order it was written and stop at the first
- * entry this site has a language for. Browsers write that list in descending
- * quality, so the two agree on every header a browser sends; a hand-written
- * header whose quality values contradict its order resolves by order on the
- * server and by quality in the browser. The deployment guide records this.
+ * The container runs the authoritative algorithm itself: `renderNginx` loads
+ * `src/nginx/koxora-language.js` through the njs module, which orders the
+ * whole list by quality value and honours a `q=0` refusal exactly as
+ * `src/language.ts` does. That is the production path.
+ *
+ * `renderApacheStatic` is for a host that serves the emitted files without
+ * the container. A rewrite condition cannot compare quality values at all, so
+ * that fragment reads the list in written order and stops at the first entry
+ * this site has a language for. Browsers write the list in descending
+ * quality, so it agrees with the algorithm on every header a browser sends,
+ * and a hand-written header whose quality values contradict its order is
+ * where the two differ. The deployment guide records that this applies to the
+ * no-container fragment only.
  *
  * Eight entries are far more than any browser sends; a longer list falls
  * through to the fallback language.
@@ -86,34 +91,42 @@ export function acceptLanguagePatterns(
  * `http` block, so it carries its own maps, and it binds a loopback address
  * only: the public host terminates TLS and proxies to it.
  *
- * Three things here are not in the Apache fragment and matter in production:
+ * Four things here matter in production:
  *
+ * - The language of the address that names no language is decided by
+ *   `src/nginx/koxora-language.js`, loaded through the njs module. That file
+ *   is the same algorithm as `src/language.ts`, quality values and `q=0`
+ *   included, and a test compares the two over a generated matrix.
  * - `absolute_redirect off` keeps every redirect relative, so a reader never
  *   receives a `Location` naming the container's own internal address.
- * - The root address is negotiated from the stored choice and the request
- *   languages, is never cached, and says so with `Vary`.
+ * - That negotiated answer is never cached, and says so with `Vary`.
  * - Every header is set once on the server, and no location adds one, because
  *   an `add_header` inside a location replaces the inherited set instead of
  *   extending it.
  */
 export function renderNginx({
   locales,
-  defaultLocale,
   redirects,
   headers,
   cacheRules,
   documentCacheControl,
-  languageCookieName,
   listenPort,
   healthPath = '/healthz',
   generator = 'apps/website/scripts/emit-site.mjs',
   root = '/usr/share/nginx/html',
+  njsModulePath = '/etc/nginx/njs/koxora-language.js',
+  accessLog = '/dev/stdout',
+  errorLog = '/dev/stderr warn',
 }: HostingInput & {
   listenPort: number;
   healthPath?: string;
   root?: string;
+  /** Where the image puts the njs module this configuration imports. */
+  njsModulePath?: string;
+  /** Overridden when the container's own streams are not available. */
+  accessLog?: string;
+  errorLog?: string;
 }): string {
-  const cookiePattern = literal(languageCookieName);
   const cacheMap = [
     `    default "${documentCacheControl}";`,
     // The negotiated root must never be stored by a browser or a network
@@ -123,45 +136,20 @@ export function renderNginx({
       (rule) => `    "~^${literal(rule.prefix)}" "${rule.value}";`,
     ),
   ].join('\n');
-  const languageMaps = `# An explicit choice, as the language control stores it. Only this site's own
-# cookie is read, and only the two values it writes are accepted, so no
-# request can name a redirect target of its own.
-map $http_cookie $koxora_stored_language {
-    default "";
-${locales
-  .map(
-    (locale) =>
-      `    "~*(?:^|;)\\s*${cookiePattern}=${locale}\\s*(?:;|$)" "${locale}";`,
-  )
-  .join('\n')}
-}
-# The first entry of Accept-Language this site has a language for. A map takes
-# the first pattern that matches, and the patterns are ordered by list
-# position, so the earliest supported entry wins rather than the language that
-# happens to be written first here.
-map $http_accept_language $koxora_request_language {
-    default "";
-${acceptLanguagePatterns(locales)
-  .map(
-    ({ locale, position, pattern }) =>
-      `    "~*${pattern}" "${locale}"; # entry ${position + 1}`,
-  )
-  .join('\n')}
-}
-# Stored choice, then request language, then the fallback.
-map $koxora_request_language $koxora_fallback_language {
-    default $koxora_request_language;
-    "" "${defaultLocale}";
-}
-map $koxora_stored_language $koxora_root_language {
-    default $koxora_stored_language;
-    "" $koxora_fallback_language;
-}
-# Only the address without a language is negotiated. Every other address names
-# its language and is served as asked, whatever a reader chose before.
+  const languageMaps = `# The language of the address that names no language. The njs module is the
+# algorithm of apps/website/src/language.ts, quality values and the q=0
+# refusal included; a map and a rewrite condition cannot compare quality
+# values, which is why this is not written as a map. It reads this site's own
+# cookie and Accept-Language, and can answer nothing but the languages it was
+# built with, so no request can name a redirect target of its own.
+js_import koxora from ${njsModulePath};
+js_set $koxora_language koxora.rootLanguage;
+# Only the address without a language is negotiated, and the handler above is
+# therefore read on no other request. Every other address names its language
+# and is served as asked, whatever a reader chose before.
 map $uri $koxora_root_redirect {
     default "";
-    "/" "/$koxora_root_language/";
+    "/" "/$koxora_language/";
 }
 map $uri $koxora_cache_control {
 ${cacheMap}
@@ -191,8 +179,10 @@ map $uri $koxora_vary {
 ${languageMaps}
 
 server {
+    # IPv4 only, deliberately: the public host proxies to the loopback address
+    # of this container, and an IPv6 listener is one more way for the
+    # container to refuse to start where IPv6 is switched off.
     listen ${listenPort};
-    listen [::]:${listenPort};
     server_name _;
     root ${root};
     index index.html;
@@ -204,8 +194,8 @@ server {
     charset utf-8;
     # The address of the proxy, not of a reader. Visitor addresses are logged
     # by the public host, which is the one place that has to see them.
-    access_log /dev/stdout;
-    error_log /dev/stderr warn;
+    access_log ${accessLog};
+    error_log ${errorLog};
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
@@ -253,10 +243,79 @@ ${locales
         if ($koxora_root_redirect != "") {
             # Temporary on purpose: the answer depends on the reader, so it
             # must stay re-askable and must never be cached as permanent.
-            return 302 $koxora_root_redirect;
+            # The query string is appended explicitly: a return whose target
+            # comes from a variable does not carry it over, which is how a
+            # campaign parameter would be lost on the way to the language.
+            return 302 "$koxora_root_redirect$is_args$args";
         }
         try_files $uri $uri/index.html =404;
     }
+}
+`;
+}
+
+/**
+ * The main NGINX configuration of the container.
+ *
+ * It exists because `load_module` is only valid in the main context, so the
+ * site configuration above cannot load the njs module itself, and because an
+ * image's own default configuration is not something to guess at. Everything
+ * writable sits under a temporary directory, so the container can run with a
+ * read-only file system.
+ */
+export function renderNginxMain({
+  loadModulePath = 'modules/ngx_http_js_module.so',
+  includeGlob = '/etc/nginx/conf.d/*.conf',
+  mimeTypesPath = 'mime.types',
+  temporaryDirectory = '/tmp',
+  accessLog = '/dev/stdout',
+  errorLog = '/dev/stderr warn',
+  generator = 'apps/website/scripts/emit-site.mjs',
+}: {
+  loadModulePath?: string;
+  includeGlob?: string;
+  mimeTypesPath?: string;
+  temporaryDirectory?: string;
+  accessLog?: string;
+  errorLog?: string;
+  generator?: string;
+} = {}): string {
+  return `${header(generator)}
+# Main configuration of the Koxora website container.
+#
+# The njs module carries the language negotiation, and load_module is valid
+# only here, which is why this file is generated rather than inherited from
+# the base image. No user directive is set: the workers then run unprivileged
+# and the published files are read-only to them either way.
+
+load_module ${loadModulePath};
+worker_processes auto;
+pid ${temporaryDirectory}/nginx.pid;
+error_log ${errorLog};
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include ${mimeTypesPath};
+    default_type application/octet-stream;
+    server_tokens off;
+    sendfile on;
+    tcp_nopush on;
+    keepalive_timeout 30;
+    types_hash_max_size 4096;
+    # The container needs no writable layer of its own.
+    client_body_temp_path ${temporaryDirectory}/nginx-client-body;
+    proxy_temp_path ${temporaryDirectory}/nginx-proxy;
+    fastcgi_temp_path ${temporaryDirectory}/nginx-fastcgi;
+    uwsgi_temp_path ${temporaryDirectory}/nginx-uwsgi;
+    scgi_temp_path ${temporaryDirectory}/nginx-scgi;
+    # The address of the proxy, not of a reader. Visitor addresses are logged
+    # by the public host, which is the one place that has to see them.
+    access_log ${accessLog};
+
+    include ${includeGlob};
 }
 `;
 }

@@ -261,6 +261,7 @@ export {
   renderApacheProxy,
   renderApacheStatic,
   renderNginx,
+  renderNginxMain,
 } from './deploy-config';
 export { consentPolicyExtras } from './content/consent';
 export { internalReviewPhrases } from './content/launch';

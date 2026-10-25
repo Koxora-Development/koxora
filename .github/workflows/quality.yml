@@ -37,6 +37,13 @@ jobs:
         run: pnpm test:e2e
       - if: always() && runner.os == 'Linux'
         run: pnpm test:website
+      # The generated container configuration is checked against a real NGINX
+      # with the njs module, which is what decides the language in production.
+      # Linux only: the check reports what is missing and passes elsewhere.
+      - if: always() && runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y nginx-light libnginx-mod-http-js
+      - if: always() && runner.os == 'Linux'
+        run: pnpm website:nginx
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

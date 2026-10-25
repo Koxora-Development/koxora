@@ -6,6 +6,7 @@ import {
   renderApacheProxy,
   renderApacheStatic,
   renderNginx,
+  renderNginxMain,
 } from './deploy-config';
 import { languageCookieName, localeFromAcceptLanguage } from './language';
 import { defaultLocale, locales, redirects } from './routes';
@@ -108,23 +109,38 @@ describe('the container configuration', () => {
   });
   it('negotiates the one address that names no language, and only that one', () => {
     expect(nginx).toContain('map $uri $koxora_root_redirect {');
-    expect(nginx).toMatch(/"\/" "\/\$koxora_root_language\/";/);
-    expect(nginx).toContain('return 302 $koxora_root_redirect;');
+    expect(nginx).toMatch(/"\/" "\/\$koxora_language\/";/);
+    // The query string has to be appended explicitly: a return whose target
+    // comes from a variable does not carry it over.
+    expect(nginx).toContain('return 302 "$koxora_root_redirect$is_args$args";');
     // A permanent redirect of a negotiated address would outlive the reason.
-    expect(nginx).not.toMatch(/return 30[18] \$koxora_root_redirect/);
+    expect(nginx).not.toMatch(/return 30[18] "?\$koxora_root_redirect/);
   });
-  it('reads a stored choice only from this site own cookie and only as a bare locale', () => {
-    for (const locale of locales)
-      expect(nginx).toContain(
-        `"~*(?:^|;)\\s*${languageCookieName}=${locale}\\s*(?:;|$)" "${locale}";`,
-      );
-    // A request header is read only as the source of a map, which can answer
-    // nothing but the values written above. No redirect, no header and no
-    // served path is ever built from one directly.
-    for (const line of nginx.split('\n')) {
-      if (/^\s*map \$http_[a-z_]+ \$koxora_/.test(line)) continue;
+  it('decides the language with the algorithm, not with an approximation', () => {
+    // A map cannot compare quality values, so the container runs the same
+    // module the parity test checks against the application algorithm.
+    expect(nginx).toContain('js_import koxora from ');
+    expect(nginx).toContain('js_set $koxora_language koxora.rootLanguage;');
+    expect(nginx).toContain('koxora-language.js');
+    expect(
+      renderNginx({ ...input, listenPort: 8080, njsModulePath: '/x/l.js' }),
+    ).toContain('js_import koxora from /x/l.js;');
+    // No request header is read anywhere in the configuration: the module
+    // reads them, and it can answer nothing but the two languages.
+    for (const line of nginx.split('\n'))
       expect(line, line).not.toMatch(/\$http_|\$arg_|\$cookie_/);
-    }
+  });
+  it('loads the njs module in the main configuration, where it is valid', () => {
+    const main = renderNginxMain();
+    expect(main).toContain('load_module modules/ngx_http_js_module.so;');
+    expect(main).toContain('include /etc/nginx/conf.d/*.conf;');
+    // load_module is a main-context directive, so the site fragment, which is
+    // included inside http, must not try to load it.
+    expect(nginx).not.toContain('load_module');
+    // Nothing writable outside a temporary directory: the container can run
+    // with a read-only file system.
+    for (const path of ['pid', 'client_body_temp_path', 'proxy_temp_path'])
+      expect(main, path).toMatch(new RegExp(`${path} /tmp/`));
   });
   it('never stores the negotiated answer and says what it depends on', () => {
     expect(nginx).toMatch(/"\/" "no-store";/);
@@ -163,8 +179,11 @@ describe('the container configuration', () => {
     expect(nginx).toContain('location = /healthz {');
     expect(nginx).toContain('return 200 "ok\\n";');
   });
-  it('binds the port the deployment publishes', () => {
+  it('binds the port the deployment publishes, over IPv4 only', () => {
     expect(nginx).toContain('listen 8080;');
+    // An IPv6 listener fails to start where IPv6 is switched off, and the
+    // proxy in front of the container never uses it.
+    expect(nginx).not.toContain('listen [::]');
     expect(renderNginx({ ...input, listenPort: 9999 })).toContain(
       'listen 9999;',
     );
