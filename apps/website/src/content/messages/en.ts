@@ -469,11 +469,11 @@ export const en = {
   'privacyPolicy.hero.eyebrow': 'Privacy',
   'privacyPolicy.hero.title': 'Privacy policy',
   'privacyPolicy.hero.lead':
-    'This policy explains which personal data is processed when you use koxora.app and the Koxora browser studio, on what legal basis, for how long and what rights you have.',
+    'This policy explains which personal data is processed when you use koxora.app, on what legal basis, for how long and what rights you have. It also states in advance what will apply to the Koxora browser studio, which is not published yet.',
   'privacyPolicy.version': 'Version {version}, last updated {date}.',
   'privacyPolicy.scope.title': '1. Scope',
   'privacyPolicy.scope.body':
-    'This policy covers the public Koxora website and the Koxora browser studio operated at the Koxora addresses. It does not cover other websites that we link to. The Koxora desktop application processes your data only on your own device and does not transmit project data to us.',
+    'This policy covers the public Koxora website. The Koxora browser studio is not published yet; section 7 states what will apply to it once it is operated at its own address, which will have its own separate browser storage. This policy does not cover other websites that we link to. The Koxora desktop application processes your data only on your own device and does not transmit project data to us.',
   'privacyPolicy.controller.title': '2. Controller',
   'privacyPolicy.controller.body':
     'The controller for data processing on this website within the meaning of the General Data Protection Regulation (GDPR) is:',
@@ -485,7 +485,7 @@ export const en = {
   'privacyPolicy.logs.body':
     'When you request a page, the hosting provider processes the data your browser transmits: the requested address, date and time, the amount of data transferred, the referring address, browser and operating system information and the IP address. This processing is technically necessary to deliver the page and to detect and defend against attacks.',
   'privacyPolicy.logs.basis':
-    'Legal basis: Art. 6(1)(f) GDPR. Our legitimate interest is the secure, stable and traceable operation of the service. Log data is kept only as long as necessary for that purpose and is then deleted or anonymized. The exact retention period follows from the deployed configuration; it is measured, documented and stated here before this site is published.',
+    'Legal basis: Art. 6(1)(f) GDPR. Our legitimate interest is the secure, stable and traceable operation of the service. Log data is kept only as long as necessary for that purpose and is then deleted or anonymized. The exact retention period follows from the configuration of these providers. It has not yet been measured and published here; it is recorded in this policy as soon as it has been, and you can ask the data protection contact above for the current state in the meantime.',
   'privacyPolicy.hosting.title': '5. Hosting and content delivery',
   'privacyPolicy.hosting.body':
     'The website is hosted in Germany by Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen. Delivery, caching and protection against attacks are handled by Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA, which therefore processes the connection data described above. Both providers act as processors on our instructions under Art. 28 GDPR.',
@@ -496,11 +496,11 @@ export const en = {
     'Beyond the files needed to display a page, Koxora stores information on your device only where it is strictly necessary for a function you asked for, or where you have consented. Under § 25(2) no. 2 of the German Telecommunications Digital Services Data Protection Act (TDDDG), strictly necessary storage does not require consent. The current deployment of this website stores the following:',
   'privacyPolicy.device.note':
     'This website currently uses no optional analytics, advertising or external embedded services, so no consent banner is shown. If that ever changes, nothing optional is loaded before you have agreed, and you can change or withdraw your decision at any time in the privacy settings.',
-  'privacyPolicy.studio.title': '7. The browser studio and your projects',
+  'privacyPolicy.studio.title': '7. The browser studio, once it is published',
   'privacyPolicy.studio.body':
-    'The Koxora browser studio runs entirely in your browser. Projects, diagrams, imported files and the preferences of the studio are stored in the browser database (IndexedDB) and in local storage of the studio address, and the application files are cached so that the studio works offline. None of this content is transmitted to us: there is no Koxora project server, no account and no upload.',
+    'The hosted browser studio is not available yet, so nothing described here is being processed today. Once it is published, it will run entirely in your browser: projects, diagrams, imported files and the preferences of the studio will be stored in the browser database (IndexedDB) and in local storage of the studio address, and the application files will be cached so that the studio works offline. None of that content will be transmitted to us: there is no Koxora project server, no account and no upload.',
   'privacyPolicy.studio.control':
-    'This data is under your control. You can export a project as a portable .koxora archive, and you can delete the data at any time through your browser settings for that address. Browser storage is tied to the exact address that created it, so data stored under the website address and under the studio address are separate.',
+    'That data will be under your control: a project can be exported as a portable .koxora archive, and the data can be deleted at any time through your browser settings for that address. Browser storage is tied to the exact address that created it, so data stored under the website address and under the studio address stay separate.',
   'privacyPolicy.studio.desktop':
     'The desktop application stores projects as files in a directory on your computer. It works without a Koxora account and does not transmit project content to us.',
   'privacyPolicy.contactForm.title': '8. Contact by email',

@@ -478,11 +478,11 @@ export const de: Record<WebsiteMessageKey, string> = {
   'privacyPolicy.hero.eyebrow': 'Datenschutz',
   'privacyPolicy.hero.title': 'Datenschutzerklärung',
   'privacyPolicy.hero.lead':
-    'Diese Erklärung beschreibt, welche personenbezogenen Daten bei der Nutzung von koxora.app und des Koxora-Browser-Studios verarbeitet werden, auf welcher Rechtsgrundlage, wie lange und welche Rechte Sie haben.',
+    'Diese Erklärung beschreibt, welche personenbezogenen Daten bei der Nutzung von koxora.app verarbeitet werden, auf welcher Rechtsgrundlage, wie lange und welche Rechte Sie haben. Sie nennt außerdem vorab, was für das Koxora-Browser-Studio gelten wird, das noch nicht veröffentlicht ist.',
   'privacyPolicy.version': 'Fassung {version}, zuletzt aktualisiert am {date}.',
   'privacyPolicy.scope.title': '1. Geltungsbereich',
   'privacyPolicy.scope.body':
-    'Diese Erklärung gilt für die öffentliche Koxora-Website und das unter den Koxora-Adressen betriebene Koxora-Browser-Studio. Sie gilt nicht für andere Websites, auf die wir verlinken. Die Koxora-Desktop-Anwendung verarbeitet Ihre Daten ausschließlich auf Ihrem eigenen Gerät und übermittelt uns keine Projektdaten.',
+    'Diese Erklärung gilt für die öffentliche Koxora-Website. Das Koxora-Browser-Studio ist noch nicht veröffentlicht; Abschnitt 7 nennt, was dafür gelten wird, sobald es unter einer eigenen Adresse betrieben wird, die einen eigenen, getrennten Browserspeicher hat. Diese Erklärung gilt nicht für andere Websites, auf die wir verlinken. Die Koxora-Desktop-Anwendung verarbeitet Ihre Daten ausschließlich auf Ihrem eigenen Gerät und übermittelt uns keine Projektdaten.',
   'privacyPolicy.controller.title': '2. Verantwortlicher',
   'privacyPolicy.controller.body':
     'Verantwortlicher für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:',
@@ -494,7 +494,7 @@ export const de: Record<WebsiteMessageKey, string> = {
   'privacyPolicy.logs.body':
     'Beim Aufruf einer Seite verarbeitet der Hosting-Anbieter die Daten, die Ihr Browser übermittelt: die angeforderte Adresse, Datum und Uhrzeit, die übertragene Datenmenge, die verweisende Adresse, Angaben zu Browser und Betriebssystem sowie die IP-Adresse. Diese Verarbeitung ist technisch erforderlich, um die Seite auszuliefern und Angriffe zu erkennen und abzuwehren.',
   'privacyPolicy.logs.basis':
-    'Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist der sichere, stabile und nachvollziehbare Betrieb des Dienstes. Protokolldaten werden nur so lange aufbewahrt, wie es für diesen Zweck erforderlich ist, und danach gelöscht oder anonymisiert. Die genaue Speicherdauer ergibt sich aus der eingesetzten Konfiguration; sie wird vor der Veröffentlichung dieser Website gemessen, dokumentiert und hier angegeben.',
+    'Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist der sichere, stabile und nachvollziehbare Betrieb des Dienstes. Protokolldaten werden nur so lange aufbewahrt, wie es für diesen Zweck erforderlich ist, und danach gelöscht oder anonymisiert. Die genaue Speicherdauer ergibt sich aus der Konfiguration dieser Anbieter. Sie ist noch nicht gemessen und hier angegeben; sie wird in diese Erklärung aufgenommen, sobald das geschehen ist, und bis dahin können Sie den aktuellen Stand beim oben genannten Datenschutzkontakt erfragen.',
   'privacyPolicy.hosting.title': '5. Hosting und Auslieferung',
   'privacyPolicy.hosting.body':
     'Die Website wird in Deutschland von der Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, gehostet. Auslieferung, Zwischenspeicherung und Schutz vor Angriffen übernimmt Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA, das dabei die oben beschriebenen Verbindungsdaten verarbeitet. Beide Anbieter handeln als Auftragsverarbeiter nach Art. 28 DSGVO auf unsere Weisung.',
@@ -505,11 +505,12 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Über die zur Anzeige nötigen Dateien hinaus speichert Koxora Informationen auf Ihrem Endgerät nur, wo dies für eine von Ihnen gewünschte Funktion unbedingt erforderlich ist oder wo Sie eingewilligt haben. Nach § 25 Abs. 2 Nr. 2 des Telekommunikation-Digitale-Dienste-Datenschutz-Gesetzes (TDDDG) ist für unbedingt erforderliche Speicherung keine Einwilligung nötig. Die aktuelle Installation dieser Website speichert Folgendes:',
   'privacyPolicy.device.note':
     'Diese Website nutzt derzeit keine optionale Analyse, keine Werbung und keine eingebetteten Fremddienste; deshalb wird kein Einwilligungsbanner angezeigt. Sollte sich das ändern, wird nichts Optionales geladen, bevor Sie zugestimmt haben, und Sie können Ihre Entscheidung in den Datenschutz-Einstellungen jederzeit ändern oder widerrufen.',
-  'privacyPolicy.studio.title': '7. Das Browser-Studio und Ihre Projekte',
+  'privacyPolicy.studio.title':
+    '7. Das Browser-Studio, sobald es veröffentlicht ist',
   'privacyPolicy.studio.body':
-    'Das Koxora-Browser-Studio läuft vollständig in Ihrem Browser. Projekte, Diagramme, importierte Dateien und die Einstellungen des Studios liegen in der Browser-Datenbank (IndexedDB) und im lokalen Speicher der Studio-Adresse, und die Anwendungsdateien werden zwischengespeichert, damit das Studio offline funktioniert. Nichts davon wird an uns übermittelt: Es gibt keinen Koxora-Projektserver, kein Konto und keinen Upload.',
+    'Das gehostete Browser-Studio ist noch nicht verfügbar; nichts von dem hier Beschriebenen wird heute verarbeitet. Sobald es veröffentlicht ist, läuft es vollständig in Ihrem Browser: Projekte, Diagramme, importierte Dateien und die Einstellungen des Studios liegen dann in der Browser-Datenbank (IndexedDB) und im lokalen Speicher der Studio-Adresse, und die Anwendungsdateien werden zwischengespeichert, damit das Studio offline funktioniert. Nichts davon wird an uns übermittelt: Es gibt keinen Koxora-Projektserver, kein Konto und keinen Upload.',
   'privacyPolicy.studio.control':
-    'Diese Daten liegen in Ihrer Hand. Sie können ein Projekt als portables .koxora-Archiv exportieren und die Daten jederzeit über die Browsereinstellungen für diese Adresse löschen. Browserspeicher ist an genau die Adresse gebunden, die ihn angelegt hat; Daten unter der Website-Adresse und unter der Studio-Adresse sind daher getrennt.',
+    'Diese Daten liegen dann in Ihrer Hand: Ein Projekt lässt sich als portables .koxora-Archiv exportieren, und die Daten lassen sich jederzeit über die Browsereinstellungen für diese Adresse löschen. Browserspeicher ist an genau die Adresse gebunden, die ihn angelegt hat; Daten unter der Website-Adresse und unter der Studio-Adresse bleiben daher getrennt.',
   'privacyPolicy.studio.desktop':
     'Die Desktop-Anwendung speichert Projekte als Dateien in einem Verzeichnis auf Ihrem Rechner. Sie funktioniert ohne Koxora-Konto und übermittelt uns keine Projektinhalte.',
   'privacyPolicy.contactForm.title': '8. Kontakt per E-Mail',

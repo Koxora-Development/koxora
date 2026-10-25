@@ -109,6 +109,22 @@ written.push(await emit('robots.txt', server.renderRobots()));
 written.push(
   await emit('.well-known/security.txt', server.renderSecurityTxt()),
 );
+// Nothing written for the review of this branch may reach a published site.
+// The notice on the privacy policy is rendered conditionally, and this is the
+// guard that catches any other wording of the same kind, wherever it appears.
+if (server.site.published) {
+  const leaked = [];
+  for (const relativePath of written) {
+    if (!relativePath.endsWith('.html')) continue;
+    const html = await readFile(join(outDir, relativePath), 'utf8');
+    for (const phrase of server.internalReviewPhrases)
+      if (html.includes(phrase)) leaked.push(`${relativePath}: ${phrase}`);
+  }
+  if (leaked.length)
+    throw new Error(
+      `Internal review wording in a published build:\n${leaked.join('\n')}`,
+    );
+}
 // Redirect stubs keep aliases working even on a host without rewrite rules.
 // The hosting configuration below turns the same table into real redirects.
 const redirects = server.redirects();

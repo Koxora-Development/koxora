@@ -34,3 +34,26 @@ export const preLaunchPhrases = [
   'Website W1 in Arbeit',
   'noch nicht veröffentlicht',
 ];
+/**
+ * Notices written for the review of this branch. They explain that the legal
+ * text has not yet been checked against the deployed services, which is true
+ * while the site is unpublished and is addressed to the operator, not to a
+ * visitor. A published build must not render them, and the page emitter fails
+ * if one of these phrases survives into published output.
+ */
+export const internalReviewPhrases = [
+  'Status of this document',
+  'Status dieses Dokuments',
+  'prepared content',
+  'vorbereiteter Inhalt',
+  'Before publication, the operator verifies',
+  'Vor der Veröffentlichung prüft der Betreiber',
+  'before this site is published',
+  'vor der Veröffentlichung dieser Website',
+];
+/** Whether this build still carries the notices written for the review. */
+export function showsInternalReviewNotes(
+  published: boolean = site.published,
+): boolean {
+  return !published;
+}

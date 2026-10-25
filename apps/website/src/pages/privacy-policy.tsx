@@ -8,6 +8,7 @@ import { noTrackingKeys } from '../content/data';
 import { formatDate } from '../content/catalog';
 import { pathFor } from '../routes';
 import { site } from '../site';
+import { showsInternalReviewNotes } from '../content/launch';
 export function PrivacyPolicyPage({ locale, t }: PageContext) {
   const updated = formatDate(locale, site.contentDate);
   const stored = deviceStorageItems();
@@ -26,9 +27,15 @@ export function PrivacyPolicyPage({ locale, t }: PageContext) {
               date: updated,
             })}
           </p>
-          <Note tone="warning" title={t('privacyPolicy.draft.title')}>
-            <p>{t('privacyPolicy.draft.body')}</p>
-          </Note>
+          {/* Addressed to the operator while the site is unpublished: it says
+              the text has not been checked against the deployed services. A
+              published build carries the version and the review date instead,
+              and the page emitter refuses to publish this wording. */}
+          {showsInternalReviewNotes() ? (
+            <Note tone="warning" title={t('privacyPolicy.draft.title')}>
+              <p>{t('privacyPolicy.draft.body')}</p>
+            </Note>
+          ) : null}
           <section>
             <h2>{t('privacyPolicy.scope.title')}</h2>
             <p>{t('privacyPolicy.scope.body')}</p>

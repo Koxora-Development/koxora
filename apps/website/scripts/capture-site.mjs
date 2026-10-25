@@ -8,6 +8,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const outDir = resolve(root, 'docs/design/screenshots/website');
 const base = process.env.KOXORA_SITE_URL ?? 'http://127.0.0.1:4175';
 const consentBase = process.env.KOXORA_CONSENT_URL ?? 'http://127.0.0.1:4176';
+// The variant a launch would publish, served by `preview:published`.
+const publishedBase =
+  process.env.KOXORA_PUBLISHED_URL ?? 'http://127.0.0.1:4177';
 const viewports = {
   desktop: { width: 1280, height: 900 },
   tablet: { width: 834, height: 1112 },
@@ -169,6 +172,23 @@ const shots = [
     url: `${base}/de/`,
     viewport: 'mobile',
     menu: true,
+  },
+  // How the legal page reads once the site is live: no notice addressed to
+  // the operator, and everything a reader is entitled to still there.
+  {
+    file: 'privacy-published-en',
+    url: `${publishedBase}/en/privacy-policy/`,
+    viewport: 'desktop',
+    full: true,
+    optional: true,
+  },
+  {
+    file: 'privacy-published-de',
+    url: `${publishedBase}/de/datenschutz/`,
+    viewport: 'desktop',
+    theme: 'light',
+    full: true,
+    optional: true,
   },
   {
     file: 'consent-banner-de',

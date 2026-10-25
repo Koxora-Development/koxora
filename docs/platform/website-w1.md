@@ -111,8 +111,8 @@ Results:
 
 | Command | Result |
 | --- | --- |
-| `pnpm check` | Passed. Type check, lint, format, 227 unit tests in 17 files, documentation validation, dependency licence report |
-| Unit tests of the website | 44 of those 227, covering the route table, catalog completeness, the consent record, the search metadata, the launch copy and the shared control metrics |
+| `pnpm check` | Passed. Type check, lint, format, 231 unit tests in 18 files, documentation validation, dependency licence report |
+| Unit tests of the website | 48 of those 231, covering the route table, catalog completeness, the consent record, the search metadata, the launch copy, the shared control metrics and the rendered privacy policy in both publication states |
 | `pnpm website:build` | Passed. 61 files and 30 redirects emitted, plus the hosting configuration |
 | `pnpm test:website` | 245 passed, 7 skipped, across the desktop, tablet and phone projects |
 | `pnpm test:e2e --project chromium --project mobile` | 90 passed; the studio build output is byte-identical with and without this branch |
@@ -123,7 +123,7 @@ Limitations of this run: only the bundled Chromium engine was available in the c
 
 ## 10. Screenshots
 
-Captured with `pnpm capture:website` against the preview server and the consent demonstration server, and stored in `docs/design/screenshots/website/`. Desktop shots use a 1280 pixel wide viewport. Every capture states the operating system appearance it emulates, because the site follows that preference while no choice is stored. `python3 scripts/optimize_screenshots.py` then rewrites the images with an indexed palette, which is why they are about a third of the captured size; the step is optional and needs Pillow.
+Captured with `pnpm capture:website` against the preview server, the consent demonstration server and the published-variant server (`pnpm --filter @koxora/website build:published` and `preview:published`; those two shots are skipped when it is not running), and stored in `docs/design/screenshots/website/`. Desktop shots use a 1280 pixel wide viewport. Every capture states the operating system appearance it emulates, because the site follows that preference while no choice is stored. `python3 scripts/optimize_screenshots.py` then rewrites the images with an indexed palette, which is why they are about a third of the captured size; the step is optional and needs Pillow.
 
 | View | File |
 | --- | --- |
@@ -136,6 +136,7 @@ Captured with `pnpm capture:website` against the preview server and the consent 
 | Stuck header where the studio screenshot begins | `sticky-header-en.png` |
 | Footer, English dark and German light | `footer-en-desktop.png`, `footer-de-desktop.png` |
 | Footer, German and English, phone | `footer-de-mobile.png`, `footer-en-mobile.png` |
+| Privacy policy as a launched build renders it | `privacy-published-en.png`, `privacy-published-de.png` |
 | Home, German, phone | `home-de-mobile.png` |
 | Home, English, tablet | `home-en-tablet.png` |
 | Navigation menu, German, phone | `menu-de-mobile.png` |
@@ -202,7 +203,17 @@ A marketing website that is still being reviewed says so; once it is live, that 
 | Indexing is intended | `KOXORA_SITE_INDEXABLE`, which stays `false` for staging |
 | The security contact is deliverable and owned | The legal review checklist |
 
-## 14. Header that follows the page, and a footer sorted by errand
+## 14. What a published build changes on the legal pages
+
+While this site is unpublished, the privacy policy carries a notice addressed to the operator: the text has not been checked against the deployed services. That is true today and belongs in a review build, but on a public page it reads as a disclaimer about a document a reader is being asked to rely on. `KOXORA_SITE_PUBLISHED=true` therefore removes it, and removes nothing else: the version, the review date, every processing description, the rights, the supervisory authority and every statement about what is not available yet all stay.
+
+Two guards keep that honest. A unit test renders both privacy pages, in both languages and in both states, and asserts the notice is there while unpublished, absent once published, and that the version, the review date and the required sections survive. After the pages are written, the emitter searches the whole published output for that family of wording and refuses to finish the build if any of it survived, so a new page or a new sentence cannot reintroduce it unnoticed.
+
+The same pass corrected two statements that a published page cannot make. The policy no longer reads as if the hosted studio were already operated: it covers the website, and section 7 says what will apply to the studio once it is published at its own address. And the retention period no longer promises to be measured "before this site is published", which would contradict itself on a published page; it says instead that the period follows from the providers' configuration, has not been measured yet, is added once it has been, and that the data protection contact answers in the meantime.
+
+`KOXORA_SITE_INDEXABLE` stays a separate switch. A review deployment sets it to `false` and gets `noindex`, no canonical address and a disallow-all robots file, whatever the launch flag says.
+
+## 15. Header that follows the page, and a footer sorted by errand
 
 Every studio picture is a framed, named screenshot. The frame carries a strip at its top edge reading "Screenshot · Koxora Studio", because the stuck site header comes to rest exactly there while a reader scrolls, and the picture's own chrome begins immediately below it. Without the strip the two headers read as one application, with two Koxora word marks above each other. The pictures themselves are unaltered captures of the running studio, including its own toolbar and side panels, taken by `pnpm capture:studio`; nothing is drawn by hand and nothing is a web page wrapped around the studio.
 
@@ -210,7 +221,7 @@ The header is `position: sticky` at the top. Nothing inside it is clipped, becau
 
 The footer keeps the layout it had. Product, Resources and Legal stay as they were, with their column widths, the brand block and the bottom bar untouched; the repository link moved out of the contact column into Resources, where it belongs, and appears nowhere else. The contact column is a concise support point plus one named security action: a question about Koxora goes to the support mailbox, a security problem goes to the security policy, which says what is safe to send before a private channel exists. The security address itself is not printed there, so nothing in the footer suggests that the mailbox has been verified.
 
-## 15. Appearance and language controls
+## 16. Appearance and language controls
 
 The header carries two controls that Koxora shares across its surfaces: one round button for the appearance and one for the language. [The control specification](../design/shared-header-controls.md) is the contract, and `packages/ui/src/control-icons.ts` is the artwork and the metrics both surfaces draw from, as plain data rather than as a React component, because this website ships no client React runtime.
 
@@ -220,13 +231,13 @@ The language button is a globe that opens a popover: a heading, the native name 
 
 Studio 2.5 owns its side of this contract on its own branch. Until that lands the two surfaces differ, which is why nothing here claims they already match.
 
-## 16. Security contact
+## 17. Security contact
 
 `security@koxora.app` is the address for a first contact about a vulnerability. It appears in the legal notice next to the other contacts, in `SECURITY.md`, and in `/.well-known/security.txt` in the format of RFC 9116. That file states the contact, the languages, the policy address and an expiry one year after the content review date, and deliberately claims no response time, no encryption key and no reward. The hidden-path guard of the hosting configuration exempts the well-known directory and nothing else.
 
 The Product Owner has provisioned the mailbox, but its delivery and the access to it are untested, so the policy does not ask anyone to send exploit details to it. A first message says only that a problem exists, roughly where, and how to reply; the technical part follows through a channel agreed in that reply. The footer therefore links to the policy under "Report a vulnerability" rather than printing the address next to the support mailbox, where it would read as an invitation to send details straight away. When the operator has verified delivery and access, that restriction can be lifted and the policy updated; until then it stays an open point in the legal review checklist.
 
-## 17. Independent review
+## 18. Independent review
 
 Four independent reviews examined this branch against the real diff and the built output: data protection and consent, technical search readiness with accessibility, security of the generated site and its tooling, and the shared surface with the parallel studio work. They found one defect that would have mattered to a reader and a set of smaller ones, all of which are fixed in this branch:
 
@@ -247,7 +258,7 @@ Four independent reviews examined this branch against the real diff and the buil
 
 The reviews also confirmed, by measurement rather than by reading, that the studio build output is byte-identical with and without this branch, that no page makes a third-party request, that the structured data claims nothing unreleased, that the hreflang and sitemap layer is internally consistent, and that nothing is stored on a device before a reader acts.
 
-## 18. Open points
+## 19. Open points
 
 1. The hosted browser studio is not published, so the primary call to action explains how to run the current version instead of linking to an address that does not answer. The Product Owner decided on 2026-10-24 to keep this configurable and to switch on the direct studio link only once `app.koxora.app` is actually reachable; setting `KOXORA_SITE_EDITOR_URL` is the single change needed.
 2. The legal pages carry prepared content; [the checklist](../legal/website-legal-review.md) lists what the operator must confirm before publication.

@@ -225,4 +225,5 @@ export {
   themeScript,
 };
 export { consentPolicyExtras } from './content/consent';
+export { internalReviewPhrases } from './content/launch';
 export type { Locale, RouteId };

@@ -134,17 +134,22 @@ The last row matters most: a website release must never be able to affect the st
 
 ## 7. Going live
 
-Publication is a separate, explicitly approved step. Three things change on the day it happens, and all three are build inputs rather than edits to the content:
+Publication is a separate, explicitly approved step. What changes on the day it happens are build inputs, not edits to the content:
 
 ```sh
 KOXORA_SITE_PUBLISHED=true \
+  KOXORA_SITE_ORIGIN=https://koxora.app \
+  KOXORA_SITE_INDEXABLE=true \
   KOXORA_SITE_CONTENT_DATE=<the day of the review> \
   pnpm website:build
 ```
 
-1. `KOXORA_SITE_PUBLISHED=true` removes the sentences that describe this website as still in review. The flag changes website copy only. Whether the studio is linked is decided by `KOXORA_SITE_EDITOR_URL`, and whether a download exists by the release process; neither follows from this flag. A unit test asserts, in both languages, that the launch-sensitive messages contain no pre-launch phrase once the flag is set, and that the sentences about the missing studio release and the missing download survive it.
+`KOXORA_SITE_EDITOR_URL` stays unset until the studio is actually reachable, so the call to action keeps explaining how to run the current version instead of linking to an address that does not answer.
+
+1. `KOXORA_SITE_PUBLISHED=true` removes the sentences that describe this website as still in review, and removes the notice on the privacy policy that is addressed to the operator rather than to a reader. It removes nothing a reader is entitled to: the version, the review date, the processing descriptions, the rights and the supervisory authority stay, and so does every statement about what is not available yet. After the pages are written, the emitter searches the published output for that wording and refuses to finish the build if any of it survived, so this cannot be forgotten in a new page or a new sentence. The flag changes website copy only. Whether the studio is linked is decided by `KOXORA_SITE_EDITOR_URL`, and whether a download exists by the release process; neither follows from this flag. A unit test asserts, in both languages, that the launch-sensitive messages contain no pre-launch phrase once the flag is set, and that the sentences about the missing studio release and the missing download survive it.
 2. `KOXORA_SITE_CONTENT_DATE` is the date shown on the legal pages and used as the sitemap modification date. It also sets the `Expires` field of `/.well-known/security.txt`, one year later. RFC 9116 requires that date to be in the future, so a release whose content date is more than a year old publishes an expired security contact: set the content date on every release, and treat a stale one as a release blocker.
-3. The open points of the [legal review checklist](../legal/website-legal-review.md) must be closed first, including a security mailbox that actually receives mail, because the legal notice, the footer, `SECURITY.md` and `security.txt` all publish that address.
+3. `KOXORA_SITE_INDEXABLE` is a separate switch and does not follow from the launch flag. A review deployment keeps `KOXORA_SITE_INDEXABLE=false`, which emits `noindex`, no canonical address and a disallow-all robots file; the launch build sets it to `true`. Setting one without the other is possible and is sometimes what you want, so the launch command above sets both explicitly.
+4. The open points of the [legal review checklist](../legal/website-legal-review.md) must be closed first, including a security mailbox that actually receives mail, because the legal notice, the footer, `SECURITY.md` and `security.txt` all publish that address.
 
 `KOXORA_SITE_PUBLISHED`, like every other input, is recorded in `dist-deploy/build-info.json`, so the release record shows which variant was deployed.
 
