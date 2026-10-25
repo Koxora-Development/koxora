@@ -111,8 +111,8 @@ Results:
 
 | Command | Result |
 | --- | --- |
-| `pnpm check` | Passed. Type check, lint, format, 226 unit tests in 17 files, documentation validation, dependency licence report |
-| Unit tests of the website | 43 of those 226, covering the route table, catalog completeness, the consent record, the search metadata, the launch copy and the shared control metrics |
+| `pnpm check` | Passed. Type check, lint, format, 227 unit tests in 17 files, documentation validation, dependency licence report |
+| Unit tests of the website | 44 of those 227, covering the route table, catalog completeness, the consent record, the search metadata, the launch copy and the shared control metrics |
 | `pnpm website:build` | Passed. 61 files and 30 redirects emitted, plus the hosting configuration |
 | `pnpm test:website` | 242 passed, 7 skipped, across the desktop, tablet and phone projects |
 | `pnpm test:e2e --project chromium --project mobile` | 90 passed; the studio build output is byte-identical with and without this branch |
@@ -135,7 +135,7 @@ Captured with `pnpm capture:website` against the preview server and the consent 
 | Language menu, German, phone | `language-menu-de-mobile.png` |
 | Header over scrolled content | `sticky-header-en.png` |
 | Footer, English dark and German light | `footer-en-desktop.png`, `footer-de-desktop.png` |
-| Footer, German, phone | `footer-de-mobile.png` |
+| Footer, German and English, phone | `footer-de-mobile.png`, `footer-en-mobile.png` |
 | Home, German, phone | `home-de-mobile.png` |
 | Home, English, tablet | `home-en-tablet.png` |
 | Navigation menu, German, phone | `menu-de-mobile.png` |
@@ -206,7 +206,7 @@ A marketing website that is still being reviewed says so; once it is live, that 
 
 The header is `position: sticky` at the top. Nothing inside it is clipped, because no ancestor is a scroll container: the body uses `overflow-x: clip`, which prevents sideways scrolling without becoming one, so the language popover and the expanded phone menu still draw over the content below. `scroll-padding-top` keeps a fragment target, the skip link and the back-to-top link clear of the header instead of landing underneath it. Sticky positioning leaves the element in flow, so nothing shifts when it engages. On a viewport shorter than 520 pixels, a phone held sideways, the header scrolls away with the page rather than taking most of the screen.
 
-The footer groups links by what a reader came to do. Product, Resources and Legal keep their own columns, the repository link sits with the other resources, and the contact column names two different errands rather than listing addresses next to unrelated links: a question about Koxora goes to the support mailbox, and a security problem starts at the security policy, which says what is safe to send before a private channel exists.
+The footer keeps the layout it had. Product, Resources and Legal stay as they were, with their column widths, the brand block and the bottom bar untouched; the repository link moved out of the contact column into Resources, where it belongs, and appears nowhere else. The contact column is a concise support point plus one named security action: a question about Koxora goes to the support mailbox, a security problem goes to the security policy, which says what is safe to send before a private channel exists. The security address itself is not printed there, so nothing in the footer suggests that the mailbox has been verified.
 
 ## 15. Appearance and language controls
 
@@ -251,5 +251,5 @@ The reviews also confirmed, by measurement rather than by reading, that the stud
 2. The legal pages carry prepared content; [the checklist](../legal/website-legal-review.md) lists what the operator must confirm before publication.
 3. T-008 is decided for this milestone: the Product Owner accepted the static approach on the accepted foundation stack on 2026-10-24. A dedicated website framework stays an option for a later content-management need.
 4. No content management system exists. Content changes are code changes until a later milestone decides otherwise.
-5. **No contact form.** The Product Owner decided on 2026-10-25 that a real form belongs to the next website milestone, because it needs mail delivery, rate limiting, spam handling, a privacy assessment and an operator-verified service, none of which a static site can carry. W1 therefore offers addresses that work today and advertises no form, no placeholder and no third-party collection service. The follow-up is a separate issue and does not widen W1.
+5. **No contact form.** The Product Owner decided on 2026-10-25 that a real form belongs to the next website milestone, because it needs mail delivery, rate limiting, spam handling, a privacy assessment and an operator-verified service, none of which a static site can carry. W1 therefore offers addresses that work today and advertises no form, no placeholder and no third-party collection service. The follow-up is tracked as [Issue #30](https://github.com/Koxora-Development/koxora/issues/30) and does not widen W1.
 6. **The security address is a first contact, not a channel for details.** Its delivery and the access to it are untested, so `SECURITY.md` asks for a first message without reproduction steps or proof of concept and agrees a channel before the technical part. When the operator has verified delivery and access, that restriction can be lifted and the policy updated.

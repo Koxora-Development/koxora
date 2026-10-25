@@ -528,19 +528,12 @@ html[data-js='on'] .language-option:hover {
 }
 .footer-nav {
   display: grid;
-  gap: 28px 32px;
-  /* Link groups stay narrow; the contact group needs room for an address and
-     a sentence, so it gets its own wider track rather than a cramped column. */
+  gap: 28px;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-}
-@media (min-width: 700px) {
-  .footer-nav {
-    grid-template-columns: repeat(3, minmax(130px, 1fr)) minmax(210px, 1.3fr);
-  }
 }
 .footer-contacts {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 .footer-contacts dt {
   font-size: 13px;
@@ -556,12 +549,6 @@ html[data-js='on'] .language-option:hover {
 }
 .footer-contacts dd a:hover {
   color: var(--text);
-}
-.footer-contact-note {
-  display: block;
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--faint);
 }
 .footer-column h2 {
   font-size: 11px;

@@ -349,7 +349,6 @@ export const en = {
   'footer.repository': 'GitHub repository',
   'footer.issues': 'Issues and feedback',
   'footer.security': 'Report a vulnerability',
-  'footer.securityPolicyNote': 'The policy says what to send first.',
   'footer.backToTop': 'Back to top',
 
   'consent.banner.title': 'Your privacy choices',

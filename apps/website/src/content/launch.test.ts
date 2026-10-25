@@ -26,6 +26,33 @@ describe('launch-aware copy', () => {
           expect(message, `${locale} ${key}`).not.toContain(phrase);
       }
   });
+  it('leaves the statements about the product alone', () => {
+    // Publishing this website says nothing about a released studio or a
+    // downloadable build, so these lines are not launch-sensitive at all and
+    // must not appear in the switch.
+    const switched = new Set(
+      [launchCopy(false), launchCopy(true)].flatMap((copy) => [
+        copy.statusSummary,
+        copy.milestone,
+      ]),
+    );
+    for (const key of ['footer.statusNote', 'footer.copyright'] as const) {
+      expect(switched.has(key), key).toBe(false);
+      for (const locale of locales) {
+        const message = catalog.translate(locale, key, { year: 2026 });
+        for (const phrase of preLaunchPhrases)
+          expect(message, `${locale} ${key}`).not.toContain(phrase);
+      }
+    }
+    // Both still say there is no public release, which stays true until the
+    // studio itself is released.
+    expect(catalog.translate('en', 'footer.statusNote')).toContain(
+      'No public release yet',
+    );
+    expect(catalog.translate('de', 'footer.statusNote')).toContain(
+      'Noch keine öffentliche Veröffentlichung',
+    );
+  });
   it('keeps the truth about the studio and downloads after the launch', () => {
     const copy = launchCopy(true);
     // Publishing the website says nothing about a released studio or a

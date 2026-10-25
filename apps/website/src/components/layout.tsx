@@ -262,9 +262,6 @@ function Footer(context: PageContext) {
                     <a href={site.securityUrl} rel="noopener">
                       {t('footer.security')}
                     </a>
-                    <span className="footer-contact-note">
-                      {t('footer.securityPolicyNote')}
-                    </span>
                   </dd>
                 </div>
               </dl>

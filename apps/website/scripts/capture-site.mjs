@@ -105,6 +105,12 @@ const shots = [
     element: '.site-footer',
   },
   {
+    file: 'footer-en-mobile',
+    url: `${base}/en/`,
+    viewport: 'mobile',
+    element: '.site-footer',
+  },
+  {
     file: 'home-de-mobile',
     url: `${base}/de/`,
     viewport: 'mobile',

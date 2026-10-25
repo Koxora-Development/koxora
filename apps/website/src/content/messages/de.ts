@@ -353,7 +353,6 @@ export const de: Record<WebsiteMessageKey, string> = {
   'footer.repository': 'GitHub-Repository',
   'footer.issues': 'Issues und Rückmeldungen',
   'footer.security': 'Sicherheitslücke melden',
-  'footer.securityPolicyNote': 'Die Richtlinie sagt, was zuerst zu senden ist.',
   'footer.backToTop': 'Nach oben',
 
   'consent.banner.title': 'Ihre Datenschutz-Entscheidung',
