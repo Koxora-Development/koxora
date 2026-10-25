@@ -39,13 +39,15 @@ jobs:
       # toolchain production uses is installed here: PHP 8.4, PHP-FPM and
       # Apache. The website browser tests need it too, because they submit
       # the form to the real endpoint rather than to a stand-in.
+      # php8.4-xml provides ext-dom, which PHPUnit requires and which the
+      # cli package does not pull in on its own.
       - if: runner.os == 'Linux'
         name: Install PHP 8.4, PHP-FPM and Apache
         run: |
           sudo add-apt-repository -y ppa:ondrej/php
           sudo apt-get update
           sudo apt-get install -y \
-            php8.4-cli php8.4-fpm php8.4-mbstring php8.4-curl \
+            php8.4-cli php8.4-fpm php8.4-mbstring php8.4-curl php8.4-xml \
             apache2 nginx-light libnginx-mod-http-js
           sudo update-alternatives --set php /usr/bin/php8.4
           php -v
