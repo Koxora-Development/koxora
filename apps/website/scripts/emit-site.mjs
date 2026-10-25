@@ -106,6 +106,9 @@ written.push(
 written.push(await emit('index.html', server.renderRootGateway(assets)));
 written.push(await emit('sitemap.xml', server.renderSitemap()));
 written.push(await emit('robots.txt', server.renderRobots()));
+written.push(
+  await emit('.well-known/security.txt', server.renderSecurityTxt()),
+);
 // Redirect stubs keep aliases working even on a host without rewrite rules.
 // The hosting configuration below turns the same table into real redirects.
 const redirects = server.redirects();
@@ -181,7 +184,8 @@ ${server.locales
   .join('\n')}
 
 # Build artefacts and dot files are never public, whatever ends up in the root.
-RedirectMatch 404 "(^|/)[._]"
+# The standard well-known directory is the one exception; it exists to be read.
+RedirectMatch 404 "(^|/)(?!\\.well-known/)[._]"
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
@@ -239,6 +243,7 @@ await writeFile(
       origin: server.site.origin,
       editorUrl: server.site.editorUrl,
       indexable: server.site.indexable,
+      published: server.site.published,
       optionalConsent: server.site.optionalConsent,
       contentDate: server.site.contentDate,
       pages: written.length,

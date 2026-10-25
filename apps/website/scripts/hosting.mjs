@@ -54,9 +54,17 @@ export function cacheControlFor(pathname) {
     documentCacheControl
   );
 }
-/** Paths that must never reach a client, whichever server is in front. */
+/**
+ * Paths that must never reach a client, whichever server is in front. The one
+ * exception is the standard well-known directory, which exists to be public.
+ */
+export const publicDotDirectory = '.well-known';
 export function isHiddenPath(pathname) {
   return pathname
     .split('/')
-    .some((segment) => segment.startsWith('.') || segment.startsWith('_'));
+    .some(
+      (segment) =>
+        segment !== publicDotDirectory &&
+        (segment.startsWith('.') || segment.startsWith('_')),
+    );
 }

@@ -187,6 +187,24 @@ export function renderSitemap(): string {
     '',
   ].join('\n');
 }
+/**
+ * Vulnerability reporting information in the format of RFC 9116. It states a
+ * contact address, the languages it is read in and where the policy lives,
+ * and deliberately claims no response time, no encryption key and no
+ * guarantee. The expiry is one year after the content review date, so every
+ * release republishes a current file.
+ */
+export function renderSecurityTxt(): string {
+  const expires = new Date(`${site.contentDate}T00:00:00Z`);
+  expires.setUTCFullYear(expires.getUTCFullYear() + 1);
+  return [
+    `Contact: mailto:${site.email.security}`,
+    `Expires: ${expires.toISOString().replace(/\.\d{3}Z$/, 'Z')}`,
+    'Preferred-Languages: en, de',
+    `Policy: ${site.securityUrl}`,
+    '',
+  ].join('\n');
+}
 export function renderRobots(): string {
   if (!site.indexable) return ['User-agent: *', 'Disallow: /', ''].join('\n');
   return [

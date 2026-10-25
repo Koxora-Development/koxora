@@ -131,13 +131,19 @@
   place-items: center;
   cursor: pointer;
 }
-.theme-toggle-face {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: linear-gradient(130deg, var(--violet-strong), var(--cyan));
-  box-shadow: inset -4px -2px 0
-    color-mix(in srgb, var(--panel) 85%, transparent);
+.theme-toggle .theme-icon {
+  width: 17px;
+  height: 17px;
+  color: var(--violet-strong);
+}
+/* The control offers the appearance it would switch to: a sun while the dark
+   appearance is active, a moon while the light one is. */
+.theme-icon-moon,
+:root[data-theme='light'] .theme-icon-sun {
+  display: none;
+}
+:root[data-theme='light'] .theme-icon-moon {
+  display: block;
 }
 .header-cta {
   font-size: 13px;

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { allPaths } from './helpers';
+import { allPaths, openNavigation } from './helpers';
 function channel(value: number) {
   const ratio = value / 255;
   return ratio <= 0.04045 ? ratio / 12.92 : ((ratio + 0.055) / 1.055) ** 2.4;
@@ -175,6 +175,62 @@ test.describe('accessibility', () => {
     await page.goto('http://127.0.0.1:4175/de/datenschutz-einstellungen/');
     await expect(page.locator('.data-table tbody tr')).toHaveCount(1);
     await expect(page.locator('.consent-noscript')).toBeVisible();
+    await context.close();
+  });
+  test('the appearance control names the mode it switches to', async ({
+    page,
+  }) => {
+    await page.goto('/en/');
+    await openNavigation(page);
+    const toggle = page.locator('[data-theme-toggle]');
+    await expect(toggle).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(toggle).toHaveAttribute(
+      'aria-label',
+      'Switch to the light appearance',
+    );
+    await expect(toggle.locator('.theme-icon-sun')).toBeVisible();
+    await expect(toggle.locator('.theme-icon-moon')).toBeHidden();
+    await toggle.click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(toggle).toHaveAttribute(
+      'aria-label',
+      'Switch to the dark appearance',
+    );
+    await expect(toggle.locator('.theme-icon-moon')).toBeVisible();
+    await expect(toggle.locator('.theme-icon-sun')).toBeHidden();
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+  test('the appearance control is localized and keyboard operable', async ({
+    page,
+  }) => {
+    await page.goto('/de/');
+    await openNavigation(page);
+    const toggle = page.locator('[data-theme-toggle]');
+    await expect(toggle).toHaveAttribute(
+      'aria-label',
+      'Zur hellen Darstellung wechseln',
+    );
+    // Focus visibility itself is covered by the keyboard-focus test above,
+    // which reaches its controls by tabbing rather than programmatically.
+    await toggle.focus();
+    await expect(toggle).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(toggle).toHaveAttribute(
+      'aria-label',
+      'Zur dunklen Darstellung wechseln',
+    );
+  });
+  test('the appearance follows the operating system until a choice is made', async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ colorScheme: 'light' });
+    const page = await context.newPage();
+    await page.goto('http://127.0.0.1:4175/en/');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
     await context.close();
   });
   test('reduced motion is respected', async ({ page }) => {

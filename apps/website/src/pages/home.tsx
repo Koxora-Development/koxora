@@ -16,6 +16,7 @@ import { StatusLegend } from '../components/status-legend';
 import { studioLink, type PageContext } from '../components/navigation';
 import { pathFor } from '../routes';
 import { formatDate } from '../content/catalog';
+import { launchCopy } from '../content/launch';
 import {
   comparisonFocus,
   featuresByStatus,
@@ -27,6 +28,7 @@ export function HomePage(context: PageContext) {
   const { locale, t } = context;
   const cta = studioLink(locale, t);
   const reviewed = formatDate(locale, site.contentDate);
+  const launch = launchCopy();
   const highlights = featuresByStatus('available').filter(
     (entry) => entry.highlight,
   );
@@ -61,11 +63,11 @@ export function HomePage(context: PageContext) {
           <dl className="status-strip">
             <div>
               <dt>{t('project.statusTitle')}</dt>
-              <dd>{t('project.statusSummary')}</dd>
+              <dd>{t(launch.statusSummary)}</dd>
             </div>
             <div>
               <dt>{t('project.statusMilestone')}</dt>
-              <dd>{t('project.statusMilestoneValue')}</dd>
+              <dd>{t(launch.milestone)}</dd>
             </div>
           </dl>
         </div>

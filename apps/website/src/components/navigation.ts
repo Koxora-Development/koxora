@@ -21,7 +21,7 @@ export const navLabelKeys: Record<RouteId, MessageKey> = {
 };
 // Applied before first paint so a stored appearance never flashes.
 export const themeScript =
-  "(function(){var d=document.documentElement;d.dataset.js='on';try{var v=localStorage.getItem('koxora.website.theme');if(v==='light'||v==='dark')d.dataset.theme=v;}catch(e){}})()";
+  "(function(){var d=document.documentElement;d.dataset.js='on';try{var v=localStorage.getItem('koxora.website.theme');if(v==='light'||v==='dark'){d.dataset.theme=v;return}}catch(e){}try{if(matchMedia('(prefers-color-scheme: light)').matches)d.dataset.theme='light'}catch(e){}})()";
 export function studioLink(locale: Locale, t: Translate) {
   return site.editorUrl
     ? {

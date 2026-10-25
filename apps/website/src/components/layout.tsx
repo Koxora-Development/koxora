@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Mark } from './logo';
+import { MoonIcon, SunIcon } from './icons';
 import { ConsentBanner, ConsentDialog, ConsentNoScript } from './consent-ui';
 import { site } from '../site';
 import {
@@ -103,10 +104,13 @@ function Header(context: PageContext) {
               className="theme-toggle"
               type="button"
               data-theme-toggle
+              data-label-light={t('nav.themeToLight')}
+              data-label-dark={t('nav.themeToDark')}
+              aria-label={t('nav.themeToLight')}
               hidden
             >
-              <span className="sr-only">{t('nav.theme')}</span>
-              <span className="theme-toggle-face" aria-hidden="true" />
+              <SunIcon />
+              <MoonIcon />
             </button>
             <a className="action action-primary header-cta" href={cta.href}>
               {cta.label}
@@ -197,6 +201,11 @@ function Footer(context: PageContext) {
                 <li>
                   <a href={site.repositoryUrl} rel="noopener">
                     {t('footer.repository')}
+                  </a>
+                </li>
+                <li>
+                  <a href={`mailto:${site.email.security}`}>
+                    {site.email.security}
                   </a>
                 </li>
                 <li>

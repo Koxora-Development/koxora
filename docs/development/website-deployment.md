@@ -28,6 +28,7 @@ apps/website/dist/          what the web server publishes
   en/… de/…                 one directory per page, each with index.html
   en/404.html de/404.html   localized not-found documents
   404.html                  fallback not-found document
+  .well-known/security.txt  security contact, RFC 9116
   assets/                   hashed stylesheet and script
   images/                   icons, social previews, studio screenshots
   sitemap.xml robots.txt
@@ -48,6 +49,7 @@ All values are read at build time. The defaults describe the reviewed state.
 | `KOXORA_SITE_ORIGIN`           | `https://koxora.app` | Canonical addresses, sitemap, social metadata                                                                             |
 | `KOXORA_SITE_EDITOR_URL`       | not set              | When set, the studio entry links directly to that address; otherwise it explains how to run the current version           |
 | `KOXORA_SITE_INDEXABLE`        | `true`               | `false` emits `noindex` on every page and a disallow-all robots file, for staging                                         |
+| `KOXORA_SITE_PUBLISHED`        | `false`              | `true` removes the copy that says this website is still in review. It governs website copy only, never the studio link    |
 | `KOXORA_SITE_OPTIONAL_CONSENT` | empty                | Comma-separated optional consent categories the deployment really uses; a non-empty value turns on the first-visit prompt |
 | `KOXORA_SITE_CONTENT_DATE`     | `2026-10-24`         | Review date shown on the site and used as the sitemap modification date                                                   |
 | `KOXORA_SITE_OUT_DIR`          | `dist`               | Output directory of the page emitter                                                                                      |
@@ -68,7 +70,7 @@ The emitted site is static files. The hosting layer has to provide four things, 
 3. A language redirect for `/` only, by request language, defaulting to English.
 4. The not-found document with the status code 404.
 
-The generated Apache fragment contains the security headers, the cache rules and all 60 redirects. The content security policy pins the one inline script by hash, which `build-info.json` repeats, so it must be regenerated whenever the build changes.
+The generated Apache fragment contains the security headers, the cache rules and every redirect of the route table, 30 in the reviewed build. The content security policy pins the one inline script by hash, which `build-info.json` repeats, so it must be regenerated whenever the build changes.
 
 ```apacheconf
 # apps/website/dist-deploy/apache-koxora-app.conf, generated
@@ -124,12 +126,29 @@ Paths, user accounts and virtual host names above are placeholders. Confirm the 
 | Response headers                    | Security headers present, assets immutable, HTML revalidating                                   |
 | Content security policy             | Matches `dist-deploy/build-info.json` of the deployed release, including the inline script hash |
 | `/_headers`, `/.vite/manifest.json` | 404; build artefacts are not public                                                             |
+| `/.well-known/security.txt`         | 200, plain text, names the security mailbox and an expiry date in the future                    |
 | Network panel on any page           | No request leaves the site's own origin                                                         |
 | Studio address                      | Still reachable, offline start still works, local projects still present                        |
 
 The last row matters most: a website release must never be able to affect the studio's cache or a reader's local projects.
 
-## 7. Not part of this milestone
+## 7. Going live
+
+Publication is a separate, explicitly approved step. Three things change on the day it happens, and all three are build inputs rather than edits to the content:
+
+```sh
+KOXORA_SITE_PUBLISHED=true \
+  KOXORA_SITE_CONTENT_DATE=<the day of the review> \
+  pnpm website:build
+```
+
+1. `KOXORA_SITE_PUBLISHED=true` removes the sentences that describe this website as still in review. The flag changes website copy only. Whether the studio is linked is decided by `KOXORA_SITE_EDITOR_URL`, and whether a download exists by the release process; neither follows from this flag. A unit test asserts, in both languages, that the launch-sensitive messages contain no pre-launch phrase once the flag is set, and that the sentences about the missing studio release and the missing download survive it.
+2. `KOXORA_SITE_CONTENT_DATE` is the date shown on the legal pages and used as the sitemap modification date. It also sets the `Expires` field of `/.well-known/security.txt`, one year later. RFC 9116 requires that date to be in the future, so a release whose content date is more than a year old publishes an expired security contact: set the content date on every release, and treat a stale one as a release blocker.
+3. The open points of the [legal review checklist](../legal/website-legal-review.md) must be closed first, including a security mailbox that actually receives mail, because the legal notice, the footer, `SECURITY.md` and `security.txt` all publish that address.
+
+`KOXORA_SITE_PUBLISHED`, like every other input, is recorded in `dist-deploy/build-info.json`, so the release record shows which variant was deployed.
+
+## 8. Not part of this milestone
 
 - No deployment was performed, no DNS record was touched and no address was published.
 - No automated deployment workflow is added. A protected environment with a human approval step is the recommended next step and belongs to the deployment milestone.

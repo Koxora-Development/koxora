@@ -9,10 +9,14 @@ const outDir = resolve(root, 'docs/design/screenshots/website');
 const base = process.env.KOXORA_SITE_URL ?? 'http://127.0.0.1:4175';
 const consentBase = process.env.KOXORA_CONSENT_URL ?? 'http://127.0.0.1:4176';
 const viewports = {
-  desktop: { width: 1440, height: 900 },
+  desktop: { width: 1280, height: 900 },
   tablet: { width: 834, height: 1112 },
   mobile: { width: 390, height: 844 },
 };
+// The site follows the operating system preference while no choice is stored,
+// so every shot states the preference it emulates. `theme` stores a choice on
+// top of it, which is what the appearance control writes.
+const defaultScheme = 'dark';
 const shots = [
   {
     file: 'home-en-desktop',
@@ -26,11 +30,28 @@ const shots = [
     viewport: 'desktop',
     full: true,
   },
+  // No stored choice, so this is the operating system preference being followed.
   {
     file: 'home-en-light',
     url: `${base}/en/`,
     viewport: 'desktop',
+    scheme: 'light',
+  },
+  // The appearance control in both states, with the header and the top of the
+  // hero in frame. The stored choice in the second shot also demonstrates that
+  // a reader's choice overrides the operating system preference.
+  {
+    file: 'theme-dark-en',
+    url: `${base}/en/`,
+    viewport: 'desktop',
+    clip: { x: 0, y: 0, width: 1280, height: 420 },
+  },
+  {
+    file: 'theme-light-en',
+    url: `${base}/en/`,
+    viewport: 'desktop',
     theme: 'light',
+    clip: { x: 0, y: 0, width: 1280, height: 420 },
   },
   {
     file: 'home-de-mobile',
@@ -116,6 +137,7 @@ try {
     const context = await browser.newContext({
       viewport: viewports[shot.viewport],
       locale: shot.url.includes('/de/') ? 'de-DE' : 'en-US',
+      colorScheme: shot.scheme ?? defaultScheme,
       deviceScaleFactor: 1,
     });
     const page = await context.newPage();
@@ -134,6 +156,7 @@ try {
       await page.screenshot({
         path: `${outDir}/${shot.file}.png`,
         fullPage: Boolean(shot.full),
+        ...(shot.clip ? { clip: shot.clip } : {}),
       });
       written.push(shot.file);
     } catch (error) {

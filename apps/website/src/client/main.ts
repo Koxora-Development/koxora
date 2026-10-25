@@ -28,11 +28,35 @@ function setupTheme(): void {
   );
   if (!toggle) return;
   toggle.hidden = false;
+  const stored = () => {
+    try {
+      const value = storage?.getItem(themeKey);
+      return value === 'light' || value === 'dark' ? value : null;
+    } catch {
+      return null;
+    }
+  };
   const apply = (theme: string) => {
     document.documentElement.dataset.theme = theme;
-    toggle.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
+    // The name says what the next press does, which is what a screen reader
+    // user needs from a control whose icon they cannot see.
+    toggle.setAttribute(
+      'aria-label',
+      theme === 'light'
+        ? (toggle.dataset.labelDark ?? '')
+        : (toggle.dataset.labelLight ?? ''),
+    );
   };
-  apply(document.documentElement.dataset.theme ?? 'dark');
+  const systemPreference = () => {
+    try {
+      return window.matchMedia('(prefers-color-scheme: light)').matches
+        ? 'light'
+        : 'dark';
+    } catch {
+      return 'dark';
+    }
+  };
+  apply(stored() ?? systemPreference());
   toggle.addEventListener('click', () => {
     const next =
       document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
@@ -43,6 +67,16 @@ function setupTheme(): void {
       // A rejected write only means the choice is not remembered.
     }
   });
+  try {
+    // Until a reader makes a choice, follow the operating system as it changes.
+    window
+      .matchMedia('(prefers-color-scheme: light)')
+      .addEventListener('change', () => {
+        if (!stored()) apply(systemPreference());
+      });
+  } catch {
+    // An older browser simply keeps the appearance it started with.
+  }
 }
 function setupMenu(): void {
   const toggle =

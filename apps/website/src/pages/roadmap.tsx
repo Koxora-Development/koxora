@@ -3,6 +3,7 @@ import { StatusLegend } from '../components/status-legend';
 import { PageIntro } from '../components/page-intro';
 import type { PageContext } from '../components/navigation';
 import { milestones, milestoneUrl, phases } from '../content/data';
+import { launchCopy } from '../content/launch';
 import { site } from '../site';
 export function RoadmapPage(context: PageContext) {
   const { t } = context;
@@ -16,7 +17,7 @@ export function RoadmapPage(context: PageContext) {
       <Section id="now">
         <SectionHeader
           title={t('roadmap.now.title')}
-          description={t('project.statusSummary')}
+          description={t(launchCopy().statusSummary)}
         />
         <ul className="milestone-list" role="list">
           {milestones.map((milestone) => (

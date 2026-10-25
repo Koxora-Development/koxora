@@ -97,23 +97,24 @@ The published page requests one stylesheet, one script and the images on it. The
 
 ## 9. Verification
 
-Run in the development container on 2026-10-24, against this branch:
+Run in the development container on 2026-10-25, against this branch:
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm check                 # typecheck, lint, format, unit tests, docs, licenses
 pnpm website:build         # static output plus hosting configuration
 pnpm test:website          # browser tests on desktop, tablet and phone layouts
+pnpm capture:website       # documentation screenshots, preview servers running
 ```
 
 Results:
 
 | Command | Result |
 | --- | --- |
-| `pnpm check` | Passed. Type check, lint, format, 219 unit tests in 15 files, documentation validation, dependency licence report |
-| Unit tests of the website | 36 of those 219, covering the route table, catalog completeness, the consent record and the search metadata |
-| `pnpm website:build` | Passed. 60 files and 30 redirects emitted, plus the hosting configuration |
-| `pnpm test:website` | 182 passed, 7 skipped, across the desktop, tablet and phone projects |
+| `pnpm check` | Passed. Type check, lint, format, 222 unit tests in 16 files, documentation validation, dependency licence report |
+| Unit tests of the website | 39 of those 222, covering the route table, catalog completeness, the consent record, the search metadata and the launch copy |
+| `pnpm website:build` | Passed. 61 files and 30 redirects emitted, plus the hosting configuration |
+| `pnpm test:website` | 194 passed, 7 skipped, across the desktop, tablet and phone projects |
 | `pnpm test:e2e --project chromium --project mobile` | 90 passed; the studio is unchanged by this branch |
 
 The browser tests cover navigation and redirects, status codes, both languages, metadata, sitemap and robots, consent in both deployment states, accessibility and responsive behaviour. They run against the reference server with the security headers and the content security policy of the deployment, and one suite asserts that no page violates that policy, that the policy pins the inline script actually served, and that build artefacts are not reachable. The skipped cases are the ones that belong to a different layout than the project running them.
@@ -122,13 +123,14 @@ Limitations of this run: only the bundled Chromium engine was available in the c
 
 ## 10. Screenshots
 
-Captured with `pnpm capture:website` against the preview server and stored in `docs/design/screenshots/website/`.
+Captured with `pnpm capture:website` against the preview server and the consent demonstration server, and stored in `docs/design/screenshots/website/`. Desktop shots use a 1280 pixel wide viewport. Every capture states the operating system appearance it emulates, because the site follows that preference while no choice is stored. `python3 scripts/optimize_screenshots.py` then rewrites the images with an indexed palette, which is why they are about a third of the captured size; the step is optional and needs Pillow.
 
 | View | File |
 | --- | --- |
 | Home, English, desktop | `home-en-desktop.png` |
 | Home, German, desktop | `home-de-desktop.png` |
-| Home, English, light appearance | `home-en-light.png` |
+| Home, English, light appearance from the system preference | `home-en-light.png` |
+| Appearance control, dark and light with a stored choice | `theme-dark-en.png`, `theme-light-en.png` |
 | Home, German, phone | `home-de-mobile.png` |
 | Home, English, tablet | `home-en-tablet.png` |
 | Navigation menu, German, phone | `menu-de-mobile.png` |
@@ -174,7 +176,33 @@ W1 adds no key to `packages/i18n/src/locales/*.json`, changes no studio componen
 - The consent manager accepts a new purpose by adding a category and enabling it in the deployment configuration; the prompt then appears automatically.
 - Deployment, independent updates and rollback are described in [the website deployment guide](../development/website-deployment.md).
 
-## 13. Independent review
+## 13. Going live without stale copy
+
+A marketing website that is still being reviewed says so; once it is live, that sentence has to disappear without taking the truthful ones with it. Two things keep that honest.
+
+**The statement is derived, not written twice.** `KOXORA_SITE_PUBLISHED` switches the two launch-sensitive messages, which `apps/website/src/content/launch.ts` holds in one place, and a unit test asserts that the launched variants contain none of the pre-launch phrases while still carrying the sentence about the studio and downloads.
+
+**Publishing the website says nothing about the product.** The studio entry stays governed by `KOXORA_SITE_EDITOR_URL` and the download page by the release process. A live website with no published studio and no signed build is an ordinary state, and the site states it plainly.
+
+| Before switching the launch flag on | Where |
+| --- | --- |
+| No page, heading, lead or call to action says that this website is in review or not yet published | The two messages in `launch.ts`; the unit test fails otherwise |
+| The studio entry points at a reachable address, or still explains how to run the current version | `KOXORA_SITE_EDITOR_URL`, left unset until the studio is deployed |
+| The download page still says there is no public release, unless a signed release exists | Release process, never this flag |
+| Status labels still match the implementation | The features page and the status legend |
+| The content review date is current | `KOXORA_SITE_CONTENT_DATE` |
+| Indexing is intended | `KOXORA_SITE_INDEXABLE`, which stays `false` for staging |
+| The security contact is deliverable and owned | The legal review checklist |
+
+## 14. Appearance control
+
+One button in the header switches between the light and the dark appearance. It shows a sun while the dark appearance is active and a moon while the light one is, because it offers the appearance it would switch to, and its accessible name says what the next press does in the language of the page. Until a reader chooses, the site follows the operating system preference and keeps following it when that preference changes; a choice is remembered on the device and applied by the blocking inline script before the first paint, so there is no flash. Without scripting the control is hidden rather than shown inert, and the site renders in the appearance the operating system asks for.
+
+## 15. Security contact
+
+`security@koxora.app` is the address for vulnerability reports. It appears in the footer of every page, in the legal notice next to the other contacts, in `SECURITY.md`, and in `/.well-known/security.txt` in the format of RFC 9116. That file states the contact, the languages, the policy address and an expiry one year after the content review date, and deliberately claims no response time, no encryption key and no reward. The hidden-path guard of the hosting configuration exempts the well-known directory and nothing else. Delivery and ownership of the mailbox are an open point in the legal review checklist.
+
+## 16. Independent review
 
 Four independent reviews examined this branch against the real diff and the built output: data protection and consent, technical search readiness with accessibility, security of the generated site and its tooling, and the shared surface with the parallel studio work. They found one defect that would have mattered to a reader and a set of smaller ones, all of which are fixed in this branch:
 
@@ -195,7 +223,7 @@ Four independent reviews examined this branch against the real diff and the buil
 
 The reviews also confirmed, by measurement rather than by reading, that the studio build output is byte-identical with and without this branch, that no page makes a third-party request, that the structured data claims nothing unreleased, that the hreflang and sitemap layer is internally consistent, and that nothing is stored on a device before a reader acts.
 
-## 14. Open points
+## 17. Open points
 
 1. The hosted browser studio is not published, so the primary call to action explains how to run the current version instead of linking to an address that does not answer. The Product Owner decided on 2026-10-24 to keep this configurable and to switch on the direct studio link only once `app.koxora.app` is actually reachable; setting `KOXORA_SITE_EDITOR_URL` is the single change needed.
 2. The legal pages carry prepared content; [the checklist](../legal/website-legal-review.md) lists what the operator must confirm before publication.

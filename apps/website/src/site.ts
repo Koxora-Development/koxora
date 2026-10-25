@@ -23,12 +23,23 @@ export interface SiteConfig {
   optionalConsent: string[];
   /** `false` emits `noindex` plus a disallow-all robots file (staging). */
   indexable: boolean;
+  /**
+   * `true` once this website itself is publicly live. It only governs copy
+   * about the website; whether the studio or a download exists is decided by
+   * `editorUrl` and by the release process, never by this flag.
+   */
+  published: boolean;
   /** Last editorial review of the published content. */
   contentDate: string;
   repositoryUrl: string;
   issuesUrl: string;
   securityUrl: string;
-  email: { support: string; privacy: string; legal: string };
+  email: {
+    support: string;
+    privacy: string;
+    legal: string;
+    security: string;
+  };
 }
 export const site: SiteConfig = {
   origin: (env('KOXORA_SITE_ORIGIN') ?? 'https://koxora.app').replace(
@@ -41,6 +52,7 @@ export const site: SiteConfig = {
     .map((entry) => entry.trim())
     .filter(Boolean),
   indexable: flag('KOXORA_SITE_INDEXABLE', true),
+  published: flag('KOXORA_SITE_PUBLISHED', false),
   contentDate: env('KOXORA_SITE_CONTENT_DATE') ?? '2026-10-24',
   repositoryUrl: 'https://github.com/Koxora-Development/koxora',
   issuesUrl: 'https://github.com/Koxora-Development/koxora/issues',
@@ -50,5 +62,6 @@ export const site: SiteConfig = {
     support: 'support@koxora.app',
     privacy: 'privacy@koxora.app',
     legal: 'legal@koxora.app',
+    security: 'security@koxora.app',
   },
 };

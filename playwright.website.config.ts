@@ -21,6 +21,10 @@ export default defineConfig({
     ],
   ],
   use: {
+    // The site follows the operating system until a reader chooses, so the
+    // suite fixes a baseline; the test that covers the light preference
+    // overrides it explicitly.
+    colorScheme: 'dark',
     baseURL: 'http://127.0.0.1:4175',
     trace: 'retain-on-failure',
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH

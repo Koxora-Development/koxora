@@ -57,6 +57,11 @@ export function LegalNoticePage({ t }: PageContext) {
       label: t('legalNotice.contact.support'),
       email: site.email.support,
     },
+    {
+      id: 'security',
+      label: t('legalNotice.contact.security'),
+      email: site.email.security,
+    },
   ];
   return (
     <>

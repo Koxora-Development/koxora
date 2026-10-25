@@ -730,4 +730,11 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Zur Seite scrollen, um alle Spalten dieser Tabelle zu sehen.',
   'a11y.languageNavigationFooter': 'Sprache, im Fußbereich',
   'cta.moreAbout': 'Mehr über {topic}',
+  'nav.themeToLight': 'Zur hellen Darstellung wechseln',
+  'nav.themeToDark': 'Zur dunklen Darstellung wechseln',
+  'project.statusSummary.published':
+    'Koxora Studio ist eine funktionierende technische Vorschau. Es gibt noch keine öffentliche Veröffentlichung und keinen Download.',
+  'project.statusMilestoneValue.published':
+    'Studio-Phase 2.4 zusammengeführt \u00b7 Studio 2.5 in Arbeit',
+  'legalNotice.contact.security': 'Sicherheitsmeldungen',
 };

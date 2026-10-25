@@ -719,5 +719,12 @@ export const en = {
   'a11y.tableScroll': 'Scroll sideways to see every column of this table.',
   'a11y.languageNavigationFooter': 'Language, in the footer',
   'cta.moreAbout': 'More about {topic}',
+  'nav.themeToLight': 'Switch to the light appearance',
+  'nav.themeToDark': 'Switch to the dark appearance',
+  'project.statusSummary.published':
+    'Koxora Studio is a working technical preview. There is no public release and no download yet.',
+  'project.statusMilestoneValue.published':
+    'Studio phase 2.4 merged \u00b7 Studio 2.5 in progress',
+  'legalNotice.contact.security': 'Security reports',
 } as const;
 export type WebsiteMessageKey = keyof typeof en;

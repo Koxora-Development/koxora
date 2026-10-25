@@ -125,6 +125,26 @@ test.describe('navigation and routing', () => {
       }
     }
   });
+  test('the security contact is published and reachable', async ({
+    page,
+    request,
+  }) => {
+    for (const locale of ['en', 'de'] as const) {
+      await page.goto(`/${locale}/`);
+      await expect(
+        page.locator('footer a[href="mailto:security@koxora.app"]'),
+      ).toHaveCount(1);
+    }
+    await page.goto('/de/impressum/');
+    await expect(page.locator('main')).toContainText('security@koxora.app');
+    const security = await request.get('/.well-known/security.txt');
+    expect(security.status()).toBe(200);
+    const body = await security.text();
+    expect(body).toContain('Contact: mailto:security@koxora.app');
+    expect(body).toMatch(/Expires: \d{4}-\d{2}-\d{2}T/);
+    // No promise that cannot be kept yet.
+    expect(body).not.toMatch(/Encryption|Acknowledgements|Hiring/);
+  });
   test('the skip link moves focus to the main content', async ({ page }) => {
     await page.goto('/en/');
     await page.keyboard.press('Tab');
