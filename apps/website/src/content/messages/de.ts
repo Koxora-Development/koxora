@@ -753,6 +753,192 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Studio-Phase 2.4 zusammengeführt \u00b7 Studio 2.5 in Arbeit',
   'legalNotice.contact.security': 'Erstkontakt bei einem Sicherheitsproblem',
 
+  'docsStart.shot.alt':
+    'Das Koxora-Studio mit leerer Projektliste, einer Schaltfläche „Neues Projekt“ und einer Schaltfläche „.koxora importieren“.',
+  'docsEditing.shot.alt':
+    'Die Tastenkürzel-Übersicht über dem Editor, mit einem Suchfeld und den aufgelisteten Navigations-Kürzeln.',
+  'docsEditing.properties.alt':
+    'Die Eigenschaften eines ausgewählten Elements über dem Editor, mit den Text- und Formatierungssteuerungen oben.',
+
+  'docs.hub.title': 'Alles, was es zu lesen gibt',
+  'docs.hub.note':
+    'Jeder Abschnitt nennt den Stand, den er beschreibt. Koxora hat keine öffentliche Veröffentlichung; „verfügbar“ heißt also umgesetzt und zusammengeführt im Entwicklungsstand, den Sie aus dem Repository ausführen können, und niemals heute herunterladbar.',
+  'docs.section.start.title': 'Erste Schritte mit Koxora',
+  'docs.section.start.summary':
+    'Das Studio öffnen, ein Projekt anlegen und was der erste Bildschirm bietet.',
+  'docs.section.editing.title': 'Ein Diagramm bearbeiten',
+  'docs.section.editing.summary':
+    'Formen setzen, auswählen, bewegen, verbinden, Text formatieren, rückgängig machen — was der Editor heute kann.',
+  'docs.section.localFirst.title': 'Local-first erklärt',
+  'docs.section.localFirst.summary':
+    'Was local-first hier bedeutet und was es für Ihre Dateien und Ihre Privatsphäre heißt.',
+  'docs.section.projects.title': 'Projekte und Dateiformate',
+  'docs.section.projects.summary':
+    'Was ein Projekt ist, wo es liegt, wie es das Gerät verlässt und wie Sie eine Sicherung behalten.',
+  'docs.section.features.title': 'Verfügbare Funktionen',
+  'docs.section.features.summary':
+    'Die Liste dessen, was umgesetzt ist, mit den Grenzen des aktuellen Stands.',
+  'docs.section.roadmap.title': 'Geplante Funktionen',
+  'docs.section.roadmap.summary':
+    'Was vorgesehen ist, in welcher Reihenfolge, ohne zugesagte Termine.',
+  'docs.section.faq.title': 'Häufig gestellte Fragen',
+  'docs.section.faq.summary':
+    'Zwölf Fragen, beantwortet aus dem, was existiert, nicht aus dem, was geplant ist.',
+  'docs.section.support.title': 'Fehler melden und Hilfe bekommen',
+  'docs.section.support.summary':
+    'Wohin eine Fehlermeldung geht, was hineingehört und wohin ein Sicherheitsproblem stattdessen geht.',
+  'docsStart.meta.title': 'Erste Schritte mit Koxora',
+  'docsStart.meta.description':
+    'Das Koxora-Studio öffnen, ein erstes Projekt anlegen und sich auf dem ersten Bildschirm zurechtfinden — ohne Konto und ohne Installation.',
+  'docsStart.hero.eyebrow': 'Dokumentation',
+  'docsStart.hero.title': 'Erste Schritte',
+  'docsStart.hero.lead':
+    'Koxora hat noch keine öffentliche Veröffentlichung, es gibt also nichts herunterzuladen. Das Folgende beschreibt den Entwicklungsstand, der im Browser läuft und alles auf Ihrem Gerät behält.',
+  'docsStart.step1.title': 'Das Studio öffnen',
+  'docsStart.step1.body':
+    'Das Studio ist eine Webanwendung. Es verlangt kein Konto, keine E-Mail-Adresse und keine Anmeldung: der erste Bildschirm ist die Projektliste, und sie ist leer, weil noch nichts angelegt wurde. Bis es eine öffentliche Veröffentlichung gibt, führen Sie es aus dem Quell-Repository aus.',
+  'docsStart.step2.title': 'Ein Projekt anlegen oder mitbringen',
+  'docsStart.step2.body':
+    '„Neues Projekt“ beginnt ein leeres. „.koxora importieren“ öffnet eine Projektdatei, die Sie schon haben — von einem anderen Gerät, aus einer Sicherung oder von jemandem, der sie Ihnen geschickt hat. Beides endet am selben Ort: einem Projekt auf diesem Gerät.',
+  'docsStart.step3.title': 'Etwas zeichnen',
+  'docsStart.step3.body':
+    'Die Werkzeugpalette sitzt über der Zeichenfläche. Wählen Sie eine Form und klicken Sie, um sie in Standardgröße zu setzen, oder ziehen Sie die gewünschte Größe auf. Linien und Pfeile verbinden zwei Formen. Der nächste Abschnitt geht alles durch.',
+  'docsStart.step4.title': 'Nichts zu speichern',
+  'docsStart.step4.body':
+    'Änderungen werden nach einer kurzen Pause automatisch auf dieses Gerät geschrieben, und die Kopfzeile sagt, wann das zuletzt geschah. Es gibt keine Speichern-Schaltfläche, die man vergessen kann, und keinen Upload: das Projekt verlässt das Gerät nur, wenn Sie es selbst exportieren.',
+  'docsStart.shot.caption':
+    'Der erste Bildschirm des Studios, bevor ein Projekt existiert. Aufgenommen vom Entwicklungsstand.',
+  'docsStart.warning.title': 'Eines sollten Sie am ersten Tag wissen',
+  'docsStart.warning.body':
+    'Ein Projekt liegt in diesem Browser auf diesem Gerät. Browserdaten löschen, ein privates Fenster oder ein verlorenes Gerät entfernen es. Exportieren Sie eine .koxora-Datei für alles, worum es Ihnen leidtäte — das ist die Sicherung, und anderswo gibt es keine Kopie.',
+  'docsEditing.meta.title': 'Ein Diagramm bearbeiten',
+  'docsEditing.meta.description':
+    'Formen setzen und verbinden, auswählen und bewegen, Text formatieren und rückgängig machen — was der Koxora-Editor im aktuellen Entwicklungsstand kann.',
+  'docsEditing.hero.eyebrow': 'Dokumentation',
+  'docsEditing.hero.title': 'Ein Diagramm bearbeiten',
+  'docsEditing.hero.lead':
+    'Was der Editor heute kann, beschrieben vom zusammengeführten Entwicklungsstand. Wo etwas noch nicht da ist, sagt diese Seite es, statt es Sie herausfinden zu lassen.',
+  'docsEditing.place.title': 'Formen setzen',
+  'docsEditing.place.body':
+    'Die Palette bietet Rechtecke, abgerundete Rechtecke, Ellipsen, Rauten, Dreiecke, Sechsecke, Parallelogramme, einfachen Text, Container, Linien und Pfeile. Wählen Sie eine Form und klicken Sie auf die Fläche, um sie in Standardgröße zu setzen, oder ziehen Sie die gewünschte Größe auf. Enter setzt sie in die Mitte der Ansicht. Nach dem Einfügen kehrt der Editor zum Auswählen zurück, sofern Sie nicht „Einfügen wiederholen“ einschalten.',
+  'docsEditing.select.title': 'Auswählen',
+  'docsEditing.select.body':
+    'Klicken wählt aus. Umschalt-Klick fügt zur Auswahl hinzu oder entfernt daraus. Ziehen über leere Fläche zieht einen Rahmen um alles darin, und Strg oder Cmd mit A wählt alles Bearbeitbare auf der Seite. Escape verwirft ein Werkzeug oder einen Entwurf.',
+  'docsEditing.move.title': 'Bewegen und Größe ändern',
+  'docsEditing.move.body':
+    'Ziehen bewegt die Auswahl. Eine einzelne ausgewählte Form bekommt Eckpunkte; Umschalt hält die Proportionen. Die Pfeiltasten verschieben um eine Einheit oder einen Rasterschritt, Umschalt verzehnfacht das. Das Einrasten folgt dem Raster, und Alt schaltet es aus, solange Sie es halten — die Fläche zeigt einen farbigen Rand, solange eingerastet wird.',
+  'docsEditing.connect.title': 'Formen verbinden',
+  'docsEditing.connect.body':
+    'Wählen Sie Linie oder Pfeil und klicken Sie entweder einen sichtbaren Port am Rand beider Formen an oder die Formen selbst, dann wählt der Editor den Ankerpunkt. Linie zeichnet keine Spitze, Pfeil eine. Eine Verbindung behält ihre Anker, wenn eine der Formen bewegt oder in der Größe geändert wird. Es gibt keine Hindernis-Umgehung und keine Verbindung einer Form mit sich selbst.',
+  'docsEditing.text.title': 'Text und Formatierung',
+  'docsEditing.text.body':
+    'Doppelklick auf ein Element oder Enter bei ausgewähltem Element öffnet seine Eigenschaften. Text steht zuerst: eine serifenlose, Serifen- oder dicktengleiche Schrift von Ihrem eigenen Rechner, eine Größe zwischen 8 und 96, fett, kursiv, unterstrichen, Farbe, Ausrichtung und mehrere Zeilen. Die Formatierung gilt für die ganze Beschriftung. Einzelne Wörter unterschiedlich zu formatieren ist noch nicht möglich.',
+  'docsEditing.history.title': 'Rückgängig machen',
+  'docsEditing.history.body':
+    'Strg oder Cmd mit Z macht rückgängig; mit Umschalt stellt es wieder her, ebenso Strg mit Y. Die Chronik gehört zur Sitzung und zur Seite, auf der Sie sind: sie wird nicht in die Projektdatei geschrieben, und Schließen oder erneutes Öffnen beginnt sie von vorn. Sie fasst bis zu hundert Schritte.',
+  'docsEditing.keyboard.title': 'Alles mit der Tastatur',
+  'docsEditing.keyboard.body':
+    'Jedes Werkzeug ist mit Tab und den Pfeiltasten erreichbar, die Ports zum Verbinden ebenfalls. F1 oder das Fragezeichen öffnet eine durchsuchbare Liste aller Tastenkürzel, auf Deutsch und Englisch, mit Strg als Cmd auf Apple-Rechnern. Textfelder behalten die Kürzel, die Sie ohnehin kennen.',
+  'docsEditing.shot.caption':
+    'Die Tastenkürzel-Übersicht, geöffnet mit F1. Aufgenommen vom Entwicklungsstand.',
+  'docsEditing.properties.caption':
+    'Die Eigenschaften eines ausgewählten Elements, mit Text und Formatierung zuerst. Aufgenommen vom Entwicklungsstand.',
+  'docsEditing.limits.title': 'Noch nicht vorhanden',
+  'docsEditing.limits.body':
+    'Kein Bildexport, kein Import aus anderen Diagrammwerkzeugen, keine Formatierung einzelner Wörter innerhalb einer Beschriftung, kein gemeinsames Bearbeiten, und die Chronik überlebt das Schließen eines Projekts nicht. Die Funktionsliste führt vollständig, was umgesetzt ist und was nicht.',
+  'docsProjects.meta.title': 'Projekte und Dateiformate',
+  'docsProjects.meta.description':
+    'Was ein Koxora-Projekt ist, wo es liegt, was die .koxora-Datei enthält, wie Sie ein Projekt zwischen Geräten bewegen und wie Sie eine Sicherung behalten.',
+  'docsProjects.hero.eyebrow': 'Dokumentation',
+  'docsProjects.hero.title': 'Projekte und Dateiformate',
+  'docsProjects.hero.lead':
+    'Ein Projekt gehört Ihnen, liegt auf Ihrem Gerät und kommt als Datei heraus, die Sie behalten. Diese Seite sagt genau, was diese Datei ist und was mit ihr geschieht.',
+  'docsProjects.format.title': 'Die .koxora-Datei',
+  'docsProjects.format.body':
+    'Ein Projekt wird als einzelne .koxora-Datei exportiert: ein Archiv mit den Projektdaten, in einem offenen Format, das im Repository beschrieben ist. Es ist eine Datei, lässt sich also kopieren, sichern, in eine Versionsverwaltung legen oder wie jedes andere Dokument weitergeben.',
+  'docsProjects.saved.title': 'Wo ein Projekt liegt, während Sie arbeiten',
+  'docsProjects.saved.body':
+    'Im Browser, auf dem Gerät, das Sie benutzen, im Speicher dieses Browsers. Änderungen werden dort nach einer kurzen Pause automatisch geschrieben. Kein Koxora-Server erhält das Projekt, weil es keinen gibt, und nichts wird hochgeladen.',
+  'docsProjects.transfer.title': 'Ein Projekt auf ein anderes Gerät bringen',
+  'docsProjects.transfer.body':
+    'Exportieren Sie es als .koxora-Datei, bewegen Sie die Datei wie jede andere, und importieren Sie sie auf dem anderen Gerät. Browserspeicher gehört zu einer Adresse auf einem Gerät; das ist also der Weg, Arbeit mitzunehmen — und derselbe Weg, ein Projekt weiterzugeben.',
+  'docsProjects.backup.title': 'Eine Sicherung behalten',
+  'docsProjects.backup.body':
+    'Exportieren Sie die Projekte, an denen Ihnen liegt, als .koxora-Dateien und bewahren Sie sie dort auf, wo Ihre anderen Dokumente liegen. Browserdaten löschen, ein privates Fenster, ein neu installierter Browser oder ein verlorenes Gerät entfernen, was nur im Browserspeicher liegt, und es gibt anderswo keine Kopie zum Wiederherstellen. Eine exportierte Datei ist die Sicherung.',
+  'docsProjects.notStored.title': 'Was die Datei nicht enthält',
+  'docsProjects.notStored.body':
+    'Was Sie ausgewählt hatten, welches Werkzeug aktiv war, was in der internen Zwischenablage lag und die Rückgängig-Chronik werden nicht in ein Projekt geschrieben. Sie gehören zur Sitzung. Daten, die der aktuelle Stand nicht versteht, bleiben erhalten statt verworfen zu werden; eine Datei aus einer neueren Fassung verliert also nicht, was sie mitbrachte.',
+  'docsFaq.meta.title': 'Häufig gestellte Fragen',
+  'docsFaq.meta.description':
+    'Zwölf Fragen zu Koxora, beantwortet aus dem, was es heute gibt: Konten, Offline-Nutzung, wo Projekte liegen, was umgesetzt ist und was nicht.',
+  'docsFaq.hero.eyebrow': 'Dokumentation',
+  'docsFaq.hero.title': 'Häufig gestellte Fragen',
+  'docsFaq.hero.lead':
+    'Beantwortet aus dem, was umgesetzt ist, nicht aus dem, was geplant ist. Wo die ehrliche Antwort „noch nicht“ lautet, steht das da.',
+  'faq.account.q': 'Brauche ich ein Konto?',
+  'faq.account.a':
+    'Nein. Es gibt keine Registrierung, keine Anmeldung und kein Konto, das man anlegen könnte. Dem Studio steht auch kein Server zur Seite, der eines führen würde.',
+  'faq.release.q': 'Kann ich Koxora herunterladen?',
+  'faq.release.a':
+    'Noch nicht. Es gibt keine öffentliche Veröffentlichung und kein Installationsprogramm. Vorhanden ist der Entwicklungsstand im öffentlichen Repository, den Sie selbst ausführen können. Die Download-Seite sagt dasselbe und wird der erste Ort sein, an dem eine Veröffentlichung erscheint.',
+  'faq.offline.q': 'Funktioniert es ohne Internetverbindung?',
+  'faq.offline.a':
+    'Der Editor läuft auf Ihrem Gerät und braucht nach dem Laden keinen Server. Projekte liegen lokal, die Arbeit selbst hängt also nicht an einer Verbindung.',
+  'faq.where.q': 'Wo liegen meine Diagramme?',
+  'faq.where.a':
+    'Im Speicher Ihres Browsers, auf dem Gerät, das Sie benutzen, und in den .koxora-Dateien, die Sie exportieren. Nicht auf einem Koxora-Server: es gibt keinen.',
+  'faq.clearing.q': 'Was passiert, wenn ich meine Browserdaten lösche?',
+  'faq.clearing.a':
+    'Projekte, die nur im Browserspeicher liegen, werden entfernt, und es gibt keine Kopie, aus der sie wiederhergestellt werden könnten. Exportieren Sie eine .koxora-Datei für alles, was Sie behalten wollen. Das Studio sagt das auf seinem ersten Bildschirm ebenfalls.',
+  'faq.formats.q': 'Welche Dateiformate kann ich nutzen?',
+  'faq.formats.a':
+    'Koxora liest und schreibt sein eigenes .koxora-Projektarchiv. Import aus anderen Diagrammwerkzeugen und Export als Bild sind noch nicht umgesetzt; beides ist dokumentierter Umfang und nichts, was heute geht.',
+  'faq.today.q': 'Was kann der Editor im Moment wirklich?',
+  'faq.today.a':
+    'Formen, einfachen Text und Verbindungen mit sichtbaren Ports; Auswählen, Bewegen, Größe ändern, Ausrichten und Verteilen; Textformatierung für eine ganze Beschriftung; Rückgängig und Wiederherstellen innerhalb einer Sitzung; Projekte auf dem Gerät und als Datei ausgetauscht. Der Abschnitt zum Bearbeiten geht alles durch.',
+  'faq.missing.q': 'Was ist mit Zusammenarbeit, Cloud oder Assistenz?',
+  'faq.missing.a':
+    'Keines der drei ist umgesetzt. Alle drei sind dokumentierter Produktumfang, und alle drei sind als optional geplant, damit ein Koxora ohne sie ein vollständiges Produkt bleibt und kein beschnittenes.',
+  'faq.languages.q': 'In welchen Sprachen gibt es Koxora?',
+  'faq.languages.a':
+    'Englisch und Deutsch, im Produkt und auf dieser Website, unabhängig von der Sprache Ihres Betriebssystems wählbar. Englisch ist der Rückfall. Eine weitere Sprache braucht eine Ressourcendatei und ihre Adressen, keine Änderung an der Anwendung.',
+  'faq.price.q': 'Was kostet es?',
+  'faq.price.a':
+    'Es gibt nichts zu kaufen, weil es keine Veröffentlichung gibt. Kein Preis, kein Tarif und keine Testphase wurde angekündigt, und diese Seite erfindet auch keine.',
+  'faq.source.q': 'Ist der Quellcode öffentlich? Unter welcher Lizenz?',
+  'faq.source.a':
+    'Der Quellcode ist im Repository öffentlich. Eine Lizenz ist noch nicht veröffentlicht, es werden also bis dahin keine Rechte eingeräumt. Das Impressum sagt dasselbe, und es ändert sich, wenn die Lizenz entschieden ist.',
+  'faq.problem.q': 'Ich habe ein Problem gefunden. Wohin damit?',
+  'faq.problem.a':
+    'Ein gewöhnlicher Fehler geht an die Support-Adresse oder das Kontaktformular, und der Support-Abschnitt sagt, was hineingehört. Ein Sicherheitsproblem geht woandershin: die Sicherheitsrichtlinie beschreibt einen eigenen Weg, und die Einzelheiten gehören nicht in ein gewöhnliches Postfach.',
+  'docsSupport.meta.title': 'Fehler melden und Hilfe bekommen',
+  'docsSupport.meta.description':
+    'Wohin eine Koxora-Fehlermeldung geht, was hineingehört, damit sie bearbeitet werden kann, und wohin ein Sicherheitsproblem stattdessen geht.',
+  'docsSupport.hero.eyebrow': 'Dokumentation',
+  'docsSupport.hero.title': 'Fehler melden',
+  'docsSupport.hero.lead':
+    'Eine Meldung, die sich nachstellen lässt, wird behoben; eine, die das nicht tut, meist nicht. Diese Seite sagt, was den Unterschied macht, und wohin sie geht.',
+  'docsSupport.include.title': 'Was in eine Meldung gehört',
+  'docsSupport.include.item1':
+    'Was Sie getan haben, Schritt für Schritt, genau genug, dass jemand anderes dasselbe tun kann.',
+  'docsSupport.include.item2':
+    'Was Sie erwartet haben und was stattdessen passiert ist.',
+  'docsSupport.include.item3':
+    'Welcher Browser und welches Betriebssystem, mit Versionen.',
+  'docsSupport.include.item4':
+    'Ob es jedes Mal passiert oder nur manchmal und unter welchen Bedingungen.',
+  'docsSupport.include.item5':
+    'Ein .koxora-Export des Projekts, in dem es auftritt, sofern Sie einen weitergeben können und nichts Vertrauliches darin steht.',
+  'docsSupport.where.title': 'Wohin damit',
+  'docsSupport.where.body':
+    'Das Kontaktformular erreicht das Support-Postfach, ebenso eine Mail an die Adresse direkt. Die Entwicklung läuft offen, ein Issue im öffentlichen Repository ist für etwas Nachstellbares also ebenfalls ein guter Ort — es ist sichtbar, es lässt sich besprechen, und es geht nicht in einem Postfach unter.',
+  'docsSupport.security.title': 'Ein Sicherheitsproblem geht woandershin',
+  'docsSupport.security.body':
+    'Bitte senden Sie Einzelheiten zu einer Schwachstelle nicht an das Support-Postfach und schreiben Sie sie nicht in ein öffentliches Issue. Die Sicherheitsrichtlinie beschreibt den Weg dafür, was in eine erste Nachricht gehört und was Sie erwarten können.',
+  'docsSupport.expect.title': 'Was Sie erwarten können',
+  'docsSupport.expect.body':
+    'Koxora ist ein Projekt in Entwicklung, ohne Veröffentlichung und ohne Supportvertrag. Meldungen werden gelesen und ernst genommen; eine Reaktionszeit wird nicht zugesagt, denn das hieße, ein Serviceniveau zu erfinden, das es nicht gibt.',
+
   'nav.contact': 'Kontakt',
   'contact.meta.title': 'Koxora kontaktieren',
   'contact.meta.description':
