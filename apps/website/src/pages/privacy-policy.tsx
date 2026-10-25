@@ -121,6 +121,17 @@ export function PrivacyPolicyPage({ locale, t }: PageContext) {
           <section>
             <h2>{t('privacyPolicy.contactForm.title')}</h2>
             <p>{t('privacyPolicy.contactForm.body')}</p>
+            {/* The form's own processing is described only where a form
+                exists. A deployment without a delivery service shows the
+                email paragraphs alone, because that is all it does. */}
+            {site.contactEndpoint ? (
+              <>
+                <p>{t('privacyPolicy.contactForm.form')}</p>
+                <p>{t('privacyPolicy.contactForm.storage')}</p>
+                <p>{t('privacyPolicy.contactForm.logs')}</p>
+                <p>{t('privacyPolicy.contactForm.accepted')}</p>
+              </>
+            ) : null}
             <p>{t('privacyPolicy.contactForm.basis')}</p>
           </section>
           <section>

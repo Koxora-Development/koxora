@@ -18,6 +18,7 @@ export const pages = [
     de: '/de/vergleich/lucidchart/',
   },
   { id: 'roadmap', en: '/en/roadmap/', de: '/de/roadmap/' },
+  { id: 'contact', en: '/en/contact/', de: '/de/kontakt/' },
   { id: 'download', en: '/en/download/', de: '/de/download/' },
   { id: 'docs', en: '/en/docs/', de: '/de/dokumentation/' },
   { id: 'releases', en: '/en/releases/', de: '/de/releases/' },

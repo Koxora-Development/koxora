@@ -15,6 +15,9 @@ export type RouteId =
   | 'compareDrawio'
   | 'compareMiro'
   | 'compareLucidchart'
+  | 'contact'
+  | 'contactSent'
+  | 'contactProblem'
   | 'roadmap'
   | 'download'
   | 'docs'
@@ -83,6 +86,30 @@ export const routes: RouteDefinition[] = [
     aliases: {},
     nav: [],
     sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'contact',
+    slugs: { en: 'contact', de: 'kontakt' },
+    aliases: { de: ['contact'], en: ['kontakt'] },
+    nav: ['resources'],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  // The two pages a submission without JavaScript lands on. They are not in
+  // the sitemap and carry noindex: they are the answer to an action, not
+  // content anyone should arrive at from a search.
+  {
+    id: 'contactSent',
+    slugs: { en: 'contact/sent', de: 'kontakt/gesendet' },
+    aliases: {},
+    nav: [],
+    sitemap: null,
+  },
+  {
+    id: 'contactProblem',
+    slugs: { en: 'contact/problem', de: 'kontakt/problem' },
+    aliases: {},
+    nav: [],
+    sitemap: null,
   },
   {
     id: 'roadmap',

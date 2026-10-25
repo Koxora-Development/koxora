@@ -13,3 +13,5 @@ Initial topics: license/open-core boundaries, canvas engine, schema/commands, lo
 - [0016: Interactive editing and bounded command history](0016-interactive-editing-history.md) — Phase 2.4 implementation, pending Product Owner acceptance.
 
 - [0017: Static multilingual delivery for the public website](0017-public-website-delivery.md) — Website W1 implementation, pending Product Owner acceptance.
+
+- [0018: A small own service for contact delivery](0018-contact-delivery.md) — Website W2.2 implementation, pending Product Owner acceptance and the SMTP decision.

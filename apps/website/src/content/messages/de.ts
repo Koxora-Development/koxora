@@ -514,11 +514,20 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Diese Daten liegen dann in Ihrer Hand: Ein Projekt lässt sich als portables .koxora-Archiv exportieren, und die Daten lassen sich jederzeit über die Browsereinstellungen für diese Adresse löschen. Browserspeicher ist an genau die Adresse gebunden, die ihn angelegt hat; Daten unter der Website-Adresse und unter der Studio-Adresse bleiben daher getrennt.',
   'privacyPolicy.studio.desktop':
     'Die Desktop-Anwendung speichert Projekte als Dateien in einem Verzeichnis auf Ihrem Rechner. Sie funktioniert ohne Koxora-Konto und übermittelt uns keine Projektinhalte.',
-  'privacyPolicy.contactForm.title': '8. Kontakt per E-Mail',
+  'privacyPolicy.contactForm.title':
+    '8. Kontakt per E-Mail und über das Formular',
   'privacyPolicy.contactForm.body':
     'Wenn Sie an eine der im Impressum genannten Adressen schreiben, verarbeiten wir Ihre E-Mail-Adresse, Ihre Nachricht und etwaige Anhänge, um Ihnen zu antworten. Die E-Mail wird auf selbst verwalteter Infrastruktur bei der IONOS SE, Elgendorfer Str. 57, 56410 Montabaur, betrieben.',
   'privacyPolicy.contactForm.basis':
     'Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO, soweit Ihre Anfrage einen Vertrag oder vorvertragliche Maßnahmen betrifft, sonst Art. 6 Abs. 1 lit. f DSGVO, unser berechtigtes Interesse an der Beantwortung von Anfragen. Nachrichten werden gelöscht, sobald die Anfrage erledigt ist und keine Aufbewahrungspflicht besteht.',
+  'privacyPolicy.contactForm.form':
+    'Wenn diese Website ein Kontaktformular anbietet, sendet es Ihre Eingaben — den Namen, falls Sie einen angegeben haben, die E-Mail-Adresse, die Kategorie, den Betreff und die Nachricht — an dasselbe Support-Postfach, über eine verschlüsselte Verbindung zum Mailserver. Mehr wird nicht erhoben: kein Tracking, kein fremder Formularanbieter, kein Captcha-Dienst und kein Newsletter. Das Formular ist der einzige Weg, auf dem diese Website etwas von Ihnen Eingegebenes übermittelt, und sie tut es nur, wenn Sie die Schaltfläche drücken.',
+  'privacyPolicy.contactForm.storage':
+    'Die Versandkomponente speichert nichts. Sie führt keine Datenbank und behält keine Kopie Ihrer Nachricht: sie übergibt die Nachricht an den Mailserver und vergisst sie. Für einige Minuten behält sie einen Einwegwert der Übermittlung, damit ein zweiter Druck auf die Schaltfläche nicht zwei Nachrichten sendet, und einen Einwegwert aus Ihrer Netzwerkadresse, damit eine Flut gestoppt werden kann; beides liegt nur im Arbeitsspeicher, beides verschwindet beim Neustart der Komponente, und keines lässt sich in Ihre Nachricht oder Ihre Adresse zurückrechnen.',
+  'privacyPolicy.contactForm.logs':
+    'Ihr eigenes Protokoll hält je Übermittlung eine Zeile mit Zeitpunkt, Ergebnis und gewählter Kategorie fest. Es enthält keinen Namen, keine Adresse, keinen Betreff, keine Nachricht und keine Netzwerkadresse. Von da an ist Ihre Nachricht eine E-Mail im Support-Postfach, und die Abschnitte oben beschreiben, was dort mit ihr passiert.',
+  'privacyPolicy.contactForm.accepted':
+    'Wenn das Formular meldet, dass Ihre Nachricht angenommen wurde, bedeutet das: der Mailserver hat sie zur Zustellung übernommen. Mehr lässt sich von einer Website aus ehrlich nicht bestätigen; ob sie dann im Postfach angekommen ist, kann diese Seite nicht versprechen, und sie behauptet es auch nie.',
   'privacyPolicy.noTracking.title': '9. Was diese Website nicht tut',
   'privacyPolicy.noTracking.item1':
     'Keine Analyse-, Mess- oder Reichweitendienste.',
@@ -743,6 +752,99 @@ export const de: Record<WebsiteMessageKey, string> = {
   'project.statusMilestoneValue.published':
     'Studio-Phase 2.4 zusammengeführt \u00b7 Studio 2.5 in Arbeit',
   'legalNotice.contact.security': 'Erstkontakt bei einem Sicherheitsproblem',
+
+  'nav.contact': 'Kontakt',
+  'contact.meta.title': 'Koxora kontaktieren',
+  'contact.meta.description':
+    'Frage stellen, Rückmeldung geben, Problem melden. Das Formular erreicht das Koxora-Support-Postfach; die Adresse ist ebenfalls veröffentlicht.',
+  'contact.hero.eyebrow': 'Kontakt',
+  'contact.hero.title': 'Schreiben Sie dem Projekt',
+  'contact.hero.lead':
+    'Fragen, Rückmeldungen und Problemmeldungen erreichen dasselbe Postfach. Das Formular unten schickt Ihre Nachricht dorthin; wenn Sie lieber Ihr eigenes Mailprogramm nutzen, ist die Adresse ebenfalls veröffentlicht.',
+  'contact.form.title': 'Nachricht senden',
+  'contact.form.intro':
+    'Nötig sind nur die Adresse und die Nachricht. Ein Name hilft, wenn Sie damit angesprochen werden möchten.',
+  'contact.field.name': 'Name',
+  'contact.field.name.hint':
+    'Optional. Nur damit eine Antwort Sie ansprechen kann.',
+  'contact.field.email': 'E-Mail-Adresse',
+  'contact.field.email.hint':
+    'Nötig für eine Antwort. Sie wird dafür und für nichts anderes verwendet.',
+  'contact.field.category': 'Worum geht es?',
+  'contact.field.subject': 'Betreff',
+  'contact.field.message': 'Nachricht',
+  'contact.field.message.hint': 'Bis zu {max} Zeichen.',
+  'contact.field.optional': 'optional',
+  'contact.field.required': 'erforderlich',
+  'contact.category.general': 'Allgemeine Anfrage',
+  'contact.category.feedback': 'Rückmeldung',
+  'contact.category.support': 'Support',
+  'contact.category.bug': 'Fehler melden',
+  'contact.honeypot.label': 'Website',
+  'contact.submit': 'Nachricht senden',
+  'contact.submit.busy': 'Wird gesendet …',
+  'contact.error.required': 'Bitte füllen Sie dieses Feld aus.',
+  'contact.error.tooShort': 'Das ist kürzer, als das Formular annimmt.',
+  'contact.error.tooLong': 'Das ist länger, als das Formular annimmt.',
+  'contact.error.email':
+    'Bitte geben Sie genau eine einfache E-Mail-Adresse ein.',
+  'contact.error.category': 'Bitte wählen Sie eine der Möglichkeiten.',
+  'contact.error.controlCharacter':
+    'Bitte entfernen Sie Zeilenumbrüche und Sonderzeichen aus diesem Feld.',
+  'contact.status.invalid':
+    'Die Nachricht wurde nicht gesendet. Bitte korrigieren Sie die oben markierten Felder.',
+  'contact.status.accepted':
+    'Ihre Nachricht wurde zur Zustellung angenommen. Sie ist an den Mailserver übergeben; ein Mensch liest sie, sobald sie ankommt.',
+  'contact.status.duplicate':
+    'Diese Nachricht war bereits angenommen, sie wurde also nicht ein zweites Mal gesendet.',
+  'contact.status.rejected':
+    'Das Formular hat diese Übermittlung abgelehnt. Wenn Sie sehr schnell ausgefüllt oder die Seite lange offen gelassen haben, laden Sie sie bitte neu und versuchen es erneut.',
+  'contact.status.rateLimited':
+    'Von hier wurden bereits mehrere Nachrichten gesendet. Bitte warten Sie eine Weile oder schreiben Sie direkt an {email}.',
+  'contact.status.undelivered':
+    'Die Nachricht konnte nicht übergeben werden. Es wurde nichts gesendet, es geht also nichts verloren: bitte später erneut versuchen oder direkt an {email} schreiben.',
+  'contact.status.offline':
+    'Die Nachricht konnte nicht gesendet werden. Bitte prüfen Sie Ihre Verbindung oder schreiben Sie direkt an {email}.',
+  'contact.fallback.title': 'Oder schreiben Sie selbst eine Mail',
+  'contact.fallback.body':
+    'Dasselbe Postfach ist direkt unter {email} erreichbar. Dieser Weg ist auch der richtige, wenn Sie kein Formular ausfüllen möchten oder das Formular bei Ihnen nicht funktioniert.',
+  'contact.security.title': 'Ein Sicherheitsproblem gehört woandershin',
+  'contact.security.body':
+    'Bitte senden Sie Einzelheiten zu einer Schwachstelle nicht über dieses Formular: es erreicht ein gewöhnliches Postfach. Die Sicherheitsrichtlinie sagt, was zu senden ist, wohin und was Sie erwarten können.',
+  'contact.security.link': 'Sicherheitsrichtlinie lesen',
+  'contact.privacy.title': 'Was mit Ihren Angaben passiert',
+  'contact.privacy.body':
+    'Name, Adresse, Betreff und Nachricht, die Sie eingeben, werden an das Koxora-Support-Postfach gesendet, damit Ihre Anfrage beantwortet werden kann. Sie werden für nichts anderes verwendet, nicht für Werbung weitergegeben, und es gibt keinen Newsletter, für den man angemeldet würde. Die Datenschutzerklärung beschreibt die Verarbeitung, die Rechtsgrundlage und wie lange die Mail aufbewahrt wird.',
+  'contact.privacy.link': 'Datenschutzerklärung',
+  'contact.unconfigured.title': 'Das Formular ist hier nicht eingeschaltet',
+  'contact.unconfigured.body':
+    'Für diese Installation ist kein Versanddienst konfiguriert, deshalb wird kein Formular gezeigt: ein Formular, das nirgends ankommt, wäre schlechter als eine Adresse. Schreiben Sie stattdessen an {email}.',
+  'contact.noscript':
+    'Das Formular funktioniert ohne JavaScript: es wird als gewöhnliches Formular gesendet, und Sie landen auf einer Seite, die sagt, was passiert ist. Mit JavaScript bleiben Sie stattdessen auf dieser Seite.',
+  'contactSent.meta.title': 'Nachricht angenommen',
+  'contactSent.meta.description':
+    'Ihre Nachricht wurde zur Zustellung an das Koxora-Support-Postfach angenommen.',
+  'contactSent.hero.eyebrow': 'Kontakt',
+  'contactSent.hero.title': 'Zur Zustellung angenommen',
+  'contactSent.hero.lead':
+    'Der Mailserver hat Ihre Nachricht übernommen. Ein Mensch liest sie, sobald sie im Postfach ankommt; für Sie ist nichts weiter zu tun.',
+  'contactSent.body':
+    'Keine Fassung dieser Seite enthält Ihre Nachricht, und es wird keine Bestätigungsmail versendet; in Ihrem Postfach kommt also nichts weiter an, bis jemand antwortet.',
+  'contactSent.back': 'Zurück zur Kontaktseite',
+  'contactProblem.meta.title': 'Die Nachricht wurde nicht gesendet',
+  'contactProblem.meta.description':
+    'Etwas hat die Übergabe der Nachricht verhindert. Es wurde nichts gesendet, und die E-Mail-Adresse ist ebenfalls veröffentlicht.',
+  'contactProblem.hero.eyebrow': 'Kontakt',
+  'contactProblem.hero.title': 'Die Nachricht wurde nicht gesendet',
+  'contactProblem.hero.lead':
+    'Es wurde nichts übergeben, es ist also nichts halb gesendet. Eines von wenigen Dingen ist passiert, und alle lassen sich erneut versuchen.',
+  'contactProblem.reason.invalid':
+    'Ein Feld war leer, zu kurz, zu lang oder enthielt Zeichen, die das Formular nicht annimmt. Gehen Sie zurück, dann markiert der Browser, was zu ändern ist.',
+  'contactProblem.reason.rateLimited':
+    'Von dieser Verbindung wurden bereits mehrere Nachrichten gesendet. Eine Weile warten oder direkt schreiben funktioniert beides.',
+  'contactProblem.reason.undelivered':
+    'Der Mailserver hat die Nachricht nicht übernommen. Das liegt auf unserer Seite, und ein späterer Versuch hilft meist.',
+  'contactProblem.back': 'Zurück zum Formular',
 
   'cmp.status.supported': 'Unterstützt',
   'cmp.status.supported.definition':

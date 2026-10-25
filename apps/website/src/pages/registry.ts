@@ -6,6 +6,7 @@ import { HomePage } from './home';
 import { FeaturesPage } from './features';
 import { LocalFirstPage } from './local-first';
 import { ComparePage } from './compare';
+import { ContactPage, ContactProblemPage, ContactSentPage } from './contact';
 import { comparisonPage } from './compare-product';
 import { RoadmapPage } from './roadmap';
 import { DownloadPage } from './download';
@@ -18,6 +19,8 @@ export interface PageDefinition {
   Component: ComponentType<PageContext>;
   titleKey: MessageKey;
   descriptionKey: MessageKey;
+  /** `true` for a page that answers an action rather than being content. */
+  noindex?: boolean;
 }
 export const pageRegistry: Record<RouteId, PageDefinition> = {
   home: {
@@ -54,6 +57,23 @@ export const pageRegistry: Record<RouteId, PageDefinition> = {
     Component: comparisonPage('lucidchart'),
     titleKey: 'cmp.page.lucidchart.meta.title',
     descriptionKey: 'cmp.page.lucidchart.meta.description',
+  },
+  contact: {
+    Component: ContactPage,
+    titleKey: 'contact.meta.title',
+    descriptionKey: 'contact.meta.description',
+  },
+  contactSent: {
+    Component: ContactSentPage,
+    titleKey: 'contactSent.meta.title',
+    descriptionKey: 'contactSent.meta.description',
+    noindex: true,
+  },
+  contactProblem: {
+    Component: ContactProblemPage,
+    titleKey: 'contactProblem.meta.title',
+    descriptionKey: 'contactProblem.meta.description',
+    noindex: true,
   },
   roadmap: {
     Component: RoadmapPage,

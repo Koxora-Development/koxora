@@ -330,12 +330,19 @@ export function renderApacheProxy({
   containerHost,
   containerPort,
   passThroughPrefixes,
+  contactService,
   generator = 'apps/website/scripts/emit-site.mjs',
 }: {
   canonicalHost: string;
   containerHost: string;
   containerPort: number;
   passThroughPrefixes: readonly string[];
+  /**
+   * Set when a contact delivery service is configured. The path is routed to
+   * it before the catch-all, so a submission never reaches the website
+   * container, which serves static files and nothing else.
+   */
+  contactService?: { path: string; host: string; port: number } | null;
   generator?: string;
 }): string {
   return `${header(generator)}
@@ -354,7 +361,16 @@ export function renderApacheProxy({
   # them. They are excluded before the catch-all, because the first matching
   # ProxyPass wins.
 ${passThroughPrefixes.map((prefix) => `  ProxyPass ${prefix} !`).join('\n')}
-  ProxyPass / http://${containerHost}:${containerPort}/
+${
+  contactService
+    ? `  # The contact submission path goes to the delivery service, not to the
+  # website container. It is matched before the catch-all below, because the
+  # first matching ProxyPass wins.
+  ProxyPass ${contactService.path} http://${contactService.host}:${contactService.port}${contactService.path}
+  ProxyPassReverse ${contactService.path} http://${contactService.host}:${contactService.port}${contactService.path}
+`
+    : ''
+}  ProxyPass / http://${containerHost}:${containerPort}/
   ProxyPassReverse / http://${containerHost}:${containerPort}/
   <IfModule mod_headers.c>
     RequestHeader set X-Forwarded-Proto "https"

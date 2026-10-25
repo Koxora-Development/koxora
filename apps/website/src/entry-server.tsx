@@ -99,6 +99,7 @@ export function renderRoute(
   return renderDocument(context, assets, <Component {...context} />, {
     title: pageTitle(route, t(definition.titleKey), t('brand.name')),
     description: t(definition.descriptionKey),
+    noindex: definition.noindex,
   });
 }
 export function renderNotFound(locale: Locale, assets: BuildAssets): string {
@@ -264,5 +265,14 @@ export {
   renderNginxMain,
 } from './deploy-config';
 export { consentPolicyExtras } from './content/consent';
+export { contactPolicyExtras } from './content/contact';
+// Re-exported so the stub the browser tests run against uses the real
+// validation and the real spam checks rather than a second copy of them.
+export {
+  detectSpam,
+  honeypotField,
+  timestampField,
+  validateContact,
+} from '@koxora/contact';
 export { internalReviewPhrases } from './content/launch';
 export type { Locale, RouteId };

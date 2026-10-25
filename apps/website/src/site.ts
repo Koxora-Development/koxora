@@ -11,6 +11,25 @@ function flag(name: string, fallback: boolean): boolean {
   if (value === undefined) return fallback;
   return value === '1' || value === 'true' || value === 'yes';
 }
+/**
+ * The address the form posts to, or `null`.
+ *
+ * It becomes a form action and a policy source, so only a web address or a
+ * path on this site is accepted. A misconfigured value yields no form at all
+ * rather than a form pointing somewhere it should not.
+ */
+function contactEndpoint(value: string | undefined): string | null {
+  if (!value) return null;
+  if (value.startsWith('/')) return value;
+  try {
+    const target = new URL(value);
+    if (target.protocol !== 'https:' && target.protocol !== 'http:')
+      return null;
+    return target.toString();
+  } catch {
+    return null;
+  }
+}
 export interface SiteConfig {
   /** Absolute origin used for canonical URLs, sitemap and social metadata. */
   origin: string;
@@ -32,10 +51,23 @@ export interface SiteConfig {
   /** Address the public host proxies to; the container binds it alone. */
   container: { host: string; port: number; listenPort: number };
   /**
+   * The contact delivery service, a second container on its own loopback
+   * port. The public host routes the contact path to it directly, so the
+   * website container never sees a submission and stays a static server.
+   */
+  contactService: { host: string; port: number; listenPort: number };
+  /**
    * Absolute URL of the deployed browser editor, or `null` while it is not
    * published. The site never links to an address that does not answer.
    */
   editorUrl: string | null;
+  /**
+   * Absolute address of the contact delivery service, or `null` while none is
+   * configured. The form is rendered only when it is set: a form that posts
+   * nowhere is worse than an email address, so an unconfigured deployment
+   * shows the email path instead of a control that cannot work.
+   */
+  contactEndpoint: string | null;
   /** Optional consent categories the deployment actually uses. */
   optionalConsent: string[];
   /** `false` emits `noindex` plus a disallow-all robots file (staging). */
@@ -88,6 +120,12 @@ export const site: SiteConfig = {
     listenPort: Number(env('KOXORA_SITE_LISTEN_PORT') ?? 8080),
   },
   editorUrl: env('KOXORA_SITE_EDITOR_URL')?.replace(/\/?$/, '/') ?? null,
+  contactEndpoint: contactEndpoint(env('KOXORA_SITE_CONTACT_ENDPOINT')),
+  contactService: {
+    host: env('KOXORA_SITE_CONTACT_SERVICE_HOST') ?? '127.0.0.1',
+    port: Number(env('KOXORA_SITE_CONTACT_SERVICE_PORT') ?? 9403),
+    listenPort: Number(env('KOXORA_SITE_CONTACT_LISTEN_PORT') ?? 8081),
+  },
   optionalConsent: (env('KOXORA_SITE_OPTIONAL_CONSENT') ?? '')
     .split(',')
     .map((entry) => entry.trim())

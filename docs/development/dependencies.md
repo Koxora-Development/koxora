@@ -4,13 +4,26 @@
 
 The project license is still undecided (O-001). Workspace packages are private and `UNLICENSED`, preventing accidental registry publication. This review records dependency compatibility for the foundation; it does not license Koxora or substitute for legal review before distribution.
 
-Use `pnpm install --frozen-lockfile`, `pnpm audit --audit-level high`, and `pnpm check:licenses`. The latter inventories installed JavaScript dependencies including development tools and installed optional packages, fails on unknown/unreviewed license identifiers, and writes `node_modules/.cache/koxora/dependency-licenses.json`. Each native runner checks its installed dependency set. A Linux report is not an inventory of uninstalled macOS/Windows optional binaries. The permissive allowlist includes MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, 0BSD, CC0-1.0, BlueOak-1.0.0, Python-2.0 and explicitly reviewed dual-license expressions.
+Use `pnpm install --frozen-lockfile`, `pnpm audit --audit-level high`, and `pnpm check:licenses`. The latter inventories installed JavaScript dependencies including development tools and installed optional packages, fails on unknown/unreviewed license identifiers, and writes `node_modules/.cache/koxora/dependency-licenses.json`. Each native runner checks its installed dependency set. A Linux report is not an inventory of uninstalled macOS/Windows optional binaries. The permissive allowlist includes MIT, MIT-0, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, 0BSD, CC0-1.0, BlueOak-1.0.0, Python-2.0 and explicitly reviewed dual-license expressions.
 
 ## Specific reviewed exceptions
 
 - `lightningcss` and its platform binaries use MPL-2.0. These are CSS build tooling supplied through Tailwind/Vite, not JavaScript application runtime libraries. MPL is file-level copyleft: preserve notices and make modifications to covered files available when distributing them. No covered upstream source is modified here. A package-specific exception avoids admitting unrelated MPL dependencies silently.
 - `caniuse-lite` is CC-BY-4.0 browser compatibility data used by build tooling. Retain attribution and license information with any redistributed data. It is not application content. Only this named package is excepted.
 - Tauri CLI is MIT OR Apache-2.0; the explicit SPDX expression is allowed. Native Tauri/runtime transitive licenses are a separate Cargo inventory.
+- `MIT-0` was added to the general allowlist rather than as a package exception. It is the MIT license without its attribution clause, so it imposes strictly fewer obligations than MIT, which is already allowed; admitting it cannot introduce a condition the existing list does not already accept.
+
+## Website W2.2 runtime addition
+
+`nodemailer` 10.2.1 is the first runtime dependency of a server-side Koxora component, used by `@koxora/contact-api` to deliver contact messages over SMTP. It was chosen over hand-written SMTP because the credential travels on that connection and STARTTLS, authentication and dot-stuffing are details worth not re-implementing. Three properties made it acceptable:
+
+- **No dependencies of its own.** The installed package declares an empty dependency set, so it adds one package and not a tree.
+- **MIT-0**, as recorded above.
+- **A bounded surface.** The service uses one transport, one send, one verify and one close. nodemailer ships no type declarations, and rather than adding a second package for them, `apps/contact-api/src/nodemailer.d.ts` declares exactly that surface, so what the service relies on is written down and anything else would fail the type check.
+
+The transport is configured to require TLS, to reject an untrusted certificate, to use TLS 1.2 or later, and to read neither files nor URLs on behalf of a message. No credential is in the repository: every setting comes from the environment, and the service refuses to start without it.
+
+**Version 10.2.1 rather than 7.x.** The first attempt pinned 7.0.9, and `pnpm audit --audit-level high` reported five high advisories against it: three denial-of-service findings in its address parser, a bypass of `disableFileAccess` and `disableUrlAccess` through a message-level `raw` option, and improper TLS certificate validation when fetching an OAuth2 token. Three of those did not apply to this service — `raw` is never used, OAuth2 is not used, and a reader's address is validated to one short plain address before it is parsed — but shipping a dependency with five open high advisories is not a position to defend, and the audit is a continuous integration gate. 10.2.1 clears all five, keeps MIT-0, still declares no dependencies of its own, and requires Node 20 or later, which the pinned toolchain satisfies. The surface the service uses was verified against it directly: a transport built with every option above, and `sendMail`, `verify` and `close` behaving as the declaration says.
 
 No external fonts, stock artwork or canvas dependencies are introduced. The Product Owner supplied and explicitly requested the official Koxora website logo and branding for the Phase 2.1 UX revision. The exact SVG is used by the shared UI and as the source for generated native icons; provenance is recorded in the [UX revision](../design/phase-2.1-ux.md). This supersedes the provisional application mark for this PR.
 

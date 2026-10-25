@@ -505,11 +505,19 @@ export const en = {
     'That data will be under your control: a project can be exported as a portable .koxora archive, and the data can be deleted at any time through your browser settings for that address. Browser storage is tied to the exact address that created it, so data stored under the website address and under the studio address stay separate.',
   'privacyPolicy.studio.desktop':
     'The desktop application stores projects as files in a directory on your computer. It works without a Koxora account and does not transmit project content to us.',
-  'privacyPolicy.contactForm.title': '8. Contact by email',
+  'privacyPolicy.contactForm.title': '8. Contact by email and through the form',
   'privacyPolicy.contactForm.body':
     'If you write to one of the addresses in the legal notice, we process your email address, your message and any attachments in order to answer you. Email is operated on self-managed infrastructure at IONOS SE, Elgendorfer Str. 57, 56410 Montabaur, Germany.',
   'privacyPolicy.contactForm.basis':
     'Legal basis: Art. 6(1)(b) GDPR where your enquiry concerns a contract or pre-contractual steps, otherwise Art. 6(1)(f) GDPR, our legitimate interest in answering enquiries. Messages are deleted once the enquiry is settled and no retention obligation applies.',
+  'privacyPolicy.contactForm.form':
+    'Where this website offers a contact form, it sends what you entered — the name if you gave one, the email address, the category, the subject and the message — to the same support mailbox, over an encrypted connection to the mail server. Nothing else is collected: there is no tracking, no third-party form provider, no captcha service and no newsletter. The form is the only way this website transmits anything you typed, and it does so only when you press the button.',
+  'privacyPolicy.contactForm.storage':
+    'The delivery component stores nothing. It keeps no database and no copy of your message: it hands the message to the mail server and forgets it. For a few minutes it keeps a one-way fingerprint of the submission, so that pressing the button twice does not send two messages, and a one-way value derived from your network address, so that a flood can be stopped; both are only in memory, both disappear when the component restarts, and neither can be turned back into your message or your address.',
+  'privacyPolicy.contactForm.logs':
+    'Its own log records one line per submission with the time, the outcome and the chosen category. It contains no name, no address, no subject, no message and no network address. From then on your message is an email in the support mailbox, and the paragraphs above describe what happens to it there.',
+  'privacyPolicy.contactForm.accepted':
+    'When the form reports that your message was accepted, it means the mail server took it for delivery. That is what can honestly be confirmed from a website; whether it then arrived in the mailbox is not something this page can promise, and it is never claimed.',
   'privacyPolicy.noTracking.title': '9. What this website does not do',
   'privacyPolicy.noTracking.item1':
     'No analytics, measurement or audience-tracking service.',
@@ -732,6 +740,97 @@ export const en = {
   'project.statusMilestoneValue.published':
     'Studio phase 2.4 merged \u00b7 Studio 2.5 in progress',
   'legalNotice.contact.security': 'First contact about a security problem',
+
+  'nav.contact': 'Contact',
+  'contact.meta.title': 'Contact Koxora',
+  'contact.meta.description':
+    'Ask a question, send feedback, report a problem. The form reaches the Koxora support mailbox; the address is published as well.',
+  'contact.hero.eyebrow': 'Contact',
+  'contact.hero.title': 'Write to the project',
+  'contact.hero.lead':
+    'Questions, feedback and problem reports all reach the same mailbox. The form below sends your message there; if you would rather use your own mail program, the address is published too.',
+  'contact.form.title': 'Send a message',
+  'contact.form.intro':
+    'Only the address and the message are needed. A name helps if you would like to be addressed by it.',
+  'contact.field.name': 'Name',
+  'contact.field.name.hint': 'Optional. Only so a reply can address you.',
+  'contact.field.email': 'Email address',
+  'contact.field.email.hint':
+    'Needed for a reply. It is used for that and nothing else.',
+  'contact.field.category': 'What is this about?',
+  'contact.field.subject': 'Subject',
+  'contact.field.message': 'Message',
+  'contact.field.message.hint': 'Up to {max} characters.',
+  'contact.field.optional': 'optional',
+  'contact.field.required': 'required',
+  'contact.category.general': 'General question',
+  'contact.category.feedback': 'Feedback',
+  'contact.category.support': 'Support',
+  'contact.category.bug': 'Report a problem',
+  'contact.honeypot.label': 'Website',
+  'contact.submit': 'Send message',
+  'contact.submit.busy': 'Sending…',
+  'contact.error.required': 'Please fill this in.',
+  'contact.error.tooShort': 'This is shorter than the form accepts.',
+  'contact.error.tooLong': 'This is longer than the form accepts.',
+  'contact.error.email': 'Please enter one plain email address.',
+  'contact.error.category': 'Please choose one of the options.',
+  'contact.error.controlCharacter':
+    'Please remove the line breaks and special characters from this field.',
+  'contact.status.invalid':
+    'The message was not sent. Please correct the fields marked above.',
+  'contact.status.accepted':
+    'Your message was accepted for delivery. It has been handed to the mail server; a person will read it when it arrives.',
+  'contact.status.duplicate':
+    'This message had already been accepted, so it was not sent a second time.',
+  'contact.status.rejected':
+    'The form refused this submission. If you filled it in very quickly, or left the page open for a long time, please reload and try again.',
+  'contact.status.rateLimited':
+    'Several messages have already been sent from here. Please wait a while, or write to {email} directly.',
+  'contact.status.undelivered':
+    'The message could not be handed over. Nothing was sent, so nothing is lost: please try again later or write to {email} directly.',
+  'contact.status.offline':
+    'The message could not be sent. Please check your connection, or write to {email} directly.',
+  'contact.fallback.title': 'Or write a mail yourself',
+  'contact.fallback.body':
+    'The same mailbox is reachable directly at {email}. That is also the way to use if you prefer not to fill in a form, or if the form is not working for you.',
+  'contact.security.title': 'A security problem goes elsewhere',
+  'contact.security.body':
+    'Please do not send details of a vulnerability through this form: it reaches an ordinary mailbox. The security policy says what to send, where to send it and what to expect.',
+  'contact.security.link': 'Read the security policy',
+  'contact.privacy.title': 'What happens to what you write',
+  'contact.privacy.body':
+    'The name, address, subject and message you enter are sent to the Koxora support mailbox so that your request can be answered. They are not used for anything else, not passed on for advertising, and there is no newsletter to be subscribed to. The privacy policy describes the processing, the legal basis and how long the mail is kept.',
+  'contact.privacy.link': 'Privacy policy',
+  'contact.unconfigured.title': 'The form is not switched on here',
+  'contact.unconfigured.body':
+    'This deployment has no delivery service configured, so no form is shown: a form that posts nowhere would be worse than an address. Write to {email} instead.',
+  'contact.noscript':
+    'The form works without JavaScript: it is sent as an ordinary form and you land on a page that says what happened. With JavaScript you stay on this page instead.',
+  'contactSent.meta.title': 'Message accepted',
+  'contactSent.meta.description':
+    'Your message was accepted for delivery to the Koxora support mailbox.',
+  'contactSent.hero.eyebrow': 'Contact',
+  'contactSent.hero.title': 'Accepted for delivery',
+  'contactSent.hero.lead':
+    'The mail server has taken your message. A person will read it when it arrives in the mailbox; there is nothing else for you to do.',
+  'contactSent.body':
+    'No copy of this page holds your message, and no confirmation mail is sent, so nothing further will arrive in your inbox until someone answers.',
+  'contactSent.back': 'Back to the contact page',
+  'contactProblem.meta.title': 'The message was not sent',
+  'contactProblem.meta.description':
+    'Something stopped the message from being handed over. Nothing was sent, and the email address is published as well.',
+  'contactProblem.hero.eyebrow': 'Contact',
+  'contactProblem.hero.title': 'The message was not sent',
+  'contactProblem.hero.lead':
+    'Nothing was handed over, so nothing is half-sent. One of a few things happened, and all of them can be tried again.',
+  'contactProblem.reason.invalid':
+    'A field was empty, too short, too long, or contained characters the form does not accept. Go back and the browser will mark what to change.',
+  'contactProblem.reason.rateLimited':
+    'Several messages have already been sent from this connection. Waiting a while, or writing directly, both work.',
+  'contactProblem.reason.undelivered':
+    'The mail server did not take the message. That is on our side, and trying again later usually works.',
+  'contactProblem.back': 'Back to the form',
 
   'cmp.status.supported': 'Supported',
   'cmp.status.supported.definition':

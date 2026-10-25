@@ -24,6 +24,19 @@ const manifestCopy = resolve(
   '../../node_modules/.cache/koxora/website-client-manifest.json',
 );
 const server = await import(resolve(root, 'dist-ssr/entry-server.js'));
+
+// The policy is the consent configuration plus whatever the contact form
+// needs, so one build cannot allow a form the policy then blocks.
+function policyExtras() {
+  const extras = { ...server.consentPolicyExtras() };
+  for (const [directive, sources] of Object.entries(
+    server.contactPolicyExtras(),
+  ))
+    extras[directive] = [
+      ...new Set([...(extras[directive] ?? []), ...sources]),
+    ];
+  return extras;
+}
 async function loadManifest() {
   try {
     const raw = await readFile(
@@ -165,10 +178,7 @@ if (!gateway.includes(`<script>${server.languageGatewayScript}</script>`))
   throw new Error(
     'The emitted gateway script differs from the hashed text; the policy would block it.',
   );
-const headers = securityHeaders(
-  [themeHash, gatewayHash],
-  server.consentPolicyExtras(),
-);
+const headers = securityHeaders([themeHash, gatewayHash], policyExtras());
 const csp = headers['Content-Security-Policy'];
 const headerFile = {
   '/*': headers,
@@ -207,6 +217,16 @@ const apacheProxy = server.renderApacheProxy({
   containerHost: server.site.container.host,
   containerPort: server.site.container.port,
   passThroughPrefixes: server.site.aliasPassThroughPrefixes,
+  // Only where the form is actually configured, and only when it posts to a
+  // path on this site rather than to another address.
+  contactService:
+    server.site.contactEndpoint && server.site.contactEndpoint.startsWith('/')
+      ? {
+          path: server.site.contactEndpoint,
+          host: server.site.contactService.host,
+          port: server.site.contactService.port,
+        }
+      : null,
 });
 const apacheAliases = server.renderApacheAliases({
   canonicalOrigin: server.site.origin,
@@ -275,6 +295,10 @@ await writeFile(
       aliasHosts: server.site.aliasHosts,
       aliasRedirectStatus: server.site.aliasRedirectStatus,
       languageCookie: server.languageCookieName,
+      contactEndpoint: server.site.contactEndpoint,
+      contactService: server.site.contactEndpoint
+        ? server.site.contactService
+        : null,
       container: server.site.container,
       contentSecurityPolicy: csp,
     },

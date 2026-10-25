@@ -69,6 +69,15 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(@types/node@22.20.5)(vite@8.3.4(@types/node@22.20.5)(jiti@2.7.0)(terser@5.51.2))
 
+  apps/contact-api:
+    dependencies:
+      '@koxora/contact':
+        specifier: workspace:*
+        version: link:../../packages/contact
+      nodemailer:
+        specifier: 10.2.1
+        version: 10.2.1
+
   apps/studio-desktop:
     devDependencies:
       '@tauri-apps/cli':
@@ -92,6 +101,9 @@ importers:
 
   apps/website:
     dependencies:
+      '@koxora/contact':
+        specifier: workspace:*
+        version: link:../../packages/contact
       '@koxora/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -111,6 +123,8 @@ importers:
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
+
+  packages/contact: {}
 
   packages/editor-core:
     dependencies:
@@ -2205,6 +2219,10 @@ packages:
   node-releases@2.0.59:
     resolution: {integrity: sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==}
     engines: {node: '>=18'}
+
+  nodemailer@10.2.1:
+    resolution: {integrity: sha512-ZrDNsPFoDMwefNs7sJwrYiEJ/CG4ClJWDZv05iNJsEBWa8GRDry1QJHTJxsuTAY9eDDKjX4k+q3SxslXJOao7w==}
+    engines: {node: '>=20.0.0'}
 
   object-inspect@1.13.4:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
@@ -4863,6 +4881,8 @@ snapshots:
   natural-compare@1.4.0: {}
 
   node-releases@2.0.59: {}
+
+  nodemailer@10.2.1: {}
 
   object-inspect@1.13.4: {}
 

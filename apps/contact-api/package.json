@@ -1,0 +1,14 @@
+{
+  "name": "@koxora/contact-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "node --experimental-strip-types src/main.ts"
+  },
+  "dependencies": {
+    "@koxora/contact": "workspace:*",
+    "nodemailer": "10.2.1"
+  }
+}

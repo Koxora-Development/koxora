@@ -28,6 +28,9 @@ const allowed = new Set([
   'CC0-1.0',
   'BlueOak-1.0.0',
   'Python-2.0',
+  // MIT without its attribution clause: strictly fewer obligations than the
+  // MIT above, which is already allowed. See docs/development/dependencies.md.
+  'MIT-0',
 ]);
 // Scoped exceptions reviewed in docs/development/dependencies.md.
 const reviewed = {
