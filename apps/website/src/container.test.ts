@@ -24,6 +24,10 @@ const emitter = readFileSync(
   resolve(root, 'apps/website/scripts/emit-site.mjs'),
   'utf8',
 );
+const containerDoc = readFileSync(
+  resolve(root, 'docs/development/website-container.md'),
+  'utf8',
+);
 /** The stage that ends up in production, without the one that builds. */
 const runtimeStage = dockerfile.slice(
   dockerfile.lastIndexOf('\nFROM ', dockerfile.indexOf('AS runtime')),
@@ -113,6 +117,32 @@ describe('the compose file', () => {
     );
     for (const entry of published)
       expect(entry, entry).toMatch(/^127\.0\.0\.1:/);
+  });
+  it('verifies a new image on a port no permanent service holds', () => {
+    // The side-by-side check starts a second container while the first one
+    // keeps serving. Every loopback port a permanent service binds is
+    // therefore unusable for it: 9402 is the website the public Apache
+    // proxies to, and 9403 is the contact service of Website W2.2. Binding
+    // either would fail the release instead of verifying it.
+    const reserved = new Map([
+      [site.container.port, 'the website the public proxy forwards to'],
+      [9403, 'the contact service (Website W2.2)'],
+    ]);
+    const held = reserved.get(site.container.verificationPort);
+    expect(held, `the verification port is ${held}`).toBeUndefined();
+    // The documented command and the compose comment must use that port, so
+    // an operator following either does not collide with a running service.
+    expect(containerDoc).toContain(
+      `KOXORA_WEBSITE_PORT=${site.container.verificationPort}`,
+    );
+    expect(compose).toContain(
+      `KOXORA_WEBSITE_PORT=${site.container.verificationPort}`,
+    );
+    // And neither may still point at a reserved one.
+    for (const port of reserved.keys()) {
+      expect(containerDoc).not.toContain(`KOXORA_WEBSITE_PORT=${port}`);
+      expect(compose).not.toContain(`KOXORA_WEBSITE_PORT=${port}`);
+    }
   });
   it('keeps the container unprivileged and without a writable layer', () => {
     expect(compose).toContain('read_only: true');
