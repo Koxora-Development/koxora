@@ -14,4 +14,4 @@ Initial topics: license/open-core boundaries, canvas engine, schema/commands, lo
 
 - [0017: Static multilingual delivery for the public website](0017-public-website-delivery.md) — Website W1 implementation, pending Product Owner acceptance.
 
-- [0018: A small own service for contact delivery](0018-contact-delivery.md) — Website W2.2 implementation, pending Product Owner acceptance and the SMTP decision.
+- [0018: Contact delivery through the existing Apache and PHP-FPM](0018-contact-delivery.md) — Website W2.2 implementation, accepted by the Product Owner on 2026-10-25; merge, SMTP settings and activation pending.

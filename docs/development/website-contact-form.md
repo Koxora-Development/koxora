@@ -1,139 +1,259 @@
-# The contact form and its delivery service
+# The contact form, and the endpoint behind it
 
-**Status: implemented for review, 2026-10-25. Nothing is active. No SMTP account was requested, configured or used, no mail was sent, and no deployment was performed.** This is Website W2.2 of [the W2 plan](../platform/website-w2-plan.md) and covers [Issue #30](https://github.com/Koxora-Development/koxora/issues/30). The architecture decision is [ADR 0018](../adr/0018-contact-delivery.md).
+**Status: implemented for review, 2026-10-25. Nothing is activated.** The endpoint refuses to deliver until `KOXORA_CONTACT_ENABLED` is set, no Apache or TinyCP setting on the production host has been changed, and no SMTP credential exists anywhere in this repository. This is Website W2.2 of [the W2 plan](../platform/website-w2-plan.md), implementing [Issue #30](https://github.com/Koxora-Development/koxora/issues/30), and it follows the Product Owner's decision of 2026-10-25 to use the host's existing PHP-FPM rather than a service of its own — see [ADR 0018](../adr/0018-contact-delivery.md).
 
-The form is **off by default**. A build without a configured endpoint renders no form at all and shows the published address instead, so merging this cannot switch anything on.
+Related: [the canonical domains runbook](website-canonical-domains.md). The container and release documents of Website W2.4a and W2.4b are on their own branches and are not linked from here, because a link to a document this branch does not carry is a broken one.
 
-## 1. The shape of it
+## 1. What a reader sees
 
-```text
-packages/contact/            the field specification and the rules, used by both sides
-apps/contact-api/            the delivery service: configuration, limits, mailer, HTTP
-apps/website/src/pages/contact.tsx    the page, the form and the two result pages
-apps/website/src/content/contact.ts   what the form adds to the content security policy
-deploy/contact/              the image and the compose definition
+A form on `/en/contact/` and `/de/kontakt/`, in the site's own design, in both languages, in light and dark appearance, usable with a keyboard alone and with a screen reader.
+
+| Field    | Required | Bounded at            |
+| -------- | -------- | --------------------- |
+| Name     | No       | 80 characters         |
+| Email    | Yes      | 160 characters        |
+| Category | Yes      | One of four published |
+| Subject  | Yes      | 3 to 120 characters   |
+| Message  | Yes      | 20 to 5000 characters |
+
+The four categories are a general enquiry, feedback, support and a bug report. A security problem is not one of them: the page says so and points at [the security policy](../../SECURITY.md), because a vulnerability does not belong in a form that ends up in an ordinary mailbox.
+
+**It works without JavaScript.** The form is an ordinary `POST`; with scripting it is sent in the background and the answer is announced in place, and without it the browser posts normally and the endpoint redirects to a result page in the reader's own language. The page says which of the two is happening before a reader types anything.
+
+**The mail address stays published.** A reader is never left without a way to make contact if the form is unavailable or they would rather not use it.
+
+**It never claims more than it knows.** The wording is that the message was accepted for delivery, because that is what an SMTP server accepting a message means. Whether the mailbox then received it is not something a website can see, and the page does not pretend otherwise.
+
+## 2. What is in the repository
+
+| Path                                        | Purpose                                                                           |
+| ------------------------------------------- | --------------------------------------------------------------------------------- |
+| `packages/contact/src/index.ts`             | The rules, for the browser: fields, lengths, the address pattern, the spam checks |
+| `packages/contact/fixtures/validation.json` | The vectors both implementations are run against                                  |
+| `packages/contact/fixtures/contract.json`   | The field limits, generated from the browser module by `pnpm contact:contract`    |
+| `apps/contact-php/public/contact.php`       | **The only file a web server may execute**                                        |
+| `apps/contact-php/src/`                     | The endpoint: settings, validation, abuse controls, mail                          |
+| `apps/contact-php/tests/`                   | 95 PHPUnit cases, including the parity vectors and the cross-worker limit proof   |
+| `apps/website/src/pages/contact.tsx`        | The page, the form and the two result pages                                       |
+| `apps/website/src/deploy-config.ts`         | Generates the Apache fragment that routes the path to PHP-FPM                     |
+| `apps/website/scripts/check-apache.mjs`     | Runs a real Apache with PHP-FPM against the generated fragment                    |
+
+## 3. The ports this endpoint uses
+
+**None.** Apache reaches PHP-FPM over its own socket, so nothing listens on a TCP port for the contact endpoint. `127.0.0.1:9402` stays the website container and `127.0.0.1:9403` is free for the side-by-side verification container of a website release. Website W2.4a tables that allocation in `docs/development/website-container.md`, on its own branch.
+
+## 4. Installing it on the host
+
+**Not authorized by this branch.** These are the steps, written out so they can be reviewed before anybody runs them. Every path below is an example to be confirmed, not a guess to be trusted: steps 1 and 6 ask for the two real values, and without them no contact routing is generated at all.
+
+### Step 1 — Tell us two things only the host knows
+
+```bash
+# Where PHP-FPM listens, and which pool answers:
+ls -l /run/php/
+systemctl status php8.4-fpm --no-pager | head -5
+ls /etc/php/8.4/fpm/pool.d/
+
+# Which directory TinyCP uses for this site, so the endpoint can live beside
+# it rather than inside it:
+apache2ctl -S 2>/dev/null | grep -i koxora
+grep -r DocumentRoot /etc/apache2/sites-enabled/*koxora* 2>/dev/null
 ```
 
-A reader's submission takes one of two paths, and both end at the same mailbox:
+Send the output with nothing redacted except passwords; none of it contains any.
 
-| Reader             | Path                                                                                                                                   |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| With JavaScript    | The script validates with the shared rules, posts JSON to the endpoint, and shows the answer in a live region without leaving the page |
-| Without JavaScript | The browser posts the form, the service answers with a redirect to a localized result page that says what happened                     |
+### Step 2 — Put the code outside every document root
 
-The published email address stays on the page in both cases. It is the documented fallback and it is tested.
-
-## 2. What the service does, and refuses to do
-
-**It validates everything again.** The browser's validation is a convenience for the reader, never a control. The service runs the same rules from `@koxora/contact` on its own.
-
-**It never builds a header from unchecked input.** A line ending or a control character in the name, the address or the subject is refused rather than stripped, so a reader is never told their message was sent as typed when it was rewritten. The address a reader gives becomes a `Reply-To`; the `From` is the configured sender. Sending as the reader would be a forgery mail providers reject, and it would make the mailbox a relay for any address anyone types.
-
-**It stores nothing.** No database, no queue, no copy of a message. For a few minutes it keeps a one-way fingerprint of a submission, so a double press is not a second message, and a one-way value derived from the network address with a salt generated at startup, so a flood can be stopped. Both are in memory and disappear with the process.
-
-**Its log holds no personal data.** One line per submission: the time, the outcome and the chosen category. A test asserts that the address, the name, the subject, the message and the network address appear in no log line.
-
-**It tells a client nothing it does not need.** A mail server's error text can name hosts, mailboxes and policies; the response says `undelivered` and the reason stays in the log.
-
-**It refuses to start without its settings.** A missing mailbox, origin or SMTP setting stops the process with a message naming it, rather than starting something that answers and cannot deliver.
-
-| Answer                    | When                                                        | What the reader is told                       |
-| ------------------------- | ----------------------------------------------------------- | --------------------------------------------- |
-| 200 `accepted`            | The mail server took the message                            | Accepted for delivery — never "delivered"     |
-| 200 `accepted, duplicate` | The same message was already accepted                       | It was not sent a second time                 |
-| 400 `invalid`             | Validation failed, with the list of fields                  | Each field is marked, with the reason         |
-| 400 `rejected`            | The hidden field was filled, or it was faster than a person | Reload and try again                          |
-| 429 `rateLimited`         | The per-client or the global allowance is spent             | Wait, or write directly to the address        |
-| 503 `undelivered`         | The mail server did not take it                             | Nothing was sent; try again or write directly |
-| 413 / 415 / 405 / 403     | Too large, wrong type, wrong method, wrong origin           | —                                             |
-
-## 3. Abuse controls, without a third party
-
-No captcha. A captcha service would be a third party, a privacy disclosure and a widened policy, and it is a decision for the Product Owner rather than a default. What is there instead:
-
-- A field a reader never sees, hidden from assistive technology, out of the tab order and out of autofill.
-- A minimum fill time. A submission faster than a person could type is refused. A missing timestamp is held against nobody, because a reader without JavaScript has none.
-- A per-client sliding window (three an hour by default) and a global one (sixty an hour), both counted **before** any work, so a flood costs a hash and nothing else.
-- A hard body limit, refused rather than buffered, and a strict content type.
-- Origin checking: a submission whose `Origin` names another site is refused. A request with no `Origin` is accepted, because the endpoint borrows no cookie and no session, so there is nothing for a forged request to use, and refusing it would lock out readers whose browser withholds the header.
-
-## 4. The content security policy
-
-The reviewed policy forbids both submitting a form and opening a connection: `form-action 'none'` and `connect-src 'none'`. That is correct for a site with no form and it would have broken this one silently — the browser blocks the submission and the reader sees nothing happen.
-
-The policy is therefore widened by exactly the address the form posts to, and only when one is configured. A deployment without a service keeps the stricter policy, because it renders no form either. Both directives are widened together: a submission without JavaScript is a form action, one with JavaScript is a connection, and allowing only one would break half the readers.
-
-## 5. Running it
-
-The settings, all from the environment, none with a guessed default:
-
-| Variable                                          | Meaning                                                                                                                                                     |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `KOXORA_CONTACT_ALLOWED_ORIGINS`                  | The site origin a submission must come from                                                                                                                 |
-| `KOXORA_CONTACT_RECIPIENT`                        | The mailbox that receives the messages                                                                                                                      |
-| `KOXORA_CONTACT_SENDER`                           | The address the service sends as; never a reader's                                                                                                          |
-| `KOXORA_CONTACT_SMTP_HOST`, `…_PORT`, `…_SECURE`  | The mail server. TLS is required: on a port that starts in the clear, STARTTLS is mandatory rather than opportunistic, because the credentials travel on it |
-| `KOXORA_CONTACT_SMTP_USER`, `…_PASSWORD`          | The SMTP account. **Server side only**, never in the repository, never in an image, never in a frontend bundle                                              |
-| `KOXORA_CONTACT_RATE_PER_CLIENT`, `…_RATE_GLOBAL` | The allowances                                                                                                                                              |
-| `KOXORA_CONTACT_TRUST_PROXY`                      | `true` only where a known proxy sets the forwarded address                                                                                                  |
-
-On the website side, one variable decides whether a form exists at all:
-
-```sh
-KOXORA_SITE_CONTACT_ENDPOINT=/api/contact pnpm website:build
+```bash
+# The endpoint, from a reviewed revision. /opt is outside everything Apache
+# serves, which is the point.
+sudo mkdir -p /opt/koxora-contact
+sudo rsync -a --delete /opt/koxora-website/repo/apps/contact-php/ /opt/koxora-contact/
+cd /opt/koxora-contact
+sudo composer install --no-dev --no-interaction --optimize-autoloader
+sudo chown -R root:www-data /opt/koxora-contact
+sudo find /opt/koxora-contact -type d -exec chmod 750 {} \;
+sudo find /opt/koxora-contact -type f -exec chmod 640 {} \;
 ```
 
-With it set, the build renders the form, widens the policy by that address, and adds the route to the generated Apache fragment so the path reaches the service rather than the website container. Without it, none of that happens.
+`--no-dev` leaves the test tooling and the test-only front controller behind. Nothing in `tests/` is needed to run the endpoint.
 
-```sh
-# Build and start the service, with the settings in a file the operator keeps
-# outside this repository.
-docker compose -f deploy/contact/compose.yaml --project-directory . \
-  --env-file /opt/koxora-website/contact.env build
-docker compose -f deploy/contact/compose.yaml --project-directory . \
-  --env-file /opt/koxora-website/contact.env up -d
-docker inspect --format '{{.State.Health.Status}}' koxora-contact
-curl -sS http://127.0.0.1:9403/api/contact/health
+### Step 3 — The settings, including the one secret
+
+```bash
+sudo install -o root -g www-data -m 640 /dev/null /etc/koxora/contact-config.php
+sudoedit /etc/koxora/contact-config.php
 ```
 
-The compose file names every required setting as a variable with no default, so `docker compose config` fails with the name of what is missing rather than starting something half-configured.
+```php
+<?php
+// Readable by the web server account and by nobody else. Outside every
+// document root, so no web server can serve it whatever happens to a rule.
+return [
+    // Off until a delivery test has actually succeeded. Leave it false for
+    // the first install: the form then tells a reader honestly that the
+    // message was not delivered, rather than claiming it was.
+    'KOXORA_CONTACT_ENABLED' => 'false',
+    'KOXORA_CONTACT_ALLOWED_ORIGINS' => 'https://koxora.app',
+    'KOXORA_CONTACT_RECIPIENT' => '<the mailbox that should receive messages>',
+    'KOXORA_CONTACT_SENDER' => '<the address the website sends as>',
+    'KOXORA_CONTACT_SMTP_HOST' => '<the Mailcow host>',
+    'KOXORA_CONTACT_SMTP_PORT' => '465',
+    'KOXORA_CONTACT_SMTP_IMPLICIT_TLS' => 'true',
+    'KOXORA_CONTACT_SMTP_USER' => '<the submission account>',
+    'KOXORA_CONTACT_SMTP_PASSWORD' => '<its password>',
+    'KOXORA_CONTACT_STATE_DIR' => '/var/lib/koxora-contact',
+];
+```
 
-## 6. Activation, which is a separate decision
+```bash
+# Where the rate-limit counters live. Writable by the web server account and
+# readable by nobody else; it holds no address and no message, but it holds
+# the salt that makes that true.
+sudo install -d -o www-data -g www-data -m 700 /var/lib/koxora-contact
+```
 
-In order, and none of it done:
+### Step 4 — Point the pool at the settings file
 
-1. **Confirm the mailbox receives.** `support@koxora.app` is listed as provisioned but untested in [the legal review checklist](../legal/website-legal-review.md). Send and receive a test mail by hand first.
-2. **Decide the sending identity.** A separate address such as `website@koxora.app` is better than sending as the support mailbox, because a bounce then goes somewhere that is not the inbox being read.
-3. **Create the SMTP account** at the mail provider, with permission to send as that address and nothing else. Its password goes into the environment file on the host, readable by root only, and nowhere else. **Do not send it to this session or put it in the repository.**
-4. **Check the provider's sending policy**: whether the account may send to its own domain from the host's address, what rate it allows, and what happens on a rejection.
-5. **Confirm SPF and DKIM** cover the sending address, or the mail lands in spam. This is a DNS matter and a separate assignment.
-6. **Start the service and test it from outside**, through Apache, over HTTPS, in both languages, with JavaScript and without.
-7. **Then** rebuild the website with `KOXORA_SITE_CONTACT_ENDPOINT` set. Until that build is deployed, no form is shown, so the service can be running and verified while the site still shows the address.
-8. **Check the privacy policy renders the form paragraphs**, which it does only when the endpoint is configured, and have the wording reviewed.
+In `/etc/php/8.4/fpm/pool.d/<pool>.conf`, or a new pool of its own:
 
-Switching it off is the reverse: rebuild without the variable. The form disappears, the policy tightens again, and the address stays.
+```ini
+; The settings file, not the settings. The password never appears in a
+; process listing or in this file.
+env[KOXORA_CONTACT_CONFIG] = /etc/koxora/contact-config.php
+; Only .php may ever be executed by this pool.
+security.limit_extensions = .php
+```
 
-## 7. What is deliberately not in this version
+```bash
+sudo php-fpm8.4 -t && sudo systemctl reload php8.4-fpm
+```
 
-- **No queue and no retry.** A mail outage tells the reader the message was not handed over, instead of claiming it was sent and losing it. Retry needs storage, and storage needs a retention decision; it is written down as an option, not built.
-- **No attachments.** The issue asks for none in the first implementation, and accepting files would change the security picture entirely.
-- **No captcha.** See section 3.
-- **No delivery observability beyond the log line.** Whether a message reached the mailbox is not visible to the service, and the reader is never told otherwise.
+A separate pool running as its own account is better still, and is the right choice if anything else on this host uses PHP. It costs one more file and makes the endpoint's reach exactly one directory.
 
-## 8. Verification
+### Step 5 — Generate the Apache fragment
 
-Run in the development container on 2026-10-25:
+```bash
+cd /opt/koxora-website/repo
+KOXORA_SITE_ORIGIN=https://koxora.app \
+KOXORA_SITE_CONTACT_ENDPOINT=/api/contact \
+KOXORA_SITE_CONTACT_SCRIPT=/opt/koxora-contact/public/contact.php \
+KOXORA_SITE_CONTACT_FPM='unix:/run/php/php8.4-fpm.sock|fcgi://localhost' \
+  pnpm website:build
+cat apps/website/dist-deploy/apache-koxora-proxy.conf
+```
 
-| Command                                                | Result                                                                                                                                                                                      |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`                                           | Passes. **367 unit tests in 28 files**: 19 for the shared rules, 34 for the service and its configuration, 11 for its container, 2 against the real mail library, 6 for the policy widening |
-| `pnpm audit --audit-level high`                        | Passes. The mail library is pinned to 10.2.1; 7.x carried five high advisories, which [the dependency review](dependencies.md) records                                                      |
-| `pnpm test:website`                                    | **383 passed, 7 skipped** across desktop, tablet and phone, including 18 contact cases per project                                                                                          |
-| `pnpm website:build`                                   | Passes with and without the endpoint; the policy and the Apache route follow it                                                                                                             |
-| `docker compose -f deploy/contact/compose.yaml config` | Fails by design without the settings, naming each one; resolves with them                                                                                                                   |
+Read it before installing it. It adds one exclusion to the existing proxy rules and one `Alias`, and it denies the endpoint's directory except for that one file.
 
-The security-relevant cases are tests, not claims: header injection refused in every field a header is built from, a body that is not an object refused, a prototype key ignored, an oversized body refused without buffering, a cross-origin submission refused, a request with no origin accepted, the hidden field and the fill time enforced, an allowance counted before any work, a failed delivery never remembered as a duplicate so the reader can retry, a mail server's error text never reaching the client, and no personal data in any log line.
+### Step 6 — Install it the way TinyCP allows
 
-**No mail was sent and no SMTP account was used.** Two tests do open a connection — to a local port nothing listens on — to prove that the real mail library reports a failure as a failure rather than throwing, and that the mail server's own words never escape into a result a client would see. Every test replaces the mailer, and the browser tests submit against a stand-in that answers with the same shapes and sends nothing. The real SMTP path — a connection, a credential, a provider's policy — is unproven until step 6 above runs against real settings.
+**Never replace a generated TinyCP virtual host.** Use whichever of these TinyCP offers on this installation, in this order of preference:
 
-Also not done: no Docker image was built, because there is no Docker daemon in this environment, so the image, the healthcheck and the read-only file system are unproven. No Lighthouse measurement and no screen-reader audit. Only Chromium was available, so Firefox and WebKit were not run.
+1. TinyCP's own "custom configuration" field for this site, if it has one: paste the fragment there, so TinyCP keeps ownership of the file it generates.
+2. An `IncludeOptional` line that TinyCP already writes, if its generated host has one: drop the fragment into that directory.
+3. A conf fragment of its own, included once by hand, as the least preferred option:
+
+```bash
+sudo install -m 644 apps/website/dist-deploy/apache-koxora-proxy.conf \
+  /etc/apache2/conf-available/koxora-contact.conf
+sudo a2enmod proxy_fcgi alias
+sudo a2enconf koxora-contact
+sudo apache2ctl configtest
+```
+
+Which of the three applies is a question for the host, and is part of what step 1 asks for. Then:
+
+```bash
+sudo systemctl reload apache2
+```
+
+### Step 7 — Verify, before switching delivery on
+
+```bash
+# Routing reaches PHP and not the website container. Only the endpoint
+# answers 405 with an Allow header; the container would answer 404 as HTML.
+curl -sS -i https://koxora.app/api/contact | head -3
+
+# The server validates independently of the browser.
+curl -sS -X POST https://koxora.app/api/contact \
+  -H 'Content-Type: application/json' -H 'Origin: https://koxora.app' \
+  -d '{"email":"nope","category":"invoice","subject":"Hi","message":"Short."}'
+# -> 400 {"status":"invalid","errors":[...four of them...]}
+
+# Nothing else in that directory is reachable.
+curl -sS -o /dev/null -w '%{http_code}\n' https://koxora.app/api/contact/../src/Config.php
+curl -sS -o /dev/null -w '%{http_code}\n' https://koxora.app/api/contact/
+# -> neither may return 200 with any PHP source
+
+# Every other address still reaches the website.
+curl -sS -o /dev/null -w '%{http_code}\n' https://koxora.app/en/
+```
+
+ACME, mail autodiscovery and every other site on the host are untouched by all of this; the fragment adds no rule that matches their paths. Confirm anyway:
+
+```bash
+sudo apache2ctl -S | head -20
+curl -sS -o /dev/null -w '%{http_code}\n' https://koxora.app/.well-known/acme-challenge/probe
+```
+
+### Step 8 — Switch delivery on, once a test message has actually arrived
+
+Set `KOXORA_CONTACT_ENABLED` to `true`, reload the pool, send one message through the form, and **confirm it arrived in the mailbox**. Until that has happened the endpoint should stay off: an endpoint that accepts and loses messages is worse than one that says it cannot deliver.
+
+Also confirm, at the mail provider rather than here: that the sender address is allowed to submit, that SPF and DKIM cover it, and that a reply to the reader's address actually leaves.
+
+## 5. How it defends itself
+
+| Against                       | How                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Header injection              | Every single-line field is refused, not rewritten, when it contains anything that could end a header line. The subject and both addresses are checked before use                                        |
+| Sending as somebody else      | The reader's address becomes `Reply-To`. `From` is the configured address and nothing else can set it                                                                                                   |
+| A command line                | The transport is constructed in code, never from a DSN, so no setting can select a `sendmail` transport. PHP's `mail()` appears nowhere; a test asserts both                                            |
+| Talking in the clear          | TLS is required rather than preferred, the certificate is verified, and TLS 1.2 is the oldest accepted version                                                                                          |
+| A cross-site submission       | A foreign `Origin` is refused, and so is a foreign `Referer` when no `Origin` is sent. A request with neither is accepted, because the endpoint has no cookie or session for a forged request to borrow |
+| A flood                       | Three submissions per address per hour and sixty for the endpoint, in a window shared by every PHP-FPM worker under a lock. A busy endpoint does not spend a reader's allowance                         |
+| A robot                       | A field a person never sees, and a fill time shorter than a person can type. Neither is applied to a reader without JavaScript, who has no timestamp                                                    |
+| A double submission           | A one-way fingerprint for a few minutes, so a second press of the button is the same message. A failed delivery forgets it, so a retry is a retry                                                       |
+| A large request               | Refused at 16 KB, before the body is read                                                                                                                                                               |
+| An open redirect              | The result pages come from configuration and a fixed table. A `locale` in the request may choose between two known pages and can name nothing else                                                      |
+| Reading the endpoint's source | One file is web reachable, the directory is denied, the handler is scoped to that directory, and the code, settings and dependencies are outside every document root                                    |
+
+## 6. What it stores, and for how long
+
+| What                                            | Where                      | How long                                    |
+| ----------------------------------------------- | -------------------------- | ------------------------------------------- |
+| A salted one-way value derived from the address | The state file             | Pruned to the rate-limit window, one hour   |
+| A one-way fingerprint of a submission           | The state file             | Pruned to the duplicate window, ten minutes |
+| A salt, so neither can be reversed              | The state file's directory | Until deleted; delete it to break the link  |
+| The outcome, the category and a duration        | The server log             | Whatever the host keeps logs for            |
+
+No message, no name, no address and no network address is written anywhere. A unit test asserts the log entry contains none of them, and another asserts the state file contains no address.
+
+The privacy policy describes this, in both languages, and only when an endpoint is configured.
+
+## 7. Working on it
+
+```bash
+cd apps/contact-php && composer install   # once
+composer lint                             # php -l over every file
+vendor/bin/phpunit                        # 95 cases
+cd ../.. && pnpm contact:contract         # after changing a field limit
+pnpm test                                 # the browser side of the rules
+pnpm website:apache                       # real Apache, real PHP-FPM
+pnpm test:website                          # the form, against the real endpoint
+```
+
+The browser tests submit the form to the real endpoint, started by `apps/contact-php/tests/server.php`. That file replaces exactly one thing — handing the message to a mail server — and lives in `tests/` because `public/` holds one file and nothing else.
+
+## 8. What has not been verified
+
+| Claim                                                                       | Status                                                                                                                                           |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The generated Apache fragment is accepted and routes correctly              | **Verified.** `pnpm website:apache` runs a real Apache 2.4 with PHP-FPM: 27 checks pass                                                          |
+| The server validates exactly as the browser does                            | **Verified.** The same vectors run against both implementations                                                                                  |
+| The rate limit holds across workers                                         | **Verified.** Eight real processes, exactly three admitted                                                                                       |
+| The form works with and without JavaScript                                  | **Verified.** 383 browser tests across desktop, tablet and phone                                                                                 |
+| It runs on PHP 8.4                                                          | **Verified in continuous integration only.** This development container has PHP 8.3; the code targets 8.2 and newer and CI runs the suite on 8.4 |
+| Apache **on the production host**, with TinyCP's own generated virtual host | **Not verified.** The local Apache is a clean one built for the check, not TinyCP's. Step 6 is the open question                                 |
+| A message actually arrives in the mailbox                                   | **Not verified, and cannot be from here.** No SMTP credential exists; step 8 is where this is settled                                            |
+| SPF, DKIM and reply deliverability                                          | **Not verified.** A question for the mail provider                                                                                               |

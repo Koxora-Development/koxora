@@ -330,7 +330,7 @@ export function renderApacheProxy({
   containerHost,
   containerPort,
   passThroughPrefixes,
-  contactService,
+  contactHandler,
   generator = 'apps/website/scripts/emit-site.mjs',
 }: {
   canonicalHost: string;
@@ -338,11 +338,15 @@ export function renderApacheProxy({
   containerPort: number;
   passThroughPrefixes: readonly string[];
   /**
-   * Set when a contact delivery service is configured. The path is routed to
-   * it before the catch-all, so a submission never reaches the website
+   * Set when the contact endpoint is configured. The path is handed to
+   * PHP-FPM before the catch-all, so a submission never reaches the website
    * container, which serves static files and nothing else.
+   *
+   * `script` is the single file the web server may execute and `fpm` is the
+   * address it is handed to. Both come from the host, because a guessed
+   * deployment path generates a rule that points at nothing.
    */
-  contactService?: { path: string; host: string; port: number } | null;
+  contactHandler?: { path: string; script: string; fpm: string } | null;
   generator?: string;
 }): string {
   return `${header(generator)}
@@ -362,12 +366,11 @@ export function renderApacheProxy({
   # ProxyPass wins.
 ${passThroughPrefixes.map((prefix) => `  ProxyPass ${prefix} !`).join('\n')}
 ${
-  contactService
-    ? `  # The contact submission path goes to the delivery service, not to the
-  # website container. It is matched before the catch-all below, because the
-  # first matching ProxyPass wins.
-  ProxyPass ${contactService.path} http://${contactService.host}:${contactService.port}${contactService.path}
-  ProxyPassReverse ${contactService.path} http://${contactService.host}:${contactService.port}${contactService.path}
+  contactHandler
+    ? `  # The contact submission path is handled by PHP on this host, not by the
+  # website container. It is excluded from the catch-all first, because the
+  # first matching ProxyPass wins, and the rule below then maps it.
+  ProxyPass ${contactHandler.path} !
 `
     : ''
 }  ProxyPass / http://${containerHost}:${containerPort}/
@@ -376,9 +379,49 @@ ${
     RequestHeader set X-Forwarded-Proto "https"
   </IfModule>
 </IfModule>
-`;
+${
+  contactHandler
+    ? `
+# One address, one file, one handler. The Alias maps exactly ${contactHandler.path}
+# onto the single PHP file of the contact endpoint; its own code, its settings
+# and its dependencies live outside every document root, so there is nothing
+# else here to reach, download, execute or list. No DocumentRoot is changed
+# and no directory is exposed.
+<IfModule mod_alias.c>
+  Alias ${contactHandler.path} "${contactHandler.script}"
+</IfModule>
+<Directory "${dirname(contactHandler.script)}">
+  # Everything in this directory is denied, and one file is granted back.
+  # Both the permission and the handler are scoped to this directory on
+  # purpose: a <Files> section at the top of a virtual host would apply to
+  # every directory it serves, and would hand any file of the same name
+  # anywhere on the site to PHP.
+  Options -Indexes -FollowSymLinks -ExecCGI
+  AllowOverride None
+  Require all denied
+  <Files "${basename(contactHandler.script)}">
+    Require all granted
+    <IfModule mod_proxy_fcgi.c>
+      SetHandler "proxy:${contactHandler.fpm}"
+    </IfModule>
+  </Files>
+</Directory>
+`
+    : ''
+}`;
 }
 
+/** The last segment of a POSIX path, without pulling in a Node module: this
+ * file is also bundled for the browser build. */
+function basename(path: string): string {
+  const parts = path.split('/');
+  return parts[parts.length - 1] ?? path;
+}
+/** Everything before the last segment, with no trailing slash. */
+function dirname(path: string): string {
+  const cut = path.lastIndexOf('/');
+  return cut <= 0 ? '/' : path.slice(0, cut);
+}
 /**
  * The Apache fragment that makes every other host a redirect to the canonical
  * one. The target is the configured canonical origin, written into the file:

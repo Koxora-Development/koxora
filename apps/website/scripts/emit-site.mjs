@@ -217,14 +217,18 @@ const apacheProxy = server.renderApacheProxy({
   containerHost: server.site.container.host,
   containerPort: server.site.container.port,
   passThroughPrefixes: server.site.aliasPassThroughPrefixes,
-  // Only where the form is actually configured, and only when it posts to a
-  // path on this site rather than to another address.
-  contactService:
-    server.site.contactEndpoint && server.site.contactEndpoint.startsWith('/')
+  // Only where the form is actually configured, only when it posts to a path
+  // on this site rather than to another address, and only once the host has
+  // said where the PHP file and PHP-FPM actually are. Without all three there
+  // is no contact rule at all, rather than one pointing at a guess.
+  contactHandler:
+    server.site.contactEndpoint?.startsWith('/') &&
+    server.site.contactHandler.script &&
+    server.site.contactHandler.fpm
       ? {
           path: server.site.contactEndpoint,
-          host: server.site.contactService.host,
-          port: server.site.contactService.port,
+          script: server.site.contactHandler.script,
+          fpm: server.site.contactHandler.fpm,
         }
       : null,
 });

@@ -29,7 +29,9 @@
     "capture:website": "pnpm --filter @koxora/website screenshots",
     "check:docs": "node scripts/check-docs.mjs",
     "check:licenses": "node scripts/check-licenses.mjs",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm check:docs && pnpm check:licenses"
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm check:docs && pnpm check:licenses",
+    "contact:contract": "node packages/contact/scripts/emit-contract.mjs",
+    "website:apache": "node apps/website/scripts/check-apache.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

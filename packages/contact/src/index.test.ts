@@ -1,4 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { contractFixture } from './contract-fixture';
 import {
   buildContactMail,
   contactCategories,
@@ -207,5 +210,70 @@ describe('the checks that need no third party', () => {
     // A reader without JavaScript has no timestamp, and that is not spam.
     for (const openedAt of [undefined, '', 'abc', 0, -1, null])
       expect(detectSpam({ openedAt }), String(openedAt)).toBeNull();
+  });
+});
+/**
+ * The vectors below are the ones the PHP endpoint runs as well, from the same
+ * file. The browser's validation is a convenience for the reader and the
+ * server's is the control, so the two are written independently — but a
+ * reader told their message is fine and then told by the server that it is
+ * too long has been lied to once, which is what these prevent.
+ */
+describe('the vectors the server runs too', () => {
+  const vectors = JSON.parse(
+    readFileSync(
+      resolve(import.meta.dirname, '../fixtures/validation.json'),
+      'utf8',
+    ),
+  ) as {
+    vectors: {
+      name: string;
+      input: Record<string, unknown>;
+      errors: { field: string; problem: string }[];
+      submission: Record<string, string> | null;
+    }[];
+    spam: {
+      name: string;
+      honeypot: string;
+      openedAt: unknown;
+      elapsedMs: number | null;
+      reason: string | null;
+    }[];
+  };
+  it('has vectors to run at all, so an empty file cannot pass', () => {
+    expect(vectors.vectors.length).toBeGreaterThan(15);
+    expect(vectors.spam.length).toBeGreaterThan(5);
+  });
+  for (const vector of vectors.vectors)
+    it(`validates: ${vector.name}`, () => {
+      const result = validateContact(vector.input);
+      expect(result.errors).toEqual(vector.errors);
+      if (vector.submission === null) expect(result.submission).toBeUndefined();
+      else expect(result.submission).toEqual(vector.submission);
+    });
+  for (const vector of vectors.spam)
+    it(`inspects: ${vector.name}`, () => {
+      const openedAt = vector.openedAt;
+      const now =
+        vector.elapsedMs !== null && typeof openedAt === 'number'
+          ? openedAt + vector.elapsedMs
+          : 1_000_000_000;
+      expect(detectSpam({ honeypot: vector.honeypot, openedAt, now })).toBe(
+        vector.reason,
+      );
+    });
+});
+describe('the contract the server restates', () => {
+  it('is written out exactly as the module defines it', () => {
+    // `pnpm contact:contract` regenerates this. The PHP endpoint asserts its
+    // own constants against the same file, so a limit changed here and not
+    // there fails a build rather than reaching a reader.
+    const committed = JSON.parse(
+      readFileSync(
+        resolve(import.meta.dirname, '../fixtures/contract.json'),
+        'utf8',
+      ),
+    );
+    expect(committed).toEqual(JSON.parse(JSON.stringify(contractFixture())));
   });
 });
