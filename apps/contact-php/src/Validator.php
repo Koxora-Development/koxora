@@ -32,7 +32,7 @@ final class Validator
         $email = Text::single($input['email'] ?? null);
         $subject = Text::single($input['subject'] ?? null);
         $category = Text::single($input['category'] ?? null);
-        $message = Text::normalize($input['message'] ?? null, true);
+        $message = Text::multiline($input['message'] ?? null);
 
         foreach (
             [

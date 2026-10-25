@@ -155,23 +155,6 @@ final class Limits
         );
     }
 
-    /** @return array{clients: int, global: int, duplicates: int} */
-    public function counts(): array
-    {
-        return $this->state->transaction(
-            /**
-             * @param array<string, mixed> $state
-             *
-             * @return array{0: array<string, mixed>, 1: array{clients: int, global: int, duplicates: int}}
-             */
-            static fn (array $state, bool $recovered): array => [$state, [
-                'clients' => \count(self::mapOfLists($state['clients'] ?? null)),
-                'global' => \count(self::listOfTimes($state['global'] ?? null)),
-                'duplicates' => \count(self::mapOfTimes($state['duplicates'] ?? null)),
-            ]],
-        );
-    }
-
     private static function retryAfter(int $oldest, int $window, int $nowMs): int
     {
         return max(1, (int) ceil(($oldest + $window - $nowMs) / 1000));

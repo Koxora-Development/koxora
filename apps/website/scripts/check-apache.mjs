@@ -48,6 +48,16 @@ if (!apache || !fpm || !modules) {
   process.exit(0);
 }
 
+// Without the Composer dependencies the endpoint cannot start at all, and
+// Apache would answer every request with a PHP fatal error until this script
+// gave up waiting. Say what is missing instead.
+if (!existsSync(resolve(root, 'apps/contact-php/vendor/autoload.php'))) {
+  process.stderr.write(
+    'FAIL: the contact endpoint has no Composer dependencies. Run `composer install` in apps/contact-php.\n',
+  );
+  process.exit(1);
+}
+
 const port = 8411;
 const containerPort = 9452;
 // Apache refuses to serve as root, and it is right to. Where these checks

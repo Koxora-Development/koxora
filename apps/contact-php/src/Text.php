@@ -100,21 +100,21 @@ final class Text
 
     /**
      * Normalizes the line endings of a message body and trims it, without
-     * changing what was written. Single-line fields do not go through this:
-     * they are refused when they contain a line ending rather than rewritten,
-     * so a reader is never told their message was sent as typed when it was
-     * not.
+     * changing what was written.
+     *
+     * Only the message body goes through this, and deliberately so. A
+     * single-line field is checked by `single` as it was written: a line
+     * ending in a subject is refused rather than quietly turned into a space,
+     * because a reader must never be told their message was sent as typed
+     * when it was rewritten first.
      */
-    public static function normalize(mixed $value, bool $allowLineBreaks = false): string
+    public static function multiline(mixed $value): string
     {
         if (!\is_string($value)) {
             return '';
         }
-        $text = (string) preg_replace("/\r\n?/", "\n", $value);
 
-        return $allowLineBreaks
-            ? self::trim($text)
-            : self::trim(str_replace("\n", ' ', $text));
+        return self::trim((string) preg_replace("/\r\n?/", "\n", $value));
     }
 
     /** What a single-line field is checked as: trimmed, nothing else. */
