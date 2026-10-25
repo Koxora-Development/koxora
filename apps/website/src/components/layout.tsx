@@ -45,6 +45,10 @@ function LanguageOptions({ locale, route, t }: PageContext) {
               href={pathFor(route, candidate)}
               hrefLang={candidate}
               lang={candidate}
+              // An explicit selection, and the only thing that stores a
+              // language. Following a link that already names its language
+              // never changes what a reader chose before.
+              data-language-option={candidate}
               {...(current ? { 'aria-current': 'true' } : {})}
             >
               <span className="language-pictogram" aria-hidden="true">

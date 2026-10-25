@@ -17,7 +17,9 @@ const redirects = new Map(
   server.redirects().map((entry) => [entry.from, entry]),
 );
 const headers = securityHeaders(
-  createHash('sha256').update(server.themeScript).digest('base64'),
+  [server.themeScript, server.languageGatewayScript].map((text) =>
+    createHash('sha256').update(text).digest('base64'),
+  ),
   server.consentPolicyExtras(),
 );
 const types = new Map(
@@ -81,14 +83,19 @@ export function startServer({ dir, port, host = '127.0.0.1' }) {
         const url = new URL(request.url ?? '/', 'http://localhost');
         const pathname = url.pathname;
         if (pathname === '/') {
-          // The same language negotiation the generated hosting
-          // configuration performs, so the preview matches production.
-          const preferred = /^de/i.test(
-            request.headers['accept-language'] ?? '',
-          )
-            ? 'de'
-            : server.defaultLocale;
-          response.writeHead(302, { location: `/${preferred}/` });
+          // The documented negotiation: the stored choice first, then the
+          // languages of the request, then the fallback. The answer depends on
+          // the reader, so it is temporary, is never stored, and says on what
+          // it depends.
+          const { locale } = server.negotiateLocale({
+            cookie: request.headers.cookie,
+            acceptLanguage: request.headers['accept-language'],
+          });
+          response.writeHead(302, {
+            location: `/${locale}/${url.search}`,
+            'cache-control': 'no-store',
+            vary: 'Cookie, Accept-Language',
+          });
           response.end();
           return;
         }
@@ -101,7 +108,9 @@ export function startServer({ dir, port, host = '127.0.0.1' }) {
         const redirect =
           redirects.get(pathname) ?? redirects.get(`${pathname}/`);
         if (redirect) {
-          response.writeHead(redirect.status, { location: redirect.to });
+          response.writeHead(redirect.status, {
+            location: `${redirect.to}${url.search}`,
+          });
           response.end();
           return;
         }

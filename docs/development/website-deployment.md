@@ -33,9 +33,12 @@ apps/website/dist/          what the web server publishes
   images/                   icons, social previews, studio screenshots
   sitemap.xml robots.txt
 apps/website/dist-deploy/   configuration, not published content
-  apache-koxora-app.conf    virtual host fragment with headers and redirects
-  _headers _redirects       equivalents for a static platform
-  build-info.json           origin, flags, page count, inline script hash
+  nginx-koxora-website.conf   the website container: headers, redirects, language
+  apache-koxora-proxy.conf    canonical virtual host, forwards to the container
+  apache-koxora-aliases.conf  the alias domains, redirecting to the canonical one
+  apache-koxora-app.conf      virtual host fragment for serving the files directly
+  _headers _redirects         equivalents for a static platform
+  build-info.json             origin, flags, page count, inline script hashes
 ```
 
 `dist-deploy/` must never be copied into the published root.
@@ -67,7 +70,8 @@ The emitted site is static files. The hosting layer has to provide four things, 
 
 1. A directory index, so `/en/features/` serves `en/features/index.html`.
 2. The permanent redirects of the route table, including cross-language aliases and unprefixed paths, plus a trailing-slash normalization.
-3. A language redirect for `/` only, by request language, defaulting to English.
+3. A language redirect for `/` only, by the reader's stored choice and then by
+   the request language, defaulting to English, never cached.
 4. The not-found document with the status code 404.
 
 The generated Apache fragment contains the security headers, the cache rules and every redirect of the route table, 30 in the reviewed build. The content security policy pins the one inline script by hash, which `build-info.json` repeats, so it must be regenerated whenever the build changes.
@@ -76,11 +80,23 @@ The generated Apache fragment contains the security headers, the cache rules and
 # apps/website/dist-deploy/apache-koxora-app.conf, generated
 DirectoryIndex index.html
 ErrorDocument 404 /404.html
-RewriteCond %{HTTP:Accept-Language} ^de [NC]
-RewriteRule ^$ /de/ [R=302,L]
-RewriteRule ^$ /en/ [R=302,L]
-Redirect 301 /features/ /en/features/
+RewriteCond %{HTTP_COOKIE} (^|;)\s*koxora_language=de\s*(;|$) [NC]
+RewriteRule ^/?$ /de/ [R=302,L]
+RewriteCond %{HTTP:Accept-Language} "^\s*de(?:-[A-Za-z0-9]+)*\s*(?:[,;]|$)" [NC]
+RewriteRule ^/?$ /de/ [R=302,L]
+RewriteRule ^/?$ /en/ [R=302,L]
+RedirectMatch 301 "^\/features\/?$" "/en/features/"
 ```
+
+Since Website W2.0 the production layout is the container rather than this
+fragment: `nginx-koxora-website.conf` belongs in the website container and
+`apache-koxora-proxy.conf` in the canonical virtual host in front of it, with
+`apache-koxora-aliases.conf` for the other domains. What each file does, in
+what order it is installed and how to prove it afterwards is [the canonical
+domains runbook](website-canonical-domains.md); the language decision itself is
+described in [the W2.0 notes](../platform/website-w2-0.md). Install the NGINX
+file only after `nginx -t` accepts it: a rejected configuration stops the
+container from starting.
 
 Caching: hashed assets under `/assets/` may be cached for a year and treated as immutable; images under `/images/` are cached for a day and revalidated, because their names are stable; every HTML document must revalidate, so that a new release is visible immediately. When a content delivery network sits in front of the host, its cache must be purged for HTML on release, or configured to honour the same rules.
 
@@ -114,21 +130,24 @@ Paths, user accounts and virtual host names above are placeholders. Confirm the 
 
 ## 6. Checks after a deployment
 
-| Check                               | Expectation                                                                                     |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `/`                                 | Redirects to a language, by request language                                                    |
-| `/en/` and `/de/`                   | 200, correct language, correct canonical address                                                |
-| `/en/features`                      | 301 to `/en/features/`                                                                          |
-| `/de/legal-notice/`                 | 301 to `/de/impressum/`                                                                         |
-| An unknown address under `/de/`     | 404 with the German not-found document                                                          |
-| An unknown address under `/en/`     | 404 with the English not-found document                                                         |
-| `/sitemap.xml` and `/robots.txt`    | 200, sitemap lists every address of the release                                                 |
-| Response headers                    | Security headers present, assets immutable, HTML revalidating                                   |
-| Content security policy             | Matches `dist-deploy/build-info.json` of the deployed release, including the inline script hash |
-| `/_headers`, `/.vite/manifest.json` | 404; build artefacts are not public                                                             |
-| `/.well-known/security.txt`         | 200, plain text, names the security mailbox and an expiry date in the future                    |
-| Network panel on any page           | No request leaves the site's own origin                                                         |
-| Studio address                      | Still reachable, offline start still works, local projects still present                        |
+| Check                                 | Expectation                                                                                     |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `/`                                   | Redirects to a language, by stored choice and then request language, `no-store`, with `Vary`    |
+| `/` with `Cookie: koxora_language=de` | Redirects to `/de/` whatever the request language asks for                                      |
+| `/en/features/` with that cookie      | 200 in English; an address that names its language is never negotiated                          |
+| Each alias domain, deep path, query   | Permanent redirect to the same path on the canonical host, certificates valid, no loop          |
+| `/en/` and `/de/`                     | 200, correct language, correct canonical address                                                |
+| `/en/features`                        | 301 to `/en/features/`                                                                          |
+| `/de/legal-notice/`                   | 301 to `/de/impressum/`                                                                         |
+| An unknown address under `/de/`       | 404 with the German not-found document                                                          |
+| An unknown address under `/en/`       | 404 with the English not-found document                                                         |
+| `/sitemap.xml` and `/robots.txt`      | 200, sitemap lists every address of the release                                                 |
+| Response headers                      | Security headers present, assets immutable, HTML revalidating                                   |
+| Content security policy               | Matches `dist-deploy/build-info.json` of the deployed release, including the inline script hash |
+| `/_headers`, `/.vite/manifest.json`   | 404; build artefacts are not public                                                             |
+| `/.well-known/security.txt`           | 200, plain text, names the security mailbox and an expiry date in the future                    |
+| Network panel on any page             | No request leaves the site's own origin                                                         |
+| Studio address                        | Still reachable, offline start still works, local projects still present                        |
 
 The last row matters most: a website release must never be able to affect the studio's cache or a reader's local projects.
 

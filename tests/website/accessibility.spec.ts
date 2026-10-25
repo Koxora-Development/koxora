@@ -186,7 +186,7 @@ test.describe('accessibility', () => {
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.locator('.primary-nav a')).toHaveCount(5);
     await page.goto('http://127.0.0.1:4175/de/datenschutz-einstellungen/');
-    await expect(page.locator('.data-table tbody tr')).toHaveCount(1);
+    await expect(page.locator('.data-table tbody tr')).toHaveCount(2);
     await expect(page.locator('.consent-noscript')).toBeVisible();
     await context.close();
   });

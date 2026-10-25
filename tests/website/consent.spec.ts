@@ -47,8 +47,13 @@ test.describe('deployment without consent-requiring technology', () => {
       'Nothing to consent to right now',
     );
     await expect(page.locator('[data-consent-toggle]')).toHaveCount(0);
-    // Only the appearance preference can be written in this deployment.
-    await expect(page.locator('.data-table tbody tr')).toHaveCount(1);
+    // Only the two settings a reader sets themselves can be written in this
+    // deployment, and both are listed with purpose, place and legal basis.
+    const rows = page.locator('.data-table tbody tr');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText('Appearance preference');
+    await expect(rows.nth(1)).toContainText('Language choice');
+    await expect(rows.nth(1)).toContainText('First-party cookie');
     await expect(page.locator('.data-table')).not.toContainText('Hetzner');
     await expect(manager.locator('[data-consent-state]')).toContainText(
       'strictly necessary',
@@ -58,7 +63,10 @@ test.describe('deployment without consent-requiring technology', () => {
     page,
   }) => {
     await page.goto('/de/datenschutz/');
-    await expect(page.locator('.data-table tbody tr')).toHaveCount(1);
+    const rows = page.locator('.data-table tbody tr');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText('Darstellungseinstellung');
+    await expect(rows.nth(1)).toContainText('Sprachauswahl');
     await expect(page.locator('main')).toContainText('§ 25 Abs. 2 Nr. 2');
     await expect(page.locator('main')).toContainText(
       'kein Einwilligungsbanner',

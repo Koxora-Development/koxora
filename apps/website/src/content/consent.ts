@@ -5,9 +5,10 @@ import { site } from '../site';
  *
  * German law requires consent for storing or reading information on a user
  * device only where that is not strictly necessary for the service the user
- * asked for (section 25(2) no. 2 TDDDG). The W1 deployment stores only an
- * appearance preference and, once a decision exists, the consent record
- * itself, so no first-visit banner is shown. Optional categories stay
+ * asked for (section 25(2) no. 2 TDDDG). This deployment stores an appearance
+ * preference, a language a reader selected in the language menu and, once a
+ * decision exists, the consent record itself, so no first-visit banner is
+ * shown. Optional categories stay
  * defined, tested and switched off until a deployment really uses one, which
  * is what `site.optionalConsent` declares.
  */
@@ -59,6 +60,18 @@ export function consentCategories(
           storageKey: 'consent.item.theme.storage',
           provider: koxora,
           legalBasisKey: 'consent.legalBasis.necessary',
+          active: true,
+        },
+        {
+          id: 'language',
+          nameKey: 'consent.item.language.name',
+          purposeKey: 'consent.item.language.purpose',
+          storageKey: 'consent.item.language.storage',
+          provider: koxora,
+          legalBasisKey: 'consent.legalBasis.necessary',
+          // Written only when a reader presses an entry of the language
+          // control. Opening an address that names its language stores
+          // nothing, and nothing is stored before a choice is made.
           active: true,
         },
         {

@@ -11,6 +11,12 @@ import {
   type ConsentRecord,
   type ConsentRuntimeConfig,
 } from './consent';
+import {
+  languageCookieAttributes,
+  languageCookieName,
+  languageStorageKey,
+  storedLocale,
+} from '../language';
 const themeKey = 'koxora.website.theme';
 function safeStorage(): Storage | null {
   try {
@@ -76,6 +82,44 @@ function setupTheme(): void {
       });
   } catch {
     // An older browser simply keeps the appearance it started with.
+  }
+}
+/**
+ * Remembering an explicit language choice. Only pressing an entry of the
+ * language control stores anything: opening a link that already names its
+ * language, including a shared deep link, leaves an earlier choice alone,
+ * and nothing is stored before a reader has chosen at all.
+ *
+ * The value goes into a first-party cookie, because the address without a
+ * language is answered by the web server, which cannot read device storage.
+ * The same value is mirrored into device storage for a browser that refuses
+ * cookies; the gateway document reads either one.
+ */
+function setupLanguagePreference(): void {
+  const remember = (locale: string) => {
+    try {
+      document.cookie = `${languageCookieName}=${locale}; ${languageCookieAttributes(
+        window.location.protocol === 'https:',
+      )}`;
+    } catch {
+      // A refused cookie only means the choice is not remembered.
+    }
+    try {
+      storage?.setItem(languageStorageKey, locale);
+    } catch {
+      // Same for refused device storage.
+    }
+  };
+  for (const link of document.querySelectorAll<HTMLAnchorElement>(
+    '[data-language-option]',
+  )) {
+    // A plain click listener covers the keyboard as well: activating a link
+    // with Enter dispatches one. The write is synchronous, so it completes
+    // before the browser leaves the page.
+    link.addEventListener('click', () => {
+      const locale = storedLocale(link.dataset.languageOption);
+      if (locale) remember(locale);
+    });
   }
 }
 function setupMenu(): void {
@@ -339,6 +383,7 @@ function setupActiveSection(): void {
   document.documentElement.dataset.ready = 'true';
 }
 setupTheme();
+setupLanguagePreference();
 setupMenu();
 setupLanguageMenu();
 setupConsent();
