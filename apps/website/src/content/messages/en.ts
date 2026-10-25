@@ -338,6 +338,8 @@ export const en = {
     'A local-first studio for diagrams, mind maps and data visualization.',
   'footer.contact': 'Contact',
   'footer.contactSupport': 'Product and support',
+  'footer.supportTask': 'Questions about Koxora',
+  'footer.securityTask': 'Found a security problem?',
   'footer.contactPrivacy': 'Data protection',
   'footer.contactLegal': 'Legal',
   'footer.copyright': '© {year} Koxora. A project in development.',
@@ -346,7 +348,8 @@ export const en = {
   'footer.openConsent': 'Privacy settings',
   'footer.repository': 'GitHub repository',
   'footer.issues': 'Issues and feedback',
-  'footer.security': 'Security disclosure',
+  'footer.security': 'Report a vulnerability',
+  'footer.securityPolicyNote': 'The policy says what to send first.',
   'footer.backToTop': 'Back to top',
 
   'consent.banner.title': 'Your privacy choices',
@@ -726,6 +729,6 @@ export const en = {
     'Koxora Studio is a working technical preview. There is no public release and no download yet.',
   'project.statusMilestoneValue.published':
     'Studio phase 2.4 merged \u00b7 Studio 2.5 in progress',
-  'legalNotice.contact.security': 'Security reports',
+  'legalNotice.contact.security': 'First contact about a security problem',
 } as const;
 export type WebsiteMessageKey = keyof typeof en;

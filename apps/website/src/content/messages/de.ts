@@ -342,6 +342,8 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Ein Local-first-Studio für Diagramme, Mindmaps und Datenvisualisierung.',
   'footer.contact': 'Kontakt',
   'footer.contactSupport': 'Produkt und Support',
+  'footer.supportTask': 'Fragen zu Koxora',
+  'footer.securityTask': 'Sicherheitsproblem gefunden?',
   'footer.contactPrivacy': 'Datenschutz',
   'footer.contactLegal': 'Rechtliches',
   'footer.copyright': '© {year} Koxora. Ein Projekt in Entwicklung.',
@@ -350,7 +352,8 @@ export const de: Record<WebsiteMessageKey, string> = {
   'footer.openConsent': 'Datenschutz-Einstellungen',
   'footer.repository': 'GitHub-Repository',
   'footer.issues': 'Issues und Rückmeldungen',
-  'footer.security': 'Sicherheitsmeldungen',
+  'footer.security': 'Sicherheitslücke melden',
+  'footer.securityPolicyNote': 'Die Richtlinie sagt, was zuerst zu senden ist.',
   'footer.backToTop': 'Nach oben',
 
   'consent.banner.title': 'Ihre Datenschutz-Entscheidung',
@@ -737,5 +740,5 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Koxora Studio ist eine funktionierende technische Vorschau. Es gibt noch keine öffentliche Veröffentlichung und keinen Download.',
   'project.statusMilestoneValue.published':
     'Studio-Phase 2.4 zusammengeführt \u00b7 Studio 2.5 in Arbeit',
-  'legalNotice.contact.security': 'Sicherheitsmeldungen',
+  'legalNotice.contact.security': 'Erstkontakt bei einem Sicherheitsproblem',
 };

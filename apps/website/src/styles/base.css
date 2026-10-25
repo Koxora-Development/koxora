@@ -20,6 +20,9 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  /* An address with a fragment, the skip link and the back-to-top link all
+     scroll to an element. The sticky header would otherwise cover it. */
+  scroll-padding-top: calc(var(--header-height) + 16px);
 }
 body {
   margin: 0;
@@ -34,7 +37,10 @@ body {
     'Segoe UI',
     sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  /* `clip` rather than `hidden`: `hidden` would make the body a scroll
+     container, and a sticky header inside a scroll container that never
+     scrolls does not stick. */
+  overflow-x: clip;
 }
 body::before {
   content: '';

@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { allPaths, openNavigation, pages, status } from './helpers';
+import { catalog } from '../../apps/website/src/content/catalog';
+import { site } from '../../apps/website/src/site';
+const repositoryUrl = site.repositoryUrl;
 test.describe('navigation and routing', () => {
   test('every public page answers and carries the shared shell', async ({
     page,
@@ -131,9 +134,12 @@ test.describe('navigation and routing', () => {
   }) => {
     for (const locale of ['en', 'de'] as const) {
       await page.goto(`/${locale}/`);
-      await expect(
-        page.locator('footer a[href="mailto:security@koxora.app"]'),
-      ).toHaveCount(1);
+      // The footer sends a reporter to the policy rather than to the mailbox,
+      // because the policy says what is safe to put in a first message while
+      // delivery and access to that mailbox are untested.
+      await expect(page.locator('footer a[href$="SECURITY.md"]')).toHaveCount(
+        1,
+      );
     }
     await page.goto('/de/impressum/');
     await expect(page.locator('main')).toContainText('security@koxora.app');
@@ -175,6 +181,54 @@ test.describe('navigation and routing', () => {
       await expect(
         page.locator(`.site-header .language a[href="${entry.en}"]`),
       ).toHaveCount(1);
+    }
+  });
+});
+test.describe('footer', () => {
+  test('groups its links by what a reader came to do', async ({ page }) => {
+    for (const locale of ['en', 'de'] as const) {
+      await page.goto(locale === 'en' ? '/en/' : '/de/');
+      const columns = page.locator('.site-footer .footer-column');
+      await expect(columns, locale).toHaveCount(4);
+      // The repository belongs with the other resources, not with the
+      // addresses, and appears exactly once in the footer.
+      const repository = page.locator(
+        `.site-footer a[href="${repositoryUrl}"]`,
+      );
+      await expect(repository, locale).toHaveCount(1);
+      await expect(
+        columns.nth(1).locator(`a[href="${repositoryUrl}"]`),
+        locale,
+      ).toHaveCount(1);
+    }
+  });
+  test('tells a support question and a security report apart', async ({
+    page,
+  }) => {
+    for (const locale of ['en', 'de'] as const) {
+      await page.goto(locale === 'en' ? '/en/' : '/de/');
+      const contact = page.locator('.footer-column-contact');
+      const terms = contact.locator('dt');
+      await expect(terms, locale).toHaveCount(2);
+      await expect(terms.nth(0), locale).toHaveText(
+        catalog.translate(locale, 'footer.supportTask'),
+      );
+      await expect(terms.nth(1), locale).toHaveText(
+        catalog.translate(locale, 'footer.securityTask'),
+      );
+      // Support is a working address; the security entry is the policy,
+      // because the mailbox is not an established channel for details yet.
+      await expect(contact.locator('a[href^="mailto:"]'), locale).toHaveCount(
+        1,
+      );
+      const security = contact.locator('dd').nth(1).locator('a');
+      await expect(security, locale).toHaveAttribute('href', /SECURITY\.md$/);
+      await expect(security, locale).toHaveText(
+        catalog.translate(locale, 'footer.security'),
+      );
+      await expect(page.locator('.site-footer'), locale).not.toContainText(
+        'security@koxora.app',
+      );
     }
   });
 });

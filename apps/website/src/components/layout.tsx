@@ -167,11 +167,14 @@ function FooterColumn({
   ids,
   locale,
   t,
+  children,
 }: {
   title: string;
   ids: RouteId[];
   locale: Locale;
   t: Translate;
+  /** Further entries of the same group, such as an address outside the site. */
+  children?: ReactNode;
 }) {
   return (
     <div className="footer-column">
@@ -182,6 +185,7 @@ function FooterColumn({
             <a href={pathFor(id, locale)}>{t(navLabelKeys[id])}</a>
           </li>
         ))}
+        {children}
       </ul>
     </div>
   );
@@ -213,7 +217,13 @@ function Footer(context: PageContext) {
               ids={navRoutes('resources').map((entry) => entry.id)}
               locale={locale}
               t={t}
-            />
+            >
+              <li>
+                <a href={site.repositoryUrl} rel="noopener">
+                  {t('footer.repository')}
+                </a>
+              </li>
+            </FooterColumn>
             <div className="footer-column">
               <h2>{t('nav.groupLegal')}</h2>
               <ul role="list">
@@ -231,30 +241,33 @@ function Footer(context: PageContext) {
                 ))}
               </ul>
             </div>
-            <div className="footer-column">
+            {/* Two different errands, named so a reader can tell them apart:
+                an ordinary question goes to the support mailbox, a security
+                problem starts at the policy, which says what is safe to send
+                before a private channel exists. */}
+            <div className="footer-column footer-column-contact">
               <h2>{t('footer.contact')}</h2>
-              <ul role="list">
-                <li>
-                  <a href={`mailto:${site.email.support}`}>
-                    {site.email.support}
-                  </a>
-                </li>
-                <li>
-                  <a href={site.repositoryUrl} rel="noopener">
-                    {t('footer.repository')}
-                  </a>
-                </li>
-                <li>
-                  <a href={`mailto:${site.email.security}`}>
-                    {site.email.security}
-                  </a>
-                </li>
-                <li>
-                  <a href={site.securityUrl} rel="noopener">
-                    {t('footer.security')}
-                  </a>
-                </li>
-              </ul>
+              <dl className="footer-contacts">
+                <div>
+                  <dt>{t('footer.supportTask')}</dt>
+                  <dd>
+                    <a href={`mailto:${site.email.support}`}>
+                      {site.email.support}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t('footer.securityTask')}</dt>
+                  <dd>
+                    <a href={site.securityUrl} rel="noopener">
+                      {t('footer.security')}
+                    </a>
+                    <span className="footer-contact-note">
+                      {t('footer.securityPolicyNote')}
+                    </span>
+                  </dd>
+                </div>
+              </dl>
             </div>
           </nav>
         </div>

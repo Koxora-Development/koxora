@@ -76,6 +76,34 @@ const shots = [
     menu: true,
     language: true,
   },
+  // The header stays at the top of a scrolled page, over the content.
+  {
+    file: 'sticky-header-en',
+    url: `${base}/en/`,
+    viewport: 'desktop',
+    scrollTo: 1400,
+    clip: { x: 0, y: 0, width: 1280, height: 320 },
+  },
+  // The footer, grouped by errand, in both languages and on the phone.
+  {
+    file: 'footer-en-desktop',
+    url: `${base}/en/`,
+    viewport: 'desktop',
+    element: '.site-footer',
+  },
+  {
+    file: 'footer-de-desktop',
+    url: `${base}/de/`,
+    viewport: 'desktop',
+    theme: 'light',
+    element: '.site-footer',
+  },
+  {
+    file: 'footer-de-mobile',
+    url: `${base}/de/`,
+    viewport: 'mobile',
+    element: '.site-footer',
+  },
   {
     file: 'home-de-mobile',
     url: `${base}/de/`,
@@ -176,10 +204,15 @@ try {
       if (shot.language) await page.locator('[data-language-toggle]').click();
       if (shot.dialog)
         await page.locator('[data-consent-action="customize"]').click();
+      if (shot.element)
+        await page.locator(shot.element).scrollIntoViewIfNeeded();
+      if (shot.scrollTo !== undefined)
+        await page.evaluate((top) => window.scrollTo(0, top), shot.scrollTo);
       await page.waitForTimeout(250);
-      await page.screenshot({
+      const target = shot.element ? page.locator(shot.element) : page;
+      await target.screenshot({
         path: `${outDir}/${shot.file}.png`,
-        fullPage: Boolean(shot.full),
+        ...(shot.element ? {} : { fullPage: Boolean(shot.full) }),
         ...(shot.clip ? { clip: shot.clip } : {}),
       });
       written.push(shot.file);

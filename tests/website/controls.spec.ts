@@ -167,6 +167,45 @@ test.describe('header controls', () => {
     await expect(page).toHaveURL(/\/de\/$/);
     await context.close();
   });
+  test('the header stays visible while the page scrolls', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      (testInfo.project.use.viewport?.height ?? 0) <= 520,
+      'Short viewports deliberately let the header scroll away.',
+    );
+    await page.goto('/en/');
+    const header = page.locator('.site-header');
+    await page.evaluate(() => window.scrollTo(0, 1400));
+    await expect
+      .poll(async () => Math.round((await header.boundingBox())!.y))
+      .toBe(0);
+    // Nothing above the header clips what it opens.
+    await openLanguageMenu(page);
+    await expect(page.locator('[data-language-menu] a').last()).toBeVisible();
+  });
+  test('an address with a fragment lands below the header', async ({
+    page,
+  }) => {
+    await page.goto('/en/');
+    await page.evaluate(() => {
+      location.hash = '#roadmap';
+    });
+    const header = (await page.locator('.site-header').boundingBox())!;
+    const floor = header.y < 0 ? 0 : Math.round(header.y + header.height) - 1;
+    await expect
+      .poll(async () => (await page.locator('#roadmap').boundingBox())!.y)
+      .toBeGreaterThanOrEqual(floor);
+  });
+  test('the skip link is not hidden behind the sticky header', async ({
+    page,
+  }) => {
+    await page.goto('/en/features/');
+    await page.keyboard.press('Tab');
+    const skip = page.locator('.skip-link');
+    await expect(skip).toBeFocused();
+    await expect(skip).toBeVisible();
+  });
   test('the appearance control offers the appearance it switches to', async ({
     page,
   }) => {

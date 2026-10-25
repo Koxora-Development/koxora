@@ -30,6 +30,8 @@
   /* Metrics of the header controls that the studio shares. They repeat
      `controlMetrics` of @koxora/ui/control-icons, and a unit test fails if
      the two ever disagree. */
+  /* Height the sticky header keeps, used to keep anchors clear of it. */
+  --header-height: 76px;
   --control-size: 36px;
   --control-touch: 44px;
   --control-icon: 17px;
