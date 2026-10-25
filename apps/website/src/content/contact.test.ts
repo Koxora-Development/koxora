@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { contactPolicyExtras } from './contact';
 import { locales, pathFor } from '../routes';
+import { renderApacheContact, renderApacheProxy } from '../deploy-config';
 describe('what the contact form adds to the content security policy', () => {
   const origin = 'https://koxora.app';
   it('adds nothing at all when no delivery service is configured', () => {
@@ -76,5 +77,60 @@ describe('the result pages a submission without JavaScript lands on', () => {
     // So a renamed constant cannot make the assertions above vacuous.
     expect(config).toContain('KOXORA_CONTACT_RESULT_ACCEPTED_EN');
     expect(config).toContain('KOXORA_CONTACT_RESULT_PROBLEM_DE');
+  });
+});
+describe('the Apache rules the contact endpoint needs', () => {
+  const handler = {
+    path: '/api/contact',
+    script: '/opt/koxora-contact/public/contact.php',
+    fpm: 'unix:/run/php/php8.4-fpm.sock|fcgi://localhost',
+    canonicalHost: 'koxora.app',
+  };
+  const contact = renderApacheContact(handler);
+  const proxy = renderApacheProxy({
+    canonicalHost: 'koxora.app',
+    containerHost: '127.0.0.1',
+    containerPort: 9402,
+    passThroughPrefixes: ['/.well-known/acme-challenge/'],
+  });
+  it('adds no proxy rule for the website', () => {
+    // The running deployment already has a working reverse proxy. A second
+    // one here would either duplicate it or overwrite it, and the Product
+    // Owner asked for neither.
+    expect(contact).not.toContain('127.0.0.1:9402');
+    expect(contact).not.toContain('ProxyPass / ');
+    expect(contact).not.toContain('ProxyPassReverse');
+  });
+  it('keeps the contact rules out of the virtual host fragment', () => {
+    // One rule, one file: the two can never both define the same thing, so
+    // installing both cannot duplicate an Alias or a handler.
+    expect(proxy).not.toContain(handler.path);
+    expect(proxy).not.toContain('SetHandler');
+    expect(proxy).not.toContain('Alias ');
+  });
+  it('says it must live inside one virtual host, and why', () => {
+    // Enabled server-wide it would map the path on every site the server
+    // has. A real Apache check proves that; this pins the warning that
+    // stops an operator reaching for `a2enconf` in the first place.
+    expect(contact).toContain('<VirtualHost>');
+    expect(contact).toContain('a2enconf');
+    expect(contact).toContain('conf-enabled');
+  });
+  it('excludes the path from the catch-all and says order matters', () => {
+    expect(contact).toContain(`ProxyPass ${handler.path} !`);
+    expect(contact).toContain('BEFORE');
+  });
+  it('denies the directory and grants back exactly one file', () => {
+    expect(contact).toContain('<Directory "/opt/koxora-contact/public">');
+    expect(contact).toContain('Require all denied');
+    expect(contact).toContain('<Files "contact.php">');
+    // The handler is scoped to that directory, never to the whole host.
+    const directory = contact.slice(contact.indexOf('<Directory'));
+    expect(directory).toContain(`SetHandler "proxy:${handler.fpm}"`);
+    expect(contact.slice(0, contact.indexOf('<Directory'))).not.toContain(
+      'SetHandler',
+    );
+    expect(contact).toContain('Options -Indexes -FollowSymLinks -ExecCGI');
+    expect(contact).toContain('AllowOverride None');
   });
 });

@@ -330,23 +330,12 @@ export function renderApacheProxy({
   containerHost,
   containerPort,
   passThroughPrefixes,
-  contactHandler,
   generator = 'apps/website/scripts/emit-site.mjs',
 }: {
   canonicalHost: string;
   containerHost: string;
   containerPort: number;
   passThroughPrefixes: readonly string[];
-  /**
-   * Set when the contact endpoint is configured. The path is handed to
-   * PHP-FPM before the catch-all, so a submission never reaches the website
-   * container, which serves static files and nothing else.
-   *
-   * `script` is the single file the web server may execute and `fpm` is the
-   * address it is handed to. Both come from the host, because a guessed
-   * deployment path generates a rule that points at nothing.
-   */
-  contactHandler?: { path: string; script: string; fpm: string } | null;
   generator?: string;
 }): string {
   return `${header(generator)}
@@ -365,32 +354,78 @@ export function renderApacheProxy({
   # them. They are excluded before the catch-all, because the first matching
   # ProxyPass wins.
 ${passThroughPrefixes.map((prefix) => `  ProxyPass ${prefix} !`).join('\n')}
-${
-  contactHandler
-    ? `  # The contact submission path is handled by PHP on this host, not by the
-  # website container. It is excluded from the catch-all first, because the
-  # first matching ProxyPass wins, and the rule below then maps it.
-  ProxyPass ${contactHandler.path} !
-`
-    : ''
-}  ProxyPass / http://${containerHost}:${containerPort}/
+  ProxyPass / http://${containerHost}:${containerPort}/
   ProxyPassReverse / http://${containerHost}:${containerPort}/
   <IfModule mod_headers.c>
     RequestHeader set X-Forwarded-Proto "https"
   </IfModule>
 </IfModule>
-${
-  contactHandler
-    ? `
-# One address, one file, one handler. The Alias maps exactly ${contactHandler.path}
-# onto the single PHP file of the contact endpoint; its own code, its settings
-# and its dependencies live outside every document root, so there is nothing
-# else here to reach, download, execute or list. No DocumentRoot is changed
-# and no directory is exposed.
-<IfModule mod_alias.c>
-  Alias ${contactHandler.path} "${contactHandler.script}"
+`;
+}
+
+/**
+ * The contact endpoint's Apache rules, and nothing else.
+ *
+ * This is a separate file from the virtual host fragment on purpose, and the
+ * reason is worth stating because getting it wrong is a security problem
+ * rather than a misconfiguration.
+ *
+ * The rules below have to live **inside one `<VirtualHost>`** — the HTTPS host
+ * of the canonical domain. Enabled server-wide instead, with `a2enconf` or a
+ * file in `conf-enabled`, they would apply to every virtual host the server
+ * has: `/api/contact` would be aliased on unrelated sites, and anything else
+ * in the same file would leak with it. The earlier draft of the operator
+ * document offered exactly that as a fallback, and the Product Owner was
+ * right to have it removed.
+ *
+ * It also deliberately carries **no proxy rule for the website**. The running
+ * deployment already has a working reverse proxy to the container; this file
+ * adds one exclusion to it and maps one path, so nothing is set up twice and
+ * nothing already working is overwritten.
+ *
+ * `script` is the single file the web server may execute and `fpm` is the
+ * address it is handed to. Both come from the host, because a guessed
+ * deployment path generates a rule that points at nothing.
+ */
+export function renderApacheContact({
+  path,
+  script,
+  fpm,
+  canonicalHost,
+  generator = 'apps/website/scripts/emit-site.mjs',
+}: {
+  path: string;
+  script: string;
+  fpm: string;
+  canonicalHost: string;
+  generator?: string;
+}): string {
+  return `${header(generator)}
+# The contact endpoint of ${canonicalHost}.
+#
+# INCLUDE THIS INSIDE THE HTTPS <VirtualHost> OF ${canonicalHost}, AND NOWHERE
+# ELSE. It must not be enabled server-wide: a file in conf-enabled, or
+# a2enconf, applies to every virtual host on this server, and ${path} would
+# then be mapped on sites that have nothing to do with Koxora.
+#
+# Include it BEFORE that host's existing "ProxyPass /" line. The first
+# matching ProxyPass wins, so an exclusion that comes after the catch-all
+# never fires and every submission would reach the static website container
+# instead of PHP.
+#
+# It adds no proxy rule for the website itself. The existing reverse proxy to
+# the container stays exactly as it is.
+
+<IfModule mod_proxy.c>
+  # Keep the submission path away from the catch-all that serves the site.
+  ProxyPass ${path} !
 </IfModule>
-<Directory "${dirname(contactHandler.script)}">
+<IfModule mod_alias.c>
+  # One address, one file. The endpoint's code, settings and dependencies are
+  # outside every document root, so there is nothing else here to reach.
+  Alias ${path} "${script}"
+</IfModule>
+<Directory "${dirname(script)}">
   # Everything in this directory is denied, and one file is granted back.
   # Both the permission and the handler are scoped to this directory on
   # purpose: a <Files> section at the top of a virtual host would apply to
@@ -399,16 +434,14 @@ ${
   Options -Indexes -FollowSymLinks -ExecCGI
   AllowOverride None
   Require all denied
-  <Files "${basename(contactHandler.script)}">
+  <Files "${basename(script)}">
     Require all granted
     <IfModule mod_proxy_fcgi.c>
-      SetHandler "proxy:${contactHandler.fpm}"
+      SetHandler "proxy:${fpm}"
     </IfModule>
   </Files>
 </Directory>
-`
-    : ''
-}`;
+`;
 }
 
 /** The last segment of a POSIX path, without pulling in a Node module: this

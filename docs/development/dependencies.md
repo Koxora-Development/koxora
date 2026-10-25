@@ -15,7 +15,7 @@ Use `pnpm install --frozen-lockfile`, `pnpm audit --audit-level high`, and `pnpm
 
 ## Website W2.2 runtime addition
 
-The contact endpoint is PHP under the host's existing PHP-FPM ([ADR 0018](../adr/0018-contact-delivery.md)), so its dependencies are resolved by Composer and are recorded in `apps/contact-php/composer.lock`. They face the same licence policy as the JavaScript ones: `pnpm check:licenses` now reads that lock file as well, and a package with a licence outside the allowlist, or with none declared, fails the check exactly as a JavaScript package would. All 41 entries, runtime and development, are MIT.
+The contact endpoint is PHP under the host's existing PHP-FPM ([ADR 0019](../adr/0019-contact-delivery.md)), so its dependencies are resolved by Composer and are recorded in `apps/contact-php/composer.lock`. They face the same licence policy as the JavaScript ones: `pnpm check:licenses` now reads that lock file as well, and a package with a licence outside the allowlist, or with none declared, fails the check exactly as a JavaScript package would. All 41 entries, runtime and development, are MIT.
 
 `symfony/mailer` **7.4.19** delivers over SMTP. It was chosen over hand-written SMTP because the credential travels on that connection, and STARTTLS, authentication and dot-stuffing are details worth not re-implementing.
 

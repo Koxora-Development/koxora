@@ -259,6 +259,7 @@ export {
 };
 export {
   renderApacheAliases,
+  renderApacheContact,
   renderApacheProxy,
   renderApacheStatic,
   renderNginx,

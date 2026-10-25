@@ -1,6 +1,6 @@
 # The contact form, and the endpoint behind it
 
-**Status: implemented for review, 2026-10-25. Nothing is activated.** The endpoint refuses to deliver until `KOXORA_CONTACT_ENABLED` is set, no Apache or TinyCP setting on the production host has been changed, and no SMTP credential exists anywhere in this repository. This is Website W2.2 of [the W2 plan](../platform/website-w2-plan.md), implementing [Issue #30](https://github.com/Koxora-Development/koxora/issues/30), and it follows the Product Owner's decision of 2026-10-25 to use the host's existing PHP-FPM rather than a service of its own — see [ADR 0018](../adr/0018-contact-delivery.md).
+**Status: implemented for review, 2026-10-25. Nothing is activated.** The endpoint refuses to deliver until `KOXORA_CONTACT_ENABLED` is set, no Apache or TinyCP setting on the production host has been changed, and no SMTP credential exists anywhere in this repository. This is Website W2.2 of [the W2 plan](../platform/website-w2-plan.md), implementing [Issue #30](https://github.com/Koxora-Development/koxora/issues/30), and it follows the Product Owner's decision of 2026-10-25 to use the host's existing PHP-FPM rather than a service of its own — see [ADR 0019](../adr/0019-contact-delivery.md).
 
 Related: [the canonical domains runbook](website-canonical-domains.md). The container and release documents of Website W2.4a and W2.4b are on their own branches and are not linked from here, because a link to a document this branch does not carry is a broken one.
 
@@ -131,7 +131,7 @@ sudo php-fpm8.4 -t && sudo systemctl reload php8.4-fpm
 
 A separate pool running as its own account is better still, and is the right choice if anything else on this host uses PHP. It costs one more file and makes the endpoint's reach exactly one directory.
 
-### Step 5 — Generate the Apache fragment
+### Step 5 — Generate the contact fragment, and only that
 
 ```bash
 cd /opt/koxora-website/repo
@@ -140,31 +140,43 @@ KOXORA_SITE_CONTACT_ENDPOINT=/api/contact \
 KOXORA_SITE_CONTACT_SCRIPT=/opt/koxora-contact/public/contact.php \
 KOXORA_SITE_CONTACT_FPM='unix:/run/php/php8.4-fpm.sock|fcgi://localhost' \
   pnpm website:build
-cat apps/website/dist-deploy/apache-koxora-proxy.conf
+cat apps/website/dist-deploy/apache-koxora-contact.conf
 ```
 
-Read it before installing it. It adds one exclusion to the existing proxy rules and one `Alias`, and it denies the endpoint's directory except for that one file.
+**`apache-koxora-contact.conf` is the only file this step installs.** It contains one `ProxyPass` exclusion, one `Alias` and one `<Directory>` block, and **no proxy rule for the website at all** — the reverse proxy to `127.0.0.1:9402` that is already running is not touched, not regenerated and not set up a second time.
 
-### Step 6 — Install it the way TinyCP allows
+The same build also writes `apache-koxora-proxy.conf`. **Do not install that one.** It is the canonical form of the whole virtual host, kept in the repository so the running configuration can be compared against it in review; installing it would duplicate or overwrite a proxy that already works. A test asserts it carries no contact rule, so the two files can never both define the same thing.
 
-**Never replace a generated TinyCP virtual host.** Use whichever of these TinyCP offers on this installation, in this order of preference:
+### Step 6 — Include it inside the HTTPS virtual host of `koxora.app`
 
-1. TinyCP's own "custom configuration" field for this site, if it has one: paste the fragment there, so TinyCP keeps ownership of the file it generates.
-2. An `IncludeOptional` line that TinyCP already writes, if its generated host has one: drop the fragment into that directory.
-3. A conf fragment of its own, included once by hand, as the least preferred option:
+Two rules, and both matter:
+
+**It goes inside one `<VirtualHost>`.** The HTTPS host of `koxora.app`, and nowhere else. It must never be enabled server-wide — not with `a2enconf`, not by a file in `conf-enabled`, not with an `Include` at the top level of `apache2.conf`. A server-wide include applies to **every** virtual host on the machine: `/api/contact` would be aliased on unrelated sites, and anything else sharing that file would leak with it. `pnpm website:apache` now runs two virtual hosts and fails if the second one can reach the endpoint, so this is enforced rather than merely asked for.
+
+**It goes before that host's `ProxyPass /` line.** The first matching `ProxyPass` wins, so an exclusion placed after the catch-all never fires and every submission would reach the static website container instead of PHP.
+
+Use whichever of these TinyCP offers, in this order of preference:
+
+1. **TinyCP's own "custom configuration" field for this site**, if it has one, with the fragment pasted at the start of it. TinyCP keeps ownership of the file it generates, and the content is inside the host it belongs to.
+2. **An `IncludeOptional` that TinyCP's generated host already contains**, if there is one inside the `<VirtualHost>`: drop the fragment into that directory. Confirm with `apache2ctl -S` and by reading the generated host that the include really is inside the virtual host and before its proxy rules.
+3. **Ask the Product Owner**, if neither exists. There is deliberately no third option here any more: the earlier draft of this document offered a server-wide `a2enconf` fallback, and that is unsafe for the reason above.
+
+Whichever route applies, never edit a TinyCP-generated virtual host in a way TinyCP will overwrite, and never replace one wholesale.
 
 ```bash
-sudo install -m 644 apps/website/dist-deploy/apache-koxora-proxy.conf \
-  /etc/apache2/conf-available/koxora-contact.conf
 sudo a2enmod proxy_fcgi alias
-sudo a2enconf koxora-contact
 sudo apache2ctl configtest
+sudo systemctl reload apache2
 ```
 
-Which of the three applies is a question for the host, and is part of what step 1 asks for. Then:
+Then confirm the include landed where it should, and only there:
 
 ```bash
-sudo systemctl reload apache2
+# The fragment must appear inside the koxora.app HTTPS host and in no other.
+sudo apache2ctl -S
+sudo apache2ctl -t -D DUMP_INCLUDES 2>/dev/null | grep -i contact
+# Nothing may be enabled server-wide:
+ls /etc/apache2/conf-enabled/ | grep -i koxora   # must print nothing
 ```
 
 ### Step 7 — Verify, before switching delivery on
@@ -189,11 +201,24 @@ curl -sS -o /dev/null -w '%{http_code}\n' https://koxora.app/api/contact/
 curl -sS -o /dev/null -w '%{http_code}\n' https://koxora.app/en/
 ```
 
-ACME, mail autodiscovery and every other site on the host are untouched by all of this; the fragment adds no rule that matches their paths. Confirm anyway:
+ACME, mail autodiscovery and every other site on the host are untouched by all of this: the fragment lives inside one virtual host and adds no rule that matches their paths. Confirm it rather than assume it:
 
 ```bash
+# The reverse proxy to the container still answers, and was not set up twice.
 sudo apache2ctl -S | head -20
+grep -c 'ProxyPass / ' /etc/apache2/sites-enabled/*koxora* 2>/dev/null   # expect 1
+
+# Certificate issuance and mail autodiscovery still bypass the proxy.
 curl -sS -o /dev/null -w '%{http_code}\n' https://koxora.app/.well-known/acme-challenge/probe
+curl -sS -o /dev/null -w '%{http_code}\n' https://koxora.app/.well-known/autoconfig/mail/config-v1.1.xml
+
+# And every other site on this host still serves its own content, with no
+# contact endpoint of its own. Run this for each one. None may answer 405
+# with an Allow header: that would mean the fragment was enabled
+# server-wide after all.
+for host in <other sites on this machine>; do
+  curl -sS -o /dev/null -w "$host %{http_code}\n" "https://$host/api/contact"
+done
 ```
 
 ### Step 8 — Switch delivery on, once a test message has actually arrived
@@ -247,13 +272,14 @@ The browser tests submit the form to the real endpoint, started by `apps/contact
 
 ## 8. What has not been verified
 
-| Claim                                                                       | Status                                                                                                                                           |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| The generated Apache fragment is accepted and routes correctly              | **Verified.** `pnpm website:apache` runs a real Apache 2.4 with PHP-FPM: 27 checks pass                                                          |
-| The server validates exactly as the browser does                            | **Verified.** The same vectors run against both implementations                                                                                  |
-| The rate limit holds across workers                                         | **Verified.** Eight real processes, exactly three admitted                                                                                       |
-| The form works with and without JavaScript                                  | **Verified.** 383 browser tests across desktop, tablet and phone                                                                                 |
-| It runs on PHP 8.4                                                          | **Verified in continuous integration only.** This development container has PHP 8.3; the code targets 8.2 and newer and CI runs the suite on 8.4 |
-| Apache **on the production host**, with TinyCP's own generated virtual host | **Not verified.** The local Apache is a clean one built for the check, not TinyCP's. Step 6 is the open question                                 |
-| A message actually arrives in the mailbox                                   | **Not verified, and cannot be from here.** No SMTP credential exists; step 8 is where this is settled                                            |
-| SPF, DKIM and reply deliverability                                          | **Not verified.** A question for the mail provider                                                                                               |
+| Claim                                                                       | Status                                                                                                                                                                                    |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The generated Apache fragment is accepted and routes correctly              | **Verified.** `pnpm website:apache` runs a real Apache 2.4 with PHP-FPM: 32 checks pass                                                                                                   |
+| The fragment cannot leak to another virtual host                            | **Verified.** The check serves two virtual hosts and fails if the second one can reach the endpoint. Including it server-wide instead, as the removed `a2enconf` route did, makes it fail |
+| The server validates exactly as the browser does                            | **Verified.** The same vectors run against both implementations                                                                                                                           |
+| The rate limit holds across workers                                         | **Verified.** Eight real processes, exactly three admitted                                                                                                                                |
+| The form works with and without JavaScript                                  | **Verified.** 383 browser tests across desktop, tablet and phone                                                                                                                          |
+| It runs on PHP 8.4                                                          | **Verified in continuous integration only.** This development container has PHP 8.3; the code targets 8.2 and newer and CI runs the suite on 8.4                                          |
+| Apache **on the production host**, with TinyCP's own generated virtual host | **Not verified.** The local Apache is a clean one built for the check, not TinyCP's. Step 6 is the open question                                                                          |
+| A message actually arrives in the mailbox                                   | **Not verified, and cannot be from here.** No SMTP credential exists; step 8 is where this is settled                                                                                     |
+| SPF, DKIM and reply deliverability                                          | **Not verified.** A question for the mail provider                                                                                                                                        |

@@ -1,8 +1,9 @@
-# ADR 0018: Contact delivery through the existing Apache and PHP-FPM
+# ADR 0019: Contact delivery through the existing Apache and PHP-FPM
 
 - Status: Accepted by the Product Owner on 2026-10-25 and implemented with Website W2.2; merge, SMTP settings and production activation pending
 - Date: 2026-10-25
 - Supersedes: the first draft of this decision, which chose a Node service in a container of its own. See [Why that was changed](#why-that-was-changed).
+- Numbered 0019, not 0018: Studio Phase 2.5 had claimed 0018 in parallel. See the note in [the ADR index](README.md).
 - References: [Issue #30](https://github.com/Koxora-Development/koxora/issues/30), [Issue #22](https://github.com/Koxora-Development/koxora/issues/22), [Issue #26](https://github.com/Koxora-Development/koxora/issues/26); SITE requirements; [ADR 0017](0017-public-website-delivery.md)
 - Roles: agent implementation; Product Owner acceptance, mailbox and SMTP decision, merge and activation
 
