@@ -741,6 +741,192 @@ export const en = {
     'Studio phase 2.4 merged \u00b7 Studio 2.5 in progress',
   'legalNotice.contact.security': 'First contact about a security problem',
 
+  'docsStart.shot.alt':
+    'The Koxora studio with an empty project list, a New project button and an Import .koxora button.',
+  'docsEditing.shot.alt':
+    'The keyboard shortcut reference open over the editor, with a search field and the navigation shortcuts listed.',
+  'docsEditing.properties.alt':
+    'The properties of a selected element open over the editor, with text and formatting controls at the top.',
+
+  'docs.hub.title': 'Everything there is to read',
+  'docs.hub.note':
+    'Each section says which state it describes. Koxora has no public release, so "available" means implemented and merged in the development version you can run from the repository, never downloadable today.',
+  'docs.section.start.title': 'First steps with Koxora',
+  'docs.section.start.summary':
+    'Opening the studio, making a project, and what the first screen offers.',
+  'docs.section.editing.title': 'Editing a diagram',
+  'docs.section.editing.summary':
+    'Placing shapes, selecting, moving, connecting, formatting text, undoing — what the editor does today.',
+  'docs.section.localFirst.title': 'Local-first, explained',
+  'docs.section.localFirst.summary':
+    'What local-first means here, and what it means for your files and your privacy.',
+  'docs.section.projects.title': 'Projects and file formats',
+  'docs.section.projects.summary':
+    'What a project is, where it is kept, how it leaves the device and how to keep a backup.',
+  'docs.section.features.title': 'Available capabilities',
+  'docs.section.features.summary':
+    'The list of what is implemented, with the limits of the current version named.',
+  'docs.section.roadmap.title': 'Planned capabilities',
+  'docs.section.roadmap.summary':
+    'What is intended, in which order, with no committed dates.',
+  'docs.section.faq.title': 'Frequently asked questions',
+  'docs.section.faq.summary':
+    'Twelve questions, answered from what exists rather than from what is planned.',
+  'docs.section.support.title': 'Reporting a problem, and getting help',
+  'docs.section.support.summary':
+    'Where a bug report goes, what to put in it, and where a security problem goes instead.',
+  'docsStart.meta.title': 'First steps with Koxora',
+  'docsStart.meta.description':
+    'Opening the Koxora studio, making a first project and finding your way around the first screen, with no account and nothing to install.',
+  'docsStart.hero.eyebrow': 'Documentation',
+  'docsStart.hero.title': 'First steps',
+  'docsStart.hero.lead':
+    'Koxora has no public release yet, so there is nothing to download. What follows describes the development version, which runs in a browser and keeps everything on your device.',
+  'docsStart.step1.title': 'Open the studio',
+  'docsStart.step1.body':
+    'The studio is a web application. It asks for no account, no email address and no sign-in: the first screen is the project list, and it is empty because nothing has been made yet. Until a public release exists, the way to run it is from the source repository.',
+  'docsStart.step2.title': 'Make a project, or bring one',
+  'docsStart.step2.body':
+    '"New project" starts an empty one. "Import .koxora" opens a project file you already have — from another device, from a backup, or from someone who sent you one. Both end in the same place: a project on this device.',
+  'docsStart.step3.title': 'Draw something',
+  'docsStart.step3.body':
+    'The tool palette sits above the canvas. Choose a shape, click to place it at its default size or drag to draw the size you want. Lines and arrows connect two shapes. The next section goes through all of it.',
+  'docsStart.step4.title': 'Nothing to save',
+  'docsStart.step4.body':
+    'Changes are written to this device automatically after a short pause, and the header says when that last happened. There is no save button to forget, and no upload: the project never leaves the device unless you export it yourself.',
+  'docsStart.shot.caption':
+    'The first screen of the studio, before any project exists. Captured from the development version.',
+  'docsStart.warning.title': 'One thing to know on the first day',
+  'docsStart.warning.body':
+    'A project lives in this browser on this device. Clearing the browser data, using a private window, or losing the device removes it. Export a .koxora file for anything you would be sorry to lose — that is the backup, and there is no copy anywhere else.',
+  'docsEditing.meta.title': 'Editing a diagram',
+  'docsEditing.meta.description':
+    'Placing and connecting shapes, selecting and moving them, formatting text, and undoing — what the Koxora editor does in the current development version.',
+  'docsEditing.hero.eyebrow': 'Documentation',
+  'docsEditing.hero.title': 'Editing a diagram',
+  'docsEditing.hero.lead':
+    'What the editor does today, described from the merged development version. Where something is not there yet, this page says so rather than leaving you to find out.',
+  'docsEditing.place.title': 'Placing shapes',
+  'docsEditing.place.body':
+    'The palette offers rectangles, rounded rectangles, ellipses, diamonds, triangles, hexagons, parallelograms, plain text, containers, lines and arrows. Choose one and click the canvas to place it at its default size, or drag to draw the size you want. Pressing Enter places it in the middle of the view. After an insertion the editor returns to selecting, unless you switch on "Repeat insertion".',
+  'docsEditing.select.title': 'Selecting',
+  'docsEditing.select.body':
+    'Click to select. Shift-click adds to or removes from the selection. Dragging across empty canvas draws a marquee around everything inside it, and Ctrl or Cmd with A selects everything on the page that can be edited. Escape clears a tool or a draft.',
+  'docsEditing.move.title': 'Moving and resizing',
+  'docsEditing.move.body':
+    'Drag a selection to move it. A single selected shape gets corner handles; holding Shift keeps its proportions. The arrow keys nudge by one unit or one grid step, and Shift multiplies that by ten. Snapping follows the grid, and holding Alt switches it off for as long as you hold it — the canvas shows a coloured border while snapping is on.',
+  'docsEditing.connect.title': 'Connecting shapes',
+  'docsEditing.connect.body':
+    'Choose Line or Arrow, then either click a visible port on the edge of each shape or click the shapes themselves and let the editor choose the anchor. Line draws no arrowhead; Arrow draws one. A connection keeps its chosen anchors when either shape is moved or resized. There is no obstacle routing and no connection from a shape to itself.',
+  'docsEditing.text.title': 'Text and formatting',
+  'docsEditing.text.body':
+    'Double-click an element, or press Enter with it selected, to open its properties. Text comes first: a sans-serif, serif or monospace family from the fonts on your own computer, a size between 8 and 96, bold, italic, underline, colour, alignment and several lines. Formatting applies to the whole label. Formatting single words differently is not possible yet.',
+  'docsEditing.history.title': 'Undoing',
+  'docsEditing.history.body':
+    'Ctrl or Cmd with Z undoes; adding Shift redoes, as does Ctrl with Y. The history belongs to the session and to the page you are on: it is not written into the project file, and closing or reopening a project starts it afresh. It holds up to one hundred steps.',
+  'docsEditing.keyboard.title': 'Doing it from the keyboard',
+  'docsEditing.keyboard.body':
+    'Every tool is reachable with Tab and the arrow keys, and the ports for connecting are too. F1 or the question mark opens a searchable list of every shortcut, in English and German, with Ctrl shown as Cmd on Apple computers. Text fields keep the editing shortcuts you already know.',
+  'docsEditing.shot.caption':
+    'The keyboard shortcut reference, opened with F1. Captured from the development version.',
+  'docsEditing.properties.caption':
+    'The properties of a selected element, with text and formatting first. Captured from the development version.',
+  'docsEditing.limits.title': 'Not there yet',
+  'docsEditing.limits.body':
+    'No image export, no import from other diagram tools, no formatting of single words inside a label, no shared editing, and the history does not survive closing a project. The capability list keeps the full account of what is and is not implemented.',
+  'docsProjects.meta.title': 'Projects and file formats',
+  'docsProjects.meta.description':
+    'What a Koxora project is, where it is kept, what the .koxora file contains, how to move a project between devices and how to keep a backup.',
+  'docsProjects.hero.eyebrow': 'Documentation',
+  'docsProjects.hero.title': 'Projects and file formats',
+  'docsProjects.hero.lead':
+    'A project is yours, it is on your device, and it comes out as a file you keep. This page says exactly what that file is and what happens to it.',
+  'docsProjects.format.title': 'The .koxora file',
+  'docsProjects.format.body':
+    'A project exports as a single .koxora file: an archive with the project data in it, in an open format described in the repository. It is one file, so it can be copied, backed up, put in version control or sent to someone else like any other document.',
+  'docsProjects.saved.title': 'Where a project is while you work',
+  'docsProjects.saved.body':
+    'In the browser, on the device you are using, in that browser’s own storage. Changes are written there automatically after a short pause. No Koxora server receives the project, because there is none, and nothing is uploaded.',
+  'docsProjects.transfer.title': 'Moving a project to another device',
+  'docsProjects.transfer.body':
+    'Export it to a .koxora file, move the file the way you would move any file, and import it on the other device. Browser storage belongs to one address on one device, so this is the way to carry work across — and it is the same way to hand a project to someone else.',
+  'docsProjects.backup.title': 'Keeping a backup',
+  'docsProjects.backup.body':
+    'Export the projects you care about to .koxora files and keep them where you keep your other documents. Clearing browser data, a private window, a reinstalled browser or a lost device all remove what is only in browser storage, and no copy exists anywhere else to restore it from. An exported file is the backup.',
+  'docsProjects.notStored.title': 'What the file does not contain',
+  'docsProjects.notStored.body':
+    'What you had selected, which tool was active, what was on the internal clipboard and the undo history are not written into a project. They belong to the session you are in. Data the current version does not understand is preserved rather than dropped, so a file written by a newer version does not lose what it carried.',
+  'docsFaq.meta.title': 'Frequently asked questions',
+  'docsFaq.meta.description':
+    'Twelve questions about Koxora answered from what exists today: accounts, offline use, where projects live, what is implemented and what is not.',
+  'docsFaq.hero.eyebrow': 'Documentation',
+  'docsFaq.hero.title': 'Frequently asked questions',
+  'docsFaq.hero.lead':
+    'Answered from what is implemented, not from what is planned. Where the honest answer is "not yet", it says so.',
+  'faq.account.q': 'Do I need an account?',
+  'faq.account.a':
+    'No. There is no registration, no sign-in and no account to create. The studio has no server behind it to hold one.',
+  'faq.release.q': 'Can I download Koxora?',
+  'faq.release.a':
+    'Not yet. There is no public release and no installer. What exists is the development version in the public repository, which you can run yourself. The download page says the same and will be the first place a release appears.',
+  'faq.offline.q': 'Does it work without an internet connection?',
+  'faq.offline.a':
+    'The editor runs on your device and needs no server once it has loaded. Projects are stored locally, so the work itself does not depend on a connection.',
+  'faq.where.q': 'Where are my diagrams kept?',
+  'faq.where.a':
+    'In your browser’s own storage, on the device you are using, and in whatever .koxora files you export. Not on a Koxora server: there is none.',
+  'faq.clearing.q': 'What happens if I clear my browser data?',
+  'faq.clearing.a':
+    'Projects that exist only in browser storage are removed, and there is no copy to restore them from. Export a .koxora file for anything you want to keep. The studio says this on its own first screen too.',
+  'faq.formats.q': 'Which file formats can I use?',
+  'faq.formats.a':
+    'Koxora reads and writes its own .koxora project archive. Importing from other diagram tools and exporting to an image are not implemented yet; both are documented scope rather than something you can do today.',
+  'faq.today.q': 'What can the editor actually do right now?',
+  'faq.today.a':
+    'Shapes, plain text and connections with visible ports; selecting, moving, resizing, aligning and distributing; text formatting for a whole label; undo and redo within a session; projects saved on the device and exchanged as files. The editing section goes through all of it.',
+  'faq.missing.q': 'What about working together, the cloud, or assistance?',
+  'faq.missing.a':
+    'None of the three is implemented. All three are documented product scope, and all three are planned as optional, so a Koxora without them stays a complete product rather than a crippled one.',
+  'faq.languages.q': 'Which languages is Koxora in?',
+  'faq.languages.a':
+    'English and German, in the product and on this website, selectable independently of the language your operating system is in. English is the fallback. A further language needs a resource file and its addresses, not a change to the application.',
+  'faq.price.q': 'What does it cost?',
+  'faq.price.a':
+    'There is nothing to buy, because there is no release. No price, no plan and no trial has been announced, and this site will not invent one.',
+  'faq.source.q': 'Is the source code public? Under which licence?',
+  'faq.source.a':
+    'The source code is public in the repository. A licence has not been published yet, which means no rights are granted until it is. The legal notice says the same thing, and it will change when the licence is decided.',
+  'faq.problem.q': 'I found a problem. Where does it go?',
+  'faq.problem.a':
+    'An ordinary bug goes to the support address or the contact form, and the support section says what to include. A security problem goes somewhere else: the security policy describes a separate route, and the details do not belong in an ordinary mailbox.',
+  'docsSupport.meta.title': 'Reporting a problem and getting help',
+  'docsSupport.meta.description':
+    'Where a Koxora bug report goes, what to put in it so it can be acted on, and where a security problem goes instead.',
+  'docsSupport.hero.eyebrow': 'Documentation',
+  'docsSupport.hero.title': 'Reporting a problem',
+  'docsSupport.hero.lead':
+    'A report that can be reproduced gets fixed; one that cannot usually does not. This page says what makes the difference, and where to send it.',
+  'docsSupport.include.title': 'What to put in a report',
+  'docsSupport.include.item1':
+    'What you did, step by step, in enough detail that someone else can do the same.',
+  'docsSupport.include.item2':
+    'What you expected to happen, and what happened instead.',
+  'docsSupport.include.item3':
+    'Which browser and which operating system, with their versions.',
+  'docsSupport.include.item4':
+    'Whether it happens every time, or only sometimes and under what conditions.',
+  'docsSupport.include.item5':
+    'A .koxora export of the project where it happens, if you can share one and it contains nothing confidential.',
+  'docsSupport.where.title': 'Where to send it',
+  'docsSupport.where.body':
+    'The contact form reaches the support mailbox, and so does writing to the address directly. Development happens in the open, so an issue in the public repository is also a good place for something reproducible — it is visible, it can be discussed, and it does not get lost in a mailbox.',
+  'docsSupport.security.title': 'A security problem goes elsewhere',
+  'docsSupport.security.body':
+    'Please do not send details of a vulnerability to the support mailbox or put them in a public issue. The security policy describes the route for that, what to send in a first message and what to expect in return.',
+  'docsSupport.expect.title': 'What to expect',
+  'docsSupport.expect.body':
+    'Koxora is a project under development without a release and without a support contract. Reports are read and taken seriously; no response time is promised, because promising one would be inventing a service level that does not exist.',
+
   'nav.contact': 'Contact',
   'contact.meta.title': 'Contact Koxora',
   'contact.meta.description':

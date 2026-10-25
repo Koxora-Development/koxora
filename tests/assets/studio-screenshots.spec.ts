@@ -127,6 +127,17 @@ async function shoot(page: Page, name: string) {
 test('capture studio screenshots for the website', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 980 });
   await page.clock.setFixedTime(new Date('2026-10-24T09:00:00Z'));
+  // The dashboard first, before anything is imported: once a project exists
+  // on the device the studio opens it, which is the point of local-first and
+  // also why a first-time view has to be captured first.
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'Import .koxora', exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() =>
+    (document.activeElement as HTMLElement | null)?.blur(),
+  );
+  await shoot(page, 'docs-dashboard');
   await fixture(page);
   const appearance = page.getByRole('combobox', {
     name: 'Appearance',
@@ -149,6 +160,21 @@ test('capture studio screenshots for the website', async ({ page }) => {
     window.scrollTo(0, 0);
   });
   await shoot(page, 'editor-small-en');
+  // The documentation pages show what a reader is told about: the control
+  // that opens an element's properties, the shortcut reference, and the
+  // dashboard a reader meets before any project is open. Each one is the real
+  // interface, reached the way the documentation says to reach it.
+  await page.setViewportSize({ width: 1440, height: 980 });
+  await page.getByRole('button', { name: 'Fit content', exact: true }).click();
+  await page.locator('[data-node-id]').first().click();
+  await page.getByRole('button', { name: 'Element properties' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await shoot(page, 'docs-properties');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Keyboard shortcuts' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await shoot(page, 'docs-shortcuts');
+  await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 1440, height: 980 });
   await page
     .getByRole('combobox', { name: 'Language', exact: true })
