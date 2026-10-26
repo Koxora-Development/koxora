@@ -367,6 +367,11 @@ test('workspace and dashboard inline rename commit, cancel, validate and retain 
     'Name with spaces',
   );
   await page.getByRole('button', { name: /Local projects/ }).click();
+  await expect(
+    page
+      .locator('.project-card')
+      .getByRole('button', { name: 'Rename', exact: true }),
+  ).toBeEnabled();
   await page.locator('.project-card h3').dblclick();
   await input.fill('Dashboard title');
   await input.press('Tab');

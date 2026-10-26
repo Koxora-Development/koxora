@@ -173,6 +173,7 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
     .getByRole('dialog')
     .getByLabel('Import .koxora', { exact: true })
     .setInputFiles(path);
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.locator('[data-node-id]')).toHaveCount(3);
   await edit(page, ids[2], 'Imported and editable');
   await button(page, 'Apply changes').click();
