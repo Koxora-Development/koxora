@@ -82,6 +82,9 @@ export const textSchema = new Schema({
       inline: true,
       group: 'inline',
       selectable: false,
+      // Native DOM input may contain literal newlines (notably in Firefox).
+      // Preserve them as breaks instead of normalizing them to spaces.
+      linebreakReplacement: true,
       parseDOM: [{ tag: 'br' }],
       toDOM: () => ['br'],
     },

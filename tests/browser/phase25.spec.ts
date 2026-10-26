@@ -308,13 +308,11 @@ test('paste sanitizes active markup, keeps one line break and preserves editor u
       '<p style="text-align:right"><b>Hello</b><br>world<script>window.injected=true</script><img src="https://untrusted.invalid/pixel"><a href="javascript:alert(1)">!</a></p>',
     );
     data.setData('text/plain', 'Hello\nworld!');
-    el.dispatchEvent(
-      new ClipboardEvent('paste', {
-        clipboardData: data,
-        bubbles: true,
-        cancelable: true,
-      }),
-    );
+    // Supply the clipboard payload explicitly: Firefox does not reliably keep
+    // clipboardData passed to the synthetic ClipboardEvent constructor.
+    const event = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'clipboardData', { value: data });
+    el.dispatchEvent(event);
   });
   await expect(editor).toContainText('Hello');
   await expect(editor.locator('p')).toHaveCount(1);
@@ -635,4 +633,44 @@ test('text-only batch selection hides shape fill and border controls', async ({
   await expect(dialog.getByLabel('Text color', { exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: 'Done', exact: true }).click();
   expect((await exported(page)).documents).toEqual(project.documents);
+});
+
+test('native DOM newlines stay distinct through editing, undo and archive export', async ({
+  page,
+}) => {
+  const project = await setup(page),
+    id = project.documents[0].pages[0].nodes[0].id;
+  await page.locator(`[data-node-id="${id}"]`).dblclick();
+  const editor = page.getByRole('textbox', {
+    name: 'Label / text',
+    exact: true,
+  });
+  const text = 'First  line\n\nGrüße 世界\n';
+  // Firefox can insert a single text node with embedded line endings. Exercise
+  // that DOM shape in every engine instead of relying on fill's implementation.
+  await editor.evaluate((el, value) => {
+    const paragraph = document.createElement('p');
+    paragraph.textContent = value;
+    el.replaceChildren(paragraph);
+    el.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        inputType: 'insertText',
+        data: value,
+      }),
+    );
+  }, text);
+  await expect(
+    editor.locator('br:not(.ProseMirror-trailingBreak)'),
+  ).toHaveCount(3);
+  await selectText(editor, 0, 5);
+  await page.keyboard.press('ControlOrMeta+b');
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.keyboard.press('ControlOrMeta+Shift+z');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  const result = await exported(page),
+    node = result.documents[0].pages[0].nodes[0];
+  expect(node.content.text).toBe(text);
+  expect(readRichText(node)!.paragraphs).toHaveLength(4);
+  expect(readRichText(node)!.paragraphs[0].runs[0].style.fontWeight).toBe(700);
 });
