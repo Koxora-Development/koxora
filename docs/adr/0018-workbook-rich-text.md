@@ -44,6 +44,8 @@ Every text transaction updates both structured text and its existing plain-text 
 
 Clipboard HTML is parsed only in an inert template. Active/resource elements are removed before the allowlisted schema reads text and supported styles. Unknown CSS, links, images and scripts never enter the project or renderer. A localized notice explains paste losses; oversized input is rejected. Internal copies keep supported marks. Runtime marks are converted to the portable model, not serialized as ProseMirror JSON or HTML.
 
+Native DOM newlines, including Firefox text-node input, become explicit editor break nodes and portable paragraph boundaries. Plain clipboard serialization uses the same single-LF projection. Plain paste normalizes CRLF/CR, retains blank/trailing paragraphs and inherits the insertion point's marks and alignment instead of collapsing repeated line endings.
+
 ## Rendering and interaction
 
 Rich labels use safe DOM-created SVG `foreignObject` text with the same local fonts, paragraph alignment and CSS wrapping as the editor. Text is assigned with `textContent`; no imported markup or CSS enters rendering. Plain legacy labels retain their SVG renderer. Shape labels remain inside their label box; line/connection labels use a 240-unit-wide, 512-unit-high view. Overflow is clipped visually, while the full text remains in the editor, accessible element title and file. Increase shape size or reduce font size to reveal more. Non-native SVG/image export is not implemented by this milestone.

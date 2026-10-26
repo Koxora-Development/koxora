@@ -19,6 +19,7 @@ import {
   toTextDocument,
   textSchema,
   inertPaste,
+  parsePlainTextClipboard,
 } from './rich-text-schema';
 
 export function RichTextEditor({
@@ -131,6 +132,9 @@ export function RichTextEditor({
     });
     const editor = new EditorView(host.current!, {
       state,
+      clipboardTextParser: parsePlainTextClipboard,
+      clipboardTextSerializer: (slice) =>
+        slice.content.textBetween(0, slice.content.size, '\n'),
       attributes: {
         role: 'textbox',
         'aria-label': translate(initial.locale, 'diagram.label'),

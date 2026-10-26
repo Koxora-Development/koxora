@@ -663,6 +663,17 @@ test('native DOM newlines stay distinct through editing, undo and archive export
   await expect(
     editor.locator('br:not(.ProseMirror-trailingBreak)'),
   ).toHaveCount(3);
+  const copyPlainText = async () => {
+    await editor.press('ControlOrMeta+a');
+    return editor.evaluate((el) => {
+      const data = new DataTransfer();
+      const event = new Event('copy', { bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'clipboardData', { value: data });
+      el.dispatchEvent(event);
+      return data.getData('text/plain');
+    });
+  };
+  expect(await copyPlainText()).toBe(text);
   await selectText(editor, 0, 5);
   await page.keyboard.press('ControlOrMeta+b');
   await page.keyboard.press('ControlOrMeta+z');
@@ -673,4 +684,18 @@ test('native DOM newlines stay distinct through editing, undo and archive export
   expect(node.content.text).toBe(text);
   expect(readRichText(node)!.paragraphs).toHaveLength(4);
   expect(readRichText(node)!.paragraphs[0].runs[0].style.fontWeight).toBe(700);
+  await page.locator(`[data-node-id="${id}"]`).dblclick();
+  const copied = await copyPlainText();
+  expect(copied).toBe(text);
+  await editor.evaluate((el, value) => {
+    const data = new DataTransfer();
+    data.setData('text/plain', value);
+    const event = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'clipboardData', { value: data });
+    el.dispatchEvent(event);
+  }, copied);
+  await page.keyboard.press('ControlOrMeta+Enter');
+  expect(
+    (await exported(page)).documents[0].pages[0].nodes[0].content.text,
+  ).toBe(text);
 });

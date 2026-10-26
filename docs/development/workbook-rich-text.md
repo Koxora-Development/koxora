@@ -12,7 +12,7 @@ The document selector, New document and Rename document preserve the document/pa
 
 Double-click a label or use **Edit text** for the canvas text surface. **Element properties** and Enter provide the same formatting editor plus optional geometry and route controls. Select words to apply font, variable size (8–96), bold, italic, underline or color. Paragraph alignment supports mixed documents. With a caret, formatting applies to subsequent typing. Use Ctrl/Cmd+B/I/U and text Undo/Redo. Apply/Ctrl/Cmd+Enter commits; Escape cancels. Whole-project Undo/Redo is chronological across pages and restores deleted pages.
 
-The font menu previews each family and can be searched. Fonts work without an account or network. The complete stored text remains available even when a small shape clips its display; resize it or reduce the size. Connection/drawing labels wrap in a 240-unit-wide view with a 512-unit height limit. Rich clipboard input keeps supported text styling; links, images and unsupported markup are omitted with a notice. Inputs beyond 4,096 characters are rejected instead of truncated.
+The font menu previews each family and can be searched. Fonts work without an account or network. The complete stored text remains available even when a small shape clips its display; resize it or reduce the size. Connection/drawing labels wrap in a 240-unit-wide view with a 512-unit height limit. Rich clipboard input keeps supported text styling; links, images and unsupported markup are omitted with a notice. Plain-text copy/paste preserves blank and trailing lines and normalizes CRLF/CR line endings to LF. Inputs beyond 4,096 characters are rejected instead of truncated.
 
 ## Batch selection and compact tools
 

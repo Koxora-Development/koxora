@@ -1,4 +1,10 @@
-import { Schema, type Node as TextNode } from 'prosemirror-model';
+import {
+  Fragment,
+  Schema,
+  Slice,
+  type Node as TextNode,
+  type ResolvedPos,
+} from 'prosemirror-model';
 import {
   FONT_FAMILIES,
   TEXT_ATTRIBUTES,
@@ -85,6 +91,7 @@ export const textSchema = new Schema({
       // Native DOM input may contain literal newlines (notably in Firefox).
       // Preserve them as breaks instead of normalizing them to spaces.
       linebreakReplacement: true,
+      leafText: () => '\n',
       parseDOM: [{ tag: 'br' }],
       toDOM: () => ['br'],
     },
@@ -170,6 +177,24 @@ export function fromTextDocument(doc: TextNode): RichText {
     paragraphs.push({ align: p.attrs.align, runs });
   });
   return { version: 1, paragraphs };
+}
+/** Keep blank/trailing lines and the insertion point's formatting on plain paste. */
+export function parsePlainTextClipboard(
+  text: string,
+  context: ResolvedPos,
+): Slice {
+  return Slice.maxOpen(
+    Fragment.from(
+      text
+        .split(/\r\n?|\n/)
+        .map((line) =>
+          textSchema.nodes.paragraph.create(
+            { align: context.parent.attrs.align },
+            line ? textSchema.text(line, context.marks()) : undefined,
+          ),
+        ),
+    ),
+  );
 }
 /** Clipboard HTML lives only in an inert template; forbidden active/resource nodes never reach the editor. */
 export function inertPaste(html: string): DocumentFragment {
