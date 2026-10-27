@@ -1,4 +1,4 @@
-import { PageTabs } from './page-tabs';
+import { ProjectTree, type ProjectAction } from './project-tree';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog, Icon } from '@koxora/ui';
@@ -57,6 +57,10 @@ export function Projects({ locale }: { locale: string }) {
     },
     [],
   );
+  const [trash, setTrash] = useState<ProjectSummary[]>([]);
+  const navigationLock = useRef(false);
+  const [navigationBusy, setNavigationBusy] = useState(false);
+  const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [items, setItems] = useState<ProjectSummary[]>([]),
     [operation, setOperation] = useState<Operation | null>('loading');
   const [view, setView] = useState<'dashboard' | 'workspace'>('dashboard'),
@@ -115,6 +119,7 @@ export function Projects({ locale }: { locale: string }) {
   }, [activeDocument, activePage, view, setProject]);
   const commitCanvas = useCallback(
     (state: CanvasState) => {
+      if (navigationLock.current) return;
       const projectId = project?.manifest.projectId;
       const documentId = activeDocument?.id,
         id = activePage?.id;
@@ -137,6 +142,7 @@ export function Projects({ locale }: { locale: string }) {
     ],
   );
   function edit(command: EditCommand): boolean {
+    if (navigationLock.current) return false;
     if (
       !project ||
       !activeDocument ||
@@ -166,6 +172,7 @@ export function Projects({ locale }: { locale: string }) {
     }
   }
   function travel(direction: 'undo' | 'redo'): boolean {
+    if (navigationLock.current) return false;
     if (
       !project ||
       !activeDocument ||
@@ -194,12 +201,16 @@ export function Projects({ locale }: { locale: string }) {
     }
   }
   function switchPage(documentId: string, id: string) {
+    if (navigationLock.current) return;
+    setView('workspace');
+    setNavigatorOpen(false);
     const current = snapshot();
     if (current) setProject(selectPage(current, documentId, id));
     setPageId(id);
     setPendingNavigation(false);
   }
   function workbook(command: WorkbookCommand): boolean {
+    if (navigationLock.current) return false;
     const current = snapshot();
     if (!current) return false;
     try {
@@ -223,6 +234,7 @@ export function Projects({ locale }: { locale: string }) {
     }
   }
   function renameActive(title: string): boolean {
+    if (navigationLock.current) return false;
     if (!project) return false;
     try {
       setProject(
@@ -277,20 +289,22 @@ export function Projects({ locale }: { locale: string }) {
       error instanceof ProjectError && error.path !== '$' ? error.path : null,
     );
   }
-  const refresh = useCallback(
-    async () =>
-      setItems(
-        (await repository.list()).sort((a, b) =>
-          (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''),
-        ),
+  const refresh = useCallback(async () => {
+    const listed = await repository.list();
+    setItems(
+      listed.sort((a, b) =>
+        (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''),
       ),
-    [repository],
-  );
+    );
+    setTrash(await repository.list(true));
+  }, [repository]);
   useEffect(() => {
     let active = true;
     void repository
       .list()
-      .then((items) => {
+      .then(async (items) => {
+        const deleted = await repository.list(true);
+        if (active) setTrash(deleted);
         if (active)
           setItems(
             items.sort((a, b) =>
@@ -403,6 +417,95 @@ export function Projects({ locale }: { locale: string }) {
       setOperation(null);
     }
   }
+  async function preserveAndRun(action: () => Promise<void>): Promise<boolean> {
+    if (busy || navigationLock.current) return false;
+    navigationLock.current = true;
+    setNavigationBusy(true);
+    setOperation('saving');
+    setError(null);
+    try {
+      const current = snapshot();
+      if (current && (current !== saved || token === null)) {
+        const next = await repository.save(current, token);
+        setToken(next);
+        setSaved(current);
+      }
+      await action();
+      await refresh();
+      return true;
+    } catch (error) {
+      report(error);
+      return false;
+    } finally {
+      navigationLock.current = false;
+      setNavigationBusy(false);
+      setOperation(null);
+    }
+  }
+  function openFromTree(id: string) {
+    if (id === projectRef.current?.manifest.projectId) {
+      setView('workspace');
+      return;
+    }
+    void preserveAndRun(async () => {
+      const result = await repository.open(id);
+      enter(result.project);
+      setSaved(result.project);
+      setToken(result.token);
+      setNavigatorOpen(false);
+    });
+  }
+  function createFromTree() {
+    void preserveAndRun(async () => {
+      create();
+      setNavigatorOpen(false);
+    });
+  }
+  async function projectAction(
+    action: ProjectAction,
+    id: string,
+    title?: string,
+  ): Promise<boolean> {
+    if (action === 'rename') return renameStored(id, title ?? '');
+    return preserveAndRun(async () => {
+      const opened = await repository.open(id, false, action === 'restore');
+      if (action === 'duplicate') {
+        // Identities inside a project are project-scoped. A new project UUID copies its complete archive without guessing opaque references.
+        const copy = {
+          ...opened.project,
+          manifest: {
+            ...opened.project.manifest,
+            projectId: crypto.randomUUID(),
+            title: t('tabs.copyName', { name: opened.project.manifest.title }),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        };
+        const next = await repository.save(copy, null);
+        enter(copy);
+        setSaved(copy);
+        setToken(next);
+      } else {
+        await repository.setDeleted(id, opened.token, action === 'delete');
+        if (
+          action === 'delete' &&
+          projectRef.current?.manifest.projectId === id
+        ) {
+          history.clear();
+          session.current += 1;
+          setLoadVersion(session.current);
+          setProject(null);
+          setSaved(null);
+          setToken(null);
+          setPageId(null);
+          setPendingNavigation(false);
+          setExpanded(false);
+          setNavigatorOpen(false);
+          setView('dashboard');
+        }
+      }
+    });
+  }
   async function importFile(file: File | undefined) {
     if (!file) return;
     setOperation('importing');
@@ -512,6 +615,24 @@ export function Projects({ locale }: { locale: string }) {
       </button>
     </div>
   );
+  const navigation = (
+    <ProjectTree
+      project={project}
+      saved={saved}
+      pageId={pageId}
+      items={items}
+      trash={trash}
+      busy={busy}
+      locale={locale}
+      error={error}
+      onOpen={openFromTree}
+      onCreate={createFromTree}
+      onSelect={switchPage}
+      onCommand={workbook}
+      onProjectAction={projectAction}
+      onHistory={travel}
+    />
+  );
   return (
     <div className="application-body">
       <aside className="project-sidebar">
@@ -529,56 +650,7 @@ export function Projects({ locale }: { locale: string }) {
           {t('project.recent')}
           <span className="count">{items.length}</span>
         </button>
-        {project && (
-          <>
-            <div className="sidebar-label spaced">{t('workspace.active')}</div>
-            <button
-              className={`nav-item project-nav ${view === 'workspace' ? 'selected' : ''}`}
-              onClick={() => {
-                setView('workspace');
-                setFocusVersion((n) => n + 1);
-              }}
-              aria-current={view === 'workspace' ? 'page' : undefined}
-            >
-              <Icon name="file" />
-              <span dir="auto">{project.manifest.title}</span>
-            </button>
-            {view === 'workspace' && (
-              <details className="project-outline">
-                <summary>{t('tabs.overview')}</summary>
-                <nav
-                  className="document-navigation"
-                  aria-label={t('workspace.documents')}
-                >
-                  {project.documents.map((doc) => (
-                    <div key={doc.id}>
-                      <p dir="auto">{doc.title}</p>
-                      {doc.pages.map((page, index) => (
-                        <button
-                          key={page.id}
-                          className={`page-nav ${activePage?.id === page.id ? 'selected' : ''}`}
-                          aria-current={
-                            activePage?.id === page.id ? 'page' : undefined
-                          }
-                          onClick={() => {
-                            const current = snapshot();
-                            if (current)
-                              setProject(selectPage(current, doc.id, page.id));
-                            setPageId(page.id);
-                            setPendingNavigation(false);
-                          }}
-                        >
-                          <span className="page-number">{index + 1}</span>
-                          <span dir="auto">{page.title}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </nav>
-              </details>
-            )}
-          </>
-        )}
+        {!expanded && navigation}
         <div className="sidebar-bottom">
           <Icon name="shield" />
           <strong>{t('status.local')}</strong>
@@ -878,27 +950,14 @@ export function Projects({ locale }: { locale: string }) {
               {activePage && activeDocument && (
                 <div
                   className={`canvas-workbook ${expanded ? 'canvas-workbook-expanded' : ''}`}
-                  onKeyDown={(event) => {
-                    if (
-                      event.defaultPrevented ||
-                      !(event.ctrlKey || event.metaKey) ||
-                      !(event.target instanceof Element) ||
-                      !event.target.closest('.workbook') ||
-                      event.target.closest('input,select,dialog')
-                    )
-                      return;
-                    const key = event.key.toLowerCase();
-                    if (key === 'z' || key === 'y') {
-                      event.preventDefault();
-                      travel(key === 'y' || event.shiftKey ? 'redo' : 'undo');
-                    }
-                  }}
+                  inert={navigationBusy}
                   role={expanded ? 'dialog' : undefined}
                   aria-modal={expanded ? true : undefined}
                   aria-label={t('workspace.canvas')}
                 >
                   <Canvas
                     expanded={expanded}
+                    onNavigate={() => setNavigatorOpen(true)}
                     onExpanded={setExpanded}
                     key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
                     ref={canvasRef}
@@ -916,15 +975,14 @@ export function Projects({ locale }: { locale: string }) {
                     onCommit={commitCanvas}
                     onPending={setPendingNavigation}
                   />
-                  <PageTabs
-                    errorMessage={error}
-                    project={project}
-                    saved={saved}
-                    pageId={activePage.id}
-                    locale={locale}
-                    onSelect={switchPage}
-                    onCommand={workbook}
-                  />
+                  {expanded && navigatorOpen && (
+                    <Dialog
+                      title={t('tree.heading')}
+                      onCancel={() => setNavigatorOpen(false)}
+                    >
+                      {navigation}
+                    </Dialog>
+                  )}
                 </div>
               )}
               <aside className="inspector" aria-label={t('workspace.details')}>

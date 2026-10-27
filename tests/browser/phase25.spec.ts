@@ -62,7 +62,7 @@ async function open(page: Page, project: Project) {
       mimeType: 'application/zip',
       buffer: Buffer.from(await exportProject(project)),
     });
-  await expect(page.locator('.page-tabs [role=tab]')).toHaveCount(
+  await expect(page.locator('[role=treeitem][data-page-id]')).toHaveCount(
     project.documents[0].pages.length,
   );
 }
@@ -114,7 +114,7 @@ async function capture(page: Page, name: string) {
   }
 }
 
-test('workbook tabs keep focus, reorder, duplicate, delete/undo, views and document identity offline', async ({
+test('workbook tree keeps focus, reorder, duplicate, delete/undo, views and document identity offline', async ({
   page,
   context,
 }) => {
@@ -122,17 +122,17 @@ test('workbook tabs keep focus, reorder, duplicate, delete/undo, views and docum
   const first = project.documents[0].pages[0].id;
   await button(page, 'New page').click();
   await button(page, 'New page').click();
-  const tabs = page.getByRole('tab');
+  const tabs = page.locator('[role=treeitem][data-page-id]');
   await tabs.nth(2).focus();
-  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowUp');
   await expect(tabs.nth(1)).toBeFocused();
-  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowUp');
   await expect(tabs.nth(0)).toBeFocused();
   await tabs.nth(0).dblclick();
   await page.getByLabel('Name', { exact: true }).fill('Overview');
   await page.getByLabel('Name', { exact: true }).press('Enter');
   await expect(tabs.nth(0)).toContainText('Overview');
-  await tabs.nth(0).press('Alt+ArrowRight');
+  await tabs.nth(0).press('Alt+ArrowDown');
   await expect(tabs.nth(1)).toBeFocused();
   await expect(tabs.nth(1)).toContainText('Overview');
   await tabs.nth(1).dragTo(tabs.nth(2));
@@ -156,16 +156,16 @@ test('workbook tabs keep focus, reorder, duplicate, delete/undo, views and docum
         ).zoom,
     )
     .toBe(zoom);
-  await button(page, 'Page actions').click();
+  await page.getByRole('treeitem', { selected: true }).press('Shift+F10');
   await page.getByRole('menuitem', { name: 'Duplicate', exact: true }).click();
   await expect(tabs).toHaveCount(4);
-  await button(page, 'Page actions').click();
+  await page.getByRole('treeitem', { selected: true }).press('Shift+F10');
   await page
     .getByRole('menuitem', { name: 'Delete page', exact: true })
     .click();
   await page
     .getByRole('dialog')
-    .getByRole('button', { name: 'Delete page', exact: true })
+    .getByRole('button', { name: 'Continue', exact: true })
     .click();
   await expect(tabs).toHaveCount(3);
   await button(page, 'Undo').click();
@@ -182,11 +182,13 @@ test('workbook tabs keep focus, reorder, duplicate, delete/undo, views and docum
     .getByRole('button', { name: 'Apply changes', exact: true })
     .click();
   await page
-    .getByRole('combobox', { name: 'Document', exact: true })
-    .selectOption(project.documents[0].id);
-  await page.getByRole('tab').filter({ hasText: 'Overview' }).click();
-  await button(page, 'Page actions').click();
-  await page.getByRole('menuitem', { name: 'Move page', exact: true }).click();
+    .locator('[role=treeitem][data-page-id]')
+    .filter({ hasText: 'Overview' })
+    .click();
+  await page.getByRole('treeitem', { selected: true }).press('Shift+F10');
+  await page
+    .getByRole('menuitem', { name: 'Move to document…', exact: true })
+    .click();
   const dialog = page.getByRole('dialog');
   await dialog
     .getByRole('combobox', { name: 'Document', exact: true })
@@ -216,7 +218,7 @@ test('workbook tabs keep focus, reorder, duplicate, delete/undo, views and docum
   await context.setOffline(true);
   await page.reload();
   await button(page, 'Open project').click();
-  await expect(page.getByRole('tab', { selected: true })).toContainText(
+  await expect(page.getByRole('treeitem', { selected: true })).toContainText(
     'Overview',
   );
   expect((await exported(page)).documents).toEqual(result.documents);
@@ -379,7 +381,7 @@ test('mixed batch properties preserve spans and right click selection, with atom
     JSON.stringify(ids),
   );
   await page
-    .locator('.editing-context')
+    .locator('.context-menu')
     .getByRole('menuitem', { name: 'Element properties', exact: true })
     .click();
   const dialog = page.getByRole('dialog', { name: 'Format selection' });
@@ -412,7 +414,7 @@ test('mixed batch properties preserve spans and right click selection, with atom
   expect((await exported(page)).documents).toEqual(project.documents);
 });
 
-test('many tabs, 20 fonts and compact German selection controls remain reachable on narrow screens', async ({
+test('many pages, 20 fonts and compact German selection controls remain reachable on narrow screens', async ({
   page,
 }) => {
   let project = createProject('Planung', () => crypto.randomUUID(), now);
@@ -429,7 +431,7 @@ test('many tabs, 20 fonts and compact German selection controls remain reachable
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
   await page.setViewportSize({ width: 390, height: 900 });
-  const tabs = page.getByRole('tab');
+  const tabs = page.locator('[role=treeitem][data-page-id]');
   await tabs.first().focus();
   await page.keyboard.press('End');
   await expect(tabs.last()).toBeFocused();
@@ -509,7 +511,7 @@ test('rich labels on connectors retain explicit ports after text editing and pag
   await editor.press('ControlOrMeta+a');
   await editor.press('ControlOrMeta+b');
   await page.keyboard.press('ControlOrMeta+Enter');
-  await button(page, 'Page actions').click();
+  await page.getByRole('treeitem', { selected: true }).press('Shift+F10');
   await page.getByRole('menuitem', { name: 'Duplicate', exact: true }).click();
   const result = await exported(page),
     copy = result.documents[0].pages[1];
@@ -585,18 +587,18 @@ test('protected page deletion reports its reason in the dialog and keeps content
     extensions: {},
   });
   await open(page, project);
-  await page.getByRole('tab').first().click();
-  await button(page, 'Page actions').click();
+  await page.locator('[role=treeitem][data-page-id]').first().click();
+  await page.getByRole('treeitem', { selected: true }).press('Shift+F10');
   await page
     .getByRole('menuitem', { name: 'Delete page', exact: true })
     .click();
   const dialog = page.getByRole('dialog');
-  await dialog
-    .getByRole('button', { name: 'Delete page', exact: true })
-    .click();
+  await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('semantic references');
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(page.getByRole('tab').first()).toBeFocused();
+  await expect(
+    page.locator('[role=treeitem][data-page-id]').first(),
+  ).toBeFocused();
   expect((await exported(page)).documents).toEqual(project.documents);
 });
 

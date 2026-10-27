@@ -188,6 +188,49 @@ export function alignedGeometries(
     }),
   );
 }
+
+/** A separate collision-free grid command; standard alignment deliberately retains its axis semantics. */
+export function tidyGeometries(
+  scene: Scene,
+  ids: readonly string[],
+  gap = 24,
+): Record<string, Geometry> {
+  const nodes = scene.nodes.filter((n) => n.editable && ids.includes(n.id));
+  if (nodes.length < 2) return {};
+  const bounds = unionBounds(nodes.map((n) => n.bounds))!;
+  const obstacles = scene.nodes
+    .filter((n) => !nodes.includes(n))
+    .map((n) => n.bounds);
+  const columns = Math.ceil(Math.sqrt(nodes.length));
+  const width = Math.max(...nodes.map((n) => n.bounds.width)) + gap;
+  const height = Math.max(...nodes.map((n) => n.bounds.height)) + gap;
+  const result: Record<string, Geometry> = {};
+  nodes.forEach((n, i) => {
+    const box = {
+      ...n.bounds,
+      x: bounds.x + (i % columns) * width,
+      y: bounds.y + Math.floor(i / columns) * height,
+    };
+    for (let attempt = 0; attempt <= obstacles.length; attempt++) {
+      const hit = obstacles.find(
+        (b) =>
+          box.x < b.x + b.width + gap &&
+          box.x + box.width + gap > b.x &&
+          box.y < b.y + b.height + gap &&
+          box.y + box.height + gap > b.y,
+      );
+      if (!hit) break;
+      box.y = hit.y + hit.height + gap;
+    }
+    result[n.id] = {
+      ...n.geometry,
+      x: n.geometry.x + box.x - n.bounds.x,
+      y: n.geometry.y + box.y - n.bounds.y,
+    };
+    obstacles.push(box);
+  });
+  return result;
+}
 /** A cheap immutable preview; validation and history happen only on pointer release. */
 export function previewGeometry(
   page: Page,

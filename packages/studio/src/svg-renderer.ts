@@ -1,5 +1,7 @@
 import {
   gridStep,
+  freehandPath,
+  textColor,
   type RichText,
   type Appearance,
   FONT_FAMILIES,
@@ -89,13 +91,13 @@ export class SvgRenderer {
       ...visible.connections.slice(0, MAX_VISIBLE).map((edge) => ({
         key: `edge:${edge.id}`,
         model: edge,
-        order: edge.layerOrder,
+        order: edge.paintOrder,
         create: () => renderEdge(edge),
       })),
       ...visible.nodes.slice(0, MAX_VISIBLE).map((node) => ({
         key: `node:${node.id}`,
         model: node,
-        order: node.layerOrder,
+        order: node.paintOrder,
         create: () => renderNode(node),
       })),
     ].sort((a, b) => a.order - b.order);
@@ -262,7 +264,15 @@ function renderNode(node: SceneNode): SVGElement {
     return group;
   }
   const g = node.geometry,
-    s = node.style;
+    s = {
+      ...node.style,
+      textColor: textColor(
+        node.style.textColor,
+        ['text', 'freehand', 'line', 'arrow'].includes(node.kind)
+          ? 'none'
+          : node.style.fill,
+      ),
+    };
   const group = svg('g', {
     'data-node-id': node.id,
     transform: `translate(${g.x} ${g.y}) rotate(${g.rotation} ${g.width / 2} ${g.height / 2})`,
@@ -274,14 +284,26 @@ function renderNode(node: SceneNode): SVGElement {
     ? shapeRegistry[node.kind]
     : shapeRegistry.rectangle;
   const path = svg('path', {
-    d: definition.path(g.width, g.height, s.cornerRadius),
+    d: node.strokePoints
+      ? freehandPath(node.strokePoints, g)
+      : definition.path(g.width, g.height, s.cornerRadius),
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
     class: 'scene-node',
-    fill: node.kind === 'text' ? 'none' : s.fill,
+    fill: node.kind === 'text' || node.kind === 'freehand' ? 'none' : s.fill,
     stroke: node.kind === 'text' ? 'none' : s.stroke,
     'stroke-width': s.strokeWidth,
     opacity: s.opacity,
   });
   group.append(path);
+  if (node.kind === 'freehand') {
+    const hit = path.cloneNode() as SVGElement;
+    hit.setAttribute('stroke', 'transparent');
+    hit.setAttribute('stroke-width', String(Math.max(12, s.strokeWidth)));
+    hit.setAttribute('class', 'stroke-hit');
+    group.append(hit);
+    return group;
+  }
   const labelBox = definition.labelBox?.(g.width, g.height) ?? {
     x: 10,
     y: 6,
@@ -297,6 +319,13 @@ function renderNode(node: SceneNode): SVGElement {
         labelBox.y,
         labelBox.width,
         labelBox.height,
+        true,
+        textColor(
+          'auto',
+          ['text', 'freehand', 'line', 'arrow'].includes(node.kind)
+            ? 'none'
+            : node.style.fill,
+        ),
       ),
     );
     return group;
@@ -350,7 +379,7 @@ function renderNode(node: SceneNode): SVGElement {
   return group;
 }
 function renderEdge(edge: SceneConnection): SVGElement {
-  const s = edge.style,
+  const s = { ...edge.style, textColor: textColor(edge.style.textColor) },
     group = svg('g', { 'data-connection-id': edge.id, opacity: s.opacity });
   const title = svg('title');
   title.textContent = edge.label;
@@ -455,6 +484,7 @@ function renderRich(
   width: number,
   height: number,
   center = true,
+  automatic = textColor('auto'),
 ): SVGElement {
   const foreign = svg('foreignObject', {
     x,
@@ -479,7 +509,7 @@ function renderRich(
     fontFamily: FONT_FAMILIES[base.fontFamily],
     fontSize: `${base.fontSize}px`,
     lineHeight: '1.25',
-    color: base.textColor === 'none' ? 'transparent' : base.textColor,
+    color: textColor(base.textColor),
     fontWeight: String(base.fontWeight),
     fontStyle: base.fontStyle,
   });
@@ -503,7 +533,8 @@ function renderRich(
         fontWeight: String(a.fontWeight),
         fontStyle: a.fontStyle,
         textDecoration: a.textDecoration,
-        color: a.textColor === 'none' ? 'transparent' : a.textColor,
+        color:
+          r.style.textColor === 'auto' ? automatic : textColor(a.textColor),
       });
       span.textContent = r.text;
       paragraph.append(span);

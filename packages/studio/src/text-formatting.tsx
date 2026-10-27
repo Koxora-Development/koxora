@@ -86,10 +86,18 @@ export function TextFormatting({
         {t('diagram.textColor')}
         <input
           type="color"
-          value={value.textColor === 'none' ? '#18243d' : value.textColor}
+          value={value.textColor.startsWith('#') ? value.textColor : '#18243d'}
           onChange={(e) => onChange({ ...value, textColor: e.target.value })}
         />
       </label>
+      <button
+        type="button"
+        className="button compact"
+        aria-pressed={value.textColor === 'auto'}
+        onClick={() => onChange({ ...value, textColor: 'auto' })}
+      >
+        {t('text.autoColor')}
+      </button>
       <label>
         {t('diagram.align')}
         <select

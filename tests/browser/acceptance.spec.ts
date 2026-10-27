@@ -88,6 +88,11 @@ async function exported(p: Page) {
     await button(p, 'Restore workspace').click();
   // Expanded-view cleanup restores the background's focusability asynchronously.
   await expect(p.locator('.inspector')).toHaveJSProperty('inert', false);
+  // Stabilize autosave before checking native keyboard activation of Export.
+  await button(p, 'Save project').click();
+  await expect(
+    p.getByText('Saved on this device', { exact: true }),
+  ).toBeVisible();
   const exportButton = button(p, 'Export .koxora');
   await expect(exportButton).toBeEnabled();
   await exportButton.focus();

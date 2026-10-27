@@ -6,19 +6,23 @@ import {
   type Page,
 } from '@koxora/project';
 import { EditError } from './editing';
-import { selectPage } from './project-view';
+import { selectPage, activePageId } from './project-view';
+import { STACK_KEY, readStackOrder } from './stacking';
 
 export type WorkbookCommand =
   | { type: 'newPage'; documentId: string; title: string }
   | { type: 'newDocument'; title: string }
   | { type: 'renameDocument'; documentId: string; title: string }
+  | { type: 'moveDocument'; documentId: string; index: number }
+  | { type: 'deleteDocument'; documentId: string }
   | { type: 'renamePage'; pageId: string; title: string }
   | { type: 'duplicatePage'; pageId: string; title: string }
   | { type: 'deletePage'; pageId: string }
   | { type: 'movePage'; pageId: string; documentId: string; index: number };
 export class WorkbookError extends Error {
   constructor(
-    public code: 'lastPage' | 'references' | 'invalid' | 'historyLimit',
+    public code:
+      'lastPage' | 'lastDocument' | 'references' | 'invalid' | 'historyLimit',
   ) {
     super(code);
   }
@@ -70,6 +74,53 @@ export function applyWorkbook(
     documents = documents.map((d) =>
       d.id === command.documentId ? { ...d, title: title(command.title) } : d,
     );
+  } else if (command.type === 'moveDocument') {
+    const doc = documents.find((d) => d.id === command.documentId);
+    if (
+      !doc ||
+      !Number.isInteger(command.index) ||
+      command.index < 0 ||
+      command.index >= documents.length
+    )
+      throw new WorkbookError('invalid');
+    documents = documents.filter((d) => d !== doc);
+    documents.splice(command.index, 0, doc);
+  } else if (command.type === 'deleteDocument') {
+    if (documents.length === 1) throw new WorkbookError('lastDocument');
+    const doc = documents.find((d) => d.id === command.documentId);
+    if (!doc) throw new WorkbookError('invalid');
+    const ids = new Set([
+      doc.id,
+      ...doc.pages.flatMap(pageIds),
+      ...doc.styles.map((s) => s.id),
+    ]);
+    if (
+      documents.some(
+        (d) =>
+          d !== doc &&
+          (d.domainModels.some((m) => m.references.some((id) => ids.has(id))) ||
+            d.actions.some(
+              (a) =>
+                ids.has(a.targetId) ||
+                Object.values(a.parameters).some(
+                  (v) => typeof v === 'string' && ids.has(v),
+                ),
+            ) ||
+            d.animations.some((a) => ids.has(a.targetId)) ||
+            d.pages.some((p) =>
+              p.relationships.some(
+                (r) => ids.has(r.sourceId) || ids.has(r.targetId),
+              ),
+            )),
+      )
+    )
+      throw new WorkbookError('references');
+    documents = documents.filter((d) => d !== doc);
+    if (doc.pages.some((p) => p.id === activePageId(project)))
+      selected = {
+        documentId: documents[0].id,
+        pageId: documents[0].pages[0].id,
+      };
   } else {
     const source = documents.find((d) =>
       d.pages.some((p) => p.id === command.pageId),
@@ -100,6 +151,17 @@ export function applyWorkbook(
       const mapped = (id: string) => map.get(id) ?? id;
       const copy: Page = {
         ...page,
+        extensions: {
+          ...page.extensions,
+          ...(readStackOrder(page)
+            ? {
+                [STACK_KEY]: {
+                  version: 1,
+                  ids: readStackOrder(page)!.map(mapped),
+                },
+              }
+            : {}),
+        },
         id: mapped(page.id),
         title: title(command.title),
         layers: page.layers.map((l) => ({
@@ -198,10 +260,11 @@ export function applyWorkbook(
         d !== source ? d : { ...d, pages: d.pages.filter((p) => p !== page) },
       );
       const index = source.pages.indexOf(page);
-      selected = {
-        documentId: source.id,
-        pageId: source.pages[index ? index - 1 : 1].id,
-      };
+      if (page.id === activePageId(project))
+        selected = {
+          documentId: source.id,
+          pageId: source.pages[index ? index - 1 : 1].id,
+        };
     } else {
       const target = documents.find((d) => d.id === command.documentId);
       if (

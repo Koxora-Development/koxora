@@ -3,6 +3,7 @@ import {
   type Project,
   type Node,
   type Connection,
+  type Page,
 } from '@koxora/project';
 import { applyEdit, EditError, type EditCommand } from './editing';
 
@@ -17,6 +18,7 @@ interface Change<T extends Element> {
 interface Entry {
   nodes: Change<Node>[];
   connections: Change<Connection>[];
+  extensions?: { before: Page['extensions']; after: Page['extensions'] };
   bytes: number;
   sequence: number;
 }
@@ -102,8 +104,12 @@ export class CommandHistory {
     const delta = {
       nodes: changes(before.nodes, after.nodes),
       connections: changes(before.connections, after.connections),
+      ...(JSON.stringify(before.extensions) !== JSON.stringify(after.extensions)
+        ? { extensions: { before: before.extensions, after: after.extensions } }
+        : {}),
     };
-    if (!delta.nodes.length && !delta.connections.length) return project;
+    if (!delta.nodes.length && !delta.connections.length && !delta.extensions)
+      return project;
     const key = this.key(project, documentId, pageId);
     const branch = this.branches.get(key) ?? { undo: [], redo: [] };
     branch.redo = [];
@@ -153,8 +159,19 @@ export class CommandHistory {
       ?.pages.find((p) => p.id === pageId);
     if (!page) throw new EditError('invalid');
     const undo = direction === 'undo';
+    if (
+      entry.extensions &&
+      JSON.stringify(page.extensions) !==
+        JSON.stringify(undo ? entry.extensions.after : entry.extensions.before)
+    )
+      throw new EditError('invalid');
     const restored = {
       ...page,
+      extensions: entry.extensions
+        ? undo
+          ? entry.extensions.before
+          : entry.extensions.after
+        : page.extensions,
       nodes: restore(page.nodes, entry.nodes, undo),
       connections: restore(page.connections, entry.connections, undo),
     };

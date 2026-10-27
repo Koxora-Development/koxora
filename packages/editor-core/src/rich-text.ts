@@ -63,7 +63,7 @@ export function validTextStyle(key: string, value: unknown): boolean {
   return (
     key === 'textColor' &&
     typeof value === 'string' &&
-    /^(#[0-9a-f]{6}|none)$/i.test(value)
+    /^(#[0-9a-f]{6}|none|auto)$/i.test(value)
   );
 }
 /** Unknown rich-text semantics are retained by the archive and made read-only by the editor. */

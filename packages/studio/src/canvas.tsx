@@ -1,3 +1,5 @@
+import { ContextMenu } from './context-menu';
+import { menuAnchor, type MenuAnchor } from './menu-anchor';
 import { InlineText } from './inline-text';
 import { FormatSelection } from './format-selection';
 import {
@@ -13,9 +15,15 @@ import { translate, type MessageKey } from '@koxora/i18n';
 import type { Page, Style, Node } from '@koxora/project';
 import {
   buildScene,
+  freehandGeometry,
+  MAX_FREEHAND_POINTS,
+  FREEHAND_KEY,
+  ELEMENT_KEY,
   plainText,
   type RichText,
   alignedGeometries,
+  tidyGeometries,
+  type StackAction,
   copyElements,
   movedGeometries,
   marqueeSelection,
@@ -65,6 +73,7 @@ export interface CanvasHandle {
   snapshot: () => CanvasState;
 }
 interface Props {
+  onNavigate: () => void;
   expanded: boolean;
   onExpanded: (value: boolean) => void;
   page: Page;
@@ -79,6 +88,7 @@ interface Props {
   ref?: Ref<CanvasHandle>;
 }
 export function Canvas({
+  onNavigate,
   expanded,
   onExpanded: setExpanded,
   page,
@@ -100,23 +110,18 @@ export function Canvas({
     camera: (action: 'in' | 'out' | 'reset' | 'fit') => void;
     settings: () => void;
     refresh: () => void;
+    preview: (geometries: Record<string, Geometry> | null) => void;
     focus: () => void;
   } | null>(null);
   const [tool, setTool] = useState<DiagramTool>('select');
   const [repeat, setRepeat] = useState(false);
+  const [ink, setInk] = useState({ stroke: '#7c3aed', strokeWidth: 3 });
   const [selected, setSelectedState] = useState<string[]>([]);
   const selection = useRef<string[]>([]);
   const clipboard = useRef<ReturnType<typeof copyElements> | null>(null);
   const [hasClipboard, setHasClipboard] = useState(false);
   const [feedback, setFeedback] = useState<MessageKey | null>(null);
-  const [contextMenu, setContextMenu] = useState(false);
-  const contextRoot = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (contextMenu)
-      contextRoot.current
-        ?.querySelector<HTMLElement>('button:not(:disabled)')
-        ?.focus();
-  }, [contextMenu]);
+  const [contextMenu, setContextMenu] = useState<MenuAnchor | null>(null);
   const [formatting, setFormatting] = useState<string[] | null>(null);
   const [objects, setObjects] = useState(false);
   function select(ids: string[]) {
@@ -158,8 +163,9 @@ export function Canvas({
       nodes: page.nodes,
       connections: page.connections,
       layers: page.layers,
+      extensions: page.extensions,
     }),
-    [page.id, page.nodes, page.connections, page.layers],
+    [page.id, page.nodes, page.connections, page.layers, page.extensions],
   );
   const baseScene = useMemo(
     () =>
@@ -168,10 +174,11 @@ export function Canvas({
           nodes: page.nodes,
           connections: page.connections,
           layers: page.layers,
+          extensions: page.extensions,
         },
         styles,
       ),
-    [page.nodes, page.connections, page.layers, styles],
+    [page.nodes, page.connections, page.layers, page.extensions, styles],
   );
   const scene = useMemo(
     () =>
@@ -197,7 +204,7 @@ export function Canvas({
     setTool(next);
     setSource(null);
     setEditError(null);
-    setContextMenu(false);
+    setContextMenu(null);
   }
   function pick(id: string, direct = false) {
     const item =
@@ -216,7 +223,7 @@ export function Canvas({
     }
     setEditError(null);
     select([id]);
-    setInline(direct);
+    setInline(direct && !('kind' in item && item.kind === 'freehand'));
     setTextPreview(null);
     const box = host.current?.getBoundingClientRect();
     if (box) {
@@ -296,10 +303,21 @@ export function Canvas({
           excluded.add(edge.sourceId);
       }
     return scene.nodes
-      .filter((n) => n.editable && !isDrawing(n.kind) && !excluded.has(n.id))
+      .filter(
+        (n) =>
+          n.editable &&
+          !isDrawing(n.kind) &&
+          n.kind !== 'freehand' &&
+          !excluded.has(n.id),
+      )
       .map((n) => n.id);
   }, [scene, source, tool, page.layers, page.connections, layerId]);
+  function drawStroke(points: Point[]) {
+    const id = crypto.randomUUID();
+    if (onEdit({ type: 'freehand', id, layerId, points, ...ink })) select([id]);
+  }
   function act(point: Point, id?: string, geometry?: Geometry, snap?: boolean) {
+    if (tool === 'freehand') return;
     if (isShapeKind(tool)) {
       const id = crypto.randomUUID();
       if (
@@ -326,8 +344,9 @@ export function Canvas({
       const node = pickNode(scene, point, 6 / state.current.camera.zoom);
       const edge =
         id && scene.connections.find((e) => e.id === id && e.editable);
-      if (node) pick(node.id, true);
-      else if (edge) pick(edge.id, true);
+      if (edge && (!node || edge.paintOrder > node.paintOrder))
+        pick(edge.id, true);
+      else if (node) pick(node.id, true);
     }
   }
   const editableSelection = selected.filter((id) =>
@@ -335,6 +354,18 @@ export function Canvas({
       (n) => n.id === id && n.editable,
     ),
   );
+  const previewing = useRef(false);
+  function previewArrangement(action: Alignment | 'tidy' | null) {
+    previewing.current = action !== null;
+    const geometries =
+      action === null
+        ? null
+        : action === 'tidy'
+          ? tidyGeometries(scene, selection.current)
+          : alignedGeometries(scene, selection.current, action);
+    controls.current?.preview(geometries);
+    setFeedback(action ? 'editing.preview' : null);
+  }
   function command(
     action:
       | 'delete'
@@ -344,12 +375,19 @@ export function Canvas({
       | 'undo'
       | 'redo'
       | 'properties'
+      | 'text'
+      | 'tidy'
+      | 'forward'
+      | 'backward'
+      | 'front'
+      | 'back'
       | Alignment,
   ) {
+    previewArrangement(null);
     cancelInput.current();
     if (action !== 'properties') controls.current?.focus();
     setSource(null);
-    setContextMenu(false);
+    setContextMenu(null);
     setFeedback(null);
     const ids = selection.current.filter((id) =>
       [...scene.nodes, ...scene.connections].some(
@@ -360,6 +398,11 @@ export function Canvas({
       if (action === 'undo' || action === 'redo') {
         if (onHistory(action)) select([]);
         else setFeedback('editing.noHistory');
+      } else if (action === 'text') {
+        if (ids.length === 1) pick(ids[0], true);
+      } else if (['forward', 'backward', 'front', 'back'].includes(action)) {
+        if (ids.length)
+          onEdit({ type: 'stack', ids, action: action as StackAction });
       } else if (action === 'properties') {
         if (ids.length === 1) pick(ids[0]);
         else if (ids.length > 1) setFormatting(ids);
@@ -392,13 +435,19 @@ export function Canvas({
         )
           select(Object.values(idMap));
       } else {
-        const geometries = alignedGeometries(scene, ids, action);
+        const geometries =
+          action === 'tidy'
+            ? tidyGeometries(scene, ids)
+            : alignedGeometries(scene, ids, action as Alignment);
         if (Object.keys(geometries).length)
           onEdit({ type: 'transform', geometries });
       }
     } catch {
       setEditError('diagram.error.unsupported');
     }
+  }
+  function handleStack(event: React.MouseEvent<HTMLButtonElement>) {
+    command(event.currentTarget.dataset.stack as StackAction);
   }
   const [help, setHelp] = useState(false);
   const [limited, setLimited] = useState(false);
@@ -411,6 +460,8 @@ export function Canvas({
     percent = useRef<HTMLOutputElement>(null);
   const interaction = useRef<{
     tool: DiagramTool;
+    drawStroke: typeof drawStroke;
+    ink: typeof ink;
     act: typeof act;
     link: typeof link;
     candidates: string[];
@@ -423,6 +474,8 @@ export function Canvas({
   useEffect(() => {
     interaction.current = {
       tool,
+      drawStroke,
+      ink,
       act,
       link,
       candidates,
@@ -559,6 +612,12 @@ export function Canvas({
       );
     controls.current = {
       refresh: schedule,
+      preview(geometries) {
+        preview = geometries
+          ? transformScene(scene, content, geometries)
+          : scene;
+        schedule();
+      },
       focus: () => element.focus({ preventScroll: true }),
       camera(action) {
         if (action === 'fit') change(fitBounds(scene.bounds, size));
@@ -603,9 +662,11 @@ export function Canvas({
     };
     type Gesture = {
       id: number;
-      kind: 'move' | 'resize' | 'marquee' | 'insert' | 'link';
+      kind: 'move' | 'resize' | 'marquee' | 'insert' | 'link' | 'freehand';
+      points?: Point[];
       start: Point;
       screen: Point;
+      origin: { x: number; y: number };
       moved: boolean;
       originals: Node[];
       base: string[];
@@ -618,6 +679,7 @@ export function Canvas({
       snap?: boolean;
     };
     let gesture: Gesture | null = null;
+    let keyboardStroke: Point[] | null = null;
     const world = (p: Point) => screenToWorld(p, state.current.camera, size);
     const resetPreview = () => {
       pendingMove = null;
@@ -627,6 +689,7 @@ export function Canvas({
       schedule();
     };
     const cancelGesture = () => {
+      keyboardStroke = null;
       gesture = null;
       resetPreview();
     };
@@ -636,6 +699,7 @@ export function Canvas({
       element.focus({ preventScroll: true });
       element.setPointerCapture(event.pointerId);
       captures.add(event.pointerId);
+      size = measure();
       const point = local(event),
         start = world(point),
         active = interaction.current;
@@ -658,20 +722,22 @@ export function Canvas({
         .closest('[data-connection-id]')
         ?.getAttribute('data-connection-id');
       const edge = scene.connections.find((e) => e.id === edgeId && e.editable);
-      if (edge && node && edge.layerOrder > node.layerOrder) node = undefined;
+      if (edge && node && edge.paintOrder > node.paintOrder) node = undefined;
       const hit = node?.id ?? edge?.id;
       const port = isDrawing(active.tool) ? ports.hit(point) : undefined;
       const drawingHit = isDrawing(active.tool)
         ? pickNode(scene, start, 6 / state.current.camera.zoom, false)
         : undefined;
       let kind: Gesture['kind'] =
-        isDrawing(active.tool) && (port || drawingHit || sourceRef.current)
-          ? 'link'
-          : isShapeKind(active.tool)
-            ? 'insert'
-            : hit
-              ? 'move'
-              : 'marquee';
+        active.tool === 'freehand'
+          ? 'freehand'
+          : isDrawing(active.tool) && (port || drawingHit || sourceRef.current)
+            ? 'link'
+            : isShapeKind(active.tool)
+              ? 'insert'
+              : hit
+                ? 'move'
+                : 'marquee';
       let originals: Node[] = [];
       if (active.tool === 'select') {
         if (handle) {
@@ -702,6 +768,10 @@ export function Canvas({
         kind,
         start,
         screen: point,
+        origin: {
+          x: element.getBoundingClientRect().x,
+          y: element.getBoundingClientRect().y,
+        },
         moved: false,
         originals,
         base: [...selection.current],
@@ -712,10 +782,86 @@ export function Canvas({
           (drawingHit ? { id: drawingHit.id, anchor: 'auto' } : undefined),
         single: !event.shiftKey ? hit : undefined,
         geometries: {},
+        ...(kind === 'freehand' ? { points: [start] } : {}),
       };
+      if (kind === 'freehand') inkPreview([start]);
+    };
+    const inkPreview = (points: Point[]) => {
+      const stroke = freehandGeometry(points);
+      const temporary: Node = {
+        id: 'preview',
+        kind: 'freehand',
+        layerId,
+        geometry: stroke.geometry,
+        content: {},
+        metadata: {},
+        assetIds: [],
+        dataBindings: [],
+        extensions: {
+          [FREEHAND_KEY]: stroke.extension,
+          [ELEMENT_KEY]: {
+            version: 1,
+            style: { ...interaction.current.ink, fill: 'none' },
+          },
+        },
+      };
+      const addition = buildScene(
+        { ...content, nodes: [temporary], connections: [] },
+        styles,
+      );
+      preview = {
+        ...scene,
+        nodes: [
+          ...scene.nodes,
+          ...addition.nodes.map((n) => ({
+            ...n,
+            paintOrder:
+              Math.max(
+                -1,
+                ...[...scene.nodes, ...scene.connections]
+                  .filter((item) => item.layerOrder <= n.layerOrder)
+                  .map((item) => item.paintOrder),
+              ) + 0.5,
+          })),
+        ],
+      };
+      schedule();
+    };
+    const appendInk = (points: Point[], point: Point) => {
+      const last = points.at(-1)!;
+      if (
+        Math.hypot(point.x - last.x, point.y - last.y) *
+          state.current.camera.zoom <
+        0.5
+      )
+        return true;
+      if (points.length >= MAX_FREEHAND_POINTS) {
+        cancelGesture();
+        setEditError('freehand.limit');
+        return false;
+      }
+      points.push(point);
+      return true;
     };
     const updateGesture = (event: PointerEvent) => {
       if (!gesture || gesture.id !== event.pointerId) return false;
+      const rect = element.getBoundingClientRect();
+      if (
+        Math.abs(rect.x - gesture.origin.x) > 0.5 ||
+        Math.abs(rect.y - gesture.origin.y) > 0.5
+      ) {
+        cancelGesture();
+        return false;
+      }
+      if (gesture.kind === 'freehand' && gesture.points) {
+        const points = gesture.points;
+        for (const sample of event.getCoalescedEvents?.().length
+          ? event.getCoalescedEvents()
+          : [event])
+          if (!appendInk(points, world(local(sample)))) return true;
+        inkPreview(points);
+        return true;
+      }
       const p = local(event),
         raw = world(p);
       if (Math.hypot(p.x - gesture.screen.x, p.y - gesture.screen.y) > 3)
@@ -798,7 +944,22 @@ export function Canvas({
             { ...content, nodes: [temporary], connections: [] },
             styles,
           );
-          preview = { ...scene, nodes: [...scene.nodes, ...addition.nodes] };
+          preview = {
+            ...scene,
+            nodes: [
+              ...scene.nodes,
+              ...addition.nodes.map((n) => ({
+                ...n,
+                paintOrder:
+                  Math.max(
+                    -1,
+                    ...[...scene.nodes, ...scene.connections]
+                      .filter((item) => item.layerOrder <= n.layerOrder)
+                      .map((item) => item.paintOrder),
+                  ) + 0.5,
+              })),
+            ],
+          };
           marquee = null;
         }
       }
@@ -811,6 +972,12 @@ export function Canvas({
       cursorPoint = local(event);
       if (isDrawing(interaction.current.tool)) schedule();
       if (gesture?.id === event.pointerId) {
+        if (gesture.kind === 'freehand') {
+          updateGesture(event);
+          if (pointers.has(event.pointerId))
+            pointers.set(event.pointerId, local(event));
+          return;
+        }
         pendingMove = event;
         schedule();
         if (pointers.has(event.pointerId))
@@ -852,7 +1019,9 @@ export function Canvas({
         element.releasePointerCapture(event.pointerId);
       if (done && event.type === 'pointerup') {
         commit();
-        if (
+        if (done.kind === 'freehand' && done.points)
+          interaction.current.drawStroke(done.points);
+        else if (
           (done.kind === 'move' || done.kind === 'resize') &&
           done.moved &&
           Object.keys(done.geometries).length
@@ -922,6 +1091,23 @@ export function Canvas({
         return;
       }
       const modifier = event.ctrlKey || event.metaKey;
+      if (
+        modifier &&
+        event.altKey &&
+        ['ArrowUp', 'ArrowDown'].includes(event.key)
+      ) {
+        event.preventDefault();
+        active.command(
+          event.key === 'ArrowUp'
+            ? event.shiftKey
+              ? 'front'
+              : 'forward'
+            : event.shiftKey
+              ? 'back'
+              : 'backward',
+        );
+        return;
+      }
       const shortcut = editingShortcut(event);
       if (shortcut) {
         event.preventDefault();
@@ -940,6 +1126,19 @@ export function Canvas({
         active.command('delete');
         return;
       }
+      if (event.key === 'Enter' && active.tool === 'freehand') {
+        event.preventDefault();
+        if (keyboardStroke) {
+          const points = keyboardStroke;
+          keyboardStroke = null;
+          active.drawStroke(points);
+          resetPreview();
+        } else {
+          keyboardStroke = [{ ...state.current.camera }];
+          inkPreview(keyboardStroke);
+        }
+        return;
+      }
       if (event.key === 'Enter') {
         event.preventDefault();
         commit();
@@ -953,6 +1152,18 @@ export function Canvas({
       if (directions[event.key]) {
         event.preventDefault();
         const direction = directions[event.key];
+        if (active.tool === 'freehand' && keyboardStroke) {
+          const last = keyboardStroke.at(-1)!;
+          const step = event.shiftKey ? 10 : 1;
+          if (
+            appendInk(keyboardStroke, {
+              x: last.x + direction.x * step,
+              y: last.y + direction.y * step,
+            })
+          )
+            inkPreview(keyboardStroke);
+          return;
+        }
         const nodes = content.nodes.filter(
           (n) =>
             selection.current.includes(n.id) &&
@@ -1017,7 +1228,7 @@ export function Canvas({
       }
     };
     const blur = () => {
-      const active = !!gesture || !!pointers.size;
+      const active = !!gesture || !!pointers.size || !!keyboardStroke;
       cancelGesture();
       element.classList.remove('hand-ready', 'panning');
       const captured = [...captures];
@@ -1209,6 +1420,14 @@ export function Canvas({
           }
         }
 
+        if (event.key === 'Escape' && previewing.current) {
+          event.preventDefault();
+          event.stopPropagation();
+          previewArrangement(null);
+          const details = (event.target as HTMLElement).closest('details');
+          if (details) details.open = false;
+          return;
+        }
         if (
           event.key === 'Escape' &&
           !editing &&
@@ -1227,6 +1446,11 @@ export function Canvas({
       aria-label={t('workspace.canvas')}
     >
       <div className="canvas-toolbar">
+        {expanded && (
+          <button className="button compact" onClick={onNavigate}>
+            {t('tree.heading')}
+          </button>
+        )}
         <span>
           <span dir="auto">{documentTitle}</span>
           <span className="breadcrumb-separator">/</span>
@@ -1263,6 +1487,8 @@ export function Canvas({
         setOptions={setOptions}
         repeat={repeat}
         setRepeat={setRepeat}
+        ink={ink}
+        setInk={setInk}
       />
       <div
         className="editing-toolbar"
@@ -1298,14 +1524,17 @@ export function Canvas({
             >
               {t('diagram.properties')}
             </button>
-            {editableSelection.length === 1 && (
-              <button
-                className="button compact"
-                onClick={() => pick(editableSelection[0], true)}
-              >
-                {t('rich.edit')}
-              </button>
-            )}
+            {editableSelection.length === 1 &&
+              !page.nodes.some(
+                (n) => n.id === editableSelection[0] && n.kind === 'freehand',
+              ) && (
+                <button
+                  className="button compact"
+                  onClick={() => pick(editableSelection[0], true)}
+                >
+                  {t('rich.edit')}
+                </button>
+              )}
             <button
               className="button compact"
               disabled={!editableSelection.length}
@@ -1338,38 +1567,107 @@ export function Canvas({
         </button>
         {editableSelection.filter((id) => scene.nodes.some((n) => n.id === id))
           .length >= 2 && (
-          <details className="selection-align">
+          <details
+            className="selection-align"
+            onToggle={(e) => {
+              if (!e.currentTarget.open) previewArrangement(null);
+            }}
+          >
             <summary>{t('format.align')}</summary>
             <div>
-              {(
-                [
-                  'left',
-                  'center',
-                  'right',
-                  'top',
-                  'middle',
-                  'bottom',
-                  'horizontal',
-                  'vertical',
-                ] as const
-              ).map((mode) => (
+              <p className="arrange-help">{t('arrange.alignHelp')}</p>
+              <fieldset>
+                <legend>{t('arrange.align')}</legend>
+                {(
+                  [
+                    'left',
+                    'center',
+                    'right',
+                    'top',
+                    'middle',
+                    'bottom',
+                  ] as const
+                ).map((mode) => (
+                  <button
+                    key={mode}
+                    className="button compact"
+                    onMouseEnter={() => previewArrangement(mode)}
+                    onMouseLeave={() => previewArrangement(null)}
+                    onFocus={() => previewArrangement(mode)}
+                    onBlur={() => previewArrangement(null)}
+                    onClick={() => command(mode)}
+                  >
+                    {t(`editing.align.${mode}`)}
+                  </button>
+                ))}
+              </fieldset>
+              <fieldset>
+                <legend>{t('arrange.distribute')}</legend>
+                <p className="arrange-help">{t('arrange.distributeHelp')}</p>
+                {(['horizontal', 'vertical'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    className="button compact"
+                    disabled={
+                      editableSelection.filter((id) =>
+                        scene.nodes.some((n) => n.id === id),
+                      ).length < 3
+                    }
+                    onMouseEnter={() => previewArrangement(mode)}
+                    onMouseLeave={() => previewArrangement(null)}
+                    onFocus={() => previewArrangement(mode)}
+                    onBlur={() => previewArrangement(null)}
+                    onClick={() => command(mode)}
+                  >
+                    {t(`editing.align.${mode}`)}
+                  </button>
+                ))}
+              </fieldset>
+              <fieldset>
+                <legend>{t('arrange.tidy')}</legend>
+                <p className="arrange-help">{t('arrange.tidyHelp')}</p>
                 <button
-                  key={mode}
                   className="button compact"
-                  disabled={
-                    editableSelection.filter((id) =>
-                      scene.nodes.some((n) => n.id === id),
-                    ).length <
-                    (mode === 'horizontal' || mode === 'vertical' ? 3 : 2)
-                  }
-                  onClick={() => command(mode)}
+                  onMouseEnter={() => previewArrangement('tidy')}
+                  onMouseLeave={() => previewArrangement(null)}
+                  onFocus={() => previewArrangement('tidy')}
+                  onBlur={() => previewArrangement(null)}
+                  onClick={() => command('tidy')}
                 >
-                  {t(`editing.align.${mode}`)}
+                  {t('arrange.tidy')}
                 </button>
-              ))}
+              </fieldset>
             </div>
           </details>
         )}
+        {editableSelection.length > 0 && (
+          <details className="selection-stack">
+            <summary>{t('stack.heading')}</summary>
+            <div>
+              <p className="field-help">{t('stack.help')}</p>
+              {(['forward', 'backward', 'front', 'back'] as const).map(
+                (action) => (
+                  <button
+                    key={action}
+                    className="button compact"
+                    onClick={() => {
+                      command(action);
+                    }}
+                  >
+                    {t(`stack.${action}`)}
+                  </button>
+                ),
+              )}
+            </div>
+          </details>
+        )}
+        <button
+          className="button compact"
+          aria-label={t('editing.more')}
+          onClick={(e) => setContextMenu(menuAnchor(e.currentTarget))}
+        >
+          {'⋯'}
+        </button>
       </div>
       {objects && (
         <aside className="objects-panel" aria-label={t('format.objects')}>
@@ -1470,8 +1768,10 @@ export function Canvas({
             (event.target as Element)
               .closest('[data-connection-id]')
               ?.getAttribute('data-connection-id');
+          cancelInput.current();
           if (id && !selection.current.includes(id)) select([id]);
-          setContextMenu(true);
+          else if (!id) select([]);
+          setContextMenu(menuAnchor(event.currentTarget, event));
         }}
         onKeyDown={(event) => {
           if (
@@ -1479,7 +1779,7 @@ export function Canvas({
             (event.shiftKey && event.key === 'F10')
           ) {
             event.preventDefault();
-            setContextMenu(true);
+            setContextMenu(menuAnchor(event.currentTarget));
           }
         }}
         className={`interactive-canvas ${tool === 'select' ? 'select-active' : tool !== 'pan' ? 'tool-active' : ''}`}
@@ -1528,78 +1828,73 @@ export function Canvas({
         </p>
       </div>
       {contextMenu && (
-        <div
-          ref={contextRoot}
-          className="editing-context"
-          role="menu"
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              e.preventDefault();
-              e.stopPropagation();
-              setContextMenu(false);
-              controls.current?.focus();
-            } else if (
-              [
-                'ArrowLeft',
-                'ArrowRight',
-                'ArrowDown',
-                'ArrowUp',
-                'Home',
-                'End',
-              ].includes(e.key)
-            ) {
-              e.preventDefault();
-              const items = [
-                  ...e.currentTarget.querySelectorAll<HTMLButtonElement>(
-                    'button:not(:disabled)',
-                  ),
-                ],
-                i = items.indexOf(document.activeElement as HTMLButtonElement);
-              items[
-                e.key === 'Home'
-                  ? 0
-                  : e.key === 'End'
-                    ? items.length - 1
-                    : (i +
-                        (['ArrowRight', 'ArrowDown'].includes(e.key)
-                          ? 1
-                          : items.length - 1)) %
-                      items.length
-              ]?.focus();
-            }
-          }}
-          aria-label={t('editing.actions')}
+        <ContextMenu
+          anchor={contextMenu}
+          label={t('editing.actions')}
+          onClose={() => setContextMenu(null)}
         >
-          {(
-            ['properties', 'duplicate', 'delete', 'copy', 'paste'] as const
-          ).map((action) => (
-            <button
-              key={action}
-              role="menuitem"
-              className="button compact"
-              disabled={
-                action === 'paste' ? !hasClipboard : !editableSelection.length
-              }
-              onClick={() => command(action)}
-            >
-              {t(
-                action === 'properties'
-                  ? 'diagram.properties'
-                  : `editing.${action}`,
-              )}
+          {editableSelection.length === 1 &&
+            !page.nodes.some(
+              (n) => n.id === editableSelection[0] && n.kind === 'freehand',
+            ) && (
+              <button role="menuitem" onClick={() => command('text')}>
+                {t('rich.edit')}
+              </button>
+            )}
+          {(['properties', 'duplicate', 'delete', 'copy', 'paste'] as const)
+            .filter((action) =>
+              action === 'paste' ? hasClipboard : editableSelection.length > 0,
+            )
+            .map((action) => (
+              <button
+                key={action}
+                role="menuitem"
+                onClick={() => {
+                  command(action);
+                }}
+              >
+                {t(
+                  action === 'properties'
+                    ? 'diagram.properties'
+                    : `editing.${action}`,
+                )}
+              </button>
+            ))}
+          {editableSelection.length > 0 &&
+            (['forward', 'backward', 'front', 'back'] as const).map(
+              (action) => (
+                <button
+                  key={action}
+                  role="menuitem"
+                  data-stack={action}
+                  onClick={handleStack}
+                >
+                  {t(`stack.${action}`)}
+                </button>
+              ),
+            )}
+          {editableSelection.filter((id) =>
+            scene.nodes.some((n) => n.id === id),
+          ).length >= 2 && (
+            <button role="menuitem" onClick={() => command('tidy')}>
+              {t('arrange.tidy')}
             </button>
-          ))}
+          )}
+          {layerStates(page.layers).get(layerId)?.editable && (
+            <button role="menuitem" onClick={() => activate('freehand')}>
+              {t('shape.freehand')}
+            </button>
+          )}
           <button
-            className="button compact"
             role="menuitem"
             onClick={() => {
-              setContextMenu(false);
+              setContextMenu(null);
               controls.current?.focus();
             }}
           >
             {t('project.cancel')}
           </button>
-        </div>
+        </ContextMenu>
       )}
       <div className="canvas-navigation canvas-options">
         <button

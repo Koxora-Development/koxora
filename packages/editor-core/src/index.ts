@@ -9,3 +9,6 @@ export * from './history';
 export * from './rich-text';
 export * from './workbook';
 export * from './studio-history';
+export * from './freehand';
+export * from './stacking';
+export * from './contrast';

@@ -5,8 +5,17 @@ import {
   plainText,
   richTextJson,
   formatRichText,
+  TEXT_ATTRIBUTES,
   type RichText,
 } from './rich-text';
+import { FREEHAND_KEY, freehandGeometry, readFreehand } from './freehand';
+import {
+  STACK_KEY,
+  readStackOrder,
+  stackOrder,
+  orderedElements,
+  type StackAction,
+} from './stacking';
 import {
   validateProject,
   type Project,
@@ -34,6 +43,15 @@ import {
 } from './shapes';
 import { type ConnectionOptions, readConnection } from './connections';
 export type EditCommand =
+  | {
+      type: 'freehand';
+      id: string;
+      layerId: string;
+      points: Point[];
+      stroke: string;
+      strokeWidth: number;
+    }
+  | { type: 'stack'; ids: string[]; action: StackAction }
   | { type: 'format'; ids: string[]; patch: Partial<Appearance> }
   | { type: 'richText'; id: string; value: RichText }
   | {
@@ -71,6 +89,7 @@ export type EditCommand =
     }
   | {
       type: 'paste';
+      stackIds?: string[];
       nodes: Node[];
       connections: Connection[];
       idMap: Record<string, string>;
@@ -130,7 +149,8 @@ export function assertEditableElement(item: Node | Connection): void {
   if ('kind' in item) {
     const n = item as Node;
     if (
-      !isShapeKind(n.kind) ||
+      (!isShapeKind(n.kind) && n.kind !== 'freehand') ||
+      (n.kind === 'freehand' && !readFreehand(n)) ||
       !editableExtension(n.extensions[ELEMENT_KEY]) ||
       (isDrawing(n.kind) &&
         (!editableExtension(n.extensions[LINE_KEY]) ||
@@ -193,7 +213,8 @@ export function connectionError(
   if (!layers.get(layerId)?.editable) return 'layer';
   for (const id of [sourceId, ...(targetId ? [targetId] : [])]) {
     const node = page.nodes.find((n) => n.id === id);
-    if (!node || isDrawing(node.kind)) return 'endpoint';
+    if (!node || isDrawing(node.kind) || node.kind === 'freehand')
+      return 'endpoint';
     if (!layers.get(node.layerId)?.editable) return 'layer';
     try {
       assertEditableElement(node);
@@ -241,7 +262,66 @@ export function applyEdit(
   };
   let nodes = page.nodes,
     connections = page.connections;
-  if (command.type === 'richText' || command.type === 'format') {
+  let extensions = page.extensions;
+  if (command.type === 'stack') {
+    if (page.extensions[STACK_KEY] !== undefined && !readStackOrder(page))
+      throw new EditError('unsupported');
+    if (!['forward', 'backward', 'front', 'back'].includes(command.action))
+      throw new EditError('invalid');
+    const ids = new Set(command.ids);
+    const items = [...nodes, ...connections].filter((item) => ids.has(item.id));
+    if (!ids.size || items.length !== ids.size) throw new EditError('invalid');
+    for (const item of items) {
+      editable(item.layerId);
+      assertEditableElement(item);
+    }
+    extensions = {
+      ...extensions,
+      [STACK_KEY]: {
+        version: 1,
+        ids: stackOrder(page, command.ids, command.action),
+      },
+    };
+  } else if (command.type === 'freehand') {
+    editable(command.layerId);
+    if (
+      !/^#[0-9a-f]{6}$/i.test(command.stroke) ||
+      !Number.isFinite(command.strokeWidth) ||
+      command.strokeWidth < 1 ||
+      command.strokeWidth > 32
+    )
+      throw new EditError('invalid');
+    let stroke;
+    try {
+      stroke = freehandGeometry(command.points);
+    } catch {
+      throw new EditError('invalid');
+    }
+    nodes = [
+      ...nodes,
+      {
+        id: command.id,
+        kind: 'freehand',
+        layerId: command.layerId,
+        geometry: stroke.geometry,
+        content: { text: '' },
+        metadata: {},
+        assetIds: [],
+        dataBindings: [],
+        extensions: {
+          [FREEHAND_KEY]: stroke.extension,
+          [ELEMENT_KEY]: {
+            version: 1,
+            style: {
+              fill: 'none',
+              stroke: command.stroke,
+              strokeWidth: command.strokeWidth,
+            },
+          },
+        },
+      },
+    ];
+  } else if (command.type === 'richText' || command.type === 'format') {
     const ids = new Set(command.type === 'format' ? command.ids : [command.id]);
     const items = [...nodes, ...connections].filter((item) => ids.has(item.id));
     if (!items.length || items.length !== ids.size)
@@ -250,7 +330,11 @@ export function applyEdit(
       editable(item.layerId);
       assertEditableElement(item);
     }
-    if (command.type === 'richText' && !isRichText(command.value))
+    if (
+      command.type === 'richText' &&
+      (!isRichText(command.value) ||
+        items.some((item) => 'kind' in item && item.kind === 'freehand'))
+    )
       throw new EditError('invalid');
     const update = <T extends Node | Connection>(item: T): T => {
       if (!ids.has(item.id)) return item;
@@ -279,7 +363,7 @@ export function applyEdit(
       // Fill/corners are meaningless for text, drawings and semantic edges.
       if (
         !('kind' in item) ||
-        ['text', 'line', 'arrow'].includes(String(item.kind))
+        ['text', 'line', 'arrow', 'freehand'].includes(String(item.kind))
       ) {
         delete patch.fill;
         delete patch.cornerRadius;
@@ -287,6 +371,10 @@ export function applyEdit(
       if ('kind' in item && item.kind === 'text') {
         delete patch.stroke;
         delete patch.strokeWidth;
+      }
+      if ('kind' in item && item.kind === 'freehand') {
+        for (const key of TEXT_ATTRIBUTES) delete patch[key];
+        delete patch.align;
       }
       if (!Object.keys(patch).length) return item;
       const desired = { ...old, ...patch };
@@ -476,11 +564,35 @@ export function applyEdit(
         })),
       };
     });
+    const sourceIds = [...clipboard.connections, ...clipboard.nodes].map(
+      (item) => item.id,
+    );
+    const order = clipboard.stackIds ?? sourceIds;
+    if (
+      order.length !== sourceIds.length ||
+      new Set(order).size !== order.length ||
+      order.some((id) => !sourceIds.includes(id))
+    )
+      throw new EditError('invalid');
+    if (page.extensions[STACK_KEY] !== undefined && !readStackOrder(page))
+      throw new EditError('unsupported');
+    extensions = {
+      ...extensions,
+      [STACK_KEY]: {
+        version: 1,
+        ids: [
+          ...orderedElements(page).map((item) => item.id),
+          ...order.map(copyId),
+        ],
+      },
+    };
     nodes = [...nodes, ...copiedNodes];
     connections = [...connections, ...copiedEdges];
   } else if (command.type === 'updateNode') {
     const n = node(command.id);
     text(command.text);
+    if (n.kind === 'freehand' && (command.text || command.richText))
+      throw new EditError('invalid');
     if (
       command.richText &&
       (!isRichText(command.richText) ||
@@ -611,7 +723,7 @@ export function applyEdit(
         : {
             ...d,
             pages: d.pages.map((p) =>
-              p.id !== pageId ? p : { ...p, nodes, connections },
+              p.id !== pageId ? p : { ...p, nodes, connections, extensions },
             ),
           },
     ),
@@ -637,7 +749,7 @@ export function assertGeometry(
 export function copyElements(
   page: Page,
   selected: readonly string[],
-): { nodes: Node[]; connections: Connection[] } {
+): { nodes: Node[]; connections: Connection[]; stackIds: string[] } {
   const ids = new Set(selected),
     layers = layerStates(page.layers);
   const nodes = page.nodes.filter((n) => ids.has(n.id));
@@ -657,7 +769,14 @@ export function copyElements(
     )
   )
     throw new EditError('endpoint');
-  return { nodes, connections };
+  const copied = new Set([...nodes, ...connections].map((item) => item.id));
+  return {
+    nodes,
+    connections,
+    stackIds: orderedElements(page)
+      .filter((item) => copied.has(item.id))
+      .map((item) => item.id),
+  };
 }
 export function renameProject(
   project: Project,

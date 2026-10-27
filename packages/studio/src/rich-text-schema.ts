@@ -7,6 +7,8 @@ import {
 } from 'prosemirror-model';
 import {
   FONT_FAMILIES,
+  textColor,
+  contrastingColor,
   TEXT_ATTRIBUTES,
   validTextStyle,
   type RichText,
@@ -103,6 +105,19 @@ export const textSchema = new Schema({
       {
         attrs: { value: {} },
         parseDOM: [
+          ...(key === 'textColor'
+            ? [
+                {
+                  tag: 'span[data-text-color]',
+                  getAttrs: (el: HTMLElement) => {
+                    const value = el.getAttribute('data-text-color');
+                    return validTextStyle('textColor', value)
+                      ? { value }
+                      : false;
+                  },
+                },
+              ]
+            : []),
           {
             style: cssKeys[key],
             getAttrs: (value: string) => {
@@ -128,7 +143,18 @@ export const textSchema = new Schema({
           [
             'span',
             {
-              style: `${cssKeys[key]}:${key === 'fontFamily' ? FONT_FAMILIES[mark.attrs.value as keyof typeof FONT_FAMILIES] : key === 'fontSize' ? `${mark.attrs.value}px` : key === 'textColor' && mark.attrs.value === 'none' ? 'transparent' : mark.attrs.value}`,
+              style: `${cssKeys[key]}:${key === 'fontFamily' ? FONT_FAMILIES[mark.attrs.value as keyof typeof FONT_FAMILIES] : key === 'fontSize' ? `${mark.attrs.value}px` : key === 'textColor' ? textColor(String(mark.attrs.value)) : mark.attrs.value}`,
+              ...(key === 'textColor'
+                ? {
+                    'data-text-color': String(mark.attrs.value),
+                    class: 'editor-color',
+                    'data-contrast': /^#[0-9a-f]{6}$/i.test(
+                      String(mark.attrs.value),
+                    )
+                      ? contrastingColor(String(mark.attrs.value))
+                      : '',
+                  }
+                : {}),
             },
             0,
           ] as [string, Record<string, string>, number],
@@ -207,7 +233,11 @@ export function inertPaste(html: string): DocumentFragment {
     .forEach((n) => n.remove());
   template.content.querySelectorAll('*').forEach((n) => {
     for (const a of [...n.attributes])
-      if (a.name !== 'style') n.removeAttribute(a.name);
+      if (
+        a.name !== 'style' &&
+        !(a.name === 'data-text-color' && validTextStyle('textColor', a.value))
+      )
+        n.removeAttribute(a.name);
   });
   return template.content;
 }

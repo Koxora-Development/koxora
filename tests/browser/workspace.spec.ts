@@ -27,14 +27,11 @@ test('opening a project visibly enters its workspace, focuses its title and surv
   await expect(
     page.getByRole('complementary', { name: 'Project details' }),
   ).toBeVisible();
-  await page.getByText('Project pages', { exact: true }).click();
-  const pages = page
-    .getByRole('navigation', { name: 'Documents' })
-    .getByRole('button');
+  const pages = page.locator('[role=treeitem][data-page-id]');
   await pages.last().click();
-  await expect(pages.last()).toHaveAttribute('aria-current', 'page');
+  await expect(pages.last()).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.canvas-toolbar')).toContainText(
-    (await pages.last().locator('span').last().textContent())!,
+    (await pages.last().locator('.tree-name').textContent())!,
   );
   for (const width of [1440, 1024, 800, 600, 360]) {
     await page.setViewportSize({ width, height: 900 });

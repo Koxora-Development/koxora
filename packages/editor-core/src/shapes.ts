@@ -63,7 +63,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   stroke: '#7c3aed',
   strokeWidth: 2,
   opacity: 1,
-  textColor: '#18243d',
+  textColor: 'auto',
   fontSize: 16,
   fontFamily: 'sans',
   fontWeight: 400,
@@ -103,7 +103,10 @@ export function readAppearance(
     stroke: color(properties.stroke, d.stroke),
     strokeWidth: number(properties.strokeWidth, d.strokeWidth, 0, 32),
     opacity: number(properties.opacity, d.opacity, 0, 1),
-    textColor: color(properties.textColor, d.textColor),
+    textColor:
+      properties.textColor === 'auto'
+        ? 'auto'
+        : color(properties.textColor, d.textColor),
     fontSize: number(properties.fontSize, d.fontSize, 8, 96),
     fontFamily:
       typeof properties.fontFamily === 'string' &&

@@ -8,6 +8,8 @@ import { keymap } from 'prosemirror-keymap';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
   FONT_FAMILIES,
+  textColor,
+  contrastingColor,
   TEXT_ATTRIBUTES,
   isRichText,
   type Appearance,
@@ -339,6 +341,15 @@ export function RichTextEditor({
           />
           {current.textColor === undefined && <span>{t('format.mixed')}</span>}
         </label>
+        <button
+          type="button"
+          className="button compact"
+          aria-pressed={current.textColor === 'auto'}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => format('textColor', 'auto')}
+        >
+          {t('text.autoColor')}
+        </button>
         <label>
           {t('diagram.align')}
           <select
@@ -409,10 +420,21 @@ export function RichTextEditor({
           fontWeight: base.fontWeight,
           fontStyle: base.fontStyle,
 
-          color: base.textColor === 'none' ? 'transparent' : base.textColor,
+          color: textColor(base.textColor),
+          backgroundColor: base.textColor.startsWith('#')
+            ? contrastingColor(base.textColor)
+            : undefined,
+          caretColor:
+            base.textColor === 'none'
+              ? 'var(--ink)'
+              : textColor(base.textColor),
+          textShadow:
+            base.textColor === 'none' ? '0 0 0 var(--ink)' : undefined,
         }}
       />
-      <p className="field-help">{t('rich.help')}</p>
+      <p className="field-help">
+        {t('rich.help')} {t('text.editContrast')}
+      </p>
       {notice && (
         <p role="status" className="field-help">
           {t(notice)}

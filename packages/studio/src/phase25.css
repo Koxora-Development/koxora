@@ -1,102 +1,4 @@
-/* Studio-only workbook and text surfaces; public website styles remain independent. */
-.workbook {
-  position: relative;
-  border-top: 1px solid var(--line);
-  background: var(--surface);
-  min-width: 0;
-}
-.workbook-documents {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 7px 12px;
-  flex-wrap: wrap;
-}
-.workbook-documents label {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 0.75rem;
-}
-.workbook-documents select {
-  max-width: 200px;
-}
-.workbook-row {
-  display: flex;
-  align-items: stretch;
-  gap: 4px;
-  padding: 0 8px 6px;
-}
-.page-tabs {
-  display: flex;
-  overflow-x: auto;
-  min-width: 0;
-  flex: 1;
-  scrollbar-width: thin;
-  gap: 3px;
-}
-.page-tab-wrap {
-  display: flex;
-  flex-shrink: 0;
-}
-.page-tab {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  border: 1px solid var(--line);
-  border-radius: 6px 6px 0 0;
-  padding: 8px 14px;
-  background: var(--surface);
-  color: var(--muted);
-  max-width: 220px;
-  min-height: 40px;
-  white-space: nowrap;
-}
-.page-tab span[dir] {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.page-tab[aria-selected='true'] {
-  color: var(--accent);
-  border-bottom: 3px solid var(--accent);
-  background: var(--accent-soft, #8b5cf615);
-  font-weight: 650;
-}
-.tab-dirty {
-  color: var(--accent);
-}
-.tab-rename {
-  width: 180px;
-}
-.page-menu {
-  position: absolute;
-  right: 10px;
-  bottom: 48px;
-  z-index: 35;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 6px;
-  box-shadow: 0 8px 28px #0003;
-  min-width: 180px;
-}
-.page-menu button {
-  background: none;
-  border: 0;
-  color: var(--ink);
-  text-align: start;
-  padding: 10px;
-  border-radius: 6px;
-}
-.page-menu button:hover,
-.page-menu button:focus-visible {
-  background: var(--accent-soft, #8b5cf615);
-}
-.page-menu button:disabled {
-  opacity: 0.4;
-}
+/* Studio navigation, menus and text surfaces. */
 .rich-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -176,7 +78,7 @@
 }
 .rich-text-host {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   border-radius: 6px;
   margin-top: 8px;
   overflow: auto;
@@ -271,16 +173,6 @@
   border-style: dashed;
 }
 @media (max-width: 600px) {
-  .workbook-documents {
-    gap: 4px;
-  }
-  .workbook-documents .button {
-    font-size: 0.65rem;
-    padding: 6px;
-  }
-  .workbook-documents select {
-    max-width: 120px;
-  }
   .rich-toolbar {
     gap: 4px;
     padding: 5px;
@@ -288,9 +180,7 @@
   .rich-toolbar label {
     flex-wrap: wrap;
   }
-  .rich-toolbar button,
-  .page-tab,
-  .workbook-row > button {
+  .rich-toolbar button {
     min-height: 40px;
   }
   .canvas-text-dialog {
@@ -318,9 +208,6 @@
   border: 0;
   border-radius: 0;
 }
-.canvas-workbook-expanded > .workbook {
-  flex-shrink: 0;
-}
 
 .canvas-text-dialog::backdrop {
   backdrop-filter: none;
@@ -338,4 +225,244 @@
 .project-outline .document-navigation {
   max-height: 280px;
   overflow: auto;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  min-width: 190px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 8px 28px #0004;
+}
+.context-menu button {
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 10px 12px;
+  text-align: start;
+  border-radius: 6px;
+  min-height: 40px;
+}
+.context-menu button:hover,
+.context-menu button:focus-visible {
+  background: var(--accent-soft);
+}
+.context-menu button:disabled {
+  opacity: 0.5;
+}
+.application-body > .project-sidebar {
+  width: 270px;
+  padding: 18px 10px;
+}
+.project-tree-panel {
+  min-width: 0;
+  grid-column: 1/-1;
+}
+.tree-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 12px 4px;
+  font-size: 0.8rem;
+}
+.project-tree {
+  max-height: 65dvh;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 2px;
+}
+.tree-item {
+  border: 0;
+  background: none;
+  color: var(--ink);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  min-height: 40px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  text-align: start;
+}
+.tree-item:hover {
+  background: var(--surface-muted);
+}
+.tree-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 650;
+  box-shadow: inset 3px 0 var(--accent);
+}
+.tree-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-disclosure,
+.tree-dirty {
+  flex-shrink: 0;
+}
+.tree-dirty {
+  color: var(--accent);
+}
+.tree-actions {
+  flex-shrink: 0;
+  background: none;
+  color: var(--muted);
+  border: 0;
+  width: 32px;
+  min-height: 40px;
+  border-radius: 5px;
+}
+.tree-actions:hover,
+.tree-actions:focus-visible {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.tree-create {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 12px 0;
+}
+.project-trash {
+  padding: 8px 4px;
+  font-size: 0.8rem;
+}
+.project-trash > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  margin-top: 8px;
+}
+.project-trash span {
+  overflow-wrap: anywhere;
+}
+.editor-color[data-contrast='#000000'] {
+  background-color: #000;
+}
+.editor-color[data-contrast='#ffffff'] {
+  background-color: #fff;
+}
+.editor-color[data-text-color='none'] {
+  background-color: var(--surface);
+  text-shadow: 0 0 0 var(--ink);
+  border-bottom: 1px dashed var(--muted);
+}
+.editor-color[data-text-color='auto'] {
+  background-color: var(--surface);
+}
+.ProseMirror {
+  caret-color: inherit;
+}
+.editor-color {
+  caret-color: currentColor;
+}
+.editor-color[data-text-color='none'] {
+  caret-color: var(--ink);
+}
+.ProseMirror ::selection {
+  background: #3559b8;
+  color: #fff;
+}
+.arrange-help {
+  grid-column: 1/-1;
+  font-size: 0.75rem;
+  margin: 0;
+  color: var(--muted);
+}
+.selection-align fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  grid-column: 1/-1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.selection-align legend {
+  font-size: 0.75rem;
+  font-weight: 650;
+  margin: 6px 0;
+}
+@media (max-width: 900px) {
+  .application-body > .project-sidebar {
+    width: 235px;
+  }
+}
+@media (max-width: 600px) {
+  .application-body > .project-sidebar {
+    width: 100%;
+    padding: 8px 12px;
+  }
+  .project-tree {
+    max-height: 28dvh;
+  }
+  dialog .project-tree {
+    max-height: 55dvh;
+  }
+  .tree-heading {
+    padding: 6px 4px;
+  }
+  .tree-create {
+    margin: 6px 0;
+  }
+}
+
+.selection-stack {
+  position: relative;
+}
+.selection-stack summary {
+  cursor: pointer;
+  padding: 8px;
+  font-size: 0.8rem;
+}
+.selection-stack > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+/* Keep selection changes from moving the drawing surface beneath the pointer.
+   Extra actions remain reachable by horizontal scrolling on narrow windows. */
+.interactive-stage .editing-toolbar {
+  flex-wrap: nowrap;
+  min-height: 58px;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+.editing-toolbar > * {
+  flex-shrink: 0;
+}
+.editing-toolbar .selection-count {
+  white-space: nowrap;
+  padding-block: 10px;
+}
+.editing-toolbar summary {
+  white-space: nowrap;
+}
+.tree-item[aria-disabled='true'],
+.tree-actions[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: wait;
 }

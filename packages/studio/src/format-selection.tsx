@@ -34,9 +34,16 @@ export function FormatSelection({
   const applicable = (key: keyof Appearance) =>
     items.filter(
       (item) =>
+        (!(
+          TEXT_ATTRIBUTES.includes(key as (typeof TEXT_ATTRIBUTES)[number]) ||
+          key === 'align'
+        ) ||
+          !('kind' in item && item.kind === 'freehand')) &&
         (!['fill', 'cornerRadius'].includes(key) ||
           ('kind' in item &&
-            !['text', 'line', 'arrow'].includes(String(item.kind)))) &&
+            !['text', 'line', 'arrow', 'freehand'].includes(
+              String(item.kind),
+            ))) &&
         (!['stroke', 'strokeWidth'].includes(key) ||
           !('kind' in item && item.kind === 'text')),
     );
@@ -91,6 +98,16 @@ export function FormatSelection({
               )}
             </label>
           ))}
+        {applicable('textColor').length > 0 && (
+          <button
+            type="button"
+            className="button compact"
+            aria-pressed={current('textColor') === 'auto'}
+            onClick={() => change('textColor', 'auto')}
+          >
+            {t('text.autoColor')}
+          </button>
+        )}
         {(['strokeWidth', 'opacity', 'fontSize'] as const)
           .filter((k) => applicable(k).length)
           .map((k) => (
@@ -111,31 +128,33 @@ export function FormatSelection({
               />
             </label>
           ))}
-        <label>
-          {t('text.family')}
-          <select
-            aria-label={t('text.family')}
-            value={current('fontFamily') ?? ''}
-            onChange={(e) =>
-              change('fontFamily', e.target.value as Appearance['fontFamily'])
-            }
-          >
-            <option value="" disabled>
-              {t('format.mixed')}
-            </option>
-            {(Object.keys(FONT_FAMILIES) as Appearance['fontFamily'][]).map(
-              (f) => (
-                <option
-                  key={f}
-                  value={f}
-                  style={{ fontFamily: FONT_FAMILIES[f] }}
-                >
-                  {t(`text.family.${f}`)}
-                </option>
-              ),
-            )}
-          </select>
-        </label>
+        {applicable('fontFamily').length > 0 && (
+          <label>
+            {t('text.family')}
+            <select
+              aria-label={t('text.family')}
+              value={current('fontFamily') ?? ''}
+              onChange={(e) =>
+                change('fontFamily', e.target.value as Appearance['fontFamily'])
+              }
+            >
+              <option value="" disabled>
+                {t('format.mixed')}
+              </option>
+              {(Object.keys(FONT_FAMILIES) as Appearance['fontFamily'][]).map(
+                (f) => (
+                  <option
+                    key={f}
+                    value={f}
+                    style={{ fontFamily: FONT_FAMILIES[f] }}
+                  >
+                    {t(`text.family.${f}`)}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+        )}
         {(['bold', 'italic', 'underline'] as const).map((k) => {
           const key =
               k === 'bold'
@@ -145,6 +164,7 @@ export function FormatSelection({
                   : 'textDecoration',
             on = k === 'bold' ? 700 : k === 'italic' ? 'italic' : 'underline',
             off = k === 'bold' ? 400 : k === 'italic' ? 'normal' : 'none';
+          if (!applicable(key).length) return null;
           return (
             <button
               type="button"
@@ -159,24 +179,26 @@ export function FormatSelection({
             </button>
           );
         })}
-        <label>
-          {t('diagram.align')}
-          <select
-            value={current('align') ?? ''}
-            onChange={(e) =>
-              change('align', e.target.value as Appearance['align'])
-            }
-          >
-            <option value="" disabled>
-              {t('format.mixed')}
-            </option>
-            {(['left', 'center', 'right'] as const).map((a) => (
-              <option key={a} value={a}>
-                {t(`align.${a}`)}
+        {applicable('align').length > 0 && (
+          <label>
+            {t('diagram.align')}
+            <select
+              value={current('align') ?? ''}
+              onChange={(e) =>
+                change('align', e.target.value as Appearance['align'])
+              }
+            >
+              <option value="" disabled>
+                {t('format.mixed')}
               </option>
-            ))}
-          </select>
-        </label>
+              {(['left', 'center', 'right'] as const).map((a) => (
+                <option key={a} value={a}>
+                  {t(`align.${a}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       {failed && <p role="alert">{t('format.error')}</p>}
       <div className="dialog-actions">

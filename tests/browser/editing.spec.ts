@@ -524,7 +524,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
   await expect(
     page
       .getByRole('toolbar')
-      .getByRole('button', { name: 'Arrow', exact: true }),
+      .getByRole('button', { name: 'Freehand pen', exact: true }),
   ).toBeFocused();
   if (process.env.KOXORA_CAPTURE && test.info().project.name === 'chromium') {
     await page.getByText('Align / Distribute', { exact: true }).click();

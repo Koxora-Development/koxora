@@ -129,6 +129,8 @@ The existing element/connection `style` dictionary and shared style properties a
 
 ## Phase 2.5 workbook and rich text
 
-[ADR 0018](../adr/0018-workbook-rich-text.md) retains the existing document/page arrays, UUIDs and per-page views. Tab order is page-array order. No ZIP or core-schema migration is required.
+[ADR 0018](../adr/0018-workbook-rich-text.md) retains the existing document/page arrays, UUIDs and per-page views. Navigator page/document order is array order. No ZIP or core-schema migration is required.
 
 Optional node/connection extension `org.koxora.rich-text` version 1 contains `paragraphs`, each with `align` and `runs` of literal `text` and safe style overrides. The existing plain-text label is an exact newline-joined projection. Rich data never contains executable HTML, CSS declarations, URLs or ProseMirror runtime state. Unknown versions/fields and projection mismatches remain preserved and read-only. The trusted font-token catalog expands additively to 20 local family preferences; no font is fetched or embedded. See the ADR for bounds, older-reader behavior and exact fields.
+
+Phase 2.5 feedback adds optional `org.koxora.freehand` normalized sample arrays on `freehand` nodes and `org.koxora.stacking` ordered UUIDs on pages. Text colors add the inert `auto` token. See ADR 0018 for bounds, validation, legacy rendering, identity remapping and history. No HTML, pressure device data or editor backdrop styles enter the portable format. Local project Trash is persistence-envelope metadata and is not exported.

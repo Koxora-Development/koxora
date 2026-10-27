@@ -1,4 +1,6 @@
 import { readRichText, type RichText } from './rich-text';
+import { readFreehand, freehandContains } from './freehand';
+import { orderedElements } from './stacking';
 import { assertEditableElement } from './editing';
 import {
   isDrawing,
@@ -34,6 +36,8 @@ export interface SceneNode {
   style: Appearance;
   editable: boolean;
   layerOrder: number;
+  paintOrder: number;
+  strokePoints?: Point[];
   startArrow?: boolean;
   endArrow?: boolean;
 }
@@ -45,6 +49,7 @@ export interface SceneConnection extends ConnectionPath {
   arrow: boolean;
   editable: boolean;
   layerOrder: number;
+  paintOrder: number;
 }
 export interface Scene {
   nodes: SceneNode[];
@@ -75,11 +80,13 @@ function supported(item: Parameters<typeof assertEditableElement>[0]): boolean {
 }
 /** Only safe, bounded geometry and declarative appearance cross into the renderer. Originals are retained. */
 export function buildScene(
-  page: Pick<Page, 'nodes' | 'connections' | 'layers'>,
+  page: Pick<Page, 'nodes' | 'connections' | 'layers'> &
+    Partial<Pick<Page, 'extensions'>>,
   styles: Style[] = [],
 ): Scene {
   const layers = layerStates(page.layers);
   const appearance = appearanceResolver(styles);
+  const order = new Map(orderedElements(page).map((n, i) => [n.id, i]));
   const nodes: SceneNode[] = page.nodes
     .flatMap((node) => {
       const layer = layers.get(node.layerId),
@@ -97,6 +104,8 @@ export function buildScene(
           id: node.id,
           richText: readRichText(node),
           kind: node.kind,
+          strokePoints:
+            node.kind === 'freehand' ? readFreehand(node) : undefined,
           geometry: g,
           bounds: nodeBounds(
             g,
@@ -124,10 +133,11 @@ export function buildScene(
           style,
           editable: layer.editable && supported(node),
           layerOrder: layer.order,
+          paintOrder: order.get(node.id)!,
         },
       ];
     })
-    .sort((a, b) => a.layerOrder - b.layerOrder);
+    .sort((a, b) => a.paintOrder - b.paintOrder);
   const visible = new Map(nodes.map((n) => [n.id, n]));
   const byId = new Map(page.nodes.map((n) => [n.id, n]));
   const connections: SceneConnection[] = page.connections
@@ -159,6 +169,7 @@ export function buildScene(
           editable:
             layer.editable && s.editable && t.editable && supported(edge),
           layerOrder: layer.order,
+          paintOrder: order.get(edge.id)!,
           bounds: unionBounds([
             path.bounds,
             ...(options.label
@@ -185,7 +196,7 @@ export function buildScene(
         },
       ];
     })
-    .sort((a, b) => a.layerOrder - b.layerOrder);
+    .sort((a, b) => a.paintOrder - b.paintOrder);
   return {
     nodes,
     connections,
@@ -216,10 +227,17 @@ export function pickNode(
     .find(
       (n) =>
         (!editableOnly || n.editable) &&
-        (isDrawing(n.kind)
-          ? segmentDistance(point, ...lineEndpoints(n.geometry)) <=
-            tolerance + n.style.strokeWidth / 2
-          : containsShape(n.kind, n.geometry, point, n.style.cornerRadius)),
+        (n.kind === 'freehand' && n.strokePoints
+          ? freehandContains(
+              n.strokePoints,
+              n.geometry,
+              point,
+              tolerance + n.style.strokeWidth / 2,
+            )
+          : isDrawing(n.kind)
+            ? segmentDistance(point, ...lineEndpoints(n.geometry)) <=
+              tolerance + n.style.strokeWidth / 2
+            : containsShape(n.kind, n.geometry, point, n.style.cornerRadius)),
     );
 }
 
