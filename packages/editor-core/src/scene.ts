@@ -1,3 +1,6 @@
+import { readRichText, type RichText } from './rich-text';
+import { readFreehand, freehandContains } from './freehand';
+import { orderedElements } from './stacking';
 import { assertEditableElement } from './editing';
 import {
   isDrawing,
@@ -29,19 +32,24 @@ export interface SceneNode {
   bounds: Bounds;
   geometry: Geometry;
   label: string;
+  richText?: RichText;
   style: Appearance;
   editable: boolean;
   layerOrder: number;
+  paintOrder: number;
+  strokePoints?: Point[];
   startArrow?: boolean;
   endArrow?: boolean;
 }
 export interface SceneConnection extends ConnectionPath {
   id: string;
   label: string;
+  richText?: RichText;
   style: Appearance;
   arrow: boolean;
   editable: boolean;
   layerOrder: number;
+  paintOrder: number;
 }
 export interface Scene {
   nodes: SceneNode[];
@@ -72,11 +80,13 @@ function supported(item: Parameters<typeof assertEditableElement>[0]): boolean {
 }
 /** Only safe, bounded geometry and declarative appearance cross into the renderer. Originals are retained. */
 export function buildScene(
-  page: Pick<Page, 'nodes' | 'connections' | 'layers'>,
+  page: Pick<Page, 'nodes' | 'connections' | 'layers'> &
+    Partial<Pick<Page, 'extensions'>>,
   styles: Style[] = [],
 ): Scene {
   const layers = layerStates(page.layers);
   const appearance = appearanceResolver(styles);
+  const order = new Map(orderedElements(page).map((n, i) => [n.id, i]));
   const nodes: SceneNode[] = page.nodes
     .flatMap((node) => {
       const layer = layers.get(node.layerId),
@@ -92,7 +102,10 @@ export function buildScene(
       return [
         {
           id: node.id,
+          richText: readRichText(node),
           kind: node.kind,
+          strokePoints:
+            node.kind === 'freehand' ? readFreehand(node) : undefined,
           geometry: g,
           bounds: nodeBounds(
             g,
@@ -101,6 +114,7 @@ export function buildScene(
               ? node.content.text.slice(0, MAX_TEXT)
               : '',
             style,
+            readRichText(node),
           ),
           startArrow:
             isDrawing(node.kind) &&
@@ -119,10 +133,11 @@ export function buildScene(
           style,
           editable: layer.editable && supported(node),
           layerOrder: layer.order,
+          paintOrder: order.get(node.id)!,
         },
       ];
     })
-    .sort((a, b) => a.layerOrder - b.layerOrder);
+    .sort((a, b) => a.paintOrder - b.paintOrder);
   const visible = new Map(nodes.map((n) => [n.id, n]));
   const byId = new Map(page.nodes.map((n) => [n.id, n]));
   const connections: SceneConnection[] = page.connections
@@ -147,16 +162,25 @@ export function buildScene(
         {
           ...path,
           id: edge.id,
+          richText: readRichText(edge),
           label: options.label,
           arrow: options.arrow,
           style,
           editable:
             layer.editable && s.editable && t.editable && supported(edge),
           layerOrder: layer.order,
+          paintOrder: order.get(edge.id)!,
           bounds: unionBounds([
             path.bounds,
             ...(options.label
-              ? [connectionLabelBounds(path.labelPoint, options.label, style)]
+              ? [
+                  connectionLabelBounds(
+                    path.labelPoint,
+                    options.label,
+                    style,
+                    readRichText(edge),
+                  ),
+                ]
               : []),
             {
               x:
@@ -172,7 +196,7 @@ export function buildScene(
         },
       ];
     })
-    .sort((a, b) => a.layerOrder - b.layerOrder);
+    .sort((a, b) => a.paintOrder - b.paintOrder);
   return {
     nodes,
     connections,
@@ -203,10 +227,17 @@ export function pickNode(
     .find(
       (n) =>
         (!editableOnly || n.editable) &&
-        (isDrawing(n.kind)
-          ? segmentDistance(point, ...lineEndpoints(n.geometry)) <=
-            tolerance + n.style.strokeWidth / 2
-          : containsShape(n.kind, n.geometry, point, n.style.cornerRadius)),
+        (n.kind === 'freehand' && n.strokePoints
+          ? freehandContains(
+              n.strokePoints,
+              n.geometry,
+              point,
+              tolerance + n.style.strokeWidth / 2,
+            )
+          : isDrawing(n.kind)
+            ? segmentDistance(point, ...lineEndpoints(n.geometry)) <=
+              tolerance + n.style.strokeWidth / 2
+            : containsShape(n.kind, n.geometry, point, n.style.cornerRadius)),
     );
 }
 
@@ -221,7 +252,13 @@ export function transformScene(
       ? {
           ...n,
           geometry: geometries[n.id],
-          bounds: nodeBounds(geometries[n.id], n.kind, n.label, n.style),
+          bounds: nodeBounds(
+            geometries[n.id],
+            n.kind,
+            n.label,
+            n.style,
+            n.richText,
+          ),
         }
       : n,
   );
@@ -249,7 +286,14 @@ export function transformScene(
       bounds: unionBounds([
         path.bounds,
         ...(e.label
-          ? [connectionLabelBounds(path.labelPoint, e.label, e.style)]
+          ? [
+              connectionLabelBounds(
+                path.labelPoint,
+                e.label,
+                e.style,
+                e.richText,
+              ),
+            ]
           : []),
         {
           x: path.points.at(-1)!.x - e.style.strokeWidth * 4,
@@ -268,6 +312,7 @@ function nodeBounds(
   kind: string,
   label: string,
   style: Appearance,
+  richText?: RichText,
 ): Bounds {
   const bounds = geometryBounds(
     g,
@@ -282,6 +327,7 @@ function nodeBounds(
       { x: g.x + g.width / 2, y: g.y + g.height / 2 },
       label,
       style,
+      richText,
     ),
   ])!;
 }
@@ -291,7 +337,17 @@ function connectionLabelBounds(
   point: Point,
   label: string,
   style: Appearance,
+  richText?: RichText,
 ): Bounds {
+  if (richText)
+    return {
+      x:
+        point.x -
+        (style.align === 'left' ? 0 : style.align === 'right' ? 240 : 120),
+      y: point.y - 24,
+      width: 240,
+      height: 512,
+    };
   const characters = Math.min(
     label.length,
     Math.max(1, Math.floor(240 / (style.fontSize * 0.62))),

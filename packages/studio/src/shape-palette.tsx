@@ -20,8 +20,9 @@ export function ShapePalette({
   activate: (tool: DiagramTool) => void;
   writable: boolean;
 }) {
-  const tools: DiagramTool[] = ['select', 'pan', ...shapeKinds];
+  const tools: DiagramTool[] = ['select', 'pan', ...shapeKinds, 'freehand'];
   const icons = {
+    freehand: 'M 3 25 Q 7 5 13 16 T 29 6',
     select: 'M 7 4 L 25 18 L 17 19 L 13 27 Z',
     pan: 'M 16 3 V 29 M 3 16 H 29 M 11 8 L 16 3 L 21 8 M 11 24 L 16 29 L 21 24 M 8 11 L 3 16 L 8 21 M 24 11 L 29 16 L 24 21',
   };
@@ -56,7 +57,7 @@ export function ShapePalette({
       {tools.map((item) => {
         const name = translate(
           locale,
-          (isShapeKind(item)
+          (isShapeKind(item) || item === 'freehand'
             ? `shape.${item}`
             : `diagram.${item}`) as MessageKey,
         );
@@ -71,11 +72,11 @@ export function ShapePalette({
           <button
             key={item}
             className="palette-tool"
-            title={`${name} — ${translate(locale, isDrawing(item) ? 'diagram.linkHelp' : item === 'select' ? 'diagram.selectHelp' : item === 'pan' ? 'diagram.panHelp' : 'diagram.toolHelp')}`}
+            title={`${name} — ${translate(locale, item === 'freehand' ? 'freehand.help' : isDrawing(item) ? 'diagram.linkHelp' : item === 'select' ? 'diagram.selectHelp' : item === 'pan' ? 'diagram.panHelp' : 'diagram.toolHelp')}`}
             aria-label={name}
             aria-pressed={tool === item}
             tabIndex={tool === item ? 0 : -1}
-            disabled={!writable && isShapeKind(item)}
+            disabled={!writable && (isShapeKind(item) || item === 'freehand')}
             onClick={() => activate(item)}
           >
             <svg viewBox="0 0 32 32" aria-hidden="true">

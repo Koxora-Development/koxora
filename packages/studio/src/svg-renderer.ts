@@ -1,5 +1,9 @@
 import {
   gridStep,
+  freehandPath,
+  textColor,
+  type RichText,
+  type Appearance,
   FONT_FAMILIES,
   isDrawing,
   lineEndpoints,
@@ -87,13 +91,13 @@ export class SvgRenderer {
       ...visible.connections.slice(0, MAX_VISIBLE).map((edge) => ({
         key: `edge:${edge.id}`,
         model: edge,
-        order: edge.layerOrder,
+        order: edge.paintOrder,
         create: () => renderEdge(edge),
       })),
       ...visible.nodes.slice(0, MAX_VISIBLE).map((node) => ({
         key: `node:${node.id}`,
         model: node,
-        order: node.layerOrder,
+        order: node.paintOrder,
         create: () => renderNode(node),
       })),
     ].sort((a, b) => a.order - b.order);
@@ -260,7 +264,15 @@ function renderNode(node: SceneNode): SVGElement {
     return group;
   }
   const g = node.geometry,
-    s = node.style;
+    s = {
+      ...node.style,
+      textColor: textColor(
+        node.style.textColor,
+        ['text', 'freehand', 'line', 'arrow'].includes(node.kind)
+          ? 'none'
+          : node.style.fill,
+      ),
+    };
   const group = svg('g', {
     'data-node-id': node.id,
     transform: `translate(${g.x} ${g.y}) rotate(${g.rotation} ${g.width / 2} ${g.height / 2})`,
@@ -272,20 +284,52 @@ function renderNode(node: SceneNode): SVGElement {
     ? shapeRegistry[node.kind]
     : shapeRegistry.rectangle;
   const path = svg('path', {
-    d: definition.path(g.width, g.height, s.cornerRadius),
+    d: node.strokePoints
+      ? freehandPath(node.strokePoints, g)
+      : definition.path(g.width, g.height, s.cornerRadius),
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
     class: 'scene-node',
-    fill: node.kind === 'text' ? 'none' : s.fill,
+    fill: node.kind === 'text' || node.kind === 'freehand' ? 'none' : s.fill,
     stroke: node.kind === 'text' ? 'none' : s.stroke,
     'stroke-width': s.strokeWidth,
     opacity: s.opacity,
   });
   group.append(path);
+  if (node.kind === 'freehand') {
+    const hit = path.cloneNode() as SVGElement;
+    hit.setAttribute('stroke', 'transparent');
+    hit.setAttribute('stroke-width', String(Math.max(12, s.strokeWidth)));
+    hit.setAttribute('class', 'stroke-hit');
+    group.append(hit);
+    return group;
+  }
   const labelBox = definition.labelBox?.(g.width, g.height) ?? {
     x: 10,
     y: 6,
     width: Math.max(1, g.width - 20),
     height: Math.max(1, g.height - 12),
   };
+  if (node.richText) {
+    group.append(
+      renderRich(
+        node.richText,
+        s,
+        labelBox.x,
+        labelBox.y,
+        labelBox.width,
+        labelBox.height,
+        true,
+        textColor(
+          'auto',
+          ['text', 'freehand', 'line', 'arrow'].includes(node.kind)
+            ? 'none'
+            : node.style.fill,
+        ),
+      ),
+    );
+    return group;
+  }
   const lines = textLines(node.label, Math.max(1, labelBox.width), s.fontSize);
   const maxLines = Math.max(
     1,
@@ -335,7 +379,7 @@ function renderNode(node: SceneNode): SVGElement {
   return group;
 }
 function renderEdge(edge: SceneConnection): SVGElement {
-  const s = edge.style,
+  const s = { ...edge.style, textColor: textColor(edge.style.textColor) },
     group = svg('g', { 'data-connection-id': edge.id, opacity: s.opacity });
   const title = svg('title');
   title.textContent = edge.label;
@@ -370,6 +414,21 @@ function renderEdge(edge: SceneConnection): SVGElement {
         transform: `translate(${end.x} ${end.y}) rotate(${edge.angle})`,
       }),
     );
+  }
+  if (edge.richText) {
+    group.append(
+      renderRich(
+        edge.richText,
+        s,
+        edge.labelPoint.x -
+          (s.align === 'left' ? 0 : s.align === 'right' ? 240 : 120),
+        edge.labelPoint.y - 24,
+        240,
+        512,
+        false,
+      ),
+    );
+    return group;
   }
   if (edge.label) {
     const label = svg('text', {
@@ -414,4 +473,74 @@ function arrowhead(
     fill: color,
     transform: `translate(${x} ${y}) rotate(${angle})`,
   });
+}
+
+/** HTML namespace text layout uses the same safe run model and fonts as the editor. No imported markup. */
+function renderRich(
+  value: RichText,
+  base: Appearance,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  center = true,
+  automatic = textColor('auto'),
+): SVGElement {
+  const foreign = svg('foreignObject', {
+    x,
+    y,
+    width,
+    height,
+    class: center
+      ? 'scene-rich-label scene-label'
+      : 'scene-rich-label scene-edge-label',
+    opacity: base.opacity,
+  });
+  const box = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+  Object.assign(box.style, {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: center ? 'safe center' : 'start',
+    overflow: 'hidden',
+    overflowWrap: 'anywhere',
+    whiteSpace: 'pre-wrap',
+    fontFamily: FONT_FAMILIES[base.fontFamily],
+    fontSize: `${base.fontSize}px`,
+    lineHeight: '1.25',
+    color: textColor(base.textColor),
+    fontWeight: String(base.fontWeight),
+    fontStyle: base.fontStyle,
+  });
+  for (const p of value.paragraphs) {
+    const paragraph = document.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'p',
+    );
+    paragraph.style.margin = '0';
+    paragraph.style.textAlign = p.align;
+    paragraph.style.minHeight = '1.25em';
+    for (const r of p.runs) {
+      const span = document.createElementNS(
+        'http://www.w3.org/1999/xhtml',
+        'span',
+      );
+      const a = { ...base, ...r.style };
+      Object.assign(span.style, {
+        fontFamily: FONT_FAMILIES[a.fontFamily],
+        fontSize: `${a.fontSize}px`,
+        fontWeight: String(a.fontWeight),
+        fontStyle: a.fontStyle,
+        textDecoration: a.textDecoration,
+        color:
+          r.style.textColor === 'auto' ? automatic : textColor(a.textColor),
+      });
+      span.textContent = r.text;
+      paragraph.append(span);
+    }
+    box.append(paragraph);
+  }
+  foreign.append(box);
+  return foreign;
 }
