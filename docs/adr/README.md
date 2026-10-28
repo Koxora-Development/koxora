@@ -14,7 +14,7 @@ Initial topics: license/open-core boundaries, canvas engine, schema/commands, lo
 
 - [0017: Static multilingual delivery for the public website](0017-public-website-delivery.md) — Website W1 implementation, pending Product Owner acceptance.
 
-- **0018 is reserved for Studio Phase 2.5** (workbook-style diagram tabs and the Office-style rich-text editor, [Issue #19](https://github.com/Koxora-Development/koxora/issues/19)), which is being written in parallel. Both that work and Website W2.2 had taken the number; the website moved, because 0018 continues the studio sequence 0011–0016 and because the studio branch is not pushed yet, so renumbering there would have meant editing work nobody can see. **Codex to confirm**; until then this line is the agreement.
+- [0018: Workbook pages and structured rich text](0018-workbook-rich-text.md) — Studio Phase 2.5, accepted by the Product Owner and merged in PR #39 on 2026-10-28.
 
 - [0019: Contact delivery through the existing Apache and PHP-FPM](0019-contact-delivery.md) — Website W2.2 implementation, accepted by the Product Owner on 2026-10-25; merge, SMTP settings and activation pending.
 
