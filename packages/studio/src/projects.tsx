@@ -623,6 +623,7 @@ export function Projects({ locale }: { locale: string }) {
       items={items}
       trash={trash}
       busy={busy}
+      locked={navigationBusy || (busy && operation !== 'saving')}
       locale={locale}
       error={error}
       onOpen={openFromTree}

@@ -31,6 +31,7 @@ export function ProjectTree({
   items,
   trash,
   busy,
+  locked,
   locale,
   error,
   onOpen,
@@ -46,6 +47,7 @@ export function ProjectTree({
   items: ProjectSummary[];
   trash: ProjectSummary[];
   busy: boolean;
+  locked: boolean;
   locale: string;
   error: MessageKey | null;
   onOpen: (id: string) => void;
@@ -234,7 +236,7 @@ export function ProjectTree({
     setMenu(null);
   }
   function key(event: KeyboardEvent<HTMLButtonElement>, row: Row) {
-    if (busy) return;
+    if (locked) return;
     if (
       (event.ctrlKey || event.metaKey) &&
       ['z', 'y'].includes(event.key.toLowerCase())
@@ -296,8 +298,11 @@ export function ProjectTree({
     target !== dialog.row.parent &&
     project?.documents.find((d) => d.id === dialog.row.parent)?.pages.length ===
       1;
+  const dialogBusy =
+    locked ||
+    (busy && dialog?.row.kind === 'project' && dialog.action !== 'newDocument');
   async function submit() {
-    if (!dialog || moveInvalid) return;
+    if (!dialog || moveInvalid || dialogBusy) return;
     const { action, row } = dialog;
     setSubmitting(true);
     let ok: boolean;
@@ -366,7 +371,7 @@ export function ProjectTree({
               e.preventDefault();
               const source = dragged.current;
               dragged.current = null;
-              if (!source || !project || busy) return;
+              if (!source || !project || locked) return;
               if (source.kind === 'document' && row.kind === 'document')
                 onCommand({
                   type: 'moveDocument',
@@ -403,14 +408,19 @@ export function ProjectTree({
               aria-expanded={row.expanded}
               aria-selected={row.id === pageId}
               title={`${row.title}${row.dirty ? ` · ${t('project.unsaved')}` : ''}`}
-              aria-disabled={busy}
+              aria-disabled={
+                locked ||
+                (busy &&
+                  row.kind === 'project' &&
+                  row.id !== project?.manifest.projectId)
+              }
               tabIndex={
                 row.id ===
                 (rows.some((r) => r.id === focused) ? focused : rows[0]?.id)
                   ? 0
                   : -1
               }
-              draggable={row.kind !== 'project' && !busy}
+              draggable={row.kind !== 'project' && !locked}
               onDragStart={(e) => {
                 dragged.current = row;
                 e.dataTransfer.setData('text/plain', row.id);
@@ -422,18 +432,21 @@ export function ProjectTree({
               onFocus={() => setFocused(row.id)}
               onKeyDown={(e) => key(e, row)}
               onClick={() =>
-                busy
+                locked ||
+                (busy &&
+                  row.kind === 'project' &&
+                  row.id !== project?.manifest.projectId)
                   ? undefined
                   : row.kind === 'page'
                     ? onSelect(row.parent!, row.id)
                     : toggle(row)
               }
               onDoubleClick={() => {
-                if (!busy) show('rename', row);
+                if (!locked) show('rename', row);
               }}
               onContextMenu={(e) => {
                 e.preventDefault();
-                if (!busy) context(row, menuAnchor(e.currentTarget, e));
+                if (!locked) context(row, menuAnchor(e.currentTarget, e));
               }}
             >
               <span aria-hidden="true" className="tree-disclosure">
@@ -450,10 +463,10 @@ export function ProjectTree({
             </button>
             <button
               className="tree-actions"
-              aria-disabled={busy}
+              aria-disabled={locked}
               aria-label={t(`tree.${row.kind}Actions`, { name: row.title })}
               onClick={(e) => {
-                if (!busy) context(row, menuAnchor(e.currentTarget));
+                if (!locked) context(row, menuAnchor(e.currentTarget));
               }}
             >
               {'⋯'}
@@ -465,7 +478,7 @@ export function ProjectTree({
         <div className="tree-create">
           <button
             className="button compact"
-            disabled={busy}
+            disabled={locked}
             onClick={() => {
               const row = rows.find(
                 (r) => r.id === project.manifest.projectId,
@@ -482,7 +495,7 @@ export function ProjectTree({
           </button>
           <button
             className="button compact"
-            disabled={busy}
+            disabled={locked}
             onClick={() =>
               newPage(
                 project.documents.find((d) =>
@@ -525,6 +538,7 @@ export function ProjectTree({
             <>
               <button
                 role="menuitem"
+                disabled={busy && menu.row.id !== project?.manifest.projectId}
                 onClick={() => {
                   onOpen(menu.row.id);
                   setMenu(null);
@@ -534,6 +548,7 @@ export function ProjectTree({
               </button>
               <button
                 role="menuitem"
+                disabled={busy}
                 onClick={() => {
                   void onProjectAction('duplicate', menu.row.id);
                   setMenu(null);
@@ -543,6 +558,7 @@ export function ProjectTree({
               </button>
               <button
                 role="menuitem"
+                disabled={busy}
                 onClick={() => show('deleteProject', menu.row)}
               >
                 {t('tree.deleteProject')}
@@ -712,7 +728,7 @@ export function ProjectTree({
               </button>
               <button
                 className="button primary"
-                disabled={submitting || !!moveInvalid}
+                disabled={submitting || dialogBusy || !!moveInvalid}
               >
                 {t(
                   dialog.action.startsWith('delete')

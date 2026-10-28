@@ -215,6 +215,51 @@ test('sidebar saves before project switching, duplicates complete projects and r
   expect((await exported(page)).documents[0].pages).toHaveLength(2);
 });
 
+test('autosave keeps navigator menus and local page history interactive', async ({
+  page,
+}) => {
+  await open(page);
+  await button(page, 'New page').click();
+  // Invoke the shortcut in the exact render that marks background saving busy.
+  // This covers the brief race without an arbitrary timer or a second attempt.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const tree = document.querySelector('[role="tree"]')!;
+        const invoke = () => {
+          if (tree.getAttribute('aria-busy') !== 'true') return;
+          observer.disconnect();
+          tree
+            .querySelector('[role="treeitem"][aria-selected="true"]')!
+            .dispatchEvent(
+              new KeyboardEvent('keydown', {
+                key: 'F10',
+                shiftKey: true,
+                bubbles: true,
+              }),
+            );
+          resolve();
+        };
+        const observer = new MutationObserver(invoke);
+        observer.observe(tree, {
+          attributes: true,
+          attributeFilter: ['aria-busy'],
+        });
+        invoke();
+      }),
+  );
+  await expect(
+    page.getByRole('menuitem', { name: 'Rename', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Escape');
+  await treePages(page).last().press('ControlOrMeta+z');
+  await expect(treePages(page)).toHaveCount(1);
+  await treePages(page).last().press('ControlOrMeta+Shift+z');
+  await expect(treePages(page)).toHaveCount(2);
+  const reopened = await exported(page);
+  expect(reopened.documents[0].pages).toHaveLength(2);
+});
+
 test('pen samples mouse, touch and pen strokes, supports keyboard drawing, cancellation and ordinary editing offline', async ({
   page,
   context,
