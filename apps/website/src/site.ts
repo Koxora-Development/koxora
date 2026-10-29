@@ -168,7 +168,7 @@ export const site: SiteConfig = {
     .filter(Boolean),
   indexable: flag('KOXORA_SITE_INDEXABLE', true),
   published: flag('KOXORA_SITE_PUBLISHED', false),
-  contentDate: env('KOXORA_SITE_CONTENT_DATE') ?? '2026-10-24',
+  contentDate: env('KOXORA_SITE_CONTENT_DATE') ?? '2026-10-28',
   repositoryUrl: 'https://github.com/Koxora-Development/koxora',
   issuesUrl: 'https://github.com/Koxora-Development/koxora/issues',
   securityUrl:

@@ -75,7 +75,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Koxora Studio ist eine funktionierende technische Vorschau. Die öffentliche Website befindet sich in der Prüfung. Es gibt noch keine öffentliche Veröffentlichung und keinen Download.',
   'project.statusMilestone': 'Aktueller Meilenstein',
   'project.statusMilestoneValue':
-    'Studio-Phase 2.4 zusammengeführt · Studio 2.5 und Website W1 in Arbeit',
+    'Studio-Phase 2.5 abgenommen und zusammengeführt · Website W2 in Prüfung',
   'project.statusUpdated': 'Inhalte zuletzt geprüft am {date}',
   'project.statusLink': 'Entwicklungsstand und Roadmap',
 
@@ -191,7 +191,7 @@ export const de: Record<WebsiteMessageKey, string> = {
   'features.limits.item3':
     'Der Verlauf ist begrenzt und gilt nur für die Sitzung; er wird nicht in der Projektdatei gespeichert.',
   'features.limits.item4':
-    'Textformatierung gilt jeweils für eine ganze Beschriftung; zeichenweise Formatierung ist nicht umgesetzt.',
+    'Interaktive Links, das Verschieben von Seiten zwischen Projekten und eine vollständige Ebenenverwaltung sind noch nicht implementiert.',
   'features.limits.item5':
     'Zusammenarbeit, Cloud und KI-Unterstützung gibt es im Produkt heute nicht.',
 
@@ -568,13 +568,13 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Verschieben, zoomen, Inhalt einpassen sowie Raster und Einrasten mit einstellbarem Abstand an- oder abschalten. Mit gedrückter Alt-Taste lässt sich das Einrasten für eine einzelne Aktion umgehen.',
   'feature.editing.title': 'Direktes Bearbeiten',
   'feature.editing.body':
-    'Klicken zum Auswählen, Aufziehen eines Rahmens für mehrere Elemente, Verschieben und Skalieren mit Griffen, Duplizieren, Ausrichten, Verteilen sowie Kopieren und Einfügen innerhalb der Arbeitsfläche.',
+    'Objekte auswählen, verschieben, skalieren und duplizieren. Passende Eigenschaften gemeinsam ändern, eine Auswahl ausrichten oder verteilen, ohne Überlappung anordnen und die Stapelreihenfolge von Formen und Verbindungen innerhalb einer Ebene ändern.',
   'feature.history.title': 'Rückgängig und Wiederherstellen',
   'feature.history.body':
-    'Jede Bearbeitung ist ein umkehrbarer Schritt. Der Verlauf ist je Seite begrenzt und gehört zur Sitzung, bläht die Projektdatei also nicht auf.',
+    'Diagrammbearbeitungen und Seitenaktionen im aktuellen Projekt rückgängig machen und wiederherstellen. Der Verlauf ist auf 100 Schritte und 16 MiB begrenzt und gilt für die Sitzung; ein geöffneter Textentwurf hat einen eigenen Verlauf.',
   'feature.projects.title': 'Projekte auf Ihrem Gerät',
   'feature.projects.body':
-    'Projekte anlegen, umbenennen und öffnen, automatisch auf Ihrem Gerät gespeichert. Ein vorheriger Stand bleibt erhalten, damit Sie einen schlechten Moment zurücknehmen können.',
+    'Lokale Projekte erstellen, umbenennen, duplizieren und wechseln. Änderungen werden automatisch gespeichert, ein vorheriger Speicherstand bleibt zur Wiederherstellung erhalten. Bestätigtes Löschen verschiebt ein Projekt in den lokalen Papierkorb, aus dem es wiederhergestellt werden kann.',
   'feature.files.title': 'Portable .koxora-Dateien',
   'feature.files.body':
     'Ein Projekt als dokumentiertes Archiv exportieren, auf einem anderen Gerät wieder importieren oder als Kopie mit neuer Identität einlesen. Unbekannte Inhalte aus neueren Versionen bleiben erhalten statt verloren zu gehen.',
@@ -583,7 +583,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Nach dem ersten Besuch startet und läuft das Browser-Studio ohne Netzverbindung. Kein Konto, keine Anmeldung, kein Warten auf einen Server.',
   'feature.typography.title': 'Text und Formatierung',
   'feature.typography.body':
-    'Serifen-, serifenlose und dicktengleiche Schriftfamilien aus Ihrem System, Größen von 8 bis 96, fett, kursiv, unterstrichen, Farbe und Ausrichtung, angewendet auf eine Beschriftung als Ganzes.',
+    '20 Schriftoptionen mit Vorschau durchsuchen, Größen von 8 bis 96, Fett, Kursiv, Unterstrichen, Farbe und Absatzausrichtung wählen. Verwendet werden installierte Schriften und Ersatzschriften ohne externe Abfragen; die Darstellung kann sich zwischen Geräten unterscheiden.',
   'feature.languages.title': 'Englisch und Deutsch',
   'feature.languages.body':
     'Das gesamte Produkt und diese Website gibt es in beiden Sprachen, unabhängig vom Betriebssystem wählbar. Die Architektur ist auf weitere Sprachen vorbereitet.',
@@ -596,12 +596,12 @@ export const de: Record<WebsiteMessageKey, string> = {
   'feature.recovery.title': 'Speichern und Wiederherstellen',
   'feature.recovery.body':
     'Änderungen werden kurz nach dem Tippen auf Ihr Gerät geschrieben, und der vorherige Stand bleibt verfügbar, falls etwas schiefgeht.',
-  'feature.pages.title': 'Seiten und Tabs je Projekt',
+  'feature.pages.title': 'Dokumente und Diagrammseiten',
   'feature.pages.body':
-    'Mehrere Diagramme und Seiten in einem Projekt, mit bearbeitbaren Tabs. Wird im aktuellen Studio-Meilenstein umgesetzt.',
-  'feature.richText.title': 'Reichere Textbearbeitung',
+    'Mehrere Dokumente und Seiten in einem .koxora-Projekt verwalten. Im Seitenleisten-Navigator wechseln, umbenennen, duplizieren, sortieren und Seiten zwischen Dokumenten verschieben – mit eigenem Zoom und eigener Ansicht je Seite.',
+  'feature.richText.title': 'Textbearbeitung im Office-Stil',
   'feature.richText.body':
-    'Formatierung innerhalb einer Beschriftung statt für die ganze Beschriftung, näher an dem, was ein Office-Programm bietet. Wird im aktuellen Studio-Meilenstein umgesetzt.',
+    'Text mit einer Formatierungsleiste direkt an seiner Beschriftung auf der Arbeitsfläche bearbeiten. Einzelne Wörter oder markierte Abschnitte in Textelementen, Formen, Linien, Pfeilen und Verbindungen formatieren; mehrzeilige Inhalte, Zwischenablage-Formatierungen und Text-Rückgängig bleiben erhalten.',
   'feature.desktop.title': 'Desktop-Anwendungen',
   'feature.desktop.body':
     'Eine Desktop-Hülle für Linux, Windows und macOS liegt im Repository und läuft aus dem Quellcode. Signierte, betreute Installationspakete sind noch nicht veröffentlicht.',
@@ -644,7 +644,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Monorepo, gemeinsame Browser- und Desktop-Hülle, Lokalisierung, Themes, lokale Speicherung und kontinuierliche Integration.',
   'phase.2.title': 'Editor',
   'phase.2.body':
-    'Arbeitsfläche, Formen, Text, Verbindungen, Auswahl, Bearbeitung, Verlauf, Projektdateien und Wiederherstellung. Seiten, Tabs und reichere Texte kommen gerade hinzu.',
+    'Die Editor-Grundlage bis zur abgenommenen Studio-Phase 2.5 umfasst Formen, Verbindungen, Dokument- und Seitennavigation, Rich Text, gemeinsame Eigenschaften, Freihandzeichnen, Stapelreihenfolge, Anordnen ohne Überlappung und portable Projektdateien. Weitere Editor-Funktionen bleiben geplant.',
   'phase.3.title': 'Daten und Export',
   'phase.3.body':
     'Tabellenimport, Diagramme sowie Export nach SVG, PNG, PDF und interaktivem HTML.',
@@ -750,7 +750,7 @@ export const de: Record<WebsiteMessageKey, string> = {
   'project.statusSummary.published':
     'Koxora Studio ist eine funktionierende technische Vorschau. Es gibt noch keine öffentliche Veröffentlichung und keinen Download.',
   'project.statusMilestoneValue.published':
-    'Studio-Phase 2.4 zusammengeführt \u00b7 Studio 2.5 in Arbeit',
+    'Studio-Phase 2.5 abgenommen und zusammengeführt · Keine öffentliche Studio-Version',
   'legalNotice.contact.security': 'Erstkontakt bei einem Sicherheitsproblem',
 
   'docsStart.shot.alt':
@@ -768,13 +768,13 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Das Studio öffnen, ein Projekt anlegen und was der erste Bildschirm bietet.',
   'docs.section.editing.title': 'Ein Diagramm bearbeiten',
   'docs.section.editing.summary':
-    'Formen setzen, auswählen, bewegen, verbinden, Text formatieren, rückgängig machen — was der Editor heute kann.',
+    'Formen, Verbindungen, Rich Text, Freihandstriche, gemeinsame Eigenschaften, Anordnung und Rückgängig im abgenommenen Studio-2.5-Entwicklungsstand.',
   'docs.section.localFirst.title': 'Local-first erklärt',
   'docs.section.localFirst.summary':
     'Was local-first hier bedeutet und was es für Ihre Dateien und Ihre Privatsphäre heißt.',
   'docs.section.projects.title': 'Projekte und Dateiformate',
   'docs.section.projects.summary':
-    'Was ein Projekt ist, wo es liegt, wie es das Gerät verlässt und wie Sie eine Sicherung behalten.',
+    'Dokumente und Diagrammseiten verwalten, lokale Projekte wechseln, den Papierkorb nutzen und portable .koxora-Sicherungen behalten.',
   'docs.section.features.title': 'Verfügbare Funktionen',
   'docs.section.features.summary':
     'Die Liste dessen, was umgesetzt ist, mit den Grenzen des aktuellen Stands.',
@@ -783,7 +783,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Was vorgesehen ist, in welcher Reihenfolge, ohne zugesagte Termine.',
   'docs.section.faq.title': 'Häufig gestellte Fragen',
   'docs.section.faq.summary':
-    'Zwölf Fragen, beantwortet aus dem, was existiert, nicht aus dem, was geplant ist.',
+    'Fragen zum implementierten Editor, zu Seiten, Formatierung, Offline-Speicherung und weiterhin geplanten Funktionen.',
   'docs.section.support.title': 'Fehler melden und Hilfe bekommen',
   'docs.section.support.summary':
     'Wohin eine Fehlermeldung geht, was hineingehört und wohin ein Sicherheitsproblem stattdessen geht.',
@@ -802,10 +802,10 @@ export const de: Record<WebsiteMessageKey, string> = {
     '„Neues Projekt“ beginnt ein leeres. „.koxora importieren“ öffnet eine Projektdatei, die Sie schon haben — von einem anderen Gerät, aus einer Sicherung oder von jemandem, der sie Ihnen geschickt hat. Beides endet am selben Ort: einem Projekt auf diesem Gerät.',
   'docsStart.step3.title': 'Etwas zeichnen',
   'docsStart.step3.body':
-    'Die Werkzeugpalette sitzt über der Zeichenfläche. Wählen Sie eine Form und klicken Sie, um sie in Standardgröße zu setzen, oder ziehen Sie die gewünschte Größe auf. Linien und Pfeile verbinden zwei Formen. Der nächste Abschnitt geht alles durch.',
-  'docsStart.step4.title': 'Nichts zu speichern',
+    'Oberhalb der Arbeitsfläche eine Form wählen und sie durch Klicken oder Ziehen platzieren. Linie oder Pfeil verbindet Formen, der Freihandstift dient zum Skizzieren. Im Projekt-Navigator der Seitenleiste lassen sich Dokumente und Diagrammseiten ergänzen; jede Seite behält ihre eigene Ansicht.',
+  'docsStart.step4.title': 'Automatisch speichern und portable Sicherungen',
   'docsStart.step4.body':
-    'Änderungen werden nach einer kurzen Pause automatisch auf dieses Gerät geschrieben, und die Kopfzeile sagt, wann das zuletzt geschah. Es gibt keine Speichern-Schaltfläche, die man vergessen kann, und keinen Upload: das Projekt verlässt das Gerät nur, wenn Sie es selbst exportieren.',
+    'Änderungen werden nach einer kurzen Pause auf diesem Gerät gespeichert; die Kopfzeile zeigt den Speicherstatus. Projekt speichern speichert zusätzlich sofort. .koxora exportieren erstellt eine portable Sicherung. Nichts wird auf einen Koxora-Server hochgeladen.',
   'docsStart.shot.caption':
     'Der erste Bildschirm des Studios, bevor ein Projekt existiert. Aufgenommen vom Entwicklungsstand.',
   'docsStart.warning.title': 'Eines sollten Sie am ersten Tag wissen',
@@ -813,14 +813,14 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Ein Projekt liegt in diesem Browser auf diesem Gerät. Browserdaten löschen, ein privates Fenster oder ein verlorenes Gerät entfernen es. Exportieren Sie eine .koxora-Datei für alles, worum es Ihnen leidtäte — das ist die Sicherung, und anderswo gibt es keine Kopie.',
   'docsEditing.meta.title': 'Ein Diagramm bearbeiten',
   'docsEditing.meta.description':
-    'Formen setzen und verbinden, auswählen und bewegen, Text formatieren und rückgängig machen — was der Koxora-Editor im aktuellen Entwicklungsstand kann.',
+    'Studio 2.5: Formen verbinden, Wörter formatieren, freihändig zeichnen, mehrere Objekte bearbeiten, anordnen und Änderungen rückgängig machen.',
   'docsEditing.hero.eyebrow': 'Dokumentation',
   'docsEditing.hero.title': 'Ein Diagramm bearbeiten',
   'docsEditing.hero.lead':
     'Was der Editor heute kann, beschrieben vom zusammengeführten Entwicklungsstand. Wo etwas noch nicht da ist, sagt diese Seite es, statt es Sie herausfinden zu lassen.',
   'docsEditing.place.title': 'Formen setzen',
   'docsEditing.place.body':
-    'Die Palette bietet Rechtecke, abgerundete Rechtecke, Ellipsen, Rauten, Dreiecke, Sechsecke, Parallelogramme, einfachen Text, Container, Linien und Pfeile. Wählen Sie eine Form und klicken Sie auf die Fläche, um sie in Standardgröße zu setzen, oder ziehen Sie die gewünschte Größe auf. Enter setzt sie in die Mitte der Ansicht. Nach dem Einfügen kehrt der Editor zum Auswählen zurück, sofern Sie nicht „Einfügen wiederholen“ einschalten.',
+    'Rechteck, abgerundetes Rechteck, Ellipse, Raute, Dreieck, Sechseck, Parallelogramm, Textelement oder Container wählen. Klicken platziert das Objekt, Ziehen bestimmt die Größe, Enter fügt es in der Ansichtsmitte ein. Wiederholt einfügen hält ein Formenwerkzeug aktiv. Linie, Pfeil und Freihandstift haben eigene Zeichengesten.',
   'docsEditing.select.title': 'Auswählen',
   'docsEditing.select.body':
     'Klicken wählt aus. Umschalt-Klick fügt zur Auswahl hinzu oder entfernt daraus. Ziehen über leere Fläche zieht einen Rahmen um alles darin, und Strg oder Cmd mit A wählt alles Bearbeitbare auf der Seite. Escape verwirft ein Werkzeug oder einen Entwurf.',
@@ -832,10 +832,10 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Wählen Sie Linie oder Pfeil und klicken Sie entweder einen sichtbaren Port am Rand beider Formen an oder die Formen selbst, dann wählt der Editor den Ankerpunkt. Linie zeichnet keine Spitze, Pfeil eine. Eine Verbindung behält ihre Anker, wenn eine der Formen bewegt oder in der Größe geändert wird. Es gibt keine Hindernis-Umgehung und keine Verbindung einer Form mit sich selbst.',
   'docsEditing.text.title': 'Text und Formatierung',
   'docsEditing.text.body':
-    'Doppelklick auf ein Element oder Enter bei ausgewähltem Element öffnet seine Eigenschaften. Text steht zuerst: eine serifenlose, Serifen- oder dicktengleiche Schrift von Ihrem eigenen Rechner, eine Größe zwischen 8 und 96, fett, kursiv, unterstrichen, Farbe, Ausrichtung und mehrere Zeilen. Die Formatierung gilt für die ganze Beschriftung. Einzelne Wörter unterschiedlich zu formatieren ist noch nicht möglich.',
+    'Eine Beschriftung doppelt anklicken oder Text bearbeiten wählen, um den Texteditor an der Arbeitsfläche zu öffnen; Elementeigenschaften bietet denselben Editor. Ein Wort oder einen Abschnitt markieren und Schrift, Größe, Fett, Kursiv, Unterstrichen oder Farbe anwenden. Ausrichtung gilt für Absätze. Strg/Cmd+B, I und U schalten Formatierungen um; Einfügen erhält unterstützte Textstile und Zeilenumbrüche. Änderungen übernehmen oder Strg/Cmd+Enter bestätigt den Entwurf; Escape verwirft ihn.',
   'docsEditing.history.title': 'Rückgängig machen',
   'docsEditing.history.body':
-    'Strg oder Cmd mit Z macht rückgängig; mit Umschalt stellt es wieder her, ebenso Strg mit Y. Die Chronik gehört zur Sitzung und zur Seite, auf der Sie sind: sie wird nicht in die Projektdatei geschrieben, und Schließen oder erneutes Öffnen beginnt sie von vorn. Sie fasst bis zu hundert Schritte.',
+    'Strg/Cmd+Z macht rückgängig, Strg/Cmd+Umschalt+Z oder Strg+Y stellt wieder her. Der Projektverlauf folgt Bearbeitungen über Seiten hinweg, einschließlich Erstellen, Verschieben und Löschen von Seiten; er behält höchstens 100 Schritte innerhalb von 16 MiB. Beim Öffnen eines anderen Projekts wird er zurückgesetzt und nicht in .koxora gespeichert. In einem offenen Textentwurf wirkt Rückgängig auf den Entwurf; Übernehmen erzeugt eine Projektbearbeitung. Projekt aus dem Papierkorb wiederherstellen ist von Rückgängig getrennt.',
   'docsEditing.keyboard.title': 'Alles mit der Tastatur',
   'docsEditing.keyboard.body':
     'Jedes Werkzeug ist mit Tab und den Pfeiltasten erreichbar, die Ports zum Verbinden ebenfalls. F1 oder das Fragezeichen öffnet eine durchsuchbare Liste aller Tastenkürzel, auf Deutsch und Englisch, mit Strg als Cmd auf Apple-Rechnern. Textfelder behalten die Kürzel, die Sie ohnehin kennen.',
@@ -845,7 +845,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Die Eigenschaften eines ausgewählten Elements, mit Text und Formatierung zuerst. Aufgenommen vom Entwicklungsstand.',
   'docsEditing.limits.title': 'Noch nicht vorhanden',
   'docsEditing.limits.body':
-    'Kein Bildexport, kein Import aus anderen Diagrammwerkzeugen, keine Formatierung einzelner Wörter innerhalb einer Beschriftung, kein gemeinsames Bearbeiten, und die Chronik überlebt das Schließen eines Projekts nicht. Die Funktionsliste führt vollständig, was umgesetzt ist und was nicht.',
+    'Bildexport, Import aus anderen Diagrammwerkzeugen, interaktive Links, vollständige Ebenenverwaltung, Zusammenarbeit, Cloud-Synchronisierung und KI-Unterstützung sind nicht implementiert. Der Freihandstift hat keinen Radierer und keine Druckpinsel. Der Rückgängig-Verlauf bleibt beim erneuten Öffnen eines Projekts nicht erhalten. Die Funktionsübersicht trennt den implementierten Entwicklungsstand von zukünftiger Arbeit.',
   'docsProjects.meta.title': 'Projekte und Dateiformate',
   'docsProjects.meta.description':
     'Was ein Koxora-Projekt ist, wo es liegt, was die .koxora-Datei enthält, wie Sie ein Projekt zwischen Geräten bewegen und wie Sie eine Sicherung behalten.',
@@ -855,7 +855,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Ein Projekt gehört Ihnen, liegt auf Ihrem Gerät und kommt als Datei heraus, die Sie behalten. Diese Seite sagt genau, was diese Datei ist und was mit ihr geschieht.',
   'docsProjects.format.title': 'Die .koxora-Datei',
   'docsProjects.format.body':
-    'Ein Projekt wird als einzelne .koxora-Datei exportiert: ein Archiv mit den Projektdaten, in einem offenen Format, das im Repository beschrieben ist. Es ist eine Datei, lässt sich also kopieren, sichern, in eine Versionsverwaltung legen oder wie jedes andere Dokument weitergeben.',
+    'Export erstellt ein portables .koxora-Archiv mit allen Dokumenten, Seiten, Seitenansichten, Rich-Text-Formatierungen und Freihandstrichen. Bestehende Projekte öffnen weiterhin ohne Konvertierung. Das dokumentierte Format speichert strukturierten Text, kein HTML. Vor dem Bearbeiten in einer älteren Version eine Sicherung behalten: Sie kann nicht jede neuere Funktion darstellen.',
   'docsProjects.saved.title': 'Wo ein Projekt liegt, während Sie arbeiten',
   'docsProjects.saved.body':
     'Im Browser, auf dem Gerät, das Sie benutzen, im Speicher dieses Browsers. Änderungen werden dort nach einer kurzen Pause automatisch geschrieben. Kein Koxora-Server erhält das Projekt, weil es keinen gibt, und nichts wird hochgeladen.',
@@ -870,7 +870,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Was Sie ausgewählt hatten, welches Werkzeug aktiv war, was in der internen Zwischenablage lag und die Rückgängig-Chronik werden nicht in ein Projekt geschrieben. Sie gehören zur Sitzung. Daten, die der aktuelle Stand nicht versteht, bleiben erhalten statt verworfen zu werden; eine Datei aus einer neueren Fassung verliert also nicht, was sie mitbrachte.',
   'docsFaq.meta.title': 'Häufig gestellte Fragen',
   'docsFaq.meta.description':
-    'Zwölf Fragen zu Koxora, beantwortet aus dem, was es heute gibt: Konten, Offline-Nutzung, wo Projekte liegen, was umgesetzt ist und was nicht.',
+    'Antworten zu Studio-2.5-Seiten, Rich Text, Freihandzeichnen, Offline-Dateien, Schriften und Veröffentlichungsstatus – mit klar benannten fehlenden Funktionen.',
   'docsFaq.hero.eyebrow': 'Dokumentation',
   'docsFaq.hero.title': 'Häufig gestellte Fragen',
   'docsFaq.hero.lead':
@@ -880,7 +880,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Nein. Es gibt keine Registrierung, keine Anmeldung und kein Konto, das man anlegen könnte. Dem Studio steht auch kein Server zur Seite, der eines führen würde.',
   'faq.release.q': 'Kann ich Koxora herunterladen?',
   'faq.release.a':
-    'Noch nicht. Es gibt keine öffentliche Veröffentlichung und kein Installationsprogramm. Vorhanden ist der Entwicklungsstand im öffentlichen Repository, den Sie selbst ausführen können. Die Download-Seite sagt dasselbe und wird der erste Ort sein, an dem eine Veröffentlichung erscheint.',
+    'Noch nicht. Es gibt keine öffentliche Version und keinen freigegebenen öffentlichen Installer-Download. Studio 2.5 ist abgenommen und im Quellcode-Repository zusammengeführt. CI-Testpakete sind keine veröffentlichte Version; die Downloadseite ändert sich erst nach einer separaten Veröffentlichungsfreigabe.',
   'faq.offline.q': 'Funktioniert es ohne Internetverbindung?',
   'faq.offline.a':
     'Der Editor läuft auf Ihrem Gerät und braucht nach dem Laden keinen Server. Projekte liegen lokal, die Arbeit selbst hängt also nicht an einer Verbindung.',
@@ -895,7 +895,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Koxora liest und schreibt sein eigenes .koxora-Projektarchiv. Import aus anderen Diagrammwerkzeugen und Export als Bild sind noch nicht umgesetzt; beides ist dokumentierter Umfang und nichts, was heute geht.',
   'faq.today.q': 'Was kann der Editor im Moment wirklich?',
   'faq.today.a':
-    'Formen, einfachen Text und Verbindungen mit sichtbaren Ports; Auswählen, Bewegen, Größe ändern, Ausrichten und Verteilen; Textformatierung für eine ganze Beschriftung; Rückgängig und Wiederherstellen innerhalb einer Sitzung; Projekte auf dem Gerät und als Datei ausgetauscht. Der Abschnitt zum Bearbeiten geht alles durch.',
+    'Studio 2.5 enthält Formen und Verbindungen mit Anschlusspunkten, Dokumente und Diagrammseiten, Formatierung einzelner Wörter, gemeinsame Eigenschaften, Freihandzeichnen, Stapelreihenfolge und Anordnen ohne Überlappung. Projekte werden lokal gespeichert und als .koxora exportiert; Rückgängig funktioniert in der Sitzung über ihre Seiten hinweg. Diese Funktionen gehören zum zusammengeführten Entwicklungsstand, nicht zu einer öffentlichen Version.',
   'faq.missing.q': 'Was ist mit Zusammenarbeit, Cloud oder Assistenz?',
   'faq.missing.a':
     'Keines der drei ist umgesetzt. Alle drei sind dokumentierter Produktumfang, und alle drei sind als optional geplant, damit ein Koxora ohne sie ein vollständiges Produkt bleibt und kein beschnittenes.',
@@ -1156,7 +1156,7 @@ export const de: Record<WebsiteMessageKey, string> = {
   'cmp.desktop.visio':
     'Die Desktop-Anwendung ist für Visio Plan 2 und für die Editionen als Einmalkauf aufgeführt. Visio Plan 1 und Visio in Microsoft 365 sind als reine Web-Varianten aufgeführt.',
   'cmp.diagramTypes.koxora':
-    'Der zusammengeführte Stand zeichnet Formen, einfachen Text und Verbindungen mit sichtbaren Ports. Der breitere Katalog an Diagrammfamilien ist geplant, und die Funktionsseite benennt die heutigen Grenzen.',
+    'Der zusammengeführte Studio-2.5-Entwicklungsstand unterstützt Formen, Rich Text, Verbindungen mit Anschlusspunkten, Freihandstriche und mehrere Dokumente/Seiten je Projekt. Geführte Diagrammarten und semantisches Auto-Layout bleiben geplant.',
   'cmp.diagramTypes.drawio':
     'Für diese Prüfung nicht belegt. Die offiziellen Formbibliotheken sind umfangreich; welche Familien sie abdecken, wurde nicht gegen eine einzelne offizielle Seite bestätigt.',
   'cmp.diagramTypes.excalidraw':
@@ -1233,7 +1233,8 @@ export const de: Record<WebsiteMessageKey, string> = {
   'cmp.sources.note':
     'Jede Seite in dieser Liste wurde am angegebenen Datum gelesen, und es wird hier nichts behauptet, was über diese Seiten hinausgeht. Wenn sich etwas geändert hat oder etwas falsch ist, schreiben Sie an {email}, dann wird es korrigiert.',
   'cmp.sources.checkedOn': 'Gelesen am {date}',
-  'cmp.checked': 'Dieser Vergleich wurde zuletzt am {date} geprüft.',
+  'cmp.checked':
+    'Vergleichsinhalte aktualisiert am {date}. Die Prüfdaten der einzelnen Quellen stehen unten.',
   'cmp.disclaimer.title': 'Was dieser Vergleich nicht ist',
   'cmp.disclaimer.body':
     'Er ist vom Koxora-Projekt geschrieben, lesen Sie ihn also als solchen. Er behauptet nicht, Koxora sei besser: er beantwortet zehn Fragen und zeigt, woher jede Antwort kommt. Mehrere dieser Produkte können Dinge, die Koxora nicht kann, und die Tabelle sagt das. Produktnamen und Marken gehören ihren Inhabern und werden zur Bezeichnung der Produkte verwendet, nicht um eine Empfehlung zu suggerieren.',
@@ -1290,4 +1291,56 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Ihr Team schon in Lucid arbeitet, Sie Echtzeit-Zusammenarbeit und Kommentare brauchen oder Sie ein fertiges Produkt mit Support dahinter wollen.',
   'cmp.page.lucidchart.chooseKoxora':
     'die Datei auf Ihrem Rechner statt in einem Anbieterkonto liegen muss, Sie ohne Registrierung anfangen wollen und auf eine Veröffentlichung warten können.',
+  'feature.freehand.title': 'Freihandzeichnen',
+  'feature.freehand.body':
+    'Mit Maus, Touch, Stift oder Tastatur skizzieren. Strichfarbe und -breite wählen und jeden Strich wie ein Objekt verschieben, skalieren, kopieren oder löschen. Striche werden offline im Projekt gespeichert; Druckpinsel und Radierer sind nicht enthalten.',
+  'docsEditing.fonts.title': 'Schriften, Farben und Textgrenzen',
+  'docsEditing.fonts.body':
+    'Das durchsuchbare Menü zeigt 20 Schriftoptionen mit Vorschau und nutzt installierte Schriften sowie Ersatzschriften. Es werden keine Schriften heruntergeladen; zwei fehlende Familien können auf Ihrem Gerät gleich aussehen. Größen reichen von 8 bis 96. Automatische Farbe passt sich dem Hintergrund an; ausdrücklich gewählte Farben bleiben erhalten. Eine Beschriftung enthält bis zu 4.096 Zeichen. Eine kleine Form kann die Anzeige abschneiden, ohne gespeicherten Text zu verwerfen: Form vergrößern oder Schrift verkleinern.',
+  'docsEditing.batch.title': 'Mehrere Objekte gemeinsam ändern',
+  'docsEditing.batch.body':
+    'Objekte mit Umschalt-Klick oder einem Auswahlrahmen markieren und Elementeigenschaften oder das Kontextmenü öffnen. Gemischte Werte bleiben unverändert, bis Sie diese Eigenschaft bearbeiten. Eine Farbänderung erhält Schriftwahl und andere Formatierungen. Jede gemeinsame Änderung ist ein Rückgängig-Schritt; angeboten werden nur Eigenschaften, die zu den ausgewählten Objekten passen.',
+  'docsEditing.arrange.title': 'Ausrichten, Anordnen und Stapeln',
+  'docsEditing.arrange.body':
+    'Ausrichten erscheint ab zwei ausgewählten Formen, Verteilen benötigt drei. Darüberfahren oder Fokussieren zeigt eine Vorschau, Escape bricht ab. Ausrichten legt Kanten oder Mittelpunkte zusammen und kann Objekte überlappen lassen. Ohne Überlappung anordnen ist eine separate Aktion, die ausgewählte bearbeitbare Objekte um sichtbare Hindernisse herum platziert. Eine Stufe nach vorn/hinten sowie Ganz nach vorn/hinten ordnen Formen und Verbindungen innerhalb ihrer bestehenden Ebene. Jeder Befehl lässt sich rückgängig machen; eine vollständige Ebenenverwaltung gibt es noch nicht.',
+  'docsEditing.pen.title': 'Freihändig zeichnen',
+  'docsEditing.pen.body':
+    'Freihandstift wählen, Strichfarbe und -breite einstellen und mit Maus, Touch oder Stift zeichnen. Jeder abgeschlossene Strich ist ein bearbeitbares Objekt und wird in .koxora gespeichert. Mit der Tastatur startet Enter in der Ansichtsmitte, Pfeiltasten verlängern den Strich, Umschalt vergrößert die Schritte und Enter beendet ihn. Escape verwirft einen unfertigen Strich. Druck- oder Neigungspinsel, Radierer und das Bearbeiten einzelner Punkte sind nicht enthalten.',
+  'docsProjects.pages.title': 'Dokumente und Diagrammseiten',
+  'docsProjects.pages.body':
+    'Ein .koxora-Projekt kann mehrere Dokumente mit jeweils eigenen Diagrammseiten enthalten. Im Projekt-Navigator der Seitenleiste zwischen Seiten wechseln; die erweiterte Arbeitsfläche öffnet denselben Navigator über ihre Schaltfläche. Jede Seite behält Zoom, Position und Raster. Das abgenommene Studio 2.5 nutzt diese gemeinsame Hierarchie anstelle der ursprünglich geplanten Diagramm-Tabs am unteren Rand.',
+  'docsProjects.actions.title': 'Seiten erstellen und organisieren',
+  'docsProjects.actions.body':
+    'Neues Dokument und Neue Seite verwenden, mit Doppelklick oder F2 umbenennen und mit Rechtsklick, Umschalt+F10 oder der Aktionsschaltfläche einer Zeile die Seitenaktionen öffnen. Eine Seite duplizieren, durch Ziehen oder Alt+Pfeil oben/unten sortieren oder in ein anderes Dokument desselben Projekts verschieben. Löschen benötigt eine Bestätigung und unterstützt Rückgängig. Die letzte Seite eines Dokuments und das letzte Dokument eines Projekts sind geschützt. Auch referenzierte Seiten können geschützt sein; Seiten zwischen verschiedenen Projekten zu verschieben wird nicht unterstützt.',
+  'docsProjects.trash.title': 'Projekte wechseln, kopieren und löschen',
+  'docsProjects.trash.body':
+    'Der Navigator listet lokale Projekte. Beim Wechseln wird die aktuelle Arbeit zuerst gespeichert; schlägt das Speichern fehl, bleibt sie geöffnet. Duplizieren erstellt eine vollständige Projektkopie mit neuer Projektidentität. Projekt löschen benötigt eine Bestätigung und verschiebt es in den lokalen Papierkorb; Projekt wiederherstellen bringt es mitsamt Wiederherstellungsdaten zurück. Der Papierkorb gehört zu diesem Gerät, ist weder Export noch Sicherung und löscht keine exportierten .koxora-Dateien.',
+  'faq.pages.q': 'Wo sind die Diagramm-Tabs?',
+  'faq.pages.a':
+    'Studio 2.5 bietet mehrere Diagrammseiten über einen Projekt-Navigator in der Seitenleiste: Projekt, Dokument, Seite. Er ersetzt die ursprünglich geplanten unteren Tabs. Dort Seiten erstellen, umbenennen, duplizieren, sortieren oder löschen und zwischen Dokumenten desselben Projekts verschieben. Jede Seite behält ihre eigene Ansicht.',
+  'faq.richText.q':
+    'Kann ich nur ein Wort formatieren, und muss ich Schriften herunterladen?',
+  'faq.richText.a':
+    'Ja: Im Texteditor an der Arbeitsfläche ein Wort oder einen Abschnitt markieren und Schrift, Größe, Fett, Kursiv, Unterstrichen oder Farbe ändern. Die 20 durchsuchbaren Schriftoptionen verwenden installierte Familien und Ersatzschriften. Es gibt keine externen Schrift-Downloads; fehlende Familien können gleich aussehen und das Layout kann zwischen Systemen variieren. Formatierungen werden in .koxora gespeichert.',
+  'faq.pen.q': 'Kann ich freihändig skizzieren?',
+  'faq.pen.a':
+    'Ja. Der Freihandstift unterstützt Zeichnen mit Maus, Touch, Stift und Tastatur sowie Strichfarbe und -breite. Fertige Striche lassen sich als Objekte bearbeiten und offline speichern. Druck- und Neigungspinsel, Radierer und Punktbearbeitung sind nicht implementiert.',
+  'faq.links.q': 'Kann eine Form auf eine andere Seite oder Website verlinken?',
+  'faq.links.a':
+    'Das Erstellen und Aktivieren interaktiver Links ist noch nicht implementiert. Die normale Seitennavigation ist in der Seitenleiste vorhanden; Formen werden dadurch nicht zu anklickbaren Links. Seiten zwischen Projekten zu übertragen und eine vollständige Ebenenverwaltung bleiben ebenfalls zukünftige Arbeit.',
+  'milestone.workbook.title': 'Seiten, Rich Text und Freihandbearbeitung',
+  'milestone.workbook.body':
+    'Studio 2.5: Projekt-/Dokument-/Seitennavigation, Wortformatierung, Offline-Schriftoptionen, gemeinsame Eigenschaften, Freihandstift, Stapelreihenfolge und Anordnen ohne Überlappung. Manuell abgenommen und zusammengeführt; keine öffentliche Version.',
+  'docsEditing.rich.alt':
+    'Der Studio-2.5-Texteditor an der Arbeitsfläche mit unterschiedlicher Wortformatierung und Schriftleiste.',
+  'docsEditing.rich.caption':
+    'Der Studio-2.5-Texteditor an der Arbeitsfläche mit unterschiedlicher Wortformatierung und Schriftleiste. Aufnahme des abgenommenen Entwicklungsstands; keine öffentliche Version.',
+  'docsEditing.pen.alt':
+    'Der Studio-2.5-Freihandstift und ein gezeichneter Strich neben einem Diagramm.',
+  'docsEditing.pen.caption':
+    'Der Studio-2.5-Freihandstift und ein gezeichneter Strich neben einem Diagramm. Aufnahme des abgenommenen Entwicklungsstands; keine öffentliche Version.',
+  'docsProjects.shot.alt':
+    'Der Studio-2.5-Seitenleisten-Navigator mit mehreren Dokumenten und Seiten sowie dem Seiten-Kontextmenü.',
+  'docsProjects.shot.caption':
+    'Der Studio-2.5-Seitenleisten-Navigator mit mehreren Dokumenten und Seiten sowie dem Seiten-Kontextmenü. Aufnahme des abgenommenen Entwicklungsstands; keine öffentliche Version.',
 };

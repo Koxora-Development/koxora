@@ -92,6 +92,10 @@ export const faqEntries: DocsEntry[] = [
   { titleKey: 'faq.clearing.q', bodyKey: 'faq.clearing.a' },
   { titleKey: 'faq.formats.q', bodyKey: 'faq.formats.a' },
   { titleKey: 'faq.today.q', bodyKey: 'faq.today.a' },
+  { titleKey: 'faq.pages.q', bodyKey: 'faq.pages.a' },
+  { titleKey: 'faq.richText.q', bodyKey: 'faq.richText.a' },
+  { titleKey: 'faq.pen.q', bodyKey: 'faq.pen.a' },
+  { titleKey: 'faq.links.q', bodyKey: 'faq.links.a' },
   { titleKey: 'faq.missing.q', bodyKey: 'faq.missing.a' },
   { titleKey: 'faq.languages.q', bodyKey: 'faq.languages.a' },
   { titleKey: 'faq.price.q', bodyKey: 'faq.price.a' },
@@ -115,6 +119,13 @@ export const editingTopics: DocsEntry[] = [
     bodyKey: 'docsEditing.connect.body',
   },
   { titleKey: 'docsEditing.text.title', bodyKey: 'docsEditing.text.body' },
+  { titleKey: 'docsEditing.fonts.title', bodyKey: 'docsEditing.fonts.body' },
+  { titleKey: 'docsEditing.batch.title', bodyKey: 'docsEditing.batch.body' },
+  {
+    titleKey: 'docsEditing.arrange.title',
+    bodyKey: 'docsEditing.arrange.body',
+  },
+  { titleKey: 'docsEditing.pen.title', bodyKey: 'docsEditing.pen.body' },
   {
     titleKey: 'docsEditing.history.title',
     bodyKey: 'docsEditing.history.body',
@@ -126,6 +137,12 @@ export const editingTopics: DocsEntry[] = [
 ];
 /** What a project is, where it lives and how it leaves. */
 export const projectTopics: DocsEntry[] = [
+  { titleKey: 'docsProjects.pages.title', bodyKey: 'docsProjects.pages.body' },
+  {
+    titleKey: 'docsProjects.actions.title',
+    bodyKey: 'docsProjects.actions.body',
+  },
+  { titleKey: 'docsProjects.trash.title', bodyKey: 'docsProjects.trash.body' },
   {
     titleKey: 'docsProjects.format.title',
     bodyKey: 'docsProjects.format.body',

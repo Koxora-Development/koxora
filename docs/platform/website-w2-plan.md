@@ -2,7 +2,7 @@
 
 **Status: proposed for Product Owner review, 2026-10-25.** This plan slices the Website W2 assignment into pull requests that can be reviewed one at a time. It authorizes nothing by itself: each slice needs the same gates as W1, and no merge, deployment, DNS, Cloudflare or TinyCP change happens without an explicit Product Owner decision.
 
-W1 is live at `https://koxora.app` and was integrated through [PR #28](https://github.com/Koxora-Development/koxora/pull/28). W2 starts from `main`, not from the W1 branch. Studio Phase 2.5 runs in parallel and is not a prerequisite; see [the ownership issue](https://github.com/Koxora-Development/koxora/issues/29).
+W1 is live at `https://koxora.app` and was integrated through [PR #28](https://github.com/Koxora-Development/koxora/pull/28). W2 starts from `main`, not from the W1 branch. Studio Phase 2.5 was accepted and merged in PR #39 on 2026-10-28; W2.3 now updates its content and screenshots to that development baseline; see [the ownership issue](https://github.com/Koxora-Development/koxora/issues/29).
 
 Related documents: [W1 implementation notes](website-w1.md), [deployment and update guide](../development/website-deployment.md), [canonical domains runbook](../development/website-canonical-domains.md), [search plan](website-seo.md), [website specification](website.md).
 

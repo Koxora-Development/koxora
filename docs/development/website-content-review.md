@@ -30,53 +30,26 @@ When a studio phase merges into `main`, walk this list. It is short on purpose.
 | The screenshots               | `apps/website/public/images/studio/`                                                        | Does the interface still look like the picture, and are the accessible names in the capture tool still correct? |
 | The studio link               | `KOXORA_SITE_EDITOR_URL`                                                                    | Has the studio been published, so the call to action can point at it?                                           |
 
-## 2a. Studio Phase 2.5, prepared in advance
+## 2a. Studio Phase 2.5 review completed on 2026-10-28
 
-**Nothing in this section has been changed yet, and nothing in it may be changed before Phase 2.5 is merged into `main` and the Product Owner has accepted it.** It is written now so that the change afterwards is mechanical rather than a search, and so the Product Owner can see exactly what the website will claim once it is true.
+The Product Owner manually accepted Studio 2.5 and explicitly authorized [PR #39](https://github.com/Koxora-Development/koxora/pull/39) to merge. The accepted implementation is merge commit `0d610773fc895e99aa7c8371b34e98327ba8bcf2`; [Issue #19](https://github.com/Koxora-Development/koxora/issues/19) is closed. This W2.3 update describes that merged development version. It does not publish Studio, downloads or the website.
 
-Phase 2.5 ([Issue #19](https://github.com/Koxora-Development/koxora/issues/19)) brings two things the website currently describes as unfinished: **workbook-style diagram tabs** and an **Office-style rich-text editor** with twelve or more font families and formatting inside a single label.
+The final navigation differs from the original tab proposal: the Product Owner chose **one sidebar project → document → page navigator**, replacing the bottom tabs and document selector. Website descriptions and FAQ explain the change instead of advertising an absent tab strip.
 
-### What the site says today, and why that is still right
+| Reviewed area                    | Website update                                                                                                                                   | Implementation evidence                                                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Documents/pages                  | `pages` becomes available in the development version; navigation, actions, per-page views, deletion guards and same-project moves are documented | `packages/studio/src/project-tree.tsx`, `packages/editor-core/src/workbook.ts`                                                |
+| Rich text                        | `richText` becomes available; word/range formatting, toolbar, clipboard, draft history and explicit Apply/Cancel described                       | `packages/studio/src/rich-text-editor.tsx`, `packages/studio/src/inline-text.tsx`                                             |
+| Fonts                            | 20 searchable preferences with installed fallbacks, no remote font queries; no claim of 20 bundled or identical fonts on every OS                | `packages/editor-core/src/shapes.ts`                                                                                          |
+| Batch properties and arrangement | Mixed values, atomic changes, alignment versus non-overlap arrangement and within-layer stacking                                                 | `packages/studio/src/format-selection.tsx`, `packages/editor-core/src/interaction.ts`, `packages/editor-core/src/stacking.ts` |
+| Freehand                         | Mouse/touch/pen/keyboard strokes, ordinary editing and portable storage; no eraser, pressure or tilt brushes                                     | `packages/editor-core/src/freehand.ts`, `packages/studio/src/canvas.tsx`                                                      |
+| Projects/history                 | Save before switching, whole-project copies, reversible local Trash; session history across pages, distinct draft history and Restore action     | `packages/studio/src/projects.tsx`, `packages/editor-core/src/studio-history.ts`                                              |
+| FAQ, roadmap and milestones      | Implemented development capabilities and accepted 2.5 milestone; no public release or download claim                                             | Accepted PR #39 and the Product Owner's merge instruction                                                                     |
+| Comparison                       | Only Koxora's implementation claim and pinned repository source were updated                                                                     | PR #39 merge; external product claims and their 2026-10-25 source dates are unchanged and were not reverified                 |
 
-The two capabilities are already on the site as `in-development`, and both say _"Being implemented in the current studio milestone."_ That is accurate and must stay until the merge. The statuses are in `apps/website/src/content/data.ts`:
+The capture script regenerates all seven existing website images and adds localized navigator, canvas rich-text and freehand captures. New screenshots are reached through the real UI, use a generated sample project with two documents and three pages, and record measured dimensions plus WebP/PNG variants. No pixels or controls are invented. The content and FAQ identify missing interactive links, cross-project page transfer, full layer management, image export and optional services.
 
-| Entry      | Status today     | After the merge            |
-| ---------- | ---------------- | -------------------------- |
-| `pages`    | `in-development` | `available`, once accepted |
-| `richText` | `in-development` | `available`, once accepted |
-
-Moving either one also means removing the "being implemented" sentence from its body text, and reconsidering `highlight: true`, which exists to draw attention to what is coming next.
-
-### What becomes false, and has to be corrected in the same pass
-
-These are claims that are true today and will be wrong the moment 2.5 merges. Each is a message key in both `en.ts` and `de.ts`:
-
-| Key                       | What it claims now                                                                                                                         | Why 2.5 breaks it                                                   |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| `feature.typography.body` | "Serif, sans serif and monospace families from your own system … applied to a label as a whole"                                            | 2.5 asks for twelve or more families, and formatting within a label |
-| `features.limits.item4`   | "Rich text is applied to a whole label; per-character formatting is not implemented"                                                       | That limit is exactly what 2.5 removes                              |
-| `docsEditing.text.body`   | "a sans-serif, serif or monospace family … Formatting applies to the whole label. Formatting single words differently is not possible yet" | Both sentences                                                      |
-| `docsEditing.limits.body` | "no formatting of single words inside a label"                                                                                             | Same limit, named a second time                                     |
-| `cmp.diagramTypes.koxora` | "The merged version draws shapes, plain text and connections with visible ports"                                                           | Several diagrams per project through tabs changes what a project is |
-
-A claim changed in the comparison also moves `comparisonCheckedOn` in `apps/website/src/content/comparison.ts`, because every comparison page prints that date.
-
-### The screenshots that go stale
-
-All seven live in `apps/website/public/images/studio/` and are captured by `tests/assets/studio-screenshots.spec.ts`:
-
-| Picture                                                             | Why it changes                                                                         |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `docs-properties`                                                   | **Certainly.** It shows the 2.4 properties dialog, which the rich-text editor replaces |
-| `editor-dark`, `editor-light`, `editor-small-en`, `editor-small-de` | **Certainly.** Diagram tabs appear in the editor chrome these four show                |
-| `docs-shortcuts`                                                    | **Probably.** 2.5 adds Ctrl/Cmd+B, I and U to the shortcut list                        |
-| `docs-dashboard`                                                    | **Only if** the project list itself changes                                            |
-
-The capture clicks buttons by their accessible names — "Element properties", "Keyboard shortcuts", "Fit content", "Import .koxora". If 2.5 renames the properties button, **the capture fails rather than producing a wrong picture**, which is the behaviour we want.
-
-### What this does not authorize
-
-No status moves, no sentence is rewritten and no picture is recaptured before the merge. A website pull request that marks either capability available while Phase 2.5 is still open would be exactly the mistake this whole document exists to prevent — and `docs.test.ts` and `comparison.test.ts` do not catch it, because neither can know what has merged.
+`available` continues to mean implemented and merged in the development version. Public release links, editor deployment configuration and contact activation remain unchanged. Website PR #37 remains stacked on #36; a merge from main brings in the accepted Studio only to make screenshots and tests reproducible against the documented implementation. It does not merge any W2 PR. Review the W2 stack separately and in order before any publication.
 
 ## 3. Regenerating the screenshots
 

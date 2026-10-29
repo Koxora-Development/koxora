@@ -10,6 +10,8 @@ import { catalog } from './catalog';
 import { locales, routeById, routes } from '../routes';
 import { pageRegistry } from '../pages/registry';
 import { screenshotSizes } from './screenshots';
+import { features } from './data';
+import { existsSync } from 'node:fs';
 const everyEntry = [
   ...startSteps,
   ...editingTopics,
@@ -67,6 +69,19 @@ describe('the documentation structure', () => {
   });
 });
 describe('what the documentation is allowed to say', () => {
+  it('separates accepted Studio 2.5 from unreleased and planned capabilities', () => {
+    for (const id of ['pages', 'richText', 'freehand'])
+      expect(features.find((entry) => entry.id === id)?.status, id).toBe(
+        'available',
+      );
+    for (const id of ['export', 'import', 'collaboration', 'cloud', 'ai'])
+      expect(features.find((entry) => entry.id === id)?.status, id).toBe(
+        'planned',
+      );
+    expect(features.find((entry) => entry.id === 'desktop')?.status).toBe(
+      'in-development',
+    );
+  });
   it('never presents an unreleased capability as something to download', () => {
     // The product has no release. A documentation page that said otherwise
     // would be the one place a reader would believe it.
@@ -112,6 +127,20 @@ describe('the screenshots the documentation shows', () => {
   it('uses only captures that exist, with their measured size', () => {
     for (const name of ['docs-dashboard', 'docs-properties', 'docs-shortcuts'])
       expect(screenshotSizes[name], name).toBeDefined();
+    for (const locale of locales)
+      for (const name of [
+        'docs-navigator',
+        'docs-rich-text',
+        'docs-freehand',
+      ]) {
+        const id = `${name}-${locale}`;
+        expect(screenshotSizes[id], id).toBeDefined();
+        for (const extension of ['png', 'webp'])
+          expect(
+            existsSync(`apps/website/public/images/studio/${id}.${extension}`),
+            id,
+          ).toBe(true);
+      }
   });
   it('describes each of them in both languages', () => {
     for (const locale of locales)

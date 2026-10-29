@@ -9,5 +9,11 @@ export const screenshotSizes: Record<
   'editor-small-en': { width: 390, height: 844 },
   'docs-properties': { width: 1440, height: 980 },
   'docs-shortcuts': { width: 1440, height: 980 },
+  'docs-navigator-en': { width: 1440, height: 980 },
+  'docs-rich-text-en': { width: 1440, height: 980 },
+  'docs-freehand-en': { width: 1440, height: 980 },
+  'docs-navigator-de': { width: 1440, height: 980 },
+  'docs-rich-text-de': { width: 1440, height: 980 },
+  'docs-freehand-de': { width: 1440, height: 980 },
   'editor-small-de': { width: 390, height: 844 },
 };

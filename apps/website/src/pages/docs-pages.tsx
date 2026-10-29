@@ -73,6 +73,12 @@ export function DocsEditingPage(context: PageContext) {
       </Section>
       <Section id="screens" tone="panel">
         <Screenshot
+          name={`docs-rich-text-${locale}`}
+          label={t('shot.frameLabel')}
+          alt={t('docsEditing.rich.alt')}
+          caption={t('docsEditing.rich.caption')}
+        />
+        <Screenshot
           name="docs-properties"
           label={t('shot.frameLabel')}
           alt={t('docsEditing.properties.alt')}
@@ -83,6 +89,12 @@ export function DocsEditingPage(context: PageContext) {
           label={t('shot.frameLabel')}
           alt={t('docsEditing.shot.alt')}
           caption={t('docsEditing.shot.caption')}
+        />
+        <Screenshot
+          name={`docs-freehand-${locale}`}
+          label={t('shot.frameLabel')}
+          alt={t('docsEditing.pen.alt')}
+          caption={t('docsEditing.pen.caption')}
         />
       </Section>
       <Section id="limits">
@@ -111,6 +123,12 @@ export function DocsProjectsPage(context: PageContext) {
         <Topics {...context} entries={projectTopics} />
       </Section>
       <Section id="more" tone="panel">
+        <Screenshot
+          name={`docs-navigator-${locale}`}
+          label={t('shot.frameLabel')}
+          alt={t('docsProjects.shot.alt')}
+          caption={t('docsProjects.shot.caption')}
+        />
         <p className="section-link">
           <a href={pathFor('localFirst', locale)}>
             {t('docs.section.localFirst.title')}

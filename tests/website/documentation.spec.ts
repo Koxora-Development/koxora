@@ -55,7 +55,7 @@ test.describe('the documentation', () => {
       'development version',
     );
     await page.goto('/en/docs/editing/');
-    await expect(page.locator('.shot img')).toHaveCount(2);
+    await expect(page.locator('.shot img')).toHaveCount(4);
   });
   test('never offers a download that does not exist', async ({ page }) => {
     for (const [english, german] of sections)
@@ -73,8 +73,8 @@ test.describe('the documentation', () => {
     await page.goto('/de/dokumentation/faq/');
     const questions = page.locator('#questions dt');
     const answers = page.locator('#questions dd');
-    await expect(questions).toHaveCount(12);
-    await expect(answers).toHaveCount(12);
+    await expect(questions).toHaveCount(16);
+    await expect(answers).toHaveCount(16);
     await expect(questions.first()).toContainText('Konto');
   });
   test('warns about browser storage where it matters', async ({ page }) => {
@@ -85,6 +85,32 @@ test.describe('the documentation', () => {
     ] as const) {
       await page.goto(path);
       await expect(page.locator('main'), path).toContainText(needle);
+    }
+  });
+  test('loads the localized Studio 2.5 navigator, rich-text and pen captures', async ({
+    page,
+  }) => {
+    for (const [locale, editing, projects] of [
+      ['en', '/en/docs/editing/', '/en/docs/projects/'],
+      ['de', '/de/dokumentation/bearbeiten/', '/de/dokumentation/projekte/'],
+    ] as const) {
+      for (const [path, names] of [
+        [editing, ['docs-rich-text', 'docs-freehand']],
+        [projects, ['docs-navigator']],
+      ] as const) {
+        await page.goto(path);
+        for (const name of names) {
+          const shot = page.locator(`.shot img[src$="${name}-${locale}.png"]`);
+          await shot.scrollIntoViewIfNeeded();
+          await expect
+            .poll(() =>
+              shot.evaluate((image: HTMLImageElement) => image.naturalWidth),
+            )
+            .toBe(1440);
+          await expect(shot).toHaveAttribute('width', '1440');
+          await expect(shot).toHaveAttribute('alt', /Studio.?2\.5/);
+        }
+      }
     }
   });
   test('sends a security report somewhere other than support', async ({
