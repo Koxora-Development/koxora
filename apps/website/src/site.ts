@@ -91,6 +91,7 @@ export interface SiteConfig {
    * at nothing, and no contact routing is emitted until both are known.
    */
   contactHandler: { script: string | null; fpm: string | null };
+  /**
    * Address the public host proxies to; the container binds it alone.
    * `verificationPort` is where a new image answers while it is checked
    * beside the running one, so it must be free of every permanently bound
