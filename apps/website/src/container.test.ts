@@ -42,6 +42,17 @@ const nginx = renderNginx({
   languageCookieName,
   listenPort: 8080,
 });
+describe('the website image build', () => {
+  it('copies the contact workspace manifest before the filtered install', () => {
+    const manifest = 'COPY packages/contact/package.json packages/contact/';
+    const install = 'RUN pnpm install --frozen-lockfile --filter @koxora/website...';
+    expect(dockerfile).toContain(manifest);
+    expect(dockerfile.indexOf(manifest)).toBeLessThan(
+      dockerfile.indexOf(install),
+    );
+  });
+});
+
 describe('the runtime image', () => {
   it('contains no Node toolchain', () => {
     // The site is rendered in the first stage. Anything that could run the
