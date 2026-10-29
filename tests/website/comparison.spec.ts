@@ -31,12 +31,19 @@ test.describe('the sourced comparison', () => {
   }) => {
     await page.goto('/en/compare/');
     await expect(page.locator('#sources')).toContainText(
-      'last reviewed on October 25, 2026',
+      'Comparison content updated on October 28, 2026',
     );
     const entries = page.locator('#sources .source-list li');
     expect(await entries.count()).toBeGreaterThanOrEqual(10);
     for (const index of [0, 1, 2])
       await expect(entries.nth(index)).toContainText('Read on');
+    await expect(
+      entries.filter({ hasText: 'Koxora Studio 2.5' }),
+    ).toContainText('Read on October 28, 2026');
+    for (const name of ['jgraph/drawio-desktop', 'Excalidraw+', 'Miro pricing'])
+      await expect(entries.filter({ hasText: name })).toContainText(
+        'Read on October 25, 2026',
+      );
   });
   test('links every source as an external, untracked reference', async ({
     page,
