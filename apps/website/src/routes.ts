@@ -92,11 +92,16 @@ export const routes: RouteDefinition[] = [
     nav: [],
     sitemap: { priority: 0.6, changeFrequency: 'monthly' },
   },
+  // In the main navigation, not only in the footer. A reader looking for a way
+  // to make contact looks in the header first, and the Product Owner could not
+  // find the page on the live site while it was a footer entry among the other
+  // resources. The footer carries it as well, in the column about contact
+  // rather than in that list.
   {
     id: 'contact',
     slugs: { en: 'contact', de: 'kontakt' },
     aliases: { de: ['contact'], en: ['kontakt'] },
-    nav: ['resources'],
+    nav: ['primary'],
     sitemap: { priority: 0.6, changeFrequency: 'monthly' },
   },
   // The two pages a submission without JavaScript lands on. They are not in

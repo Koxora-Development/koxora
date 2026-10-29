@@ -1,0 +1,43 @@
+# What the website image build may see. Without this file the build context is
+# the whole working tree, so `COPY . .` carries a developer's node_modules, an
+# older build output and whatever file modes that tree happens to have into the
+# image. The published files inherit those modes, and a file the NGINX worker
+# cannot read is answered with 403 rather than served.
+#
+# Everything the build needs is a tracked source file, a manifest or the
+# lockfile; everything below is produced, local or irrelevant to it.
+
+# Produced by a build, and rebuilt inside the image.
+node_modules
+**/node_modules
+**/dist
+**/dist-ssr
+**/dist-deploy
+**/dist-consent
+**/dist-deploy-consent
+**/dist-published
+**/dist-deploy-published
+**/target
+**/.vite
+**/.turbo
+
+# History, editor and operating system state.
+.git
+.github
+.gitignore
+.vscode
+.idea
+**/.DS_Store
+
+# Test output, caches and reports.
+**/test-results
+**/playwright-report
+**/coverage
+**/.pnpm-store
+**/vendor
+
+# Local configuration. A secret must never reach a build context at all.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key

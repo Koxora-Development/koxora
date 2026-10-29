@@ -22,8 +22,11 @@ test.describe('navigation and routing', () => {
   }) => {
     await page.goto('/en/');
     const links = page.locator('.primary-nav a');
-    await expect(links).toHaveCount(5);
-    for (const index of [0, 1, 2, 3, 4]) {
+    // Features, local-first, comparison, contact, roadmap, download. Contact
+    // is one of them because the Product Owner could not find the page while
+    // it was a footer entry among the other resources.
+    await expect(links).toHaveCount(6);
+    for (const index of [0, 1, 2, 3, 4, 5]) {
       await page.goto('/en/');
       await openNavigation(page);
       const link = page.locator('.primary-nav a').nth(index);
@@ -216,12 +219,26 @@ test.describe('footer', () => {
       await expect(terms.nth(1), locale).toHaveText(
         catalog.translate(locale, 'footer.securityTask'),
       );
+      // A question has two ways: the contact page and the address. The page
+      // comes first, because this is the column a reader opens when they are
+      // looking for a way to write, and it is where it was missing.
+      const question = contact.locator('.footer-contacts > div').nth(0);
+      await expect(
+        question.locator('a.footer-contact-page'),
+        locale,
+      ).toHaveAttribute(
+        'href',
+        locale === 'de' ? '/de/kontakt/' : '/en/contact/',
+      );
       // Support is a working address; the security entry is the policy,
       // because the mailbox is not an established channel for details yet.
       await expect(contact.locator('a[href^="mailto:"]'), locale).toHaveCount(
         1,
       );
-      const security = contact.locator('dd').nth(1).locator('a');
+      const security = contact
+        .locator('.footer-contacts > div')
+        .nth(1)
+        .locator('a');
       await expect(security, locale).toHaveAttribute('href', /SECURITY\.md$/);
       await expect(security, locale).toHaveText(
         catalog.translate(locale, 'footer.security'),

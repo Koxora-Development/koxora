@@ -35,6 +35,61 @@ describe('a release never starts on its own', () => {
     expect(workflow).toContain('cancel-in-progress: false');
   });
 });
+describe('a release proves the image before it pushes it', () => {
+  it('asks the running container for the pictures, not for the files', () => {
+    // The live site answered 403 for two studio screenshots while serving a
+    // third from the same directory: they existed, and the server could not
+    // read them. A build log says nothing about that, so the image that is
+    // about to be pushed is asked over HTTP.
+    expect(workflow).toContain('/images/studio/$name.$ext');
+    expect(workflow).toContain('image/webp');
+    expect(workflow).toContain('image/png');
+    for (const name of [
+      'editor-dark',
+      'editor-light',
+      'editor-small-en',
+      'editor-small-de',
+    ])
+      expect(workflow, name).toContain(name);
+    // And the manifest, which the bundled type table has no entry for.
+    expect(workflow).toContain('application/manifest+json');
+  });
+  it('runs the container check, which builds and runs the image', () => {
+    expect(workflow).toContain('pnpm website:container');
+    expect(workflow).toContain('pnpm website:nginx');
+  });
+  it('refuses a contact endpoint the public host does not route yet', () => {
+    // Website W2.4a could not pass this value at all, so every image it
+    // built published an address where a form belonged. Being able to pass
+    // it brings the opposite risk: a form posting to the static container,
+    // which answers a submission with a 404 page. The endpoint answers 405
+    // with an Allow header, so the two are told apart without sending
+    // anything.
+    expect(workflow).toContain('contact_endpoint');
+    expect(workflow).toContain("if: inputs.contact_endpoint != ''");
+    expect(workflow).toContain('405');
+    expect(workflow).toContain("grep -qi '^allow:'");
+    expect(workflow).toContain('website-contact-form.md');
+    // It still deploys nothing but the website: the endpoint is checked by
+    // asking the public host, and the release installs none of it.
+    expect(workflow).not.toContain('contact-php');
+    // And the value reaches both the page build and the image.
+    expect(workflow).toContain(
+      'KOXORA_SITE_CONTACT_ENDPOINT: ${{ inputs.contact_endpoint }}',
+    );
+    expect(workflow).toContain(
+      'KOXORA_SITE_CONTACT_ENDPOINT=${{ inputs.contact_endpoint }}',
+    );
+  });
+  it('records which redirect code the alias hosts answer with', () => {
+    // 302 during a rollout, 308 once verified. A release note that says 308
+    // while the host serves 302 is a record of the wrong thing.
+    expect(workflow).toContain('alias_redirect_status');
+    expect(workflow).toContain(
+      'KOXORA_SITE_ALIAS_REDIRECT_STATUS=${{ inputs.alias_redirect_status }}',
+    );
+  });
+});
 describe('a person stands between the pipeline and the public host', () => {
   it('puts the deployment behind a protected environment', () => {
     // The environment carries the required reviewers and the host secrets.

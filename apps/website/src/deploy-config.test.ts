@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   acceptLanguageDepth,
   acceptLanguagePatterns,
+  renderAliasSmokeTests,
   renderApacheAliases,
   renderApacheProxy,
   renderApacheStatic,
@@ -43,6 +44,13 @@ const aliases = renderApacheAliases({
   status: site.aliasRedirectStatus,
   passThroughPrefixes: site.aliasPassThroughPrefixes,
 });
+const aliasInput = {
+  canonicalOrigin: site.origin,
+  aliasHosts: site.aliasHosts,
+  status: site.aliasRedirectStatus,
+  passThroughPrefixes: site.aliasPassThroughPrefixes,
+};
+const aliasSmokeTests = renderAliasSmokeTests(aliasInput);
 const proxy = renderApacheProxy({
   canonicalHost: new URL(site.origin).host,
   containerHost: site.container.host,
@@ -220,6 +228,32 @@ describe('the canonical host redirects', () => {
     expect(aliases).toContain(`RedirectMatch ${site.aliasRedirectStatus} `);
     expect(aliases).toContain('302');
   });
+  it('renders the rollout code without anybody editing the generated file', () => {
+    // The file says it must not be edited by hand, and an operator who has to
+    // edit it anyway cannot prove that what they installed is what this
+    // repository renders. So the rollout is a build input.
+    const rollout = renderApacheAliases({ ...aliasInput, status: 302 });
+    expect(rollout).toContain('RedirectMatch 302 ');
+    expect(rollout).not.toContain('RedirectMatch 308 ');
+    expect(rollout).toContain('temporary code of a rollout');
+    expect(rollout).toContain('KOXORA_SITE_ALIAS_REDIRECT_STATUS=308');
+    // And the permanent one says what has to have happened before it.
+    const permanent = renderApacheAliases({ ...aliasInput, status: 308 });
+    expect(permanent).toContain('permanent code');
+    expect(permanent).toContain('KOXORA_SITE_ALIAS_REDIRECT_STATUS=302');
+    expect(site.aliasRedirectStatus).toBeOneOf([301, 302, 308]);
+  });
+  it('renders the same hosts on whichever ports they answer on', () => {
+    // The Apache check binds ports it may bind and runs this function's own
+    // output, rather than an edited copy of the deployment file.
+    const moved = renderApacheAliases({ ...aliasInput, ports: [18080, 18443] });
+    for (const host of site.aliasHosts) {
+      expect(moved, host).toContain(`ServerName ${host}`);
+      for (const port of [18080, 18443])
+        expect(moved, `${host}:${port}`).toContain(`<VirtualHost *:${port}>`);
+    }
+    expect(moved).not.toContain('<VirtualHost *:80>');
+  });
   it('forwards to the container address the deployment publishes', () => {
     expect(proxy).toContain(
       `ProxyPass / http://${site.container.host}:${site.container.port}/`,
@@ -227,6 +261,76 @@ describe('the canonical host redirects', () => {
     expect(proxy).toContain('ProxyPreserveHost On');
     // The container owns the headers; a second set here would silently win.
     expect(proxy).not.toContain('Header always set');
+  });
+});
+describe('the smoke tests for the alias hosts', () => {
+  // Website code cannot redirect a request that never reaches the website.
+  // What it can do is generate the questions to ask afterwards from the same
+  // host list the rules come from, so the tests cannot cover fewer names.
+  it('asks about every alias host and nothing it was not given', () => {
+    for (const host of site.aliasHosts)
+      expect(aliasSmokeTests, host).toContain(host);
+    const listed = /^ALIASES="([^"]*)"$/m
+      .exec(aliasSmokeTests)?.[1]
+      ?.split(' ');
+    expect(listed).toEqual([...site.aliasHosts]);
+  });
+  it('expects the configured code and allows the rollout one', () => {
+    expect(aliasSmokeTests).toContain(
+      `EXPECTED_STATUS="\${EXPECTED_STATUS:-${site.aliasRedirectStatus}}"`,
+    );
+    expect(aliasSmokeTests).toContain('EXPECTED_STATUS=302');
+  });
+  it('covers both schemes, both methods, the path, the query and the root', () => {
+    expect(aliasSmokeTests).toContain('for scheme in https http');
+    expect(aliasSmokeTests).toContain('expect_redirect HEAD');
+    expect(aliasSmokeTests).toContain('?ref=example');
+    // The root of an alias has to stay the root: the canonical host is the
+    // one that negotiates the language.
+    expect(aliasSmokeTests).toContain(
+      'expect_redirect GET "$scheme://$host/" "$CANONICAL/"',
+    );
+  });
+  it('checks the certificate before it checks any redirect', () => {
+    // A browser completes the handshake before it is told to go elsewhere, so
+    // a missing certificate shows up as a certificate error and not as a
+    // missing redirect.
+    expect(aliasSmokeTests.indexOf('TLS handshake')).toBeLessThan(
+      aliasSmokeTests.indexOf('expect_redirect GET'),
+    );
+  });
+  it('checks that the paths that must stay local are not redirected', () => {
+    const listed = /^PASS_THROUGH="([^"]*)"$/m
+      .exec(aliasSmokeTests)?.[1]
+      ?.split(' ');
+    expect(listed).toEqual([...site.aliasPassThroughPrefixes]);
+    expect(aliasSmokeTests).toContain('expect_not_redirect');
+  });
+  it('fails rather than reporting success, and cannot hang', () => {
+    expect(aliasSmokeTests).toContain('exit 1');
+    // Every request is bounded; a host that never answers must not stall a
+    // check an operator is waiting on.
+    for (const line of aliasSmokeTests.split('\n'))
+      if (line.includes('curl ')) expect(line, line).toContain('--max-time');
+  });
+  it('is a script that changes nothing', () => {
+    expect(aliasSmokeTests.startsWith('#!/bin/sh')).toBe(true);
+    for (const method of ['-X POST', '-X PUT', '-X DELETE', '--data'])
+      expect(aliasSmokeTests, method).not.toContain(method);
+  });
+});
+describe('the types the container answers with', () => {
+  it('pins the two the bundled table does not reliably carry', () => {
+    const main = renderNginxMain();
+    // A manifest served as application/octet-stream is ignored by the
+    // browser, and the images are the asset class this deployment has
+    // already been wrong about.
+    expect(main).toContain('application/manifest+json webmanifest;');
+    expect(main).toContain('image/webp                webp;');
+    // After the bundled table, so these win rather than being overridden.
+    expect(main.indexOf('include mime.types;')).toBeLessThan(
+      main.indexOf('application/manifest+json webmanifest;'),
+    );
   });
 });
 describe('the fragment for serving the files without a container', () => {

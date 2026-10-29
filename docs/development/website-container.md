@@ -6,6 +6,8 @@ The running deployment is confirmed and is kept exactly as it is: NGINX inside a
 
 Related: [the canonical domains runbook](website-canonical-domains.md), [the deployment and update guide](website-deployment.md), [W2.0 implementation notes](../platform/website-w2-0.md).
 
+**Addendum, 2026-10-29.** Building and running this definition for the first time, while reproducing the 403 of [Issue #46](https://github.com/Koxora-Development/koxora/issues/46), found three things in it. The container **could not start at all** under the confinement below; the base image's own example server was still being loaded beside the generated one; and the published files inherited their modes from the tree the image was built from, which is what the 403 was. All three are fixed, and the sections below are marked where they changed. [The production fixes document](website-w2-production-fixes.md) has the reproduction and the evidence.
+
 ### Loopback ports this host allocates
 
 The Product Owner compared the planned configurations and found that two W2 sub-phases both reached for `127.0.0.1:9403`. That is settled here, and the resolution is this table. Only the website binds a loopback port permanently.
@@ -27,9 +29,11 @@ A release binds `9402` only at the final swap, after the new image has answered 
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `deploy/website/Dockerfile`                | Two stages. The first has Node and pnpm and renders the static site; the second is NGINX with the emitted files and the generated configuration, and has no Node at all |
 | `deploy/website/compose.yaml`              | One service, published on `127.0.0.1:9402` only, read-only file system, no capabilities, healthcheck, bounded logs                                                      |
+| `.dockerignore`                            | What the build may see. Without it the context is the whole working tree, modes included, which is how an unreadable asset reached the deployment                       |
+| `apps/website/scripts/assets.mjs`          | The addresses the emitted pages reference, read out of the pages, so the checks below ask for what a reader asks for                                                    |
 | `deploy/website/README.md`                 | The short version, next to the files                                                                                                                                    |
 | `apps/website/src/container.test.ts`       | The properties that must hold, asserted on every `pnpm check` without a Docker daemon                                                                                   |
-| `apps/website/scripts/check-container.mjs` | Parses and resolves the compose file with the Docker client, which needs no daemon                                                                                      |
+| `apps/website/scripts/check-container.mjs` | Resolves the compose file with the Docker client, and where a daemon is reachable builds the image, runs it and asks it for every address the pages reference           |
 
 The configuration the image installs is the generated output of W2.0: `nginx-koxora-main.conf` becomes `/etc/nginx/nginx.conf`, `nginx-koxora-website.conf` becomes `/etc/nginx/conf.d/koxora-website.conf`, and `nginx-koxora-language.js` becomes `/etc/nginx/njs/koxora-language.js`. The image also keeps `build-info.json` at `/etc/nginx/koxora-build-info.json`, so the running container can state which release it is.
 
@@ -45,7 +49,15 @@ The configuration the image installs is the generated output of W2.0: `nginx-kox
 
 **Base images are pinned.** `NODE_VERSION` defaults to the repository's own `.node-version`, so the image and continuous integration build with the same Node; a test asserts those two agree. `NGINX_VERSION` is pinned to a minor version. Neither follows a moving tag, and no major upgrade happens implicitly.
 
-**The container writes nothing.** Every temporary path and the pid file are under `/tmp`, which the compose file mounts as a tmpfs, so the container runs with a read-only file system, no capabilities and `no-new-privileges`.
+**The container writes nothing, and runs as nobody in particular.** Every temporary path and the pid file are under `/tmp`, which the compose file mounts as a tmpfs, so the container runs with a read-only file system, no capabilities and `no-new-privileges`.
+
+Since 2026-10-29 it also runs as the `nginx` account rather than with a root master process, and that is what makes the line above true. A root master chowns its temporary directories to the worker account, which needs `CAP_CHOWN`; with `cap_drop: ALL` that fails and NGINX exits with `chown("/tmp/nginx-client-body", 101) failed (1: Operation not permitted)`. An unprivileged master creates those directories as itself, needs no capability, and cannot write to the published files whatever happens to a configuration. `nginx -t` in the build runs as that account too, so the build proves the files are readable by the one that will read them.
+
+**The published files get this build's modes.** `COPY` keeps the modes of what it copied, and the client build copies `public/` as it finds it, so the modes of the tree an image was built from used to travel into the deployment. Git records no read permission, so those modes were never source data: a checkout, a capture run and an unpacked archive all produce different ones. The emitter and the build both set `0644` for files and `0755` for directories, and the image then **fails the build** if any published file would be unreadable to the worker, naming the file. An unprivileged server answers 403 for a file it cannot open, one address at a time, which is invisible in a build log.
+
+**Only the generated server is loaded.** The generated main file includes every file in `conf.d`, so the build removes the base image's `default.conf`; otherwise a second server block nobody wrote is loaded beside it.
+
+**Two content types are pinned.** The bundled type table has no entry for `.webmanifest`, so a manifest was answered as `application/octet-stream` and ignored by the browser, and `image/webp` depends on the table's version. Both are stated in the generated main configuration.
 
 **One tag per release.** The image is `koxora-website:<revision>`, never `latest`, so rolling back is naming the previous tag. A test asserts that `latest` appears nowhere.
 
@@ -54,8 +66,8 @@ The configuration the image installs is the generated output of W2.0: `nginx-kox
 ```sh
 pnpm install --frozen-lockfile
 pnpm website:build            # the emitted site and the generated configuration
-pnpm website:nginx            # nginx -t plus 111 assertions over HTTP
-pnpm website:container        # the compose file resolves and keeps its properties
+pnpm website:nginx            # nginx -t plus 219 assertions over HTTP
+pnpm website:container        # the compose file, and then the real image
 
 # then, on a machine with a Docker daemon
 docker compose -f deploy/website/compose.yaml --project-directory . build
@@ -72,7 +84,9 @@ curl -sS http://127.0.0.1:9403/healthz
 docker compose -p koxora-website-next down
 ```
 
-The first three commands were run for this branch. The Docker commands were **not**: there is no Docker daemon in the development container, so the image has never been built. Treat section 5 as unproven until they have run once.
+`pnpm website:container` does the Docker half itself where a daemon is reachable: it builds the image, runs it with the same confinement the compose file gives it, asks it for every address the emitted pages reference and checks the status and the content type of each, re-checks the published tree for readability inside the running container, and reads the healthcheck. Where there is no daemon it says so and does only the compose resolution, so it never passes quietly. `KOXORA_WEBSITE_IMAGE=<tag>` points it at an image that is already built, which is how a release checks the image it is about to push.
+
+**Status, 2026-10-29.** All of these were run for the W2 production fixes branch: 219 NGINX assertions and 134 against the real image, built and running. The one deviation is recorded in [the production fixes document](website-w2-production-fixes.md) section 7. Section 5 below is still unproven on the Product Owner's host, which is where it has to happen.
 
 ## 4. What is still needed from the production server
 

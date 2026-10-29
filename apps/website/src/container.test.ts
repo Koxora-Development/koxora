@@ -51,6 +51,29 @@ describe('the website image build', () => {
     expect(manifestPosition).toBeGreaterThan(-1);
     expect(installPosition).toBeGreaterThan(manifestPosition);
   });
+  it('bounds the build context, so the image does not inherit a working tree', () => {
+    // `COPY . .` carries whatever is in the context, including its file
+    // modes. That is how two studio screenshots reached the deployment
+    // unreadable and were answered with 403 while their neighbours were
+    // served. Everything the build needs is a tracked source file.
+    const ignored = readFileSync(resolve(root, '.dockerignore'), 'utf8');
+    for (const entry of ['node_modules', '**/dist', '.git', '**/.env'])
+      expect(ignored, entry).toContain(entry);
+  });
+  it("gives every published file this build's modes rather than inherited ones", () => {
+    // Git records no read permission, so the modes of the tree an image was
+    // built from are not source data: a checkout, a capture run and an
+    // unpacked archive all produce different ones.
+    expect(dockerfile).toContain(
+      'find apps/website/dist -type f -exec chmod 0644',
+    );
+    expect(dockerfile).toContain(
+      'find apps/website/dist -type d -exec chmod 0755',
+    );
+    // And the emitter does the same, so a local preview cannot disagree with
+    // the image about what is readable.
+    expect(emitter).toContain('normalizeModes');
+  });
 });
 
 describe('the runtime image', () => {
@@ -106,6 +129,33 @@ describe('the runtime image', () => {
       `http://127.0.0.1:${site.container.listenPort}/healthz`,
     );
     expect(nginx).toContain('location = /healthz {');
+  });
+  it('fails the build on a published file the server could not read', () => {
+    // The 403 the Product Owner demonstrated was a readable file in Git and
+    // an unreadable one in the container. A build log says nothing about
+    // that, so the image checks it and names the file.
+    expect(runtimeStage).toContain('! -perm -o+r');
+    expect(runtimeStage).toContain('! -perm -o+rx');
+    expect(runtimeStage).toContain('exit 1');
+  });
+  it('serves the site as an unprivileged account', () => {
+    // A root master process chowns its temporary directories to the worker
+    // account, which needs CAP_CHOWN. Under the compose file's
+    // `cap_drop: ALL` that fails and the container does not start at all:
+    // `chown("/tmp/nginx-client-body", 101) failed (1: Operation not
+    // permitted)`. An unprivileged master needs no capability.
+    expect(runtimeStage).toContain('USER nginx');
+    expect(compose).toContain('- ALL');
+    // And the configuration test runs as that account, so it proves the
+    // files are readable by the one that will read them.
+    expect(runtimeStage.indexOf('USER nginx')).toBeLessThan(
+      runtimeStage.indexOf('RUN nginx -t'),
+    );
+  });
+  it("loads only the generated server, not the base image's example one", () => {
+    // The generated main file includes every file in conf.d.
+    expect(runtimeStage).toContain('rm -f /etc/nginx/conf.d/default.conf');
+    expect(renderNginxMain()).toContain('include /etc/nginx/conf.d/*.conf;');
   });
   it('pins its base images instead of following a moving tag', () => {
     expect(dockerfile).toMatch(/ARG NODE_VERSION=\d+\.\d+\.\d+/);
@@ -176,9 +226,24 @@ describe('the compose file', () => {
       'KOXORA_SITE_INDEXABLE',
       'KOXORA_SITE_PUBLISHED',
       'KOXORA_SITE_CONTENT_DATE',
+      // The form action and the content security policy are both derived
+      // from this one, so a release that cannot pass it can only ever build
+      // an image without a form. W2.4a left it out, which is why the live
+      // site published an address where a form belonged.
+      'KOXORA_SITE_CONTACT_ENDPOINT',
+      // Recorded in the release note beside the published files, so the
+      // rollout code of the alias hosts is part of one release.
+      'KOXORA_SITE_ALIAS_REDIRECT_STATUS',
     ]) {
       expect(compose, name).toContain(name);
       expect(dockerfile, name).toContain(name);
     }
+  });
+  it('says that the endpoint is not in this image', () => {
+    // Setting the endpoint while /api/contact is not routed to PHP points
+    // the form at the static container, which answers 404 to a submission.
+    // The order is the operator's to follow, so the file states it.
+    expect(dockerfile).toContain('PHP-FPM');
+    expect(dockerfile).toContain('contact document');
   });
 });

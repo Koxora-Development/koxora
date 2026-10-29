@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { allPaths, openNavigation } from './helpers';
+import { navRoutes } from '../../apps/website/src/routes';
 function channel(value: number) {
   const ratio = value / 255;
   return ratio <= 0.04045 ? ratio / 12.92 : ((ratio + 0.055) / 1.055) ** 2.4;
@@ -184,7 +185,15 @@ test.describe('accessibility', () => {
     const page = await context.newPage();
     await page.goto('http://127.0.0.1:4175/de/');
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('.primary-nav a')).toHaveCount(5);
+    // The whole main navigation, expanded: without the script that collapses
+    // it there is no button to open, so every entry has to be an ordinary
+    // link in the markup. Contact is one of them.
+    await expect(page.locator('.primary-nav a')).toHaveCount(
+      navRoutes('primary').length,
+    );
+    await expect(
+      page.locator('.primary-nav a[href="/de/kontakt/"]'),
+    ).toBeVisible();
     await page.goto('http://127.0.0.1:4175/de/datenschutz-einstellungen/');
     await expect(page.locator('.data-table tbody tr')).toHaveCount(2);
     await expect(page.locator('.consent-noscript')).toBeVisible();

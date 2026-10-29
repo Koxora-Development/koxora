@@ -20,6 +20,7 @@ import {
   documentCacheControl,
   securityHeaders,
 } from './hosting.mjs';
+import { expectedType, referencedAssets, typeMatches } from './assets.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const siteRoot = resolve(root, process.env.KOXORA_SITE_DIR ?? 'dist');
 const njsSource = resolve(root, 'src/nginx/koxora-language.js');
@@ -346,6 +347,44 @@ try {
   const gateway = await ask('/index.html');
   expect('gateway status', gateway.status, 200);
   expect('gateway is not indexed', gateway.body, /noindex/);
+  // 13. Every file a page references is actually served, with the type the
+  //     browser was promised.
+  //
+  //     This exists because the live site answered 403 for two of the studio
+  //     screenshots while serving a third: the files were in the repository
+  //     and in the image, and the server could not read them. Checking that a
+  //     file exists proves nothing about that, so each address is asked for
+  //     over HTTP, and 403 is as much a failure here as 404.
+  const referenced = await referencedAssets(siteRoot, server.site.origin);
+  expect('pages reference assets at all', referenced.length > 0, true);
+  const screenshots = referenced.filter((asset) =>
+    asset.path.startsWith('/images/studio/'),
+  );
+  // Both halves of every picture: the WebP a modern browser takes and the PNG
+  // the fallback uses. A deployment has to serve both, because which one is
+  // asked for is the browser's decision.
+  expect(
+    'both encodings of every screenshot are referenced',
+    screenshots.some((asset) => asset.path.endsWith('.webp')) &&
+      screenshots.some((asset) => asset.path.endsWith('.png')),
+    true,
+  );
+  for (const asset of referenced) {
+    const answer = await ask(asset.path);
+    expect(`${asset.path} status`, answer.status, 200);
+    expect(
+      `${asset.path} content-type (expected one of ${expectedType(asset.path).join(', ')}, got ${answer.headers['content-type']})`,
+      typeMatches(asset.path, answer.headers['content-type']),
+      true,
+    );
+    expect(`${asset.path} is not empty`, answer.body.length > 0, true);
+  }
+  // A HEAD request has to agree with the GET: a proxy or a crawler asks that
+  // way, and an asset that answers one and not the other is still broken.
+  for (const asset of screenshots.slice(0, 4)) {
+    const head = await ask(asset.path, { method: 'HEAD' });
+    expect(`HEAD ${asset.path} status`, head.status, 200);
+  }
 } finally {
   child.kill('SIGTERM');
   await new Promise((done) => child.once('exit', done));

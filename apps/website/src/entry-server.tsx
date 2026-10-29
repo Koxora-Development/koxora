@@ -258,6 +258,7 @@ export {
   negotiateLocale,
 };
 export {
+  renderAliasSmokeTests,
   renderApacheAliases,
   renderApacheContact,
   renderApacheProxy,
@@ -275,5 +276,8 @@ export {
   timestampField,
   validateContact,
 } from '@koxora/contact';
-export { internalReviewPhrases } from './content/launch';
+export {
+  deploymentDiagnosticPhrases,
+  internalReviewPhrases,
+} from './content/launch';
 export type { Locale, RouteId };

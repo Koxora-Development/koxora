@@ -550,6 +550,15 @@ html[data-js='on'] .language-option:hover {
 .footer-contacts dd a:hover {
   color: var(--text);
 }
+.footer-contacts dd + dd {
+  margin-top: 6px;
+}
+/* The contact page is the first of the two ways to write, so it reads as the
+   one to take and the address below it as the alternative. */
+.footer-contacts dd a.footer-contact-page {
+  color: var(--text);
+  font-weight: 600;
+}
 .footer-column h2 {
   font-size: 11px;
   letter-spacing: 0.14em;

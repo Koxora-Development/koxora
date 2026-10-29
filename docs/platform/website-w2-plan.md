@@ -4,7 +4,9 @@
 
 W1 is live at `https://koxora.app` and was integrated through [PR #28](https://github.com/Koxora-Development/koxora/pull/28). W2 starts from `main`, not from the W1 branch. Studio Phase 2.5 was accepted and merged in PR #39 on 2026-10-28; W2.3 now updates its content and screenshots to that development baseline; see [the ownership issue](https://github.com/Koxora-Development/koxora/issues/29).
 
-Related documents: [W1 implementation notes](website-w1.md), [deployment and update guide](../development/website-deployment.md), [canonical domains runbook](../development/website-canonical-domains.md), [search plan](website-seo.md), [website specification](website.md).
+Related documents: [W1 implementation notes](website-w1.md), [deployment and update guide](../development/website-deployment.md), [canonical domains runbook](../development/website-canonical-domains.md), [search plan](website-seo.md), [website specification](website.md), [the W2 production fixes](../development/website-w2-production-fixes.md).
+
+**Addendum, 2026-10-29.** The first deployment of W2 to `https://koxora.app` surfaced four problems the Product Owner reported as [Issue #46](https://github.com/Koxora-Development/koxora/issues/46): the contact page was not discoverable, the contact form was absent and the page said why, the studio screenshots answered 403, and the alias domains do not redirect. [The production fixes document](../development/website-w2-production-fixes.md) has the root cause of each, what was fixed in code, and the list of host changes that still need Product Owner authorization.
 
 ## 1. Inventory taken before starting
 

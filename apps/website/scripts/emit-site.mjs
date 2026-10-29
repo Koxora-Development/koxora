@@ -2,7 +2,15 @@
 // server needs: pages, sitemap, robots, manifests, redirect stubs and the
 // hosting configuration for Apache and for a static platform.
 import { createHash } from 'node:crypto';
-import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  cp,
+  mkdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -10,6 +18,11 @@ import {
   documentCacheControl,
   securityHeaders,
 } from './hosting.mjs';
+import {
+  normalizeModes,
+  referencedAssets,
+  unreadableFiles,
+} from './assets.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const primaryDist = resolve(root, 'dist');
 const outDir = resolve(root, process.env.KOXORA_SITE_OUT_DIR ?? 'dist');
@@ -139,6 +152,20 @@ if (server.site.published) {
       `Internal review wording in a published build:\n${leaked.join('\n')}`,
     );
 }
+// And wording addressed to whoever installs this site may not reach a reader
+// in any build. This one is not conditional on `published`: the live site is
+// where it was found, and that build was not a published one.
+const diagnostics = [];
+for (const relativePath of written) {
+  if (!relativePath.endsWith('.html')) continue;
+  const html = await readFile(join(outDir, relativePath), 'utf8');
+  for (const phrase of server.deploymentDiagnosticPhrases)
+    if (html.includes(phrase)) diagnostics.push(`${relativePath}: ${phrase}`);
+}
+if (diagnostics.length)
+  throw new Error(
+    `Deployment wording on a public page:\n${diagnostics.join('\n')}`,
+  );
 // Redirect stubs keep aliases working even on a host without rewrite rules.
 // The hosting configuration below turns the same table into real redirects.
 const redirects = server.redirects();
@@ -236,12 +263,16 @@ const apacheContact =
         canonicalHost: new URL(server.site.origin).host,
       })
     : null;
-const apacheAliases = server.renderApacheAliases({
+const aliasInput = {
   canonicalOrigin: server.site.origin,
   aliasHosts: server.site.aliasHosts,
   status: server.site.aliasRedirectStatus,
   passThroughPrefixes: server.site.aliasPassThroughPrefixes,
-});
+};
+const apacheAliases = server.renderApacheAliases(aliasInput);
+// The questions to ask once those rules are installed, generated from the
+// same host list, so the tests cannot cover fewer names than the rules do.
+const aliasSmokeTests = server.renderAliasSmokeTests(aliasInput);
 const platformRedirects = [
   `/ /${server.defaultLocale}/ 302`,
   ...redirects.map((entry) => `${entry.from} ${entry.to} ${entry.status}`),
@@ -269,6 +300,8 @@ await writeFile(
   apacheAliases,
   'utf8',
 );
+await writeFile(join(deployDir, 'smoke-aliases.sh'), aliasSmokeTests, 'utf8');
+await chmod(join(deployDir, 'smoke-aliases.sh'), 0o755);
 if (apacheContact)
   await writeFile(
     join(deployDir, 'apache-koxora-contact.conf'),
@@ -310,8 +343,8 @@ await writeFile(
       aliasRedirectStatus: server.site.aliasRedirectStatus,
       languageCookie: server.languageCookieName,
       contactEndpoint: server.site.contactEndpoint,
-      contactService: server.site.contactEndpoint
-        ? server.site.contactService
+      contactHandler: server.site.contactEndpoint
+        ? server.site.contactHandler
         : null,
       container: server.site.container,
       contentSecurityPolicy: csp,
@@ -323,6 +356,37 @@ await writeFile(
 );
 // The build manifest is a build artefact, not published content.
 await rm(join(outDir, '.vite'), { recursive: true, force: true });
+// Every address a page names has to exist. A missing stylesheet is caught
+// above by the manifest check; this catches a screenshot, an icon or a social
+// image that a page references and the build does not produce.
+const referenced = await referencedAssets(outDir, server.site.origin);
+const missing = [];
+for (const asset of referenced) {
+  try {
+    await stat(join(outDir, asset.path.replace(/^\//, '')));
+  } catch {
+    missing.push(`${asset.path} (referenced by ${asset.pages.join(', ')})`);
+  }
+}
+if (missing.length)
+  throw new Error(
+    `Pages reference files this build does not contain:\n${missing.join('\n')}`,
+  );
+// Every published file gets this build's modes rather than the ones it
+// inherited, and then that is checked.
+//
+// This is where the 403 on two of the studio screenshots came from: the client
+// build copies `public/` as it finds it, so the modes of the tree the site was
+// built from travelled into the image, and a file the server cannot open is
+// answered 403 rather than served - one address at a time, invisibly in a
+// build log. Git records no read permission, so those modes were never source
+// data; the build decides them.
+await normalizeModes(outDir);
+const unreadable = await unreadableFiles(outDir);
+if (unreadable.length)
+  throw new Error(
+    `Published files a web server could not read:\n${unreadable.join('\n')}`,
+  );
 console.log(
-  `Website: ${written.length} files in ${outDir}; deployment configuration in ${deployDir}`,
+  `Website: ${written.length} files in ${outDir}, ${referenced.length} referenced assets; deployment configuration in ${deployDir}`,
 );

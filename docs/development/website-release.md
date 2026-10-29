@@ -72,16 +72,24 @@ Images go to the GitHub container registry of this repository, under the automat
 
 Actions → **Website release** → Run workflow, with:
 
-| Input          | What it does                                                                                                                                                                  |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `revision`     | The commit on `main` to release. Empty means the current `main`. The build refuses a commit that is not on `main`                                                             |
-| `deploy`       | Off by default. Off builds and publishes the image and stops there                                                                                                            |
-| `content_date` | The editorial review date, printed on the legal pages and used as the sitemap date and the expiry of the security contact. The build refuses a date more than thirty days old |
-| `published`    | `KOXORA_SITE_PUBLISHED`; removes the copy that describes the site as in review                                                                                                |
-| `indexable`    | `KOXORA_SITE_INDEXABLE`; `false` for a staging build                                                                                                                          |
-| `editor_url`   | The address of the published studio, or empty while there is none                                                                                                             |
+| Input                   | What it does                                                                                                                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `revision`              | The commit on `main` to release. Empty means the current `main`. The build refuses a commit that is not on `main`                                                             |
+| `deploy`                | Off by default. Off builds and publishes the image and stops there                                                                                                            |
+| `content_date`          | The editorial review date, printed on the legal pages and used as the sitemap date and the expiry of the security contact. The build refuses a date more than thirty days old |
+| `published`             | `KOXORA_SITE_PUBLISHED`; removes the copy that describes the site as in review                                                                                                |
+| `indexable`             | `KOXORA_SITE_INDEXABLE`; `false` for a staging build                                                                                                                          |
+| `editor_url`            | The address of the published studio, or empty while there is none                                                                                                             |
+| `contact_endpoint`      | Where the contact form posts, or empty while delivery is off. **The build refuses an address the public host does not already route to the endpoint**                         |
+| `alias_redirect_status` | The redirect code the alias hosts answer with, recorded in the release note: 302 during a rollout, 308 once verified                                                          |
 
-The build job, at the revision being released and not at an earlier one: `pnpm check`, `pnpm audit --audit-level high`, the site build with those inputs, `pnpm website:nginx` against a real NGINX with the njs module, and `pnpm website:container`. Then it builds the image, **runs it**, asks it for `/healthz`, for the English home page and for the German language negotiation, and only then pushes it.
+The build job, at the revision being released and not at an earlier one: `pnpm check`, `pnpm audit --audit-level high`, the site build with those inputs, `pnpm website:nginx` against a real NGINX with the njs module, and `pnpm website:container`, which builds the image, runs it and asks it for every address the emitted pages reference. Then it builds the image with the release inputs, **runs it**, asks it for `/healthz`, for the English home page, for the German language negotiation, for both encodings of each studio screenshot and for the web app manifest, and only then pushes it.
+
+Two of those deserve naming, because each is a production problem that reached a reader. See [the production fixes document](website-w2-production-fixes.md).
+
+**The pictures are asked for rather than assumed.** The live site answered 403 for two studio screenshots while serving a third from the same directory: they existed as Git blobs, and the server could not read them. A status code from the running container is the only thing that says otherwise, so eight addresses and the manifest's content type are checked on the image that is about to be pushed.
+
+**A form is built only where it can post.** Website W2.4a could not pass `KOXORA_SITE_CONTACT_ENDPOINT` at all, so every image it built published an address where a form belonged. Being able to pass it brings the opposite risk, so a release given that input asks the public host for the address and refuses to build unless it answers **405 with an `Allow` header** — the endpoint's answer to a GET, where the static website container answers a 404 page. It installs none of the endpoint and holds no credential; it only declines to build a form that would post to the container. [The contact document](website-contact-form.md) step 9 is the order this belongs in.
 
 The tag is the revision. It is never moved, never reused and never `latest`, which is what makes a rollback a matter of naming the previous one.
 

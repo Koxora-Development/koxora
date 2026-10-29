@@ -22,6 +22,21 @@ The image installs the NGINX njs module, because the language decision is an
 algorithm rather than a pattern match, and the build runs `nginx -t` so a
 rejected configuration fails the build instead of a deployment.
 
+Three things the build decides rather than inherits, all of them after a
+production problem. The published files get `0644` and their directories
+`0755`, because `COPY` keeps the modes of the tree an image was built from and
+an unprivileged server answers 403 for a file it cannot read — one address at a
+time. A published file the worker could not read **fails the build**, naming
+the file. And the server runs as the `nginx` account, not with a root master
+process: a root master chowns its temporary directories to the worker, which
+needs `CAP_CHOWN`, and under the compose file's `cap_drop: ALL` the container
+did not start at all.
+
+`pnpm website:container` resolves the compose file and then, where a Docker
+daemon is reachable, builds the image, runs it with the same confinement and
+asks it for every address the emitted pages reference.
+`KOXORA_WEBSITE_IMAGE=<tag>` points it at an image that is already built.
+
 Changing `NGINX_VERSION` across a major version is a separate, tested decision.
 `NODE_VERSION` must stay equal to `.node-version`; a test asserts it.
 

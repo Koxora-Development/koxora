@@ -299,6 +299,15 @@ events {
 
 http {
     include ${mimeTypesPath};
+    # Two types the bundled table does not reliably carry, stated here so the
+    # answer does not depend on which version of that file the base image
+    # ships. Both matter: a manifest served as application/octet-stream is
+    # ignored by the browser, and the images are the one asset class this
+    # deployment has already been wrong about.
+    types {
+        application/manifest+json webmanifest;
+        image/webp                webp;
+    }
     default_type application/octet-stream;
     server_tokens off;
     sendfile on;
@@ -466,12 +475,19 @@ export function renderApacheAliases({
   aliasHosts,
   status,
   passThroughPrefixes,
+  ports = [80, 443],
   generator = 'apps/website/scripts/emit-site.mjs',
 }: {
   canonicalOrigin: string;
   aliasHosts: readonly string[];
-  status: 301 | 308;
+  status: 301 | 302 | 308;
   passThroughPrefixes: readonly string[];
+  /**
+   * The ports the alias hosts answer on. Production is plain HTTP and HTTPS;
+   * the Apache check renders the same hosts on ports it may bind, so what it
+   * runs is this function's output rather than an edited copy of it.
+   */
+  ports?: readonly number[];
   generator?: string;
 }): string {
   const exclusion = passThroughPrefixes
@@ -502,10 +518,167 @@ ${passThroughPrefixes.map((prefix) => `#       ${prefix}`).join('\n')}
 #   * each name needs its own valid certificate, because a browser completes
 #     TLS before it is told to go somewhere else.
 #
-# Roll out with a temporary 302 first and change it to ${status} once the
-# answers are verified: a permanent redirect is cached and hard to take back.
+${
+  status === 302
+    ? `# This is the temporary code of a rollout. Verify every answer with
+# smoke-aliases.sh beside this file, then rebuild with
+# KOXORA_SITE_ALIAS_REDIRECT_STATUS=308 and install the file again.`
+    : `# This is the permanent code. It is cached by browsers and by a content
+# network and is hard to take back, so install it only after a rollout with
+# KOXORA_SITE_ALIAS_REDIRECT_STATUS=302 has been verified.`
+}
 
-${aliasHosts.flatMap((name) => [host(name, 80), host(name, 443)]).join('\n')}
+${aliasHosts.flatMap((name) => ports.map((port) => host(name, port))).join('\n')}
+`;
+}
+
+/**
+ * The smoke tests for the alias hosts, as a script rather than as a list in a
+ * document.
+ *
+ * Website code cannot redirect a request that never reaches the website: these
+ * answers come from whatever terminates TLS for the alias names, which is the
+ * host's Apache or a content network, and neither is in this repository. So
+ * what this repository can contribute is the exact set of questions to ask
+ * afterwards, generated from the same host list the configuration is generated
+ * from, so the tests cannot describe fewer hosts than the rules cover.
+ */
+export function renderAliasSmokeTests({
+  canonicalOrigin,
+  aliasHosts,
+  status,
+  passThroughPrefixes,
+  generator = 'apps/website/scripts/emit-site.mjs',
+}: {
+  canonicalOrigin: string;
+  aliasHosts: readonly string[];
+  status: 301 | 302 | 308;
+  passThroughPrefixes: readonly string[];
+  generator?: string;
+}): string {
+  const canonicalHost = canonicalOrigin.replace(/^https?:\/\//, '');
+  return `#!/bin/sh
+${header(generator)}
+#
+# Smoke tests for the canonical domain redirects of ${canonicalHost}.
+#
+# Run it from outside the host, after the certificates are installed and the
+# redirect rules are in place. It changes nothing: every request is a single
+# hop with --max-redirs 0, so a chain is visible instead of being followed.
+#
+#   sh smoke-aliases.sh            # expects the configured ${status}
+#   EXPECTED_STATUS=302 sh smoke-aliases.sh   # during the rollout
+#
+# It exits non-zero on the first wrong answer, so it can gate the switch to a
+# permanent code.
+set -u
+CANONICAL="${canonicalOrigin}"
+EXPECTED_STATUS="\${EXPECTED_STATUS:-${status}}"
+ALIASES="${aliasHosts.join(' ')}"
+PASS_THROUGH="${passThroughPrefixes.join(' ')}"
+failures=0
+ok() { printf '  ok   %s\\n' "$1"; }
+bad() { printf '  FAIL %s\\n' "$1"; failures=$((failures + 1)); }
+
+# One hop, headers only. Prints "<status> <location>".
+#
+# HEAD is asked for with --head rather than -X HEAD: the second one sends the
+# method but still waits for a body, so it hangs on a server that correctly
+# sends none. Every request is bounded, so a silent host cannot stall this.
+hop() {
+  if [ "$1" = HEAD ]; then set -- --head "$2"; else set -- -X "$1" "$2"; fi
+  curl -sS -o /dev/null -D - --max-redirs 0 --max-time 15 "$@" 2>/dev/null |
+    awk 'BEGIN{IGNORECASE=1}
+      /^HTTP\\//{code=$2}
+      /^location:/{sub(/^[Ll]ocation:[ \\t]*/,"");sub(/\\r$/,"");loc=$0}
+      END{print code, loc}'
+}
+
+expect_redirect() {
+  method="$1"; url="$2"; target="$3"
+  answer="$(hop "$method" "$url")"
+  code="\${answer%% *}"
+  location="\${answer#* }"
+  if [ "$code" = "$EXPECTED_STATUS" ] && [ "$location" = "$target" ]; then
+    ok "$method $url -> $code $location"
+  else
+    bad "$method $url -> $code $location (expected $EXPECTED_STATUS $target)"
+  fi
+}
+
+expect_not_redirect() {
+  url="$1"
+  answer="$(hop GET "$url")"
+  code="\${answer%% *}"
+  case "$code" in
+    30*) bad "$url answered $code; this path must stay on this host" ;;
+    '') bad "$url gave no answer at all" ;;
+    *) ok "$url answered $code without a redirect" ;;
+  esac
+}
+
+printf 'TLS, before anything else. A browser completes the handshake before it\\n'
+printf 'is told to go somewhere else, so a certificate error hides the redirect.\\n'
+for host in $ALIASES; do
+  # --max-redirs 0 without -L means the answer is read and not followed, so
+  # anything but a transport or certificate failure exits zero here.
+  if curl -sS -o /dev/null --max-redirs 0 --max-time 15 "https://$host/" \\
+       >/dev/null 2>&1; then
+    ok "https://$host/ completed a TLS handshake"
+  else
+    bad "https://$host/ did not complete a TLS handshake; install its certificate first"
+  fi
+done
+
+printf '\\nEvery alias, apex and www, over HTTPS and plain HTTP, GET and HEAD,\\n'
+printf 'keeping the path and the query string.\\n'
+for host in $ALIASES; do
+  for scheme in https http; do
+    expect_redirect GET "$scheme://$host/de/funktionen/?ref=example" \\
+      "$CANONICAL/de/funktionen/?ref=example"
+    expect_redirect HEAD "$scheme://$host/en/features/" "$CANONICAL/en/features/"
+    # The root of an alias stays the root, so the canonical host is the one
+    # that negotiates the language.
+    expect_redirect GET "$scheme://$host/" "$CANONICAL/"
+  done
+done
+
+printf '\\nCertificate issuance and mail autodiscovery stay on the alias host.\\n'
+for host in $ALIASES; do
+  for prefix in $PASS_THROUGH; do
+    expect_not_redirect "http://$host\${prefix}probe"
+  done
+done
+
+printf '\\nNo loop, and no more than two hops to a page that answers.\\n'
+for host in $ALIASES; do
+  final="$(curl -sS -o /dev/null -L --max-time 20 \\
+    -w '%{num_redirects} %{http_code} %{url_effective}' \\
+    "http://$host/de/funktionen/" 2>/dev/null)"
+  hops="\${final%% *}"
+  rest="\${final#* }"
+  code="\${rest%% *}"
+  url="\${rest#* }"
+  case "$url" in
+    "$CANONICAL"/*) ;;
+    *) bad "http://$host/de/funktionen/ ended at $url" ; continue ;;
+  esac
+  if [ "$code" = 200 ] && [ "$hops" -le 2 ]; then
+    ok "http://$host/de/funktionen/ -> $hops hops, $code, $url"
+  else
+    bad "http://$host/de/funktionen/ -> $hops hops, $code, $url"
+  fi
+done
+
+printf '\\nThe canonical host itself is never redirected away.\\n'
+expect_not_redirect "$CANONICAL/en/features/"
+
+if [ "$failures" -gt 0 ]; then
+  printf '\\n%s check(s) failed.\\n' "$failures"
+  exit 1
+fi
+printf '\\nEvery alias answers %s to %s, keeping the path and the query.\\n' \\
+  "$EXPECTED_STATUS" "$CANONICAL"
 `;
 }
 
