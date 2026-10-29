@@ -11,6 +11,56 @@ function flag(name: string, fallback: boolean): boolean {
   if (value === undefined) return fallback;
   return value === '1' || value === 'true' || value === 'yes';
 }
+/**
+ * The one file the web server may execute, as an absolute path on the host.
+ *
+ * It is validated rather than trusted because it is written into a generated
+ * Apache `Alias`: a value with a space, a quotation mark or a newline in it
+ * would change what that directive means. Anything but a plain absolute path
+ * to a `.php` file yields no contact routing at all.
+ */
+function contactScript(value: string | undefined): string | null {
+  const candidate = value?.trim();
+  if (!candidate) return null;
+  return /^\/[A-Za-z0-9._\-/]*\.php$/.test(candidate) &&
+    !candidate.includes('..')
+    ? candidate
+    : null;
+}
+/**
+ * The PHP-FPM address Apache hands the request to: a Unix socket, which is
+ * what Debian configures, or a TCP address. Held to the same rule as the
+ * script path, and for the same reason.
+ */
+function contactFpm(value: string | undefined): string | null {
+  const candidate = value?.trim();
+  if (!candidate) return null;
+  const unix = /^unix:\/[A-Za-z0-9._/-]*\|fcgi:\/\/[A-Za-z0-9.-]+$/;
+  const tcp = /^fcgi:\/\/[A-Za-z0-9.-]+:\d+$/;
+  return (unix.test(candidate) || tcp.test(candidate)) &&
+    !candidate.includes('..')
+    ? candidate
+    : null;
+}
+/**
+ * The address the form posts to, or `null`.
+ *
+ * It becomes a form action and a policy source, so only a web address or a
+ * path on this site is accepted. A misconfigured value yields no form at all
+ * rather than a form pointing somewhere it should not.
+ */
+function contactEndpoint(value: string | undefined): string | null {
+  if (!value) return null;
+  if (value.startsWith('/')) return value;
+  try {
+    const target = new URL(value);
+    if (target.protocol !== 'https:' && target.protocol !== 'http:')
+      return null;
+    return target.toString();
+  } catch {
+    return null;
+  }
+}
 export interface SiteConfig {
   /** Absolute origin used for canonical URLs, sitemap and social metadata. */
   origin: string;
@@ -30,6 +80,18 @@ export interface SiteConfig {
    */
   aliasPassThroughPrefixes: string[];
   /**
+   * Where the public host sends a submission. The contact endpoint is PHP
+   * under the existing Apache rather than a service of its own, so nothing
+   * here is a port: `script` is the one file Apache may execute and `fpm` is
+   * the PHP-FPM address it hands the request to. The website container never
+   * sees a submission either way and stays a static server.
+   *
+   * Both are `null` until an operator sets them. Neither has a default,
+   * because a guessed deployment path produces a generated rule that points
+   * at nothing, and no contact routing is emitted until both are known.
+   */
+  contactHandler: { script: string | null; fpm: string | null };
+  /**
    * Address the public host proxies to; the container binds it alone.
    * `verificationPort` is where a new image answers while it is checked
    * beside the running one, so it must be free of every permanently bound
@@ -46,6 +108,13 @@ export interface SiteConfig {
    * published. The site never links to an address that does not answer.
    */
   editorUrl: string | null;
+  /**
+   * Absolute address of the contact delivery service, or `null` while none is
+   * configured. The form is rendered only when it is set: a form that posts
+   * nowhere is worse than an email address, so an unconfigured deployment
+   * shows the email path instead of a control that cannot work.
+   */
+  contactEndpoint: string | null;
   /** Optional consent categories the deployment actually uses. */
   optionalConsent: string[];
   /** `false` emits `noindex` plus a disallow-all robots file (staging). */
@@ -104,13 +173,18 @@ export const site: SiteConfig = {
     verificationPort: Number(env('KOXORA_SITE_VERIFICATION_PORT') ?? 9403),
   },
   editorUrl: env('KOXORA_SITE_EDITOR_URL')?.replace(/\/?$/, '/') ?? null,
+  contactEndpoint: contactEndpoint(env('KOXORA_SITE_CONTACT_ENDPOINT')),
+  contactHandler: {
+    script: contactScript(env('KOXORA_SITE_CONTACT_SCRIPT')),
+    fpm: contactFpm(env('KOXORA_SITE_CONTACT_FPM')),
+  },
   optionalConsent: (env('KOXORA_SITE_OPTIONAL_CONSENT') ?? '')
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean),
   indexable: flag('KOXORA_SITE_INDEXABLE', true),
   published: flag('KOXORA_SITE_PUBLISHED', false),
-  contentDate: env('KOXORA_SITE_CONTENT_DATE') ?? '2026-10-24',
+  contentDate: env('KOXORA_SITE_CONTENT_DATE') ?? '2026-10-28',
   repositoryUrl: 'https://github.com/Koxora-Development/koxora',
   issuesUrl: 'https://github.com/Koxora-Development/koxora/issues',
   securityUrl:

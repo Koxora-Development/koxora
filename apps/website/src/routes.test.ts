@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { pageRegistry } from './pages/registry';
 import {
   alternatesFor,
   defaultLocale,
@@ -14,8 +15,10 @@ describe('public route table', () => {
       locales.map((locale) => pathFor(route.id, locale)),
     );
     expect(new Set(paths).size).toBe(paths.length);
+    // One or two lowercase segments: the comparison pages sit under the
+    // comparison address, which is what makes their address say what they are.
     for (const path of paths)
-      expect(path).toMatch(/^\/(en|de)\/([a-z0-9-]+\/)?$/);
+      expect(path).toMatch(/^\/(en|de)\/([a-z0-9-]+\/){0,2}$/);
   });
   it('keeps German slugs distinct from English where they differ', () => {
     expect(pathFor('features', 'de')).toBe('/de/funktionen/');
@@ -65,7 +68,17 @@ describe('public route table', () => {
       'privacySettings',
     );
   });
-  it('excludes nothing public from the sitemap', () => {
-    for (const route of routes) expect(route.sitemap).not.toBeNull();
+  it('excludes from the sitemap only the pages that answer an action', () => {
+    // A page a reader lands on after submitting a form is the answer to an
+    // action, not content to arrive at from a search; the page registry
+    // marks both of them noindex as well.
+    const excluded = routes
+      .filter((route) => route.sitemap === null)
+      .map((route) => route.id);
+    expect(excluded).toEqual(['contactSent', 'contactProblem']);
+    for (const id of excluded) expect(pageRegistry[id].noindex, id).toBe(true);
+    for (const route of routes)
+      if (!excluded.includes(route.id))
+        expect(route.sitemap, route.id).not.toBeNull();
   });
 });

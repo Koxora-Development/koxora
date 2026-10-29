@@ -241,3 +241,33 @@ it('bounds archive loading while listing multiple saved projects', async () => {
   ]);
   expect(peak).toBe(1);
 });
+
+it('trashes and restores complete snapshots with CAS protection and unchanged recovery versions', async () => {
+  const { repo, project, store } = setup(),
+    key = project.manifest.projectId;
+  const first = await repo.save(project, null);
+  project.manifest.title = 'Second';
+  const second = await repo.save(project, first);
+  const removed = await repo.setDeleted(key, second, true);
+  expect(await repo.list()).toEqual([]);
+  expect(await repo.list(true)).toMatchObject([{ id: key, title: 'Second' }]);
+  await expect(repo.open(key)).rejects.toThrow();
+  await expect(repo.save(project, second)).rejects.toThrow(
+    new ProjectError('conflict'),
+  );
+  await expect(repo.setDeleted(key, second, false)).rejects.toThrow(
+    new ProjectError('conflict'),
+  );
+  expect(JSON.parse(removed).current).toEqual(JSON.parse(second).current);
+  expect(JSON.parse(removed).previous).toEqual(JSON.parse(second).previous);
+  store.fail = true;
+  await expect(repo.setDeleted(key, removed, false)).rejects.toThrow(
+    new ProjectError('storage'),
+  );
+  expect(await repo.list()).toEqual([]);
+  store.fail = false;
+  await repo.setDeleted(key, removed, false);
+  expect(await repo.list(true)).toEqual([]);
+  expect((await repo.open(key)).project.manifest.title).toBe('Second');
+  expect((await repo.open(key, true)).project.manifest.title).toBe('First');
+});

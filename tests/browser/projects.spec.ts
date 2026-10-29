@@ -224,7 +224,10 @@ test('German project controls preserve content and recover an invalid head', asy
   });
   await page.reload();
   await expect(
-    page.getByText('Unreadable project — try recovery', { exact: true }),
+    page.getByRole('heading', {
+      name: 'Unreadable project — try recovery',
+      exact: true,
+    }),
   ).toBeVisible();
   await page
     .getByRole('combobox', { name: 'Language', exact: true })

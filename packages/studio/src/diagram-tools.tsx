@@ -8,11 +8,12 @@ import {
   LINE_KEY,
   jsonObject,
   layerStates,
-  FONT_FAMILIES,
+  readRichText,
+  fromPlainText,
+  plainText,
   resolveAppearance,
   readConnection,
   CONNECTION_KEY,
-  MAX_TEXT,
   type ShapeKind,
   type EditCommand,
   type ConnectionOptions,
@@ -20,10 +21,12 @@ import {
   type Anchor,
 } from '@koxora/editor-core';
 import { ShapePalette } from './shape-palette';
-import { TextFormatting } from './text-formatting';
+import { RichTextEditor } from './rich-text-editor';
 import { PORT_ANCHORS } from './connection-ports';
-export type DiagramTool = 'select' | 'pan' | ShapeKind;
+export type DiagramTool = 'select' | 'pan' | 'freehand' | ShapeKind;
 interface Props {
+  ink: { stroke: string; strokeWidth: number };
+  setInk: (ink: { stroke: string; strokeWidth: number }) => void;
   page: Page;
   repeat: boolean;
   setRepeat: (value: boolean) => void;
@@ -39,6 +42,8 @@ interface Props {
   setOptions: (options: ConnectionOptions) => void;
 }
 export function DiagramTools({
+  ink,
+  setInk,
   page,
   repeat,
   setRepeat,
@@ -66,20 +71,49 @@ export function DiagramTools({
         activate={activate}
         writable={!!available.length}
       />
-      {isShapeKind(tool) && (
+      {(isShapeKind(tool) || tool === 'freehand') && (
         <div
           className="tool-context"
           role="group"
           aria-label={t('diagram.toolOptions')}
         >
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={repeat}
-              onChange={(e) => setRepeat(e.target.checked)}
-            />
-            {t('editing.repeat')}
-          </label>
+          {tool !== 'freehand' && (
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={repeat}
+                onChange={(e) => setRepeat(e.target.checked)}
+              />
+              {t('editing.repeat')}
+            </label>
+          )}
+          {tool === 'freehand' && (
+            <>
+              <label>
+                {t('diagram.stroke')}
+                <input
+                  type="color"
+                  value={ink.stroke}
+                  onChange={(e) => setInk({ ...ink, stroke: e.target.value })}
+                />
+              </label>
+              <label>
+                {t('diagram.strokeWidth')}
+                <input
+                  type="number"
+                  min={1}
+                  max={32}
+                  value={ink.strokeWidth}
+                  onChange={(e) => {
+                    const width = e.target.valueAsNumber;
+                    if (Number.isFinite(width) && width >= 1 && width <= 32)
+                      setInk({ ...ink, strokeWidth: width });
+                  }}
+                />
+              </label>
+              <span className="field-help">{t('freehand.help')}</span>
+            </>
+          )}
           {page.layers.length > 1 && (
             <label>
               {t('diagram.layer')}
@@ -247,9 +281,6 @@ export function ElementDialog({
       : false,
   );
   const [failed, setFailed] = useState(false);
-  const [text, setText] = useState(
-    node && typeof node.content.text === 'string' ? node.content.text : '',
-  );
   const [appearance, setAppearance] = useState(() =>
     resolveAppearance(
       (node ?? edge)!,
@@ -260,12 +291,20 @@ export function ElementDialog({
   const [options, setOptions] = useState(() =>
     edge ? readConnection(edge) : DEFAULT_CONNECTION,
   );
+  const [richText, setRichText] = useState(
+    () =>
+      readRichText((node ?? edge)!) ??
+      fromPlainText(
+        node ? String(node.content.text ?? '') : options.label,
+        appearance.align,
+      ),
+  );
   const color = (key: 'fill' | 'stroke' | 'textColor') => (
     <label>
       {t(`diagram.${key}`)}
       <input
         type="color"
-        value={appearance[key] === 'none' ? '#ffffff' : appearance[key]}
+        value={appearance[key].startsWith('#') ? appearance[key] : '#ffffff'}
         onChange={(e) =>
           setAppearance({ ...appearance, [key]: e.target.value })
         }
@@ -311,50 +350,41 @@ export function ElementDialog({
                 ? {
                     type: 'updateNode',
                     id,
-                    text,
+                    text: plainText(richText),
+                    ...(node.kind !== 'freehand' ? { richText } : {}),
                     style: appearance,
                     geometry: geometry === node.geometry ? undefined : geometry,
                     ...(line ? { startArrow, endArrow } : {}),
                   }
-                : { type: 'updateConnection', id, options, style: appearance },
+                : {
+                    type: 'updateConnection',
+                    id,
+                    options: { ...options, label: plainText(richText) },
+                    richText,
+                    style: appearance,
+                  },
             )
           )
             onCancel();
           else setFailed(true);
         }}
       >
-        <fieldset className="label-editor">
-          <legend>{t('text.heading')}</legend>
-          <TextFormatting
-            locale={locale}
-            value={appearance}
-            onChange={setAppearance}
-          />
-          <p className="field-help">{t('text.scope')}</p>
-          <label className="field-label">
-            {t('diagram.label')}
-            <textarea
-              aria-label={t('diagram.label')}
-              rows={4}
-              style={{
-                fontFamily: FONT_FAMILIES[appearance.fontFamily],
-                fontWeight: appearance.fontWeight,
-                fontStyle: appearance.fontStyle,
-                textDecoration: appearance.textDecoration,
-                textAlign: appearance.align,
-              }}
-              maxLength={MAX_TEXT}
-              value={node ? text : options.label}
-              onChange={(e) =>
-                node
-                  ? setText(e.target.value)
-                  : setOptions({ ...options, label: e.target.value })
-              }
+        {node?.kind !== 'freehand' && (
+          <fieldset className="label-editor">
+            <legend>{t('text.heading')}</legend>
+            <RichTextEditor
+              value={richText}
+              base={appearance}
+              locale={locale}
+              onChange={setRichText}
             />
-          </label>
-        </fieldset>
+          </fieldset>
+        )}
         {failed && <p role="alert">{t('diagram.error.invalid')}</p>}
-        <details className="element-advanced">
+        <details
+          className="element-advanced"
+          open={node?.kind === 'freehand' ? true : undefined}
+        >
           <summary>{t('text.advanced')}</summary>
           <div className="element-fields">
             {geometry &&
@@ -406,11 +436,15 @@ export function ElementDialog({
               </>
             )}
 
-            {node && color('fill')}
+            {node &&
+              !['freehand', 'text', 'line', 'arrow'].includes(node.kind) &&
+              color('fill')}
             {color('stroke')}
             {number('strokeWidth', 0, 32)}
             {number('opacity', 0, 1, 0.05)}
-            {node && number('cornerRadius', 0, 128)}
+            {node &&
+              !['freehand', 'text', 'line', 'arrow'].includes(node.kind) &&
+              number('cornerRadius', 0, 128)}
             {edge && (
               <>
                 <RoutingSelect

@@ -75,7 +75,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Koxora Studio ist eine funktionierende technische Vorschau. Die öffentliche Website befindet sich in der Prüfung. Es gibt noch keine öffentliche Veröffentlichung und keinen Download.',
   'project.statusMilestone': 'Aktueller Meilenstein',
   'project.statusMilestoneValue':
-    'Studio-Phase 2.4 zusammengeführt · Studio 2.5 und Website W1 in Arbeit',
+    'Studio-Phase 2.5 abgenommen und zusammengeführt · Website W2 in Prüfung',
   'project.statusUpdated': 'Inhalte zuletzt geprüft am {date}',
   'project.statusLink': 'Entwicklungsstand und Roadmap',
 
@@ -141,13 +141,12 @@ export const de: Record<WebsiteMessageKey, string> = {
   'home.compare.description':
     'Diagrammwerkzeuge sind ein reifes Feld mit starken Produkten. Koxora ist für einen bestimmten Arbeitsablauf gebaut: visuelle Arbeit, die auf Ihrem Gerät bleibt, offline weiterläuft und Dateien erzeugt, die Ihnen gehören.',
   'home.compare.focusTitle': 'Worauf Koxora optimiert',
-  'home.compare.peersTitle':
-    'Etablierte Werkzeuge, mit denen wir vergleichen werden',
+  'home.compare.peersTitle': 'Die Werkzeuge, mit denen Koxora verglichen wird',
   'home.compare.peersNote':
-    'Mehrere dieser Werkzeuge bieten ebenfalls Offline-, Desktop- oder Self-Hosting-Optionen und sind in ihrem Feld jeweils stark. Häkchentabellen ohne Belege veröffentlichen wir nicht.',
+    'Mehrere dieser Werkzeuge bieten ebenfalls Offline-, Desktop- oder Self-Hosting-Optionen und jedes ist in seinem Feld stark. Der Vergleich sagt das, mit einer Quelle für jede Aussage.',
   'home.compare.methodology':
-    'Der ausführliche Vergleich folgt in einem späteren Schritt: mit Quellen je Aussage, dem geprüften Tarif und der geprüften Version sowie dem Datum der jeweiligen Prüfung.',
-  'home.compare.link': 'Vergleich (in Vorbereitung)',
+    'Der Vergleich beantwortet zehn Fragen für sechs Produkte. Jede Aussage über ein anderes Produkt verweist auf die offizielle Seite, die sie belegt, und hält das Lesedatum fest.',
+  'home.compare.link': 'Den Vergleich lesen',
 
   'home.roadmap.kicker': 'Transparenz',
   'home.roadmap.title': 'Öffentlicher Entwicklungsstand',
@@ -192,7 +191,7 @@ export const de: Record<WebsiteMessageKey, string> = {
   'features.limits.item3':
     'Der Verlauf ist begrenzt und gilt nur für die Sitzung; er wird nicht in der Projektdatei gespeichert.',
   'features.limits.item4':
-    'Textformatierung gilt jeweils für eine ganze Beschriftung; zeichenweise Formatierung ist nicht umgesetzt.',
+    'Interaktive Links, das Verschieben von Seiten zwischen Projekten und eine vollständige Ebenenverwaltung sind noch nicht implementiert.',
   'features.limits.item5':
     'Zusammenarbeit, Cloud und KI-Unterstützung gibt es im Produkt heute nicht.',
 
@@ -225,33 +224,30 @@ export const de: Record<WebsiteMessageKey, string> = {
 
   'compare.meta.title': 'Koxora im Vergleich zu anderen Werkzeugen',
   'compare.meta.description':
-    'Wie sich Koxora neben draw.io, Lucidchart, Miro, Visio und Excalidraw einordnet. Der belegte Vergleich folgt; hier steht die Methode.',
+    'Koxora neben draw.io, Lucidchart, Miro, Microsoft Visio und Excalidraw. Jede Aussage über ein anderes Produkt nennt ihre Quelle und das Prüfdatum.',
   'compare.hero.eyebrow': 'Vergleich',
-  'compare.hero.title': 'Ein ehrlicher Vergleich braucht Belege',
+  'compare.hero.title': 'Ein Vergleich, den Sie nachprüfen können',
   'compare.hero.lead':
-    'Ein ausführlicher Vergleich mit draw.io, Lucidchart, Miro, Microsoft Visio und Excalidraw ist in Vorbereitung. Er ist noch nicht veröffentlicht, denn ein nützlicher Vergleich braucht aktuelle Quellen für jede Aussage statt Marketing-Häkchen.',
-  'compare.state.title': 'Diese Seite ist in Vorbereitung',
-  'compare.state.body':
-    'Hier stehen heute die Methode und die Einordnung. Die Vergleichstabellen, die Seiten je Werkzeug und die Empfehlungen nach Anwendungsfall folgen im nächsten Website-Schritt.',
-  'compare.method.title': 'Wie der Vergleich entsteht',
-  'compare.method.item1.title': 'Jede Aussage bekommt Quelle und Datum',
+    'Koxora neben draw.io, Lucidchart, Miro, Microsoft Visio und Excalidraw. Jede Aussage über ein anderes Produkt verweist auf eine offizielle Seite und hält das Datum fest, an dem diese Seite gelesen wurde. Wo eine Quelle etwas nicht aussagt, steht \u201enicht geprüft\u201c und keine Vermutung.',
+  'compare.method.title': 'Wie dieser Vergleich entsteht',
+  'compare.method.item1.title': 'Jede Aussage nennt Quelle und Datum',
   'compare.method.item1.body':
-    'Jede Aussage über ein anderes Produkt verweist auf dessen offizielle Dokumentation oder eine andere seriöse Quelle, nennt den geprüften Tarif und die geprüfte Version und hält fest, wann geprüft wurde.',
+    'Jede Aussage über ein anderes Produkt verweist auf die offizielle Seite, die sie belegt, und die Quellenliste hält fest, wann diese Seite gelesen wurde. Was betrachtet wurde \u2014 Tarif, Edition oder Build \u2014 steht neben jedem Produkt.',
   'compare.method.item2.title': 'Mehr als zwei Antworten',
   'compare.method.item2.body':
-    'Funktionen werden als unterstützt, nicht unterstützt, eingeschränkt oder tarifabhängig, für Koxora geplant oder ungeprüft ausgewiesen. Ein bloßes Häkchen verbirgt zu viel.',
+    'Eine Antwort ist unterstützt, eingeschränkt oder tarifabhängig, nicht unterstützt, für Koxora geplant, eine Beschreibung oder nicht geprüft. Ein bloßes Häkchen verbirgt zu viel, um nützlich zu sein.',
   'compare.method.item3.title': 'Anerkennung, wo sie hingehört',
   'compare.method.item3.body':
-    'Die anderen Werkzeuge sind starke Produkte mit echten Stärken, auch bei Offline- und Desktop-Nutzung. Der Vergleich benennt diese Stärken.',
+    'Das sind starke Produkte, und mehrere können etwas, das Koxora nicht kann. draw.io liefert eine Desktop-Anwendung, die seine Entwickler als vom Internet isoliert beschreiben; Lucidchart bietet Offline-Bearbeitung im Browser. Beides steht hier.',
   'compare.method.item4.title': 'Koxora gilt derselbe Maßstab',
   'compare.method.item4.body':
-    'Koxora-Funktionen erscheinen mit denselben Statusangaben wie überall auf dieser Website. Geplante Funktionen werden nie als verfügbar dargestellt.',
-  'compare.method.item5.title': 'Er wird aktuell gehalten',
+    'Die Koxora-Spalte beschreibt den zusammengeführten Entwicklungsstand des öffentlichen Repositories. Koxora hat keine öffentliche Veröffentlichung, es lässt sich heute also nichts installieren, und eine geplante Funktion ist als geplant markiert, nie abgehakt.',
+  'compare.method.item5.title': 'Er wird erneut geprüft, und sagt wann',
   'compare.method.item5.body':
-    'Funktionen, Tarife und Preise ändern sich. Der Vergleich wird vor Veröffentlichungen und in regelmäßigen Abständen erneut geprüft und zeigt das Datum der letzten Prüfung.',
+    'Funktionen, Tarife und Preise ändern sich, manchmal innerhalb von Wochen. Das Datum der letzten Prüfung steht auf dieser Seite, jede Quelle nennt ihr Lesedatum, und vor jeder Veröffentlichung wird erneut geprüft.',
   'compare.peers.title': 'Die betrachteten Werkzeuge',
   'compare.peers.note':
-    'Kurze, neutrale Beschreibungen dessen, wofür die Werkzeuge bekannt sind. Funktionsaussagen werden hier nicht getroffen; dafür braucht es den belegten Vergleich.',
+    'Was jedes Werkzeug ist und was betrachtet wurde, um die Fragen darunter zu beantworten.',
 
   'roadmap.meta.title': 'Roadmap und Entwicklungsstand',
   'roadmap.meta.description':
@@ -518,11 +514,20 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Diese Daten liegen dann in Ihrer Hand: Ein Projekt lässt sich als portables .koxora-Archiv exportieren, und die Daten lassen sich jederzeit über die Browsereinstellungen für diese Adresse löschen. Browserspeicher ist an genau die Adresse gebunden, die ihn angelegt hat; Daten unter der Website-Adresse und unter der Studio-Adresse bleiben daher getrennt.',
   'privacyPolicy.studio.desktop':
     'Die Desktop-Anwendung speichert Projekte als Dateien in einem Verzeichnis auf Ihrem Rechner. Sie funktioniert ohne Koxora-Konto und übermittelt uns keine Projektinhalte.',
-  'privacyPolicy.contactForm.title': '8. Kontakt per E-Mail',
+  'privacyPolicy.contactForm.title':
+    '8. Kontakt per E-Mail und über das Formular',
   'privacyPolicy.contactForm.body':
     'Wenn Sie an eine der im Impressum genannten Adressen schreiben, verarbeiten wir Ihre E-Mail-Adresse, Ihre Nachricht und etwaige Anhänge, um Ihnen zu antworten. Die E-Mail wird auf selbst verwalteter Infrastruktur bei der IONOS SE, Elgendorfer Str. 57, 56410 Montabaur, betrieben.',
   'privacyPolicy.contactForm.basis':
     'Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO, soweit Ihre Anfrage einen Vertrag oder vorvertragliche Maßnahmen betrifft, sonst Art. 6 Abs. 1 lit. f DSGVO, unser berechtigtes Interesse an der Beantwortung von Anfragen. Nachrichten werden gelöscht, sobald die Anfrage erledigt ist und keine Aufbewahrungspflicht besteht.',
+  'privacyPolicy.contactForm.form':
+    'Wenn diese Website ein Kontaktformular anbietet, sendet es Ihre Eingaben — den Namen, falls Sie einen angegeben haben, die E-Mail-Adresse, die Kategorie, den Betreff und die Nachricht — an dasselbe Support-Postfach, über eine verschlüsselte Verbindung zum Mailserver. Mehr wird nicht erhoben: kein Tracking, kein fremder Formularanbieter, kein Captcha-Dienst und kein Newsletter. Das Formular ist der einzige Weg, auf dem diese Website etwas von Ihnen Eingegebenes übermittelt, und sie tut es nur, wenn Sie die Schaltfläche drücken.',
+  'privacyPolicy.contactForm.storage':
+    'Der Endpunkt führt keine Datenbank und behält keine Kopie Ihrer Nachricht: er übergibt die Nachricht an den Mailserver und vergisst sie. Zwei kurzlebige Werte werden aufbewahrt, in einer kleinen Datei auf demselben Server. Ein Einwegwert der Übermittlung wird zehn Minuten aufbewahrt, damit ein zweiter Druck auf die Schaltfläche nicht zwei Nachrichten sendet. Ein Einwegwert aus Ihrer Netzwerkadresse wird eine Stunde aufbewahrt, damit eine Flut gestoppt werden kann; er wird mit einem geheimen Schlüssel berechnet, der nur auf diesem Server existiert, lässt sich daher nicht in eine Adresse zurückrechnen, und die Adresse selbst wird nirgends festgehalten. Beide Werte werden nach Ablauf ihrer Frist automatisch entfernt, und keiner lässt sich in Ihre Nachricht zurückrechnen.',
+  'privacyPolicy.contactForm.logs':
+    'Ihr eigenes Protokoll hält je Übermittlung eine Zeile mit Zeitpunkt, Ergebnis und gewählter Kategorie fest. Es enthält keinen Namen, keine Adresse, keinen Betreff, keine Nachricht und keine Netzwerkadresse. Von da an ist Ihre Nachricht eine E-Mail im Support-Postfach, und die Abschnitte oben beschreiben, was dort mit ihr passiert.',
+  'privacyPolicy.contactForm.accepted':
+    'Wenn das Formular meldet, dass Ihre Nachricht angenommen wurde, bedeutet das: der Mailserver hat sie zur Zustellung übernommen. Mehr lässt sich von einer Website aus ehrlich nicht bestätigen; ob sie dann im Postfach angekommen ist, kann diese Seite nicht versprechen, und sie behauptet es auch nie.',
   'privacyPolicy.noTracking.title': '9. Was diese Website nicht tut',
   'privacyPolicy.noTracking.item1':
     'Keine Analyse-, Mess- oder Reichweitendienste.',
@@ -563,13 +568,13 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Verschieben, zoomen, Inhalt einpassen sowie Raster und Einrasten mit einstellbarem Abstand an- oder abschalten. Mit gedrückter Alt-Taste lässt sich das Einrasten für eine einzelne Aktion umgehen.',
   'feature.editing.title': 'Direktes Bearbeiten',
   'feature.editing.body':
-    'Klicken zum Auswählen, Aufziehen eines Rahmens für mehrere Elemente, Verschieben und Skalieren mit Griffen, Duplizieren, Ausrichten, Verteilen sowie Kopieren und Einfügen innerhalb der Arbeitsfläche.',
+    'Objekte auswählen, verschieben, skalieren und duplizieren. Passende Eigenschaften gemeinsam ändern, eine Auswahl ausrichten oder verteilen, ohne Überlappung anordnen und die Stapelreihenfolge von Formen und Verbindungen innerhalb einer Ebene ändern.',
   'feature.history.title': 'Rückgängig und Wiederherstellen',
   'feature.history.body':
-    'Jede Bearbeitung ist ein umkehrbarer Schritt. Der Verlauf ist je Seite begrenzt und gehört zur Sitzung, bläht die Projektdatei also nicht auf.',
+    'Diagrammbearbeitungen und Seitenaktionen im aktuellen Projekt rückgängig machen und wiederherstellen. Der Verlauf ist auf 100 Schritte und 16 MiB begrenzt und gilt für die Sitzung; ein geöffneter Textentwurf hat einen eigenen Verlauf.',
   'feature.projects.title': 'Projekte auf Ihrem Gerät',
   'feature.projects.body':
-    'Projekte anlegen, umbenennen und öffnen, automatisch auf Ihrem Gerät gespeichert. Ein vorheriger Stand bleibt erhalten, damit Sie einen schlechten Moment zurücknehmen können.',
+    'Lokale Projekte erstellen, umbenennen, duplizieren und wechseln. Änderungen werden automatisch gespeichert, ein vorheriger Speicherstand bleibt zur Wiederherstellung erhalten. Bestätigtes Löschen verschiebt ein Projekt in den lokalen Papierkorb, aus dem es wiederhergestellt werden kann.',
   'feature.files.title': 'Portable .koxora-Dateien',
   'feature.files.body':
     'Ein Projekt als dokumentiertes Archiv exportieren, auf einem anderen Gerät wieder importieren oder als Kopie mit neuer Identität einlesen. Unbekannte Inhalte aus neueren Versionen bleiben erhalten statt verloren zu gehen.',
@@ -578,7 +583,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Nach dem ersten Besuch startet und läuft das Browser-Studio ohne Netzverbindung. Kein Konto, keine Anmeldung, kein Warten auf einen Server.',
   'feature.typography.title': 'Text und Formatierung',
   'feature.typography.body':
-    'Serifen-, serifenlose und dicktengleiche Schriftfamilien aus Ihrem System, Größen von 8 bis 96, fett, kursiv, unterstrichen, Farbe und Ausrichtung, angewendet auf eine Beschriftung als Ganzes.',
+    '20 Schriftoptionen mit Vorschau durchsuchen, Größen von 8 bis 96, Fett, Kursiv, Unterstrichen, Farbe und Absatzausrichtung wählen. Verwendet werden installierte Schriften und Ersatzschriften ohne externe Abfragen; die Darstellung kann sich zwischen Geräten unterscheiden.',
   'feature.languages.title': 'Englisch und Deutsch',
   'feature.languages.body':
     'Das gesamte Produkt und diese Website gibt es in beiden Sprachen, unabhängig vom Betriebssystem wählbar. Die Architektur ist auf weitere Sprachen vorbereitet.',
@@ -591,12 +596,12 @@ export const de: Record<WebsiteMessageKey, string> = {
   'feature.recovery.title': 'Speichern und Wiederherstellen',
   'feature.recovery.body':
     'Änderungen werden kurz nach dem Tippen auf Ihr Gerät geschrieben, und der vorherige Stand bleibt verfügbar, falls etwas schiefgeht.',
-  'feature.pages.title': 'Seiten und Tabs je Projekt',
+  'feature.pages.title': 'Dokumente und Diagrammseiten',
   'feature.pages.body':
-    'Mehrere Diagramme und Seiten in einem Projekt, mit bearbeitbaren Tabs. Wird im aktuellen Studio-Meilenstein umgesetzt.',
-  'feature.richText.title': 'Reichere Textbearbeitung',
+    'Mehrere Dokumente und Seiten in einem .koxora-Projekt verwalten. Im Seitenleisten-Navigator wechseln, umbenennen, duplizieren, sortieren und Seiten zwischen Dokumenten verschieben – mit eigenem Zoom und eigener Ansicht je Seite.',
+  'feature.richText.title': 'Textbearbeitung im Office-Stil',
   'feature.richText.body':
-    'Formatierung innerhalb einer Beschriftung statt für die ganze Beschriftung, näher an dem, was ein Office-Programm bietet. Wird im aktuellen Studio-Meilenstein umgesetzt.',
+    'Text mit einer Formatierungsleiste direkt an seiner Beschriftung auf der Arbeitsfläche bearbeiten. Einzelne Wörter oder markierte Abschnitte in Textelementen, Formen, Linien, Pfeilen und Verbindungen formatieren; mehrzeilige Inhalte, Zwischenablage-Formatierungen und Text-Rückgängig bleiben erhalten.',
   'feature.desktop.title': 'Desktop-Anwendungen',
   'feature.desktop.body':
     'Eine Desktop-Hülle für Linux, Windows und macOS liegt im Repository und läuft aus dem Quellcode. Signierte, betreute Installationspakete sind noch nicht veröffentlicht.',
@@ -639,7 +644,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Monorepo, gemeinsame Browser- und Desktop-Hülle, Lokalisierung, Themes, lokale Speicherung und kontinuierliche Integration.',
   'phase.2.title': 'Editor',
   'phase.2.body':
-    'Arbeitsfläche, Formen, Text, Verbindungen, Auswahl, Bearbeitung, Verlauf, Projektdateien und Wiederherstellung. Seiten, Tabs und reichere Texte kommen gerade hinzu.',
+    'Die Editor-Grundlage bis zur abgenommenen Studio-Phase 2.5 umfasst Formen, Verbindungen, Dokument- und Seitennavigation, Rich Text, gemeinsame Eigenschaften, Freihandzeichnen, Stapelreihenfolge, Anordnen ohne Überlappung und portable Projektdateien. Weitere Editor-Funktionen bleiben geplant.',
   'phase.3.title': 'Daten und Export',
   'phase.3.body':
     'Tabellenimport, Diagramme sowie Export nach SVG, PNG, PDF und interaktivem HTML.',
@@ -745,6 +750,597 @@ export const de: Record<WebsiteMessageKey, string> = {
   'project.statusSummary.published':
     'Koxora Studio ist eine funktionierende technische Vorschau. Es gibt noch keine öffentliche Veröffentlichung und keinen Download.',
   'project.statusMilestoneValue.published':
-    'Studio-Phase 2.4 zusammengeführt \u00b7 Studio 2.5 in Arbeit',
+    'Studio-Phase 2.5 abgenommen und zusammengeführt · Keine öffentliche Studio-Version',
   'legalNotice.contact.security': 'Erstkontakt bei einem Sicherheitsproblem',
+
+  'docsStart.shot.alt':
+    'Das Koxora-Studio mit leerer Projektliste, einer Schaltfläche „Neues Projekt“ und einer Schaltfläche „.koxora importieren“.',
+  'docsEditing.shot.alt':
+    'Die Tastenkürzel-Übersicht über dem Editor, mit einem Suchfeld und den aufgelisteten Navigations-Kürzeln.',
+  'docsEditing.properties.alt':
+    'Die Eigenschaften eines ausgewählten Elements über dem Editor, mit den Text- und Formatierungssteuerungen oben.',
+
+  'docs.hub.title': 'Alles, was es zu lesen gibt',
+  'docs.hub.note':
+    'Jeder Abschnitt nennt den Stand, den er beschreibt. Koxora hat keine öffentliche Veröffentlichung; „verfügbar“ heißt also umgesetzt und zusammengeführt im Entwicklungsstand, den Sie aus dem Repository ausführen können, und niemals heute herunterladbar.',
+  'docs.section.start.title': 'Erste Schritte mit Koxora',
+  'docs.section.start.summary':
+    'Das Studio öffnen, ein Projekt anlegen und was der erste Bildschirm bietet.',
+  'docs.section.editing.title': 'Ein Diagramm bearbeiten',
+  'docs.section.editing.summary':
+    'Formen, Verbindungen, Rich Text, Freihandstriche, gemeinsame Eigenschaften, Anordnung und Rückgängig im abgenommenen Studio-2.5-Entwicklungsstand.',
+  'docs.section.localFirst.title': 'Local-first erklärt',
+  'docs.section.localFirst.summary':
+    'Was local-first hier bedeutet und was es für Ihre Dateien und Ihre Privatsphäre heißt.',
+  'docs.section.projects.title': 'Projekte und Dateiformate',
+  'docs.section.projects.summary':
+    'Dokumente und Diagrammseiten verwalten, lokale Projekte wechseln, den Papierkorb nutzen und portable .koxora-Sicherungen behalten.',
+  'docs.section.features.title': 'Verfügbare Funktionen',
+  'docs.section.features.summary':
+    'Die Liste dessen, was umgesetzt ist, mit den Grenzen des aktuellen Stands.',
+  'docs.section.roadmap.title': 'Geplante Funktionen',
+  'docs.section.roadmap.summary':
+    'Was vorgesehen ist, in welcher Reihenfolge, ohne zugesagte Termine.',
+  'docs.section.faq.title': 'Häufig gestellte Fragen',
+  'docs.section.faq.summary':
+    'Fragen zum implementierten Editor, zu Seiten, Formatierung, Offline-Speicherung und weiterhin geplanten Funktionen.',
+  'docs.section.support.title': 'Fehler melden und Hilfe bekommen',
+  'docs.section.support.summary':
+    'Wohin eine Fehlermeldung geht, was hineingehört und wohin ein Sicherheitsproblem stattdessen geht.',
+  'docsStart.meta.title': 'Erste Schritte mit Koxora',
+  'docsStart.meta.description':
+    'Das Koxora-Studio öffnen, ein erstes Projekt anlegen und sich auf dem ersten Bildschirm zurechtfinden — ohne Konto und ohne Installation.',
+  'docsStart.hero.eyebrow': 'Dokumentation',
+  'docsStart.hero.title': 'Erste Schritte',
+  'docsStart.hero.lead':
+    'Koxora hat noch keine öffentliche Veröffentlichung, es gibt also nichts herunterzuladen. Das Folgende beschreibt den Entwicklungsstand, der im Browser läuft und alles auf Ihrem Gerät behält.',
+  'docsStart.step1.title': 'Das Studio öffnen',
+  'docsStart.step1.body':
+    'Das Studio ist eine Webanwendung. Es verlangt kein Konto, keine E-Mail-Adresse und keine Anmeldung: der erste Bildschirm ist die Projektliste, und sie ist leer, weil noch nichts angelegt wurde. Bis es eine öffentliche Veröffentlichung gibt, führen Sie es aus dem Quell-Repository aus.',
+  'docsStart.step2.title': 'Ein Projekt anlegen oder mitbringen',
+  'docsStart.step2.body':
+    '„Neues Projekt“ beginnt ein leeres. „.koxora importieren“ öffnet eine Projektdatei, die Sie schon haben — von einem anderen Gerät, aus einer Sicherung oder von jemandem, der sie Ihnen geschickt hat. Beides endet am selben Ort: einem Projekt auf diesem Gerät.',
+  'docsStart.step3.title': 'Etwas zeichnen',
+  'docsStart.step3.body':
+    'Oberhalb der Arbeitsfläche eine Form wählen und sie durch Klicken oder Ziehen platzieren. Linie oder Pfeil verbindet Formen, der Freihandstift dient zum Skizzieren. Im Projekt-Navigator der Seitenleiste lassen sich Dokumente und Diagrammseiten ergänzen; jede Seite behält ihre eigene Ansicht.',
+  'docsStart.step4.title': 'Automatisch speichern und portable Sicherungen',
+  'docsStart.step4.body':
+    'Änderungen werden nach einer kurzen Pause auf diesem Gerät gespeichert; die Kopfzeile zeigt den Speicherstatus. Projekt speichern speichert zusätzlich sofort. .koxora exportieren erstellt eine portable Sicherung. Nichts wird auf einen Koxora-Server hochgeladen.',
+  'docsStart.shot.caption':
+    'Der erste Bildschirm des Studios, bevor ein Projekt existiert. Aufgenommen vom Entwicklungsstand.',
+  'docsStart.warning.title': 'Eines sollten Sie am ersten Tag wissen',
+  'docsStart.warning.body':
+    'Ein Projekt liegt in diesem Browser auf diesem Gerät. Browserdaten löschen, ein privates Fenster oder ein verlorenes Gerät entfernen es. Exportieren Sie eine .koxora-Datei für alles, worum es Ihnen leidtäte — das ist die Sicherung, und anderswo gibt es keine Kopie.',
+  'docsEditing.meta.title': 'Ein Diagramm bearbeiten',
+  'docsEditing.meta.description':
+    'Studio 2.5: Formen verbinden, Wörter formatieren, freihändig zeichnen, mehrere Objekte bearbeiten, anordnen und Änderungen rückgängig machen.',
+  'docsEditing.hero.eyebrow': 'Dokumentation',
+  'docsEditing.hero.title': 'Ein Diagramm bearbeiten',
+  'docsEditing.hero.lead':
+    'Was der Editor heute kann, beschrieben vom zusammengeführten Entwicklungsstand. Wo etwas noch nicht da ist, sagt diese Seite es, statt es Sie herausfinden zu lassen.',
+  'docsEditing.place.title': 'Formen setzen',
+  'docsEditing.place.body':
+    'Rechteck, abgerundetes Rechteck, Ellipse, Raute, Dreieck, Sechseck, Parallelogramm, Textelement oder Container wählen. Klicken platziert das Objekt, Ziehen bestimmt die Größe, Enter fügt es in der Ansichtsmitte ein. Wiederholt einfügen hält ein Formenwerkzeug aktiv. Linie, Pfeil und Freihandstift haben eigene Zeichengesten.',
+  'docsEditing.select.title': 'Auswählen',
+  'docsEditing.select.body':
+    'Klicken wählt aus. Umschalt-Klick fügt zur Auswahl hinzu oder entfernt daraus. Ziehen über leere Fläche zieht einen Rahmen um alles darin, und Strg oder Cmd mit A wählt alles Bearbeitbare auf der Seite. Escape verwirft ein Werkzeug oder einen Entwurf.',
+  'docsEditing.move.title': 'Bewegen und Größe ändern',
+  'docsEditing.move.body':
+    'Ziehen bewegt die Auswahl. Eine einzelne ausgewählte Form bekommt Eckpunkte; Umschalt hält die Proportionen. Die Pfeiltasten verschieben um eine Einheit oder einen Rasterschritt, Umschalt verzehnfacht das. Das Einrasten folgt dem Raster, und Alt schaltet es aus, solange Sie es halten — die Fläche zeigt einen farbigen Rand, solange eingerastet wird.',
+  'docsEditing.connect.title': 'Formen verbinden',
+  'docsEditing.connect.body':
+    'Wählen Sie Linie oder Pfeil und klicken Sie entweder einen sichtbaren Port am Rand beider Formen an oder die Formen selbst, dann wählt der Editor den Ankerpunkt. Linie zeichnet keine Spitze, Pfeil eine. Eine Verbindung behält ihre Anker, wenn eine der Formen bewegt oder in der Größe geändert wird. Es gibt keine Hindernis-Umgehung und keine Verbindung einer Form mit sich selbst.',
+  'docsEditing.text.title': 'Text und Formatierung',
+  'docsEditing.text.body':
+    'Eine Beschriftung doppelt anklicken oder Text bearbeiten wählen, um den Texteditor an der Arbeitsfläche zu öffnen; Elementeigenschaften bietet denselben Editor. Ein Wort oder einen Abschnitt markieren und Schrift, Größe, Fett, Kursiv, Unterstrichen oder Farbe anwenden. Ausrichtung gilt für Absätze. Strg/Cmd+B, I und U schalten Formatierungen um; Einfügen erhält unterstützte Textstile und Zeilenumbrüche. Änderungen übernehmen oder Strg/Cmd+Enter bestätigt den Entwurf; Escape verwirft ihn.',
+  'docsEditing.history.title': 'Rückgängig machen',
+  'docsEditing.history.body':
+    'Strg/Cmd+Z macht rückgängig, Strg/Cmd+Umschalt+Z oder Strg+Y stellt wieder her. Der Projektverlauf folgt Bearbeitungen über Seiten hinweg, einschließlich Erstellen, Verschieben und Löschen von Seiten; er behält höchstens 100 Schritte innerhalb von 16 MiB. Beim Öffnen eines anderen Projekts wird er zurückgesetzt und nicht in .koxora gespeichert. In einem offenen Textentwurf wirkt Rückgängig auf den Entwurf; Übernehmen erzeugt eine Projektbearbeitung. Projekt aus dem Papierkorb wiederherstellen ist von Rückgängig getrennt.',
+  'docsEditing.keyboard.title': 'Alles mit der Tastatur',
+  'docsEditing.keyboard.body':
+    'Jedes Werkzeug ist mit Tab und den Pfeiltasten erreichbar, die Ports zum Verbinden ebenfalls. F1 oder das Fragezeichen öffnet eine durchsuchbare Liste aller Tastenkürzel, auf Deutsch und Englisch, mit Strg als Cmd auf Apple-Rechnern. Textfelder behalten die Kürzel, die Sie ohnehin kennen.',
+  'docsEditing.shot.caption':
+    'Die Tastenkürzel-Übersicht, geöffnet mit F1. Aufgenommen vom Entwicklungsstand.',
+  'docsEditing.properties.caption':
+    'Die Eigenschaften eines ausgewählten Elements, mit Text und Formatierung zuerst. Aufgenommen vom Entwicklungsstand.',
+  'docsEditing.limits.title': 'Noch nicht vorhanden',
+  'docsEditing.limits.body':
+    'Bildexport, Import aus anderen Diagrammwerkzeugen, interaktive Links, vollständige Ebenenverwaltung, Zusammenarbeit, Cloud-Synchronisierung und KI-Unterstützung sind nicht implementiert. Der Freihandstift hat keinen Radierer und keine Druckpinsel. Der Rückgängig-Verlauf bleibt beim erneuten Öffnen eines Projekts nicht erhalten. Die Funktionsübersicht trennt den implementierten Entwicklungsstand von zukünftiger Arbeit.',
+  'docsProjects.meta.title': 'Projekte und Dateiformate',
+  'docsProjects.meta.description':
+    'Was ein Koxora-Projekt ist, wo es liegt, was die .koxora-Datei enthält, wie Sie ein Projekt zwischen Geräten bewegen und wie Sie eine Sicherung behalten.',
+  'docsProjects.hero.eyebrow': 'Dokumentation',
+  'docsProjects.hero.title': 'Projekte und Dateiformate',
+  'docsProjects.hero.lead':
+    'Ein Projekt gehört Ihnen, liegt auf Ihrem Gerät und kommt als Datei heraus, die Sie behalten. Diese Seite sagt genau, was diese Datei ist und was mit ihr geschieht.',
+  'docsProjects.format.title': 'Die .koxora-Datei',
+  'docsProjects.format.body':
+    'Export erstellt ein portables .koxora-Archiv mit allen Dokumenten, Seiten, Seitenansichten, Rich-Text-Formatierungen und Freihandstrichen. Bestehende Projekte öffnen weiterhin ohne Konvertierung. Das dokumentierte Format speichert strukturierten Text, kein HTML. Vor dem Bearbeiten in einer älteren Version eine Sicherung behalten: Sie kann nicht jede neuere Funktion darstellen.',
+  'docsProjects.saved.title': 'Wo ein Projekt liegt, während Sie arbeiten',
+  'docsProjects.saved.body':
+    'Im Browser, auf dem Gerät, das Sie benutzen, im Speicher dieses Browsers. Änderungen werden dort nach einer kurzen Pause automatisch geschrieben. Kein Koxora-Server erhält das Projekt, weil es keinen gibt, und nichts wird hochgeladen.',
+  'docsProjects.transfer.title': 'Ein Projekt auf ein anderes Gerät bringen',
+  'docsProjects.transfer.body':
+    'Exportieren Sie es als .koxora-Datei, bewegen Sie die Datei wie jede andere, und importieren Sie sie auf dem anderen Gerät. Browserspeicher gehört zu einer Adresse auf einem Gerät; das ist also der Weg, Arbeit mitzunehmen — und derselbe Weg, ein Projekt weiterzugeben.',
+  'docsProjects.backup.title': 'Eine Sicherung behalten',
+  'docsProjects.backup.body':
+    'Exportieren Sie die Projekte, an denen Ihnen liegt, als .koxora-Dateien und bewahren Sie sie dort auf, wo Ihre anderen Dokumente liegen. Browserdaten löschen, ein privates Fenster, ein neu installierter Browser oder ein verlorenes Gerät entfernen, was nur im Browserspeicher liegt, und es gibt anderswo keine Kopie zum Wiederherstellen. Eine exportierte Datei ist die Sicherung.',
+  'docsProjects.notStored.title': 'Was die Datei nicht enthält',
+  'docsProjects.notStored.body':
+    'Was Sie ausgewählt hatten, welches Werkzeug aktiv war, was in der internen Zwischenablage lag und die Rückgängig-Chronik werden nicht in ein Projekt geschrieben. Sie gehören zur Sitzung. Daten, die der aktuelle Stand nicht versteht, bleiben erhalten statt verworfen zu werden; eine Datei aus einer neueren Fassung verliert also nicht, was sie mitbrachte.',
+  'docsFaq.meta.title': 'Häufig gestellte Fragen',
+  'docsFaq.meta.description':
+    'Antworten zu Studio-2.5-Seiten, Rich Text, Freihandzeichnen, Offline-Dateien, Schriften und Veröffentlichungsstatus – mit klar benannten fehlenden Funktionen.',
+  'docsFaq.hero.eyebrow': 'Dokumentation',
+  'docsFaq.hero.title': 'Häufig gestellte Fragen',
+  'docsFaq.hero.lead':
+    'Beantwortet aus dem, was umgesetzt ist, nicht aus dem, was geplant ist. Wo die ehrliche Antwort „noch nicht“ lautet, steht das da.',
+  'faq.account.q': 'Brauche ich ein Konto?',
+  'faq.account.a':
+    'Nein. Es gibt keine Registrierung, keine Anmeldung und kein Konto, das man anlegen könnte. Dem Studio steht auch kein Server zur Seite, der eines führen würde.',
+  'faq.release.q': 'Kann ich Koxora herunterladen?',
+  'faq.release.a':
+    'Noch nicht. Es gibt keine öffentliche Version und keinen freigegebenen öffentlichen Installer-Download. Studio 2.5 ist abgenommen und im Quellcode-Repository zusammengeführt. CI-Testpakete sind keine veröffentlichte Version; die Downloadseite ändert sich erst nach einer separaten Veröffentlichungsfreigabe.',
+  'faq.offline.q': 'Funktioniert es ohne Internetverbindung?',
+  'faq.offline.a':
+    'Der Editor läuft auf Ihrem Gerät und braucht nach dem Laden keinen Server. Projekte liegen lokal, die Arbeit selbst hängt also nicht an einer Verbindung.',
+  'faq.where.q': 'Wo liegen meine Diagramme?',
+  'faq.where.a':
+    'Im Speicher Ihres Browsers, auf dem Gerät, das Sie benutzen, und in den .koxora-Dateien, die Sie exportieren. Nicht auf einem Koxora-Server: es gibt keinen.',
+  'faq.clearing.q': 'Was passiert, wenn ich meine Browserdaten lösche?',
+  'faq.clearing.a':
+    'Projekte, die nur im Browserspeicher liegen, werden entfernt, und es gibt keine Kopie, aus der sie wiederhergestellt werden könnten. Exportieren Sie eine .koxora-Datei für alles, was Sie behalten wollen. Das Studio sagt das auf seinem ersten Bildschirm ebenfalls.',
+  'faq.formats.q': 'Welche Dateiformate kann ich nutzen?',
+  'faq.formats.a':
+    'Koxora liest und schreibt sein eigenes .koxora-Projektarchiv. Import aus anderen Diagrammwerkzeugen und Export als Bild sind noch nicht umgesetzt; beides ist dokumentierter Umfang und nichts, was heute geht.',
+  'faq.today.q': 'Was kann der Editor im Moment wirklich?',
+  'faq.today.a':
+    'Studio 2.5 enthält Formen und Verbindungen mit Anschlusspunkten, Dokumente und Diagrammseiten, Formatierung einzelner Wörter, gemeinsame Eigenschaften, Freihandzeichnen, Stapelreihenfolge und Anordnen ohne Überlappung. Projekte werden lokal gespeichert und als .koxora exportiert; Rückgängig funktioniert in der Sitzung über ihre Seiten hinweg. Diese Funktionen gehören zum zusammengeführten Entwicklungsstand, nicht zu einer öffentlichen Version.',
+  'faq.missing.q': 'Was ist mit Zusammenarbeit, Cloud oder Assistenz?',
+  'faq.missing.a':
+    'Keines der drei ist umgesetzt. Alle drei sind dokumentierter Produktumfang, und alle drei sind als optional geplant, damit ein Koxora ohne sie ein vollständiges Produkt bleibt und kein beschnittenes.',
+  'faq.languages.q': 'In welchen Sprachen gibt es Koxora?',
+  'faq.languages.a':
+    'Englisch und Deutsch, im Produkt und auf dieser Website, unabhängig von der Sprache Ihres Betriebssystems wählbar. Englisch ist der Rückfall. Eine weitere Sprache braucht eine Ressourcendatei und ihre Adressen, keine Änderung an der Anwendung.',
+  'faq.price.q': 'Was kostet es?',
+  'faq.price.a':
+    'Es gibt nichts zu kaufen, weil es keine Veröffentlichung gibt. Kein Preis, kein Tarif und keine Testphase wurde angekündigt, und diese Seite erfindet auch keine.',
+  'faq.source.q': 'Ist der Quellcode öffentlich? Unter welcher Lizenz?',
+  'faq.source.a':
+    'Der Quellcode ist im Repository öffentlich. Eine Lizenz ist noch nicht veröffentlicht, es werden also bis dahin keine Rechte eingeräumt. Das Impressum sagt dasselbe, und es ändert sich, wenn die Lizenz entschieden ist.',
+  'faq.problem.q': 'Ich habe ein Problem gefunden. Wohin damit?',
+  'faq.problem.a':
+    'Ein gewöhnlicher Fehler geht an die Support-Adresse oder das Kontaktformular, und der Support-Abschnitt sagt, was hineingehört. Ein Sicherheitsproblem geht woandershin: die Sicherheitsrichtlinie beschreibt einen eigenen Weg, und die Einzelheiten gehören nicht in ein gewöhnliches Postfach.',
+  'docsSupport.meta.title': 'Fehler melden und Hilfe bekommen',
+  'docsSupport.meta.description':
+    'Wohin eine Koxora-Fehlermeldung geht, was hineingehört, damit sie bearbeitet werden kann, und wohin ein Sicherheitsproblem stattdessen geht.',
+  'docsSupport.hero.eyebrow': 'Dokumentation',
+  'docsSupport.hero.title': 'Fehler melden',
+  'docsSupport.hero.lead':
+    'Eine Meldung, die sich nachstellen lässt, wird behoben; eine, die das nicht tut, meist nicht. Diese Seite sagt, was den Unterschied macht, und wohin sie geht.',
+  'docsSupport.include.title': 'Was in eine Meldung gehört',
+  'docsSupport.include.item1':
+    'Was Sie getan haben, Schritt für Schritt, genau genug, dass jemand anderes dasselbe tun kann.',
+  'docsSupport.include.item2':
+    'Was Sie erwartet haben und was stattdessen passiert ist.',
+  'docsSupport.include.item3':
+    'Welcher Browser und welches Betriebssystem, mit Versionen.',
+  'docsSupport.include.item4':
+    'Ob es jedes Mal passiert oder nur manchmal und unter welchen Bedingungen.',
+  'docsSupport.include.item5':
+    'Ein .koxora-Export des Projekts, in dem es auftritt, sofern Sie einen weitergeben können und nichts Vertrauliches darin steht.',
+  'docsSupport.where.title': 'Wohin damit',
+  'docsSupport.where.body':
+    'Das Kontaktformular erreicht das Support-Postfach, ebenso eine Mail an die Adresse direkt. Die Entwicklung läuft offen, ein Issue im öffentlichen Repository ist für etwas Nachstellbares also ebenfalls ein guter Ort — es ist sichtbar, es lässt sich besprechen, und es geht nicht in einem Postfach unter.',
+  'docsSupport.security.title': 'Ein Sicherheitsproblem geht woandershin',
+  'docsSupport.security.body':
+    'Bitte senden Sie Einzelheiten zu einer Schwachstelle nicht an das Support-Postfach und schreiben Sie sie nicht in ein öffentliches Issue. Die Sicherheitsrichtlinie beschreibt den Weg dafür, was in eine erste Nachricht gehört und was Sie erwarten können.',
+  'docsSupport.expect.title': 'Was Sie erwarten können',
+  'docsSupport.expect.body':
+    'Koxora ist ein Projekt in Entwicklung, ohne Veröffentlichung und ohne Supportvertrag. Meldungen werden gelesen und ernst genommen; eine Reaktionszeit wird nicht zugesagt, denn das hieße, ein Serviceniveau zu erfinden, das es nicht gibt.',
+
+  'nav.contact': 'Kontakt',
+  'contact.meta.title': 'Koxora kontaktieren',
+  'contact.meta.description':
+    'Frage stellen, Rückmeldung geben, Problem melden. Das Formular erreicht das Koxora-Support-Postfach; die Adresse ist ebenfalls veröffentlicht.',
+  'contact.hero.eyebrow': 'Kontakt',
+  'contact.hero.title': 'Schreiben Sie dem Projekt',
+  'contact.hero.lead':
+    'Fragen, Rückmeldungen und Problemmeldungen erreichen dasselbe Postfach. Das Formular unten schickt Ihre Nachricht dorthin; wenn Sie lieber Ihr eigenes Mailprogramm nutzen, ist die Adresse ebenfalls veröffentlicht.',
+  'contact.form.title': 'Nachricht senden',
+  'contact.form.intro':
+    'Nötig sind nur die Adresse und die Nachricht. Ein Name hilft, wenn Sie damit angesprochen werden möchten.',
+  'contact.field.name': 'Name',
+  'contact.field.name.hint':
+    'Optional. Nur damit eine Antwort Sie ansprechen kann.',
+  'contact.field.email': 'E-Mail-Adresse',
+  'contact.field.email.hint':
+    'Nötig für eine Antwort. Sie wird dafür und für nichts anderes verwendet.',
+  'contact.field.category': 'Worum geht es?',
+  'contact.field.subject': 'Betreff',
+  'contact.field.message': 'Nachricht',
+  'contact.field.message.hint': 'Bis zu {max} Zeichen.',
+  'contact.field.optional': 'optional',
+  'contact.field.required': 'erforderlich',
+  'contact.category.general': 'Allgemeine Anfrage',
+  'contact.category.feedback': 'Rückmeldung',
+  'contact.category.support': 'Support',
+  'contact.category.bug': 'Fehler melden',
+  'contact.honeypot.label': 'Website',
+  'contact.submit': 'Nachricht senden',
+  'contact.submit.busy': 'Wird gesendet …',
+  'contact.error.required': 'Bitte füllen Sie dieses Feld aus.',
+  'contact.error.tooShort': 'Das ist kürzer, als das Formular annimmt.',
+  'contact.error.tooLong': 'Das ist länger, als das Formular annimmt.',
+  'contact.error.email':
+    'Bitte geben Sie genau eine einfache E-Mail-Adresse ein.',
+  'contact.error.category': 'Bitte wählen Sie eine der Möglichkeiten.',
+  'contact.error.controlCharacter':
+    'Bitte entfernen Sie Zeilenumbrüche und Sonderzeichen aus diesem Feld.',
+  'contact.status.invalid':
+    'Die Nachricht wurde nicht gesendet. Bitte korrigieren Sie die oben markierten Felder.',
+  'contact.status.accepted':
+    'Ihre Nachricht wurde zur Zustellung angenommen. Sie ist an den Mailserver übergeben; ein Mensch liest sie, sobald sie ankommt.',
+  'contact.status.duplicate':
+    'Diese Nachricht war bereits angenommen, sie wurde also nicht ein zweites Mal gesendet.',
+  'contact.status.rejected':
+    'Das Formular hat diese Übermittlung abgelehnt. Wenn Sie sehr schnell ausgefüllt oder die Seite lange offen gelassen haben, laden Sie sie bitte neu und versuchen es erneut.',
+  'contact.status.rateLimited':
+    'Von hier wurden bereits mehrere Nachrichten gesendet. Bitte warten Sie eine Weile oder schreiben Sie direkt an {email}.',
+  'contact.status.undelivered':
+    'Die Nachricht konnte nicht übergeben werden. Es wurde nichts gesendet, es geht also nichts verloren: bitte später erneut versuchen oder direkt an {email} schreiben.',
+  'contact.status.offline':
+    'Die Nachricht konnte nicht gesendet werden. Bitte prüfen Sie Ihre Verbindung oder schreiben Sie direkt an {email}.',
+  'contact.fallback.title': 'Oder schreiben Sie selbst eine Mail',
+  'contact.fallback.body':
+    'Dasselbe Postfach ist direkt unter {email} erreichbar. Dieser Weg ist auch der richtige, wenn Sie kein Formular ausfüllen möchten oder das Formular bei Ihnen nicht funktioniert.',
+  'contact.security.title': 'Ein Sicherheitsproblem gehört woandershin',
+  'contact.security.body':
+    'Bitte senden Sie Einzelheiten zu einer Schwachstelle nicht über dieses Formular: es erreicht ein gewöhnliches Postfach. Die Sicherheitsrichtlinie sagt, was zu senden ist, wohin und was Sie erwarten können.',
+  'contact.security.link': 'Sicherheitsrichtlinie lesen',
+  'contact.privacy.title': 'Was mit Ihren Angaben passiert',
+  'contact.privacy.body':
+    'Name, Adresse, Betreff und Nachricht, die Sie eingeben, werden an das Koxora-Support-Postfach gesendet, damit Ihre Anfrage beantwortet werden kann. Sie werden für nichts anderes verwendet, nicht für Werbung weitergegeben, und es gibt keinen Newsletter, für den man angemeldet würde. Die Datenschutzerklärung beschreibt die Verarbeitung, die Rechtsgrundlage und wie lange die Mail aufbewahrt wird.',
+  'contact.privacy.link': 'Datenschutzerklärung',
+  'contact.unconfigured.title': 'Das Formular ist hier nicht eingeschaltet',
+  'contact.unconfigured.body':
+    'Für diese Installation ist kein Versanddienst konfiguriert, deshalb wird kein Formular gezeigt: ein Formular, das nirgends ankommt, wäre schlechter als eine Adresse. Schreiben Sie stattdessen an {email}.',
+  'contact.noscript':
+    'Das Formular funktioniert ohne JavaScript: es wird als gewöhnliches Formular gesendet, und Sie landen auf einer Seite, die sagt, was passiert ist. Mit JavaScript bleiben Sie stattdessen auf dieser Seite.',
+  'contactSent.meta.title': 'Nachricht angenommen',
+  'contactSent.meta.description':
+    'Ihre Nachricht wurde zur Zustellung an das Koxora-Support-Postfach angenommen.',
+  'contactSent.hero.eyebrow': 'Kontakt',
+  'contactSent.hero.title': 'Zur Zustellung angenommen',
+  'contactSent.hero.lead':
+    'Der Mailserver hat Ihre Nachricht übernommen. Ein Mensch liest sie, sobald sie im Postfach ankommt; für Sie ist nichts weiter zu tun.',
+  'contactSent.body':
+    'Keine Fassung dieser Seite enthält Ihre Nachricht, und es wird keine Bestätigungsmail versendet; in Ihrem Postfach kommt also nichts weiter an, bis jemand antwortet.',
+  'contactSent.back': 'Zurück zur Kontaktseite',
+  'contactProblem.meta.title': 'Die Nachricht wurde nicht gesendet',
+  'contactProblem.meta.description':
+    'Etwas hat die Übergabe der Nachricht verhindert. Es wurde nichts gesendet, und die E-Mail-Adresse ist ebenfalls veröffentlicht.',
+  'contactProblem.hero.eyebrow': 'Kontakt',
+  'contactProblem.hero.title': 'Die Nachricht wurde nicht gesendet',
+  'contactProblem.hero.lead':
+    'Es wurde nichts übergeben, es ist also nichts halb gesendet. Eines von wenigen Dingen ist passiert, und alle lassen sich erneut versuchen.',
+  'contactProblem.reason.invalid':
+    'Ein Feld war leer, zu kurz, zu lang oder enthielt Zeichen, die das Formular nicht annimmt. Gehen Sie zurück, dann markiert der Browser, was zu ändern ist.',
+  'contactProblem.reason.rateLimited':
+    'Von dieser Verbindung wurden bereits mehrere Nachrichten gesendet. Eine Weile warten oder direkt schreiben funktioniert beides.',
+  'contactProblem.reason.undelivered':
+    'Der Mailserver hat die Nachricht nicht übernommen. Das liegt auf unserer Seite, und ein späterer Versuch hilft meist.',
+  'contactProblem.back': 'Zurück zum Formular',
+
+  'cmp.status.supported': 'Unterstützt',
+  'cmp.status.supported.definition':
+    'Eine offizielle Seite nennt die Funktion für das, was betrachtet wurde.',
+  'cmp.status.limited': 'Eingeschränkt oder tarifabhängig',
+  'cmp.status.limited.definition':
+    'Vorhanden, aber nur in einem bestimmten Tarif, einer bestimmten Edition oder Situation, die die Antwort benennt.',
+  'cmp.status.notSupported': 'Nicht unterstützt',
+  'cmp.status.notSupported.definition':
+    'Eine offizielle Seite sagt, dass es für das Betrachtete nicht verfügbar ist.',
+  'cmp.status.planned': 'Geplant',
+  'cmp.status.planned.definition':
+    'Dokumentierter Koxora-Umfang, der nicht umgesetzt ist. Er wird nie als verfügbar dargestellt.',
+  'cmp.status.unknown': 'Nicht geprüft',
+  'cmp.status.unknown.definition':
+    'Für diese Prüfung wurde keine offizielle Aussage gefunden und gelesen. Das bedeutet nicht, dass die Funktion fehlt.',
+  'cmp.status.info': 'Angaben',
+  'cmp.status.info.definition':
+    'Eine Frage, die ein Ja oder Nein nicht beantworten würde; der Eintrag beschreibt, was gefunden wurde.',
+  'cmp.group.independence': 'Unabhängigkeit',
+  'cmp.group.work': 'Zeichnen und Dateien',
+  'cmp.group.together': 'Teams und Dienste',
+  'cmp.group.cost': 'Lizenz und Preis',
+  'cmp.dim.offline.label': 'Funktioniert offline',
+  'cmp.dim.offline.description':
+    'Ob Sie weiterarbeiten können, wenn die Verbindung abbricht oder nie bestand.',
+  'cmp.dim.onDevice.label': 'Ihre Arbeit bleibt auf Ihrem Gerät',
+  'cmp.dim.onDevice.description':
+    'Ob die Diagramme auf Ihrem eigenen Rechner in Ihren eigenen Dateien liegen statt nur in einem Anbieterkonto.',
+  'cmp.dim.withoutAccount.label': 'Nutzbar ohne Konto',
+  'cmp.dim.withoutAccount.description':
+    'Ob Sie etwas zeichnen können, bevor Sie sich registrieren.',
+  'cmp.dim.desktop.label': 'Desktop-Anwendung',
+  'cmp.dim.desktop.description':
+    'Ob es eine Anwendung zum Installieren gibt und für welche Betriebssysteme.',
+  'cmp.dim.diagramTypes.label': 'Diagrammtypen',
+  'cmp.dim.diagramTypes.description':
+    'Für welche Arten von Diagrammen der Editor gebaut ist.',
+  'cmp.dim.importExport.label': 'Import und Export',
+  'cmp.dim.importExport.description':
+    'Welche Formate hinein- und hinausgehen und ob Ihre Arbeit wieder herauskommt.',
+  'cmp.dim.collaboration.label': 'Zusammenarbeit',
+  'cmp.dim.collaboration.description':
+    'Gemeinsames Bearbeiten, Kommentare und Teilen mit anderen Menschen.',
+  'cmp.dim.ai.label': 'Assistenzfunktionen',
+  'cmp.dim.ai.description': 'Generierte Inhalte oder ein Assistent im Editor.',
+  'cmp.dim.integration.label': 'Integrationen und Erweiterungen',
+  'cmp.dim.integration.description':
+    'Verbindungen zu anderen Werkzeugen und ob der Editor eingebettet oder erweitert werden kann.',
+  'cmp.dim.licence.label': 'Lizenz- und Preismodell',
+  'cmp.dim.licence.description':
+    'Wie das Produkt lizenziert und bezahlt wird. Beträge stehen hier nicht, weil sie sich ändern und je nach Region und Währung unterschiedlich sind.',
+  'cmp.product.koxora.description':
+    'Ein local-first Studio für Diagramme, offen entwickelt.',
+  'cmp.product.koxora.examined':
+    'Der zusammengeführte Entwicklungsstand des öffentlichen Repositories. Es gibt keine öffentliche Veröffentlichung, aus dieser Spalte lässt sich heute also nichts installieren.',
+  'cmp.product.drawio.description':
+    'Ein weit verbreiteter Diagrammeditor, im Browser und als Desktop-Anwendung, mit Integrationen in andere Werkzeuge.',
+  'cmp.product.drawio.examined':
+    'Die offizielle Produktseite und das Repository der Desktop-Anwendung.',
+  'cmp.product.excalidraw.description':
+    'Ein quelloffener Editor im handgezeichneten Stil, mit einer gehosteten Version und einem bezahlten Dienst darum.',
+  'cmp.product.excalidraw.examined':
+    'Das Projekt-Repository und die Produktseite von Excalidraw+.',
+  'cmp.product.lucidchart.description':
+    'Ein browserbasiertes Diagrammprodukt für Teams, mit Tarifen von einer kostenlosen Stufe aufwärts.',
+  'cmp.product.lucidchart.examined':
+    'Die veröffentlichten Hilfeartikel zur Offline-Bearbeitung und zu den Systemanforderungen sowie die Preisseite.',
+  'cmp.product.miro.description':
+    'Ein gemeinsames Whiteboard für Workshops und Planung, unter anderem zum Zeichnen von Diagrammen.',
+  'cmp.product.miro.examined':
+    'Die veröffentlichte Preisseite und die Downloadseite der Anwendungen.',
+  'cmp.product.visio.description':
+    'Das lange etablierte Diagrammprodukt von Microsoft, verkauft innerhalb von Microsoft-365-Tarifen und als Einmalkauf.',
+  'cmp.product.visio.examined':
+    'Der veröffentlichte Tarifvergleich und der Versions- und Funktionsvergleich im Microsoft-Support.',
+  'cmp.offline.koxora':
+    'Local-first von Anfang an. Der Entwicklungsstand läuft im Browser und braucht nach dem Laden keinen Server, und Projekte bleiben auf dem Gerät.',
+  'cmp.offline.drawio':
+    'Die Desktop-Anwendung wird von ihren Entwicklern als vollständig vom Internet isoliert beschrieben, abgesehen von einer täglichen Aktualisierungsprüfung, die abgeschaltet werden kann.',
+  'cmp.offline.excalidraw':
+    'Der gehostete Editor ist als progressive Web-App ausgewiesen, die offline funktioniert und automatisch in den Browser speichert.',
+  'cmp.offline.lucidchart':
+    'Offline-Bearbeitung wird in Chrome, Firefox und Edge auf macOS, Windows und Linux in allen Tarifen angeboten. Neue Dokumente lassen sich offline nicht anlegen, Echtzeit-Zusammenarbeit braucht eine Verbindung, die Dokumente müssen vor dem Verbindungsverlust geöffnet sein, und ein privates Fenster behält die Änderungen nicht.',
+  'cmp.offline.miro':
+    'Desktop-Anwendungen sind veröffentlicht, aber für diese Prüfung wurde keine offizielle Aussage zur Offline-Nutzung gefunden und gelesen.',
+  'cmp.offline.visio':
+    'Offline-Arbeit und Unterstützung lokaler Dateien sind für die Desktop-Anwendung genannt, die Visio Plan 2 oder eine Desktop-Edition als Einmalkauf voraussetzt. Die reinen Web-Varianten sind ohne beides aufgeführt.',
+  'cmp.onDevice.koxora':
+    'Projekte liegen im Browserspeicher Ihres eigenen Geräts und lassen sich in Projektdateien schreiben und daraus zurücklesen. Kein Koxora-Server erhält sie, weil es keinen gibt.',
+  'cmp.onDevice.drawio':
+    'Die Entwickler geben an, keinen Zugriff auf Ihre Diagramme zu haben: der Online-Editor nutzt Speicher, den Sie selbst mitbringen, und die Desktop-Anwendung speichert in lokale Dateien.',
+  'cmp.onDevice.excalidraw':
+    'Der gehostete Editor speichert automatisch in den Browser, und eine Zeichnung lässt sich als offene JSON-Datei speichern.',
+  'cmp.onDevice.lucidchart':
+    'Dokumente liegen im Lucid-Dienst. Die Offline-Funktion beschreibt einen Browser-Zwischenspeicher von etwa zehn Megabyte statt lokaler Dateien; darüber hinaus wurde für diese Prüfung nichts belegt.',
+  'cmp.onDevice.miro':
+    'Für diese Prüfung wurde keine offizielle Aussage dazu gefunden und gelesen, wo Boards liegen oder ob sie als lokale Dateien behalten werden können.',
+  'cmp.onDevice.visio':
+    'Unterstützung lokaler Dateien ist für die Desktop-Anwendung genannt, die Plan 2 oder eine Edition als Einmalkauf voraussetzt. Das lokale Speichern eines Diagramms als PNG oder JPEG ist für die Microsoft-365-Varianten aufgeführt.',
+  'cmp.withoutAccount.koxora':
+    'Keine Registrierung und kein Konto, das man anlegen könnte: der Editor hat überhaupt keine Anmeldung.',
+  'cmp.withoutAccount.drawio':
+    'Die offizielle Startseite gibt an, dass kein Konto und keine Registrierung nötig sind.',
+  'cmp.withoutAccount.excalidraw':
+    'Der kostenlose Editor wird als ohne Konto nutzbar beschrieben. Excalidraw+ ist eine bezahlte Erweiterung, und deren Testphase setzt eine Anmeldung voraus.',
+  'cmp.withoutAccount.lucidchart':
+    'Für diese Prüfung wurde keine offizielle Aussage zur Nutzung des Editors ohne Konto gefunden und gelesen.',
+  'cmp.withoutAccount.miro':
+    'Für diese Prüfung wurde keine offizielle Aussage dazu gefunden und gelesen, ob ein Board ohne Konto geöffnet werden kann.',
+  'cmp.withoutAccount.visio':
+    'Microsoft gibt an, dass der Webzugang ein Microsoft-365-Geschäfts- oder Schulkonto braucht und dass persönliche Identitäten wie outlook.com nicht unterstützt werden. Die Desktop-Anwendung braucht eine zugewiesene Lizenz.',
+  'cmp.desktop.koxora':
+    'Ein Desktop-Build für Linux, Windows und macOS ist dokumentierter Produktumfang und nicht umgesetzt. Es gibt keinen Download.',
+  'cmp.desktop.drawio':
+    'Installationspakete sind veröffentlicht für Windows, darunter ein ARM64- und ein portabler Build, für Linux als AppImage, deb und rpm sowie über die Snap- und Flatpak-Stores, und für macOS.',
+  'cmp.desktop.excalidraw':
+    'Das Repository dokumentiert die gehostete Web-Anwendung, die es als installierbar und offline nutzbar ausweist. Zu einer offiziellen Desktop-Anwendung wurde für diese Prüfung nichts belegt.',
+  'cmp.desktop.lucidchart':
+    'Die veröffentlichten Systemanforderungen beschreiben unterstützte Browser und die Betriebssysteme, auf denen sie laufen. Zu einer Desktop-Anwendung wurde für diese Prüfung nichts belegt.',
+  'cmp.desktop.miro':
+    'Desktop-Anwendungen werden für macOS angeboten, getrennt für Apple Silicon und Intel, sowie für Windows, auch über den Microsoft Store.',
+  'cmp.desktop.visio':
+    'Die Desktop-Anwendung ist für Visio Plan 2 und für die Editionen als Einmalkauf aufgeführt. Visio Plan 1 und Visio in Microsoft 365 sind als reine Web-Varianten aufgeführt.',
+  'cmp.diagramTypes.koxora':
+    'Der zusammengeführte Studio-2.5-Entwicklungsstand unterstützt Formen, Rich Text, Verbindungen mit Anschlusspunkten, Freihandstriche und mehrere Dokumente/Seiten je Projekt. Geführte Diagrammarten und semantisches Auto-Layout bleiben geplant.',
+  'cmp.diagramTypes.drawio':
+    'Für diese Prüfung nicht belegt. Die offiziellen Formbibliotheken sind umfangreich; welche Familien sie abdecken, wurde nicht gegen eine einzelne offizielle Seite bestätigt.',
+  'cmp.diagramTypes.excalidraw':
+    'Für diese Prüfung nicht belegt, abgesehen davon, dass sich das Projekt selbst als virtuelles Whiteboard im handgezeichneten Stil beschreibt.',
+  'cmp.diagramTypes.lucidchart': 'Für diese Prüfung nicht belegt.',
+  'cmp.diagramTypes.miro': 'Für diese Prüfung nicht belegt.',
+  'cmp.diagramTypes.visio':
+    'Microsoft führt das Ansehen und Bearbeiten von Dateien auf, die mit Visio 2000 und später erstellt wurden, und zwar für alle Microsoft-365-Varianten. Der vollständige Satz an Schablonen je Tarif wurde für diese Prüfung nicht belegt.',
+  'cmp.importExport.koxora':
+    'Projektarchive lassen sich schreiben und lesen, und ein Projekt lässt sich daraus wiederherstellen. Im zusammengeführten Stand gibt es keinen Bildexport und keinen Import aus anderen Werkzeugen; die Funktionsseite sagt das ebenfalls.',
+  'cmp.importExport.drawio': 'Für diese Prüfung nicht belegt.',
+  'cmp.importExport.excalidraw':
+    'Eine Zeichnung lässt sich als offene JSON-Datei exportieren, die das Projekt als eigenes Format beschreibt.',
+  'cmp.importExport.lucidchart': 'Für diese Prüfung nicht belegt.',
+  'cmp.importExport.miro': 'Für diese Prüfung nicht belegt.',
+  'cmp.importExport.visio':
+    'Das lokale Speichern eines Diagramms als PNG oder JPEG ist für die Microsoft-365-Varianten aufgeführt, ebenso das Ansehen und Bearbeiten von Dateien, die mit Visio 2000 und später erstellt wurden.',
+  'cmp.collaboration.koxora':
+    'Gemeinsames Bearbeiten ist dokumentierter Produktumfang und nicht umgesetzt. Nichts auf dieser Website stellt es als verfügbar dar.',
+  'cmp.collaboration.drawio': 'Für diese Prüfung nicht belegt.',
+  'cmp.collaboration.excalidraw':
+    'Das Projekt beschreibt sich selbst als kollaborativ und Ende-zu-Ende verschlüsselt.',
+  'cmp.collaboration.lucidchart':
+    'Echtzeit-Zusammenarbeit ist als Funktion des Produkts genannt und als eine, die eine Verbindung braucht.',
+  'cmp.collaboration.miro':
+    'Boards werden standardmäßig mit den Mitgliedern eines Teams geteilt. Im kostenlosen Tarif lassen sich unbegrenzt Boards anlegen, bearbeitbar bleiben aber nur die drei neuesten, und es gibt keine Besucher- oder Gastrollen.',
+  'cmp.collaboration.visio': 'Für diese Prüfung nicht belegt.',
+  'cmp.ai.koxora':
+    'Optionale Assistenz ist dokumentierter Produktumfang und nicht umgesetzt. Sie ist als optional geplant, ein Koxora ohne sie bleibt also vollständig.',
+  'cmp.ai.drawio': 'Für diese Prüfung nicht belegt.',
+  'cmp.ai.excalidraw':
+    'Generative Funktionen und eine Schnittstelle, über die ein Agent in einen Arbeitsbereich zeichnen kann, sind als Teil des bezahlten Angebots Excalidraw+ aufgeführt.',
+  'cmp.ai.lucidchart': 'Für diese Prüfung nicht belegt.',
+  'cmp.ai.miro':
+    'Assistenz wird mit einem tarifabhängigen Guthaben angeboten; der kostenlose Tarif ist als eingeschränkter Test aufgeführt, den die Fragen zur Preisgestaltung mit zehn Guthaben pro Monat beschreiben.',
+  'cmp.ai.visio': 'Für diese Prüfung nicht belegt.',
+  'cmp.integration.koxora':
+    'Integrationen und eine Plugin-Schnittstelle sind dokumentierter Produktumfang und nicht umgesetzt.',
+  'cmp.integration.drawio':
+    'Die offizielle Startseite nennt Google Drive, Docs und Slides, Microsoft SharePoint, OneDrive und Teams, Atlassian Confluence und Jira, GitHub-Repositories und Markdown, eine Editor-Erweiterung für VS Code und eine Erweiterung für Notion.',
+  'cmp.integration.excalidraw':
+    'Der Editor ist als Paket veröffentlicht, das andere Anwendungen einbetten können, und das Projekt ist quelloffen, also erweiterbar.',
+  'cmp.integration.lucidchart': 'Für diese Prüfung nicht belegt.',
+  'cmp.integration.miro':
+    'Die Preisseite nennt mehr als 250 Anwendungen, verfügbar ab dem kostenlosen Tarif.',
+  'cmp.integration.visio': 'Für diese Prüfung nicht belegt.',
+  'cmp.licence.koxora':
+    'Der Quellcode ist öffentlich. Eine Lizenz ist noch nicht veröffentlicht, es werden also bis dahin keine Rechte eingeräumt, und es gibt keinen Preis, weil es keine Veröffentlichung gibt. Das Impressum sagt dasselbe.',
+  'cmp.licence.drawio':
+    'Die Desktop-Anwendung ist unter der GPL Version 3 veröffentlicht und frei nutzbar. Der Online-Editor verlangt kein Konto.',
+  'cmp.licence.excalidraw':
+    'Der Editor ist unter der MIT-Lizenz veröffentlicht und wird als dauerhaft kostenlos beschrieben. Excalidraw+ ist ein bezahltes Angebot mit Testphase.',
+  'cmp.licence.lucidchart':
+    'Ein Abonnementprodukt mit einer kostenlosen Stufe. Die Tarifnamen, ihre Grenzen und die Beträge stehen auf der offiziellen Preisseite und werden hier nicht wiedergegeben, weil sie sich ändern und je nach Region unterschiedlich sind.',
+  'cmp.licence.miro':
+    'Die Tarife Free, Starter, Business und Enterprise. Im kostenlosen Tarif lassen sich unbegrenzt Boards anlegen, bearbeitbar bleiben aber nur die drei neuesten.',
+  'cmp.licence.visio':
+    'Visio in Microsoft 365, Visio Plan 1 und Visio Plan 2 sind Abonnements, und zusätzlich gibt es Desktop-Editionen als Einmalkauf. Nur Plan 2 und die Einmalkauf-Editionen sind mit der Desktop-Anwendung aufgeführt.',
+  'cmp.table.title': 'Zehn Fragen, sechs Produkte',
+  'cmp.table.description':
+    'Jede Antwort sagt, was gefunden wurde, und verweist auf die Seite, die es belegt. Mit den Filtern können Sie sich eine Frage oder ein Produkt einzeln ansehen.',
+  'cmp.table.caption':
+    'Koxora im Vergleich mit fünf anderen Diagrammwerkzeugen',
+  'cmp.table.question': 'Frage',
+  'cmp.filter.topics': 'Diese Themen zeigen',
+  'cmp.filter.products': 'Diese Produkte zeigen',
+  'cmp.filter.status':
+    '{rows} von {total} Fragen und {columns} von {products} Produkten werden gezeigt.',
+  'cmp.filter.reset': 'Wieder alles zeigen',
+  'cmp.filter.hint':
+    'Der Filter ist eine Bequemlichkeit. Ohne ihn und ohne JavaScript wird die ganze Tabelle gezeigt.',
+  'cmp.legend.title': 'Was die Antworten bedeuten',
+  'cmp.sources.title': 'Quellen',
+  'cmp.sources.note':
+    'Jede Seite in dieser Liste wurde am angegebenen Datum gelesen, und es wird hier nichts behauptet, was über diese Seiten hinausgeht. Wenn sich etwas geändert hat oder etwas falsch ist, schreiben Sie an {email}, dann wird es korrigiert.',
+  'cmp.sources.checkedOn': 'Gelesen am {date}',
+  'cmp.checked':
+    'Vergleichsinhalte aktualisiert am {date}. Die Prüfdaten der einzelnen Quellen stehen unten.',
+  'cmp.disclaimer.title': 'Was dieser Vergleich nicht ist',
+  'cmp.disclaimer.body':
+    'Er ist vom Koxora-Projekt geschrieben, lesen Sie ihn also als solchen. Er behauptet nicht, Koxora sei besser: er beantwortet zehn Fragen und zeigt, woher jede Antwort kommt. Mehrere dieser Produkte können Dinge, die Koxora nicht kann, und die Tabelle sagt das. Produktnamen und Marken gehören ihren Inhabern und werden zur Bezeichnung der Produkte verwendet, nicht um eine Empfehlung zu suggerieren.',
+  'cmp.pages.title': 'Ein Werkzeug auf einmal',
+  'cmp.pages.note':
+    'Kürzere Seiten, die dieselben Fragen für ein einzelnes Produkt beantworten, mit Hinweisen, welches Werkzeug zu welcher Aufgabe passt.',
+  'cmp.page.hero.eyebrow': 'Vergleich',
+  'cmp.page.table.title': 'Nebeneinander',
+  'cmp.page.choose.title': 'Was zu welcher Aufgabe passt',
+  'cmp.page.strengths.title': 'Was {product} gut macht',
+  'cmp.page.koxora.title': 'Was Koxora anders macht',
+  'cmp.page.chooseOther': '{product} passt, wenn',
+  'cmp.page.chooseKoxora': 'Koxora passt, wenn',
+  'cmp.page.full': 'Alle sechs Produkte, alle zehn Fragen',
+  'cmp.page.drawio.meta.title': 'Koxora im Vergleich mit draw.io',
+  'cmp.page.drawio.meta.description':
+    'draw.io und Koxora nebeneinander: Offline-Nutzung, wo die Dateien liegen, Konten, Desktop-Anwendungen und Lizenzen, jeweils mit Quelle und Prüfdatum.',
+  'cmp.page.drawio.hero.title': 'Koxora und draw.io',
+  'cmp.page.drawio.hero.lead':
+    'draw.io ist dem am nächsten, was Koxora werden will, und es ist bereits fertig. Diese Seite sagt, wo sich beide unterscheiden, mit einer Quelle für jede Aussage über draw.io.',
+  'cmp.page.drawio.strengths.body':
+    'Die Desktop-Anwendung wird von ihren Entwicklern als vollständig vom Internet isoliert beschrieben, abgesehen von einer täglichen Aktualisierungsprüfung, die abgeschaltet werden kann. Sie ist unter der GPL Version 3 veröffentlicht, für Windows einschließlich eines ARM64- und eines portablen Builds, für Linux als AppImage, deb, rpm, Snap und Flatpak sowie für macOS. Der Online-Editor braucht kein Konto und nutzt Speicher, den Sie selbst mitbringen, und die offizielle Seite nennt Integrationen mit Google, Microsoft, Atlassian, GitHub, VS Code und Notion. Es ist ein ausgereiftes Werkzeug mit einer großen Formbibliothek und Jahren an Nutzung.',
+  'cmp.page.drawio.koxora.body':
+    'Koxora steht am Anfang und hat keine öffentliche Veröffentlichung, der ehrliche Vergleich dreht sich heute also um die Absicht und nicht um ein fertiges Produkt. Koxora ist als ein Editor mit einem portablen Projektformat über Browser und Desktop gebaut, mit Deutsch und Englisch im Produkt ab der ersten Version und mit Cloud, Assistenz und Zusammenarbeit als optionalen Teilen statt als Standard. Vorhanden ist heute der Entwicklungsstand im offenen Repository: Formen, Text und Verbindungen, Projekte auf dem Gerät und Projektdateien, die geschrieben und gelesen werden können.',
+  'cmp.page.drawio.chooseOther':
+    'Sie heute ein fertiges Werkzeug brauchen, die große Formbibliothek wollen, in Google, Microsoft, Atlassian oder GitHub arbeiten oder eine installierte Anwendung wollen, die überhaupt nicht mit dem Internet spricht.',
+  'cmp.page.drawio.chooseKoxora':
+    'Sie ein Werkzeug begleiten wollen, das offen entwickelt wird, Wert auf ein portables Projektformat und eine deutsche Oberfläche von Anfang an legen und auf eine Veröffentlichung warten können.',
+  'cmp.page.miro.meta.title': 'Koxora im Vergleich mit Miro',
+  'cmp.page.miro.meta.description':
+    'Miro und Koxora nebeneinander: Zusammenarbeit, Offline-Nutzung, wo Boards liegen, Konten und Tarife, jeweils mit Quelle und Prüfdatum.',
+  'cmp.page.miro.hero.title': 'Koxora und Miro',
+  'cmp.page.miro.hero.lead':
+    'Miro und Koxora sind für unterschiedliche Situationen gebaut: ein gemeinsames Board für einen Workshop und ein Diagramm, das Sie auf Ihrem Rechner behalten. Diese Seite sagt, wo dieser Unterschied sichtbar wird, mit einer Quelle für jede Aussage über Miro.',
+  'cmp.page.miro.strengths.body':
+    'Miro ist für Menschen gebaut, die zusammenarbeiten. Boards werden standardmäßig mit einem Team geteilt, es gibt Desktop-Anwendungen für macOS, für Apple Silicon wie für Intel, und für Windows, die Preisseite nennt mehr als 250 Integrationen ab dem kostenlosen Tarif, und Assistenz wird mit einem Guthaben je Tarif angeboten. Für einen Workshop mit einem Dutzend Menschen auf einer Fläche ist es genau dafür gemacht, und das ist eine andere Aufgabe, als ein Diagramm zu zeichnen und die Datei zu behalten.',
+  'cmp.page.miro.koxora.body':
+    'Koxora beginnt am anderen Ende: die Arbeit ist Ihre, auf Ihrem Gerät, und ein Dienst ist etwas, das Sie hinzufügen können, statt etwas, mit dem Sie anfangen. Projekte liegen auf dem Gerät und in Projektdateien, nichts braucht ein Konto, und gemeinsames Bearbeiten ist als optional geplant. Koxora hat keine öffentliche Veröffentlichung, Miro ist heute also ein funktionierendes Produkt und Koxora nicht.',
+  'cmp.page.miro.chooseOther':
+    'es darum geht, dass eine Gruppe gleichzeitig auf einer Fläche arbeitet, Sie einen großen Katalog an Integrationen wollen oder Sie Workshops leiten und Vorlagen und Moderationswerkzeuge brauchen.',
+  'cmp.page.miro.chooseKoxora':
+    'das Diagramm wichtiger ist als die Besprechung, die Datei auf Ihrem Rechner bleiben muss, Sie ohne Konto und ohne Verbindung arbeiten wollen und auf eine Veröffentlichung warten können.',
+  'cmp.page.lucidchart.meta.title': 'Koxora im Vergleich mit Lucidchart',
+  'cmp.page.lucidchart.meta.description':
+    'Lucidchart und Koxora nebeneinander: Offline-Bearbeitung, wo Dokumente liegen, Konten, Zusammenarbeit und Tarife, jeweils mit Quelle und Prüfdatum.',
+  'cmp.page.lucidchart.hero.title': 'Koxora und Lucidchart',
+  'cmp.page.lucidchart.hero.lead':
+    'Lucidchart ist ein Diagrammprodukt für Teams, das auch offline im Browser funktioniert — das sollte man wissen, bevor jemand das Gegenteil behauptet. Diese Seite sagt, wo es sich von Koxora unterscheidet, mit einer Quelle für jede Aussage über Lucidchart.',
+  'cmp.page.lucidchart.strengths.body':
+    'Offline-Bearbeitung wird in allen Tarifen angeboten, in Chrome, Firefox und Edge, auf macOS, Windows und Linux, mit den Dokumenten, die Sie bereits geöffnet haben: der Browser behält die Änderungen und überträgt sie, sobald die Verbindung zurückkommt. Echtzeit-Zusammenarbeit ist Teil des Produkts, und die veröffentlichten Systemanforderungen sind bei Browsern und Betriebssystemen sehr konkret. Es ist ein Teamprodukt mit einer kostenlosen Stufe und bezahlten Tarifen.',
+  'cmp.page.lucidchart.koxora.body':
+    'Der Unterschied liegt nicht darin, ob es Offline gibt, sondern wo die Arbeit liegt. Lucidchart hält Dokumente im eigenen Dienst und legt für Offline-Änderungen etwa zehn Megabyte im Browser ab; Koxora behält Projekte auf dem Gerät und in Projektdateien, ohne Konto und ohne Server dahinter. Lucidchart ist ein fertiges Produkt und Koxora hat keine öffentliche Veröffentlichung, das ist also ein Vergleich von Entwürfen, nicht von Reife.',
+  'cmp.page.lucidchart.chooseOther':
+    'Ihr Team schon in Lucid arbeitet, Sie Echtzeit-Zusammenarbeit und Kommentare brauchen oder Sie ein fertiges Produkt mit Support dahinter wollen.',
+  'cmp.page.lucidchart.chooseKoxora':
+    'die Datei auf Ihrem Rechner statt in einem Anbieterkonto liegen muss, Sie ohne Registrierung anfangen wollen und auf eine Veröffentlichung warten können.',
+  'feature.freehand.title': 'Freihandzeichnen',
+  'feature.freehand.body':
+    'Mit Maus, Touch, Stift oder Tastatur skizzieren. Strichfarbe und -breite wählen und jeden Strich wie ein Objekt verschieben, skalieren, kopieren oder löschen. Striche werden offline im Projekt gespeichert; Druckpinsel und Radierer sind nicht enthalten.',
+  'docsEditing.fonts.title': 'Schriften, Farben und Textgrenzen',
+  'docsEditing.fonts.body':
+    'Das durchsuchbare Menü zeigt 20 Schriftoptionen mit Vorschau und nutzt installierte Schriften sowie Ersatzschriften. Es werden keine Schriften heruntergeladen; zwei fehlende Familien können auf Ihrem Gerät gleich aussehen. Größen reichen von 8 bis 96. Automatische Farbe passt sich dem Hintergrund an; ausdrücklich gewählte Farben bleiben erhalten. Eine Beschriftung enthält bis zu 4.096 Zeichen. Eine kleine Form kann die Anzeige abschneiden, ohne gespeicherten Text zu verwerfen: Form vergrößern oder Schrift verkleinern.',
+  'docsEditing.batch.title': 'Mehrere Objekte gemeinsam ändern',
+  'docsEditing.batch.body':
+    'Objekte mit Umschalt-Klick oder einem Auswahlrahmen markieren und Elementeigenschaften oder das Kontextmenü öffnen. Gemischte Werte bleiben unverändert, bis Sie diese Eigenschaft bearbeiten. Eine Farbänderung erhält Schriftwahl und andere Formatierungen. Jede gemeinsame Änderung ist ein Rückgängig-Schritt; angeboten werden nur Eigenschaften, die zu den ausgewählten Objekten passen.',
+  'docsEditing.arrange.title': 'Ausrichten, Anordnen und Stapeln',
+  'docsEditing.arrange.body':
+    'Ausrichten erscheint ab zwei ausgewählten Formen, Verteilen benötigt drei. Darüberfahren oder Fokussieren zeigt eine Vorschau, Escape bricht ab. Ausrichten legt Kanten oder Mittelpunkte zusammen und kann Objekte überlappen lassen. Ohne Überlappung anordnen ist eine separate Aktion, die ausgewählte bearbeitbare Objekte um sichtbare Hindernisse herum platziert. Eine Stufe nach vorn/hinten sowie Ganz nach vorn/hinten ordnen Formen und Verbindungen innerhalb ihrer bestehenden Ebene. Jeder Befehl lässt sich rückgängig machen; eine vollständige Ebenenverwaltung gibt es noch nicht.',
+  'docsEditing.pen.title': 'Freihändig zeichnen',
+  'docsEditing.pen.body':
+    'Freihandstift wählen, Strichfarbe und -breite einstellen und mit Maus, Touch oder Stift zeichnen. Jeder abgeschlossene Strich ist ein bearbeitbares Objekt und wird in .koxora gespeichert. Mit der Tastatur startet Enter in der Ansichtsmitte, Pfeiltasten verlängern den Strich, Umschalt vergrößert die Schritte und Enter beendet ihn. Escape verwirft einen unfertigen Strich. Druck- oder Neigungspinsel, Radierer und das Bearbeiten einzelner Punkte sind nicht enthalten.',
+  'docsProjects.pages.title': 'Dokumente und Diagrammseiten',
+  'docsProjects.pages.body':
+    'Ein .koxora-Projekt kann mehrere Dokumente mit jeweils eigenen Diagrammseiten enthalten. Im Projekt-Navigator der Seitenleiste zwischen Seiten wechseln; die erweiterte Arbeitsfläche öffnet denselben Navigator über ihre Schaltfläche. Jede Seite behält Zoom, Position und Raster. Das abgenommene Studio 2.5 nutzt diese gemeinsame Hierarchie anstelle der ursprünglich geplanten Diagramm-Tabs am unteren Rand.',
+  'docsProjects.actions.title': 'Seiten erstellen und organisieren',
+  'docsProjects.actions.body':
+    'Neues Dokument und Neue Seite verwenden, mit Doppelklick oder F2 umbenennen und mit Rechtsklick, Umschalt+F10 oder der Aktionsschaltfläche einer Zeile die Seitenaktionen öffnen. Eine Seite duplizieren, durch Ziehen oder Alt+Pfeil oben/unten sortieren oder in ein anderes Dokument desselben Projekts verschieben. Löschen benötigt eine Bestätigung und unterstützt Rückgängig. Die letzte Seite eines Dokuments und das letzte Dokument eines Projekts sind geschützt. Auch referenzierte Seiten können geschützt sein; Seiten zwischen verschiedenen Projekten zu verschieben wird nicht unterstützt.',
+  'docsProjects.trash.title': 'Projekte wechseln, kopieren und löschen',
+  'docsProjects.trash.body':
+    'Der Navigator listet lokale Projekte. Beim Wechseln wird die aktuelle Arbeit zuerst gespeichert; schlägt das Speichern fehl, bleibt sie geöffnet. Duplizieren erstellt eine vollständige Projektkopie mit neuer Projektidentität. Projekt löschen benötigt eine Bestätigung und verschiebt es in den lokalen Papierkorb; Projekt wiederherstellen bringt es mitsamt Wiederherstellungsdaten zurück. Der Papierkorb gehört zu diesem Gerät, ist weder Export noch Sicherung und löscht keine exportierten .koxora-Dateien.',
+  'faq.pages.q': 'Wo sind die Diagramm-Tabs?',
+  'faq.pages.a':
+    'Studio 2.5 bietet mehrere Diagrammseiten über einen Projekt-Navigator in der Seitenleiste: Projekt, Dokument, Seite. Er ersetzt die ursprünglich geplanten unteren Tabs. Dort Seiten erstellen, umbenennen, duplizieren, sortieren oder löschen und zwischen Dokumenten desselben Projekts verschieben. Jede Seite behält ihre eigene Ansicht.',
+  'faq.richText.q':
+    'Kann ich nur ein Wort formatieren, und muss ich Schriften herunterladen?',
+  'faq.richText.a':
+    'Ja: Im Texteditor an der Arbeitsfläche ein Wort oder einen Abschnitt markieren und Schrift, Größe, Fett, Kursiv, Unterstrichen oder Farbe ändern. Die 20 durchsuchbaren Schriftoptionen verwenden installierte Familien und Ersatzschriften. Es gibt keine externen Schrift-Downloads; fehlende Familien können gleich aussehen und das Layout kann zwischen Systemen variieren. Formatierungen werden in .koxora gespeichert.',
+  'faq.pen.q': 'Kann ich freihändig skizzieren?',
+  'faq.pen.a':
+    'Ja. Der Freihandstift unterstützt Zeichnen mit Maus, Touch, Stift und Tastatur sowie Strichfarbe und -breite. Fertige Striche lassen sich als Objekte bearbeiten und offline speichern. Druck- und Neigungspinsel, Radierer und Punktbearbeitung sind nicht implementiert.',
+  'faq.links.q': 'Kann eine Form auf eine andere Seite oder Website verlinken?',
+  'faq.links.a':
+    'Das Erstellen und Aktivieren interaktiver Links ist noch nicht implementiert. Die normale Seitennavigation ist in der Seitenleiste vorhanden; Formen werden dadurch nicht zu anklickbaren Links. Seiten zwischen Projekten zu übertragen und eine vollständige Ebenenverwaltung bleiben ebenfalls zukünftige Arbeit.',
+  'milestone.workbook.title': 'Seiten, Rich Text und Freihandbearbeitung',
+  'milestone.workbook.body':
+    'Studio 2.5: Projekt-/Dokument-/Seitennavigation, Wortformatierung, Offline-Schriftoptionen, gemeinsame Eigenschaften, Freihandstift, Stapelreihenfolge und Anordnen ohne Überlappung. Manuell abgenommen und zusammengeführt; keine öffentliche Version.',
+  'docsEditing.rich.alt':
+    'Der Studio-2.5-Texteditor an der Arbeitsfläche mit unterschiedlicher Wortformatierung und Schriftleiste.',
+  'docsEditing.rich.caption':
+    'Der Studio-2.5-Texteditor an der Arbeitsfläche mit unterschiedlicher Wortformatierung und Schriftleiste. Aufnahme des abgenommenen Entwicklungsstands; keine öffentliche Version.',
+  'docsEditing.pen.alt':
+    'Der Studio-2.5-Freihandstift und ein gezeichneter Strich neben einem Diagramm.',
+  'docsEditing.pen.caption':
+    'Der Studio-2.5-Freihandstift und ein gezeichneter Strich neben einem Diagramm. Aufnahme des abgenommenen Entwicklungsstands; keine öffentliche Version.',
+  'docsProjects.shot.alt':
+    'Der Studio-2.5-Seitenleisten-Navigator mit mehreren Dokumenten und Seiten sowie dem Seiten-Kontextmenü.',
+  'docsProjects.shot.caption':
+    'Der Studio-2.5-Seitenleisten-Navigator mit mehreren Dokumenten und Seiten sowie dem Seiten-Kontextmenü. Aufnahme des abgenommenen Entwicklungsstands; keine öffentliche Version.',
 };

@@ -7,12 +7,25 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readFile, realpath, stat } from 'node:fs/promises';
-import { createServer } from 'node:http';
+import { createServer, request as httpRequest } from 'node:http';
 import { extname, join, normalize, resolve, sep, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cacheControlFor, isHiddenPath, securityHeaders } from './hosting.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const server = await import(resolve(root, 'dist-ssr/entry-server.js'));
+
+// The policy is the consent configuration plus whatever the contact form
+// needs, so one build cannot allow a form the policy then blocks.
+function policyExtras() {
+  const extras = { ...server.consentPolicyExtras() };
+  for (const [directive, sources] of Object.entries(
+    server.contactPolicyExtras(),
+  ))
+    extras[directive] = [
+      ...new Set([...(extras[directive] ?? []), ...sources]),
+    ];
+  return extras;
+}
 const redirects = new Map(
   server.redirects().map((entry) => [entry.from, entry]),
 );
@@ -20,7 +33,7 @@ const headers = securityHeaders(
   [server.themeScript, server.languageGatewayScript].map((text) =>
     createHash('sha256').update(text).digest('base64'),
   ),
-  server.consentPolicyExtras(),
+  policyExtras(),
 );
 const types = new Map(
   Object.entries({
@@ -74,7 +87,37 @@ async function notFound(dir, response, pathname) {
   });
   response.end(file ? await readFile(file) : 'Not found');
 }
-export function startServer({ dir, port, host = '127.0.0.1' }) {
+/**
+ * Forwards one path to another local address, so the preview can answer the
+ * contact endpoint the way production does: on the site's own origin, behind
+ * the same host, with no cross-origin request and no CORS in sight.
+ *
+ * This is a preview and test convenience. In production the public Apache
+ * proxies that path to the delivery container; nothing here is deployed.
+ */
+function forward(target, request, response) {
+  const upstream = new URL(target);
+  const proxied = httpRequest(
+    {
+      protocol: upstream.protocol,
+      hostname: upstream.hostname,
+      port: upstream.port,
+      method: request.method,
+      path: request.url,
+      headers: { ...request.headers, host: upstream.host },
+    },
+    (answer) => {
+      response.writeHead(answer.statusCode ?? 502, answer.headers);
+      answer.pipe(response);
+    },
+  );
+  proxied.on('error', () => {
+    if (!response.headersSent) response.writeHead(502);
+    response.end();
+  });
+  request.pipe(proxied);
+}
+export function startServer({ dir, port, host = '127.0.0.1', contactProxy }) {
   return new Promise((ready, failed) => {
     const instance = createServer(async (request, response) => {
       try {
@@ -82,6 +125,10 @@ export function startServer({ dir, port, host = '127.0.0.1' }) {
         // be able to take the server down.
         const url = new URL(request.url ?? '/', 'http://localhost');
         const pathname = url.pathname;
+        if (contactProxy && pathname.startsWith('/api/contact')) {
+          forward(contactProxy, request, response);
+          return;
+        }
         if (pathname === '/') {
           // The documented negotiation: the stored choice first, then the
           // languages of the request, then the fallback. The answer depends on

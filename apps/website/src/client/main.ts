@@ -12,6 +12,11 @@ import {
   type ConsentRuntimeConfig,
 } from './consent';
 import {
+  honeypotField,
+  timestampField,
+  validateContact,
+} from '@koxora/contact';
+import {
   languageCookieAttributes,
   languageCookieName,
   languageStorageKey,
@@ -245,6 +250,199 @@ function setupLanguageMenu(): void {
     }, 140);
   });
 }
+/**
+ * The comparison filter. The table is complete without it, so the controls
+ * stay hidden until this runs: a checkbox that filters nothing would be worse
+ * than no checkbox. Rows carry their topic group and cells carry their
+ * product, so filtering is a matter of hiding, never of rebuilding.
+ */
+function setupComparisonFilter(): void {
+  for (const comparison of document.querySelectorAll<HTMLElement>(
+    '[data-comparison-filterable]',
+  )) {
+    const form = comparison.querySelector<HTMLFormElement>(
+      '[data-comparison-filter]',
+    );
+    const table = comparison.querySelector('table');
+    if (!form || !table) continue;
+    form.hidden = false;
+    const status = form.querySelector<HTMLElement>('[data-comparison-status]');
+    const checked = (name: string) =>
+      new Set(
+        [
+          ...form.querySelectorAll<HTMLInputElement>(
+            `input[name="${name}"]:checked`,
+          ),
+        ].map((input) => input.value),
+      );
+    const apply = () => {
+      const groups = checked('group');
+      const shown = checked('product');
+      const rows = [...table.querySelectorAll<HTMLTableRowElement>('tbody tr')];
+      let visibleRows = 0;
+      for (const row of rows) {
+        const visible = groups.has(row.dataset.group ?? '');
+        row.hidden = !visible;
+        if (visible) visibleRows += 1;
+      }
+      const cells = [...table.querySelectorAll<HTMLElement>('[data-product]')];
+      for (const cell of cells)
+        cell.hidden = !shown.has(cell.dataset.product ?? '');
+      if (status) {
+        const products = table.querySelectorAll('thead [data-product]').length;
+        status.textContent = (status.dataset.statusTemplate ?? '')
+          .replace('{rows}', String(visibleRows))
+          .replace('{total}', String(rows.length))
+          .replace('{columns}', String(shown.size))
+          .replace('{products}', String(products));
+      }
+    };
+    form.addEventListener('change', apply);
+    // A reset restores the defaults after the browser has applied them.
+    form.addEventListener('reset', () => window.setTimeout(apply, 0));
+    // The form must never navigate: it filters what is already on the page.
+    form.addEventListener('submit', (event) => event.preventDefault());
+    apply();
+  }
+}
+/**
+ * The contact form, enhanced.
+ *
+ * Without this the form is an ordinary form: it posts to the delivery
+ * service, which answers a classic post with a redirect to a page that says
+ * what happened. This keeps the reader on the page instead, validates with
+ * the same rules the service uses, and shows the answer in a live region.
+ *
+ * It assembles no text: every sentence it can show is already in the markup
+ * or in a data attribute, rendered in the reader's language at build time.
+ */
+function setupContactForm(): void {
+  const form = document.querySelector<HTMLFormElement>('[data-contact-form]');
+  if (!form) return;
+  const endpoint = form.dataset.endpoint;
+  const status = form.querySelector<HTMLElement>('[data-contact-status]');
+  const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+  if (!endpoint || !status || !submit) return;
+  // With this script present, the form's own validation is the one that
+  // runs: its messages are in the reader's language and it names every
+  // problem at once. Without the script the browser's native validation
+  // stays on, which saves a round trip for a reader who has no script.
+  form.noValidate = true;
+  const opened = form.querySelector<HTMLInputElement>('[data-contact-opened]');
+  // When the form became visible. The service refuses a submission that was
+  // faster than a person could type.
+  if (opened) opened.value = String(Date.now());
+  const fields = () => [...form.querySelectorAll<HTMLElement>('[data-field]')];
+  const showProblem = (field: string, problem: string | null) => {
+    const holder = form.querySelector<HTMLElement>(
+      `[data-error-for="${field}"]`,
+    );
+    const control = form.querySelector<HTMLInputElement>(`[name="${field}"]`);
+    if (!holder) return;
+    for (const message of holder.querySelectorAll<HTMLElement>(
+      '[data-problem]',
+    ))
+      message.hidden = message.dataset.problem !== problem;
+    holder.dataset.visible = problem ? 'true' : 'false';
+    // The control itself carries the state, so a screen reader announces the
+    // field as invalid rather than only reading a sentence beside it.
+    if (control) {
+      if (problem) control.setAttribute('aria-invalid', 'true');
+      else control.removeAttribute('aria-invalid');
+    }
+  };
+  const clearProblems = () => {
+    for (const field of fields()) showProblem(field.dataset.field ?? '', null);
+  };
+  const say = (key: string) => {
+    status.textContent = form.dataset[key] ?? '';
+  };
+  const values = () => {
+    const data = new FormData(form);
+    const read = (name: string) => String(data.get(name) ?? '');
+    return {
+      name: read('name'),
+      email: read('email'),
+      category: read('category'),
+      subject: read('subject'),
+      message: read('message'),
+      locale: read('locale'),
+      [honeypotField]: read(honeypotField),
+      [timestampField]: read(timestampField),
+    };
+  };
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    clearProblems();
+    const payload = values();
+    const local = validateContact(payload);
+    if (!local.submission) {
+      for (const error of local.errors) showProblem(error.field, error.problem);
+      say('statusInvalid');
+      // The focus goes to the first field in the form that has a problem,
+      // not the first problem found, so a keyboard reader starts at the top
+      // of what needs changing.
+      const marked = new Set(local.errors.map((error) => error.field));
+      for (const field of fields()) {
+        const name = field.dataset.field ?? '';
+        if (!marked.has(name as never)) continue;
+        form.querySelector<HTMLElement>(`[name="${name}"]`)?.focus();
+        break;
+      }
+      return;
+    }
+    submit.disabled = true;
+    const label = submit.textContent;
+    submit.textContent = form.dataset.labelBusy ?? label;
+    status.textContent = '';
+    const restore = () => {
+      submit.disabled = false;
+      if (label !== null) submit.textContent = label;
+    };
+    void fetch(endpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+      // The endpoint uses no cookie and no session, so none is sent.
+      credentials: 'omit',
+    })
+      .then(async (response) => {
+        const answer = (await response.json().catch(() => ({}))) as {
+          status?: string;
+          duplicate?: boolean;
+          errors?: { field: string; problem: string }[];
+        };
+        restore();
+        if (answer.status === 'accepted') {
+          // Accepted by the mail server, which is all that can be claimed.
+          say(answer.duplicate ? 'statusDuplicate' : 'statusAccepted');
+          if (!answer.duplicate) form.reset();
+          if (opened) opened.value = String(Date.now());
+          return;
+        }
+        if (answer.status === 'invalid') {
+          for (const error of answer.errors ?? [])
+            showProblem(error.field, error.problem);
+          say('statusInvalid');
+          return;
+        }
+        if (answer.status === 'rateLimited') return say('statusRatelimited');
+        if (answer.status === 'rejected') return say('statusRejected');
+        say('statusUndelivered');
+      })
+      .catch(() => {
+        // A failed request is never reported as a sent message.
+        restore();
+        say('statusOffline');
+      });
+  });
+  // A field that was marked stops being marked as soon as it is touched.
+  form.addEventListener('input', (event) => {
+    const target = event.target;
+    if (target instanceof HTMLElement && target.getAttribute('name'))
+      showProblem(target.getAttribute('name') ?? '', null);
+  });
+}
 function formatTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -386,6 +584,8 @@ setupTheme();
 setupLanguagePreference();
 setupMenu();
 setupLanguageMenu();
+setupComparisonFilter();
+setupContactForm();
 setupConsent();
 setupActiveSection();
 export type { ConsentRecord };

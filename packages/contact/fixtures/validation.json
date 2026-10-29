@@ -1,0 +1,392 @@
+{
+  "comment": [
+    "Shared test vectors for the contact form.",
+    "The rules live in two independent implementations: packages/contact/src/index.ts, which",
+    "runs in the browser, and apps/contact-php/src, which runs on the server and never trusts",
+    "the browser. Independent must not mean different: a reader told their message is fine and",
+    "then told by the server that it is too long has been lied to once.",
+    "Both implementations run these vectors. packages/contact/src/index.test.ts does it for the",
+    "browser side and apps/contact-php/tests/ParityTest.php for the server side, so a divergence",
+    "fails a build instead of reaching a reader.",
+    "Each vector names what it is for. 'errors' lists the field and problem pairs in the order",
+    "the implementations must report them; an empty list means the submission is accepted, and",
+    "'submission' then says exactly what the trimmed values must be."
+  ],
+  "vectors": [
+    {
+      "name": "a complete submission is accepted and trimmed",
+      "input": {
+        "name": "  Alex Beispiel  ",
+        "email": " alex@example.org ",
+        "category": "support",
+        "subject": "  A question about project files ",
+        "message": "  I would like to know how the project archive format works.  "
+      },
+      "errors": [],
+      "submission": {
+        "name": "Alex Beispiel",
+        "email": "alex@example.org",
+        "category": "support",
+        "subject": "A question about project files",
+        "message": "I would like to know how the project archive format works."
+      }
+    },
+    {
+      "name": "the name is optional",
+      "input": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "general",
+        "subject": "Just saying hello",
+        "message": "Thank you for building this. I have been looking for it."
+      },
+      "errors": [],
+      "submission": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "general",
+        "subject": "Just saying hello",
+        "message": "Thank you for building this. I have been looking for it."
+      }
+    },
+    {
+      "name": "an empty form reports every required field once",
+      "input": {},
+      "errors": [
+        { "field": "email", "problem": "required" },
+        { "field": "subject", "problem": "required" },
+        { "field": "message", "problem": "required" },
+        { "field": "category", "problem": "required" }
+      ],
+      "submission": null
+    },
+    {
+      "name": "a carriage return in the subject is refused, not rewritten",
+      "input": {
+        "name": "Alex",
+        "email": "alex@example.org",
+        "category": "bug",
+        "subject": "Hello\r\nBcc: victim@example.net",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "subject", "problem": "controlCharacter" }],
+      "submission": null
+    },
+    {
+      "name": "a line feed in the address is refused",
+      "input": {
+        "name": "Alex",
+        "email": "alex@example.org\nBcc: victim@example.net",
+        "category": "bug",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "email", "problem": "controlCharacter" }],
+      "submission": null
+    },
+    {
+      "name": "a line break inside the message body is allowed",
+      "input": {
+        "name": "Alex",
+        "email": "alex@example.org",
+        "category": "support",
+        "subject": "Two paragraphs",
+        "message": "The first paragraph is here.\r\n\r\nThe second one is here too."
+      },
+      "errors": [],
+      "submission": {
+        "name": "Alex",
+        "email": "alex@example.org",
+        "category": "support",
+        "subject": "Two paragraphs",
+        "message": "The first paragraph is here.\n\nThe second one is here too."
+      }
+    },
+    {
+      "name": "a tab inside the message body is allowed",
+      "input": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "support",
+        "subject": "Indented",
+        "message": "A list follows:\n\tfirst item\n\tsecond item, long enough."
+      },
+      "errors": [],
+      "submission": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "support",
+        "subject": "Indented",
+        "message": "A list follows:\n\tfirst item\n\tsecond item, long enough."
+      }
+    },
+    {
+      "name": "a vertical tab in the message body is still refused",
+      "input": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "support",
+        "subject": "Sneaky",
+        "message": "A message long enough to pass the minimum\u000blength requirement."
+      },
+      "errors": [{ "field": "message", "problem": "controlCharacter" }],
+      "submission": null
+    },
+    {
+      "name": "an unknown category is refused",
+      "input": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "invoice",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "category", "problem": "category" }],
+      "submission": null
+    },
+    {
+      "name": "a display name in the address is refused",
+      "input": {
+        "name": "",
+        "email": "Alex <alex@example.org>",
+        "category": "general",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "email", "problem": "email" }],
+      "submission": null
+    },
+    {
+      "name": "two addresses in one field are refused",
+      "input": {
+        "name": "",
+        "email": "alex@example.org, victim@example.net",
+        "category": "general",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "email", "problem": "email" }],
+      "submission": null
+    },
+    {
+      "name": "an address without a dotted domain is refused",
+      "input": {
+        "name": "",
+        "email": "alex@localhost",
+        "category": "general",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "email", "problem": "email" }],
+      "submission": null
+    },
+    {
+      "name": "a subject shorter than the minimum is refused",
+      "input": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "general",
+        "subject": "Hi",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "subject", "problem": "tooShort" }],
+      "submission": null
+    },
+    {
+      "name": "a message shorter than the minimum is refused",
+      "input": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "general",
+        "subject": "A subject",
+        "message": "Too short."
+      },
+      "errors": [{ "field": "message", "problem": "tooShort" }],
+      "submission": null
+    },
+    {
+      "name": "several problems are reported together, in field order",
+      "input": {
+        "name": "",
+        "email": "not-an-address",
+        "category": "",
+        "subject": "Hi",
+        "message": "Short."
+      },
+      "errors": [
+        { "field": "subject", "problem": "tooShort" },
+        { "field": "message", "problem": "tooShort" },
+        { "field": "category", "problem": "required" },
+        { "field": "email", "problem": "email" }
+      ],
+      "submission": null
+    },
+    {
+      "name": "a non-breaking space is whitespace, as the browser treats it",
+      "input": {
+        "name": "  ",
+        "email": " alex@example.org ",
+        "category": "general",
+        "subject": " A subject ",
+        "message": " This is a long enough message body to pass the length. "
+      },
+      "errors": [],
+      "submission": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "general",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the length."
+      }
+    },
+    {
+      "name": "a subject of only non-breaking spaces counts as missing",
+      "input": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "general",
+        "subject": "     ",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "subject", "problem": "required" }],
+      "submission": null
+    },
+    {
+      "name": "an ideographic space is whitespace too",
+      "input": {
+        "name": "　",
+        "email": "alex@example.org",
+        "category": "feedback",
+        "subject": "　A subject　",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [],
+      "submission": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "feedback",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the minimum length."
+      }
+    },
+    {
+      "name": "an emoji counts as two, because the browser counts code units",
+      "comment": "A subject of 119 ordinary characters plus one emoji is 121 code units, so it is one over the limit of 120. Counting characters instead of code units would accept it in one implementation and refuse it in the other.",
+      "input": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "feedback",
+        "subject": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🙂",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "subject", "problem": "tooLong" }],
+      "submission": null
+    },
+    {
+      "name": "the same subject one character shorter fits exactly",
+      "input": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "feedback",
+        "subject": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🙂",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [],
+      "submission": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "feedback",
+        "subject": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🙂",
+        "message": "This is a long enough message body to pass the minimum length."
+      }
+    },
+    {
+      "name": "a name one character over the limit is refused",
+      "input": {
+        "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "email": "alex@example.org",
+        "category": "general",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [{ "field": "name", "problem": "tooLong" }],
+      "submission": null
+    },
+    {
+      "name": "a non-string value is treated as absent, not coerced",
+      "input": {
+        "name": 42,
+        "email": "alex@example.org",
+        "category": "general",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the minimum length."
+      },
+      "errors": [],
+      "submission": {
+        "name": "",
+        "email": "alex@example.org",
+        "category": "general",
+        "subject": "A subject",
+        "message": "This is a long enough message body to pass the minimum length."
+      }
+    }
+  ],
+  "spam": [
+    {
+      "name": "an empty honeypot and no timestamp is fine, which is the no-JavaScript case",
+      "honeypot": "",
+      "openedAt": null,
+      "elapsedMs": null,
+      "reason": null
+    },
+    {
+      "name": "a filled honeypot is refused",
+      "honeypot": "https://example.net",
+      "openedAt": null,
+      "elapsedMs": null,
+      "reason": "honeypot"
+    },
+    {
+      "name": "a honeypot of only whitespace is still empty",
+      "honeypot": "   ",
+      "openedAt": null,
+      "elapsedMs": null,
+      "reason": null
+    },
+    {
+      "name": "faster than a person can type is refused",
+      "honeypot": "",
+      "openedAt": 1,
+      "elapsedMs": 900,
+      "reason": "tooFast"
+    },
+    {
+      "name": "exactly at the minimum is allowed",
+      "honeypot": "",
+      "openedAt": 1,
+      "elapsedMs": 3000,
+      "reason": null
+    },
+    {
+      "name": "a form left open for half a day is stale",
+      "honeypot": "",
+      "openedAt": 1,
+      "elapsedMs": 43300000,
+      "reason": "stale"
+    },
+    {
+      "name": "a timestamp that is not a number is ignored, not held against anyone",
+      "honeypot": "",
+      "openedAt": "not-a-number",
+      "elapsedMs": null,
+      "reason": null
+    },
+    {
+      "name": "a zero timestamp is ignored",
+      "honeypot": "",
+      "openedAt": 0,
+      "elapsedMs": null,
+      "reason": null
+    }
+  ]
+}

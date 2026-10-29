@@ -104,7 +104,7 @@ test('pointer-centered zoom, wheel pan, drag, keyboard, resize and expanded canv
   await page.getByLabel('Spacing', { exact: true }).focus();
   await page.keyboard.press('Tab');
   await expect(
-    page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }),
+    page.getByRole('button', { name: 'Project navigator', exact: true }),
   ).toBeFocused();
   await page
     .getByRole('button', { name: 'Restore workspace', exact: true })
@@ -183,9 +183,7 @@ test('page changes flush a pending wheel gesture and restore independent viewpor
   page,
 }) => {
   await imported(page);
-  const pages = page
-    .getByRole('navigation', { name: 'Documents' })
-    .getByRole('button');
+  const pages = page.locator('[role=treeitem][data-page-id]');
   expect(await pages.count()).toBeGreaterThan(1);
   const first = await camera(page);
   // Dispatch and click in one task, before the 180ms gesture debounce can fire.
@@ -195,13 +193,13 @@ test('page changes flush a pending wheel gesture and restore independent viewpor
     );
     (
       document
-        .querySelectorAll('.page-nav')
+        .querySelectorAll('[role=treeitem][data-page-id]')
         .item(
-          document.querySelectorAll('.page-nav').length - 1,
+          document.querySelectorAll('[role=treeitem][data-page-id]').length - 1,
         ) as HTMLButtonElement
     ).click();
   });
-  await expect(pages.last()).toHaveAttribute('aria-current', 'page');
+  await expect(pages.last()).toHaveAttribute('aria-selected', 'true');
   await canvas(page).focus();
   const beforeKey = await camera(page);
   await page.keyboard.press('ArrowLeft');
@@ -212,7 +210,7 @@ test('page changes flush a pending wheel gesture and restore independent viewpor
   await saved(page);
   await page.reload();
   await page.getByRole('button', { name: 'Open project', exact: true }).click();
-  await expect(pages.last()).toHaveAttribute('aria-current', 'page');
+  await expect(pages.last()).toHaveAttribute('aria-selected', 'true');
   expect(await camera(page)).toEqual(last);
   await pages.first().click();
   await expect

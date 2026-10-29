@@ -23,7 +23,26 @@ export type Geometry = Node['geometry'];
 export const FONT_FAMILIES = {
   sans: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   serif: 'Georgia, "Times New Roman", serif',
-  mono: 'ui-monospace, "SFMono-Regular", Consolas, monospace',
+  mono: 'ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace',
+  arial: 'Arial, Helvetica, "Liberation Sans", sans-serif',
+  helvetica: 'Helvetica, Arial, "Liberation Sans", sans-serif',
+  verdana: 'Verdana, Geneva, "DejaVu Sans", sans-serif',
+  tahoma: 'Tahoma, Verdana, "DejaVu Sans", sans-serif',
+  trebuchet: '"Trebuchet MS", "Gill Sans", "DejaVu Sans", sans-serif',
+  segoe: '"Segoe UI", "Helvetica Neue", "Liberation Sans", sans-serif',
+  calibri: 'Calibri, Carlito, "Helvetica Neue", "Liberation Sans", sans-serif',
+  georgia: 'Georgia, "DejaVu Serif", serif',
+  times: '"Times New Roman", Times, "Liberation Serif", serif',
+  cambria: 'Cambria, Caladea, "DejaVu Serif", serif',
+  garamond:
+    'Garamond, "Palatino Linotype", Palatino, "Liberation Serif", serif',
+  palatino:
+    '"Palatino Linotype", Palatino, "Book Antiqua", "DejaVu Serif", serif',
+  courier: '"Courier New", Courier, "Liberation Mono", monospace',
+  consolas: 'Consolas, Menlo, "DejaVu Sans Mono", monospace',
+  menlo: 'Menlo, Consolas, "DejaVu Sans Mono", monospace',
+  dejavu: '"DejaVu Sans", Verdana, sans-serif',
+  liberation: '"Liberation Sans", Arial, Helvetica, sans-serif',
 } as const;
 export interface Appearance {
   fill: string;
@@ -44,7 +63,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   stroke: '#7c3aed',
   strokeWidth: 2,
   opacity: 1,
-  textColor: '#18243d',
+  textColor: 'auto',
   fontSize: 16,
   fontFamily: 'sans',
   fontWeight: 400,
@@ -84,7 +103,10 @@ export function readAppearance(
     stroke: color(properties.stroke, d.stroke),
     strokeWidth: number(properties.strokeWidth, d.strokeWidth, 0, 32),
     opacity: number(properties.opacity, d.opacity, 0, 1),
-    textColor: color(properties.textColor, d.textColor),
+    textColor:
+      properties.textColor === 'auto'
+        ? 'auto'
+        : color(properties.textColor, d.textColor),
     fontSize: number(properties.fontSize, d.fontSize, 8, 96),
     fontFamily:
       typeof properties.fontFamily === 'string' &&

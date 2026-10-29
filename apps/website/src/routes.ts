@@ -12,9 +12,20 @@ export type RouteId =
   | 'features'
   | 'localFirst'
   | 'compare'
+  | 'compareDrawio'
+  | 'compareMiro'
+  | 'compareLucidchart'
+  | 'contact'
+  | 'contactSent'
+  | 'contactProblem'
   | 'roadmap'
   | 'download'
   | 'docs'
+  | 'docsStart'
+  | 'docsEditing'
+  | 'docsProjects'
+  | 'docsFaq'
+  | 'docsSupport'
   | 'releases'
   | 'legalNotice'
   | 'privacyPolicy'
@@ -58,6 +69,53 @@ export const routes: RouteDefinition[] = [
     nav: ['primary', 'product'],
     sitemap: { priority: 0.7, changeFrequency: 'monthly' },
   },
+  // One page per comparison, under the comparison path in both languages, so
+  // the address says what the page is and stays stable if the set grows.
+  {
+    id: 'compareDrawio',
+    slugs: { en: 'compare/drawio', de: 'vergleich/drawio' },
+    aliases: { en: ['compare/diagrams-net'], de: ['vergleich/diagrams-net'] },
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'compareMiro',
+    slugs: { en: 'compare/miro', de: 'vergleich/miro' },
+    aliases: {},
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'compareLucidchart',
+    slugs: { en: 'compare/lucidchart', de: 'vergleich/lucidchart' },
+    aliases: {},
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'contact',
+    slugs: { en: 'contact', de: 'kontakt' },
+    aliases: { de: ['contact'], en: ['kontakt'] },
+    nav: ['resources'],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  // The two pages a submission without JavaScript lands on. They are not in
+  // the sitemap and carry noindex: they are the answer to an action, not
+  // content anyone should arrive at from a search.
+  {
+    id: 'contactSent',
+    slugs: { en: 'contact/sent', de: 'kontakt/gesendet' },
+    aliases: {},
+    nav: [],
+    sitemap: null,
+  },
+  {
+    id: 'contactProblem',
+    slugs: { en: 'contact/problem', de: 'kontakt/problem' },
+    aliases: {},
+    nav: [],
+    sitemap: null,
+  },
   {
     id: 'roadmap',
     slugs: { en: 'roadmap', de: 'roadmap' },
@@ -78,6 +136,44 @@ export const routes: RouteDefinition[] = [
     aliases: { de: ['docs'] },
     nav: ['resources'],
     sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  // The documentation sections. Each is its own address under the
+  // documentation path in both languages, so a link to one survives the
+  // section list growing.
+  {
+    id: 'docsStart',
+    slugs: { en: 'docs/getting-started', de: 'dokumentation/erste-schritte' },
+    aliases: {},
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'docsEditing',
+    slugs: { en: 'docs/editing', de: 'dokumentation/bearbeiten' },
+    aliases: {},
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'docsProjects',
+    slugs: { en: 'docs/projects', de: 'dokumentation/projekte' },
+    aliases: {},
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'docsFaq',
+    slugs: { en: 'docs/faq', de: 'dokumentation/faq' },
+    aliases: { de: ['dokumentation/haeufige-fragen'] },
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'docsSupport',
+    slugs: { en: 'docs/support', de: 'dokumentation/support' },
+    aliases: {},
+    nav: [],
+    sitemap: { priority: 0.5, changeFrequency: 'monthly' },
   },
   {
     id: 'releases',

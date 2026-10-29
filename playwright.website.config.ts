@@ -52,8 +52,12 @@ export default defineConfig({
       : []),
   ],
   webServer: {
+    // The main build is made with a contact endpoint, so the form exists and
+    // the policy allows it; the stand-in for the delivery service answers on
+    // that address. Both are test-only: the reviewed production build sets
+    // the endpoint from the deployment, not from here.
     command:
-      'pnpm --filter @koxora/website build && pnpm --filter @koxora/website build:consent-demo && pnpm --filter @koxora/website preview:test',
+      'cross-env KOXORA_SITE_CONTACT_ENDPOINT=/api/contact pnpm --filter @koxora/website build && pnpm --filter @koxora/website build:consent-demo && cross-env KOXORA_SITE_CONTACT_ENDPOINT=/api/contact pnpm --filter @koxora/website preview:test',
     url: 'http://127.0.0.1:4176/en/',
     // Always rebuild and restart: reusing a leftover server would test the
     // previous build without running the build command at all.
