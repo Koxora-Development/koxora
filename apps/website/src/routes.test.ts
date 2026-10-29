@@ -14,8 +14,10 @@ describe('public route table', () => {
       locales.map((locale) => pathFor(route.id, locale)),
     );
     expect(new Set(paths).size).toBe(paths.length);
+    // One or two lowercase segments: the comparison pages sit under the
+    // comparison address, which is what makes their address say what they are.
     for (const path of paths)
-      expect(path).toMatch(/^\/(en|de)\/([a-z0-9-]+\/)?$/);
+      expect(path).toMatch(/^\/(en|de)\/([a-z0-9-]+\/){0,2}$/);
   });
   it('keeps German slugs distinct from English where they differ', () => {
     expect(pathFor('features', 'de')).toBe('/de/funktionen/');

@@ -6,6 +6,7 @@ import { HomePage } from './home';
 import { FeaturesPage } from './features';
 import { LocalFirstPage } from './local-first';
 import { ComparePage } from './compare';
+import { comparisonPage } from './compare-product';
 import { RoadmapPage } from './roadmap';
 import { DownloadPage } from './download';
 import { DocsPage } from './docs';
@@ -38,6 +39,21 @@ export const pageRegistry: Record<RouteId, PageDefinition> = {
     Component: ComparePage,
     titleKey: 'compare.meta.title',
     descriptionKey: 'compare.meta.description',
+  },
+  compareDrawio: {
+    Component: comparisonPage('drawio'),
+    titleKey: 'cmp.page.drawio.meta.title',
+    descriptionKey: 'cmp.page.drawio.meta.description',
+  },
+  compareMiro: {
+    Component: comparisonPage('miro'),
+    titleKey: 'cmp.page.miro.meta.title',
+    descriptionKey: 'cmp.page.miro.meta.description',
+  },
+  compareLucidchart: {
+    Component: comparisonPage('lucidchart'),
+    titleKey: 'cmp.page.lucidchart.meta.title',
+    descriptionKey: 'cmp.page.lucidchart.meta.description',
   },
   roadmap: {
     Component: RoadmapPage,
