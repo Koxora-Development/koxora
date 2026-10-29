@@ -42,6 +42,17 @@ const nginx = renderNginx({
   languageCookieName,
   listenPort: 8080,
 });
+describe('the website image build', () => {
+  it('copies the contact workspace manifest before the filtered install', () => {
+    const manifest = 'COPY packages/contact/package.json packages/contact/';
+    const install = 'RUN pnpm install --frozen-lockfile';
+    const manifestPosition = dockerfile.indexOf(manifest);
+    const installPosition = dockerfile.indexOf(install);
+    expect(manifestPosition).toBeGreaterThan(-1);
+    expect(installPosition).toBeGreaterThan(manifestPosition);
+  });
+});
+
 describe('the runtime image', () => {
   it('contains no Node toolchain', () => {
     // The site is rendered in the first stage. Anything that could run the
