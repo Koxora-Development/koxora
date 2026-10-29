@@ -38,6 +38,7 @@ COPY apps/website/package.json apps/website/
 COPY apps/studio-web/package.json apps/studio-web/
 COPY apps/studio-desktop/package.json apps/studio-desktop/
 COPY packages/editor-core/package.json packages/editor-core/
+COPY packages/contact/package.json packages/contact/
 COPY packages/i18n/package.json packages/i18n/
 COPY packages/persistence/package.json packages/persistence/
 COPY packages/project/package.json packages/project/
