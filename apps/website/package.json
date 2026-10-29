@@ -20,6 +20,7 @@
     "preview:published": "cross-env KOXORA_SITE_DIR=dist-published KOXORA_SITE_PORT=4177 node scripts/serve-site.mjs"
   },
   "dependencies": {
+    "@koxora/contact": "workspace:*",
     "@koxora/i18n": "workspace:*",
     "@koxora/ui": "workspace:*",
     "react": "19.3.1",

@@ -1,0 +1,8 @@
+# Composer's installed tree. The lock file is committed and `composer install`
+# reproduces this directory exactly; the tree itself is not ours to version.
+#
+# This lives here rather than in the repository's root .gitignore because that
+# file is one of the pinned original source files and its hash is checked by
+# `pnpm check:docs`.
+/vendor/
+/.phpunit.cache/

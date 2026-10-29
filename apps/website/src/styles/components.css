@@ -842,3 +842,116 @@
   display: block;
   margin-top: 2px;
 }
+
+/* The contact form. One column, generous targets, and an error that sits
+   under the field it belongs to rather than in a summary somewhere else. */
+.contact-form {
+  display: grid;
+  gap: 22px;
+  max-width: 640px;
+}
+.form-field {
+  display: grid;
+  gap: 6px;
+}
+.form-field label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.form-flag {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--faint);
+}
+.form-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+.form-field textarea {
+  resize: vertical;
+  min-height: 160px;
+}
+.form-field input:focus-visible,
+.form-field select:focus-visible,
+.form-field textarea:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 1px;
+}
+.form-field input[aria-invalid='true'],
+.form-field select[aria-invalid='true'],
+.form-field textarea[aria-invalid='true'] {
+  border-color: var(--amber);
+}
+.form-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--amber);
+}
+/* The error line takes no space until there is something to say. */
+.form-error:not([data-visible='true']) {
+  display: none;
+}
+/* The field a person never sees. It is out of the layout rather than
+   display:none, because some automation skips what is not rendered. */
+.form-trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  align-items: center;
+}
+.form-status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.form-status:empty {
+  display: none;
+}
+
+/* The questions and answers. A description list, because that is what a list
+   of questions is, and because a screen reader then announces the pairing. */
+.faq {
+  display: grid;
+  gap: 24px;
+  margin: 0;
+  max-width: 70ch;
+}
+.faq > div {
+  display: grid;
+  gap: 6px;
+}
+.faq dt {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 17px;
+}
+.faq dd {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}

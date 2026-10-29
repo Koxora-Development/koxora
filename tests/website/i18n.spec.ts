@@ -24,10 +24,12 @@ test.describe('languages', () => {
       }
     }
   });
-  test('switching the language keeps the reader on the same page', async ({
-    page,
-  }) => {
-    for (const entry of pages) {
+  // Each route is an independent case so adding documentation pages does not
+  // make every language switch share one test timeout.
+  for (const entry of pages)
+    test(`switching the language keeps the reader on ${entry.id}`, async ({
+      page,
+    }) => {
       await page.goto(entry.en);
       await openLanguageMenu(page);
       await page.locator('.site-header .language a[hreflang="de"]').click();
@@ -35,8 +37,7 @@ test.describe('languages', () => {
       await openLanguageMenu(page);
       await page.locator('.site-header .language a[hreflang="en"]').click();
       await expect(page, entry.id).toHaveURL(new RegExp(`${entry.en}$`));
-    }
-  });
+    });
   test('the German pages are fully German', async ({ page }) => {
     for (const entry of pages) {
       await page.goto(entry.de);

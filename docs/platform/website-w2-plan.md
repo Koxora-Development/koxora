@@ -2,7 +2,7 @@
 
 **Status: proposed for Product Owner review, 2026-10-25.** This plan slices the Website W2 assignment into pull requests that can be reviewed one at a time. It authorizes nothing by itself: each slice needs the same gates as W1, and no merge, deployment, DNS, Cloudflare or TinyCP change happens without an explicit Product Owner decision.
 
-W1 is live at `https://koxora.app` and was integrated through [PR #28](https://github.com/Koxora-Development/koxora/pull/28). W2 starts from `main`, not from the W1 branch. Studio Phase 2.5 runs in parallel and is not a prerequisite; see [the ownership issue](https://github.com/Koxora-Development/koxora/issues/29).
+W1 is live at `https://koxora.app` and was integrated through [PR #28](https://github.com/Koxora-Development/koxora/pull/28). W2 starts from `main`, not from the W1 branch. Studio Phase 2.5 was accepted and merged in PR #39 on 2026-10-28; W2.3 now updates its content and screenshots to that development baseline; see [the ownership issue](https://github.com/Koxora-Development/koxora/issues/29).
 
 Related documents: [W1 implementation notes](website-w1.md), [deployment and update guide](../development/website-deployment.md), [canonical domains runbook](../development/website-canonical-domains.md), [search plan](website-seo.md), [website specification](website.md).
 
@@ -26,8 +26,8 @@ Each row is one pull request against `main`.
 | W2.0 | Domains, language detection, remembered language | Shared negotiation algorithm, stored choice, reworked root gateway, generated NGINX container configuration, generated Apache reverse-proxy and alias-domain fragments, storage inventory and privacy text, unit and browser tests, operator runbook | — |
 | W2.4a | Versioned container | Multi-stage `Dockerfile` including the NGINX njs module the language decision needs, Compose file, healthcheck, image tags, and the documented migration of the running container onto the generated configuration | W2.0 (it produces the NGINX files the image needs) |
 | W2.1 | Comparisons and comparison SEO | Sourced comparison table, per-claim sources and review dates, the three comparison landing pages and their localized addresses. **Implemented; see [the comparison document](website-comparison.md)** | W2.0 for the route table only |
-| W2.2 | Contact form | Architecture first, then the form, the server-side delivery component, rate limiting, spam defence, privacy text | W2.4a, because the form needs a service next to the static site |
-| W2.3 | Documentation, FAQ, product content | The eight documentation areas, real studio screenshots, the available/in development/planned distinction | W2.1 for the shared content components |
+| W2.2 | Contact form | Architecture first, then the form, the server-side endpoint, rate limiting, spam defence, privacy text. **Implemented; see [the contact form document](../development/website-contact-form.md)** | PHP under the host's existing PHP-FPM, decided by the Product Owner on 2026-10-25, so it needs no container and does not wait for W2.4a |
+| W2.3 | Documentation, FAQ, product content | The eight documentation areas, real studio screenshots, the available/in development/planned distinction. **Implemented; see [the content review document](../development/website-content-review.md)** | W2.1 for the shared content components |
 | W2.4b | Release automation | Reproducible build, immutable tags, approval-gated deployment, healthcheck, rollback | W2.4a |
 
 The order is deliberate: W2.0 and W2.4a make the live deployment reproducible before anything new is added to it, and the contact form is the only slice that introduces a server-side component, so it stays last among the content slices and carries its own security review.
@@ -50,7 +50,7 @@ Common to all: existing W1 behaviour preserved; `pnpm check` clean; unit tests f
 1. **Where the alias redirects live.** Apache on the Hetzner host, or Cloudflare. W2.0 generates the Apache form and documents the Cloudflare equivalent; the choice and the certificates are an operator decision.
 2. **When the permanent code is turned on.** The runbook rolls out with a temporary 302 and switches to 308 after verification.
 3. **Migrating the running container** onto the versioned configuration, which is a production change.
-4. **The mailbox and SMTP account** the contact form will use, which gates W2.2.
+4. **The mailbox and SMTP account** the contact form will use, plus the PHP-FPM socket and the directory the endpoint may live in, which together gate the activation of W2.2.
 5. **Whether the language cookie is acceptable as strictly necessary** under the reading in [the legal review checklist](../legal/website-legal-review.md). The implementation assumes it is, because it is written only on an explicit selection and carries nothing but the chosen language.
 
 ## 5. Out of scope for W2

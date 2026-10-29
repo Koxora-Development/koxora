@@ -24,6 +24,19 @@ const manifestCopy = resolve(
   '../../node_modules/.cache/koxora/website-client-manifest.json',
 );
 const server = await import(resolve(root, 'dist-ssr/entry-server.js'));
+
+// The policy is the consent configuration plus whatever the contact form
+// needs, so one build cannot allow a form the policy then blocks.
+function policyExtras() {
+  const extras = { ...server.consentPolicyExtras() };
+  for (const [directive, sources] of Object.entries(
+    server.contactPolicyExtras(),
+  ))
+    extras[directive] = [
+      ...new Set([...(extras[directive] ?? []), ...sources]),
+    ];
+  return extras;
+}
 async function loadManifest() {
   try {
     const raw = await readFile(
@@ -165,10 +178,7 @@ if (!gateway.includes(`<script>${server.languageGatewayScript}</script>`))
   throw new Error(
     'The emitted gateway script differs from the hashed text; the policy would block it.',
   );
-const headers = securityHeaders(
-  [themeHash, gatewayHash],
-  server.consentPolicyExtras(),
-);
+const headers = securityHeaders([themeHash, gatewayHash], policyExtras());
 const csp = headers['Content-Security-Policy'];
 const headerFile = {
   '/*': headers,
@@ -208,6 +218,24 @@ const apacheProxy = server.renderApacheProxy({
   containerPort: server.site.container.port,
   passThroughPrefixes: server.site.aliasPassThroughPrefixes,
 });
+// The contact endpoint's rules are a file of their own, never part of the
+// virtual host fragment above: they belong inside one HTTPS virtual host, and
+// the fragment above describes the whole host. Emitted only where the form is
+// actually configured, only when it posts to a path on this site rather than
+// to another address, and only once the host has said where the PHP file and
+// PHP-FPM actually are. Without all three there is no contact rule at all,
+// rather than one pointing at a guess.
+const apacheContact =
+  server.site.contactEndpoint?.startsWith('/') &&
+  server.site.contactHandler.script &&
+  server.site.contactHandler.fpm
+    ? server.renderApacheContact({
+        path: server.site.contactEndpoint,
+        script: server.site.contactHandler.script,
+        fpm: server.site.contactHandler.fpm,
+        canonicalHost: new URL(server.site.origin).host,
+      })
+    : null;
 const apacheAliases = server.renderApacheAliases({
   canonicalOrigin: server.site.origin,
   aliasHosts: server.site.aliasHosts,
@@ -241,6 +269,12 @@ await writeFile(
   apacheAliases,
   'utf8',
 );
+if (apacheContact)
+  await writeFile(
+    join(deployDir, 'apache-koxora-contact.conf'),
+    apacheContact,
+    'utf8',
+  );
 await writeFile(
   join(deployDir, '_redirects'),
   `${platformRedirects}\n`,
@@ -275,6 +309,10 @@ await writeFile(
       aliasHosts: server.site.aliasHosts,
       aliasRedirectStatus: server.site.aliasRedirectStatus,
       languageCookie: server.languageCookieName,
+      contactEndpoint: server.site.contactEndpoint,
+      contactService: server.site.contactEndpoint
+        ? server.site.contactService
+        : null,
       container: server.site.container,
       contentSecurityPolicy: csp,
     },

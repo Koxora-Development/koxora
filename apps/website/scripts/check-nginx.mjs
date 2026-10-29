@@ -59,6 +59,19 @@ if (!mimeTypes) skip('no mime.types found next to the nginx installation');
 if (!existsSync(join(siteRoot, 'index.html')))
   skip(`no built site in ${siteRoot}; run pnpm website:build first`);
 const server = await import(resolve(root, 'dist-ssr/entry-server.js'));
+
+// The policy is the consent configuration plus whatever the contact form
+// needs, so one build cannot allow a form the policy then blocks.
+function policyExtras() {
+  const extras = { ...server.consentPolicyExtras() };
+  for (const [directive, sources] of Object.entries(
+    server.contactPolicyExtras(),
+  ))
+    extras[directive] = [
+      ...new Set([...(extras[directive] ?? []), ...sources]),
+    ];
+  return extras;
+}
 async function freePort() {
   return new Promise((ready, failed) => {
     const probe = createServer();
@@ -75,7 +88,7 @@ const headers = securityHeaders(
   [server.themeScript, server.languageGatewayScript].map((text) =>
     createHash('sha256').update(text).digest('base64'),
   ),
-  server.consentPolicyExtras(),
+  policyExtras(),
 );
 const site = server.renderNginx({
   locales: server.locales,

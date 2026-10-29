@@ -129,9 +129,12 @@ def validate(root, archive):
     known_ids = set(EXPECTED_IDS) | ENGINEERING_IDS | DECISION_IDS | LEGACY_IDS
     known_ids |= {"SHA-256"}
     known_ids |= {f"ADR-{n:03}" for n in range(1, 11)} | {"I18N-001"}
-    # Installed dependencies and generated build/test outputs are not project docs.
+    # Installed dependencies and generated build/test outputs are not project
+    # docs. "vendor" is Composer's installed tree, whose packages ship their own
+    # README files with JSON examples and tables of their own.
     markdown = []
-    excluded = {".git", "node_modules", "dist", "target", "playwright-report", "test-results", ".cache"}
+    excluded = {".git", "node_modules", "dist", "target", "playwright-report",
+                "test-results", ".cache", "vendor"}
     for directory, names, files in os.walk(root):
         names[:] = [name for name in names if name not in excluded]
         markdown.extend(Path(directory) / name for name in files if name.endswith(".md"))

@@ -14,4 +14,10 @@ Initial topics: license/open-core boundaries, canvas engine, schema/commands, lo
 
 - [0017: Static multilingual delivery for the public website](0017-public-website-delivery.md) — Website W1 implementation, pending Product Owner acceptance.
 
-- [0018: Workbook pages and structured rich text](0018-workbook-rich-text.md) — Phase 2.5 implementation, pending Product Owner acceptance.
+- [0018: Workbook pages and structured rich text](0018-workbook-rich-text.md) — Studio Phase 2.5, accepted by the Product Owner and merged in PR #39 on 2026-10-28.
+
+- [0019: Contact delivery through the existing Apache and PHP-FPM](0019-contact-delivery.md) — Website W2.2 implementation, accepted by the Product Owner on 2026-10-25; merge, SMTP settings and activation pending.
+
+### Numbering, so this does not happen again
+
+One sequence, shared by both agents, and a number is taken the moment an ADR file exists on any branch — not when it merges. Before claiming one, check this index **and** the open pull requests of the other agent. Where two have already collided, the one whose branch is not yet visible keeps the number, because the cost of changing it falls on whoever can see what needs changing.
