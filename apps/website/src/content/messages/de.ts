@@ -407,6 +407,11 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Speichert, ob Sie die helle oder dunkle Darstellung gewählt haben.',
   'consent.item.theme.storage':
     'Browserspeicher auf diesem Gerät, bis Sie ihn löschen',
+  'consent.item.language.name': 'Sprachauswahl',
+  'consent.item.language.purpose':
+    'Speichert die Sprache, die Sie im Sprachmenü gewählt haben, damit die Adresse ohne Sprachangabe beim nächsten Besuch in dieser Sprache öffnet. Sie wird nur von dieser Website gelesen und enthält nichts außer „en“ oder „de“.',
+  'consent.item.language.storage':
+    'Eigenes Cookie und Browserspeicher auf diesem Gerät, ein Jahr ab Ihrer letzten Auswahl',
   'consent.item.consent.name': 'Datenschutz-Entscheidung',
   'consent.item.consent.purpose':
     'Speichert Ihre Datenschutz-Auswahl und deren Version, damit Sie nicht erneut gefragt werden.',

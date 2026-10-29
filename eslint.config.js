@@ -19,6 +19,15 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   {
+    // The language module of the website container runs in njs, which has no
+    // optional catch binding, so a defensive catch has to name a parameter it
+    // does not use. Everything else in the file is checked as usual.
+    files: ['apps/website/src/nginx/*.js'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }],
+    },
+  },
+  {
     files: ['**/*.{tsx,jsx}'],
     plugins: { 'react-hooks': hooks, 'react-refresh': refresh, i18next },
     rules: {

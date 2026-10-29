@@ -398,6 +398,11 @@ export const en = {
     'Stores whether you chose the light or dark appearance.',
   'consent.item.theme.storage':
     'Browser storage on this device, until you clear it',
+  'consent.item.language.name': 'Language choice',
+  'consent.item.language.purpose':
+    'Stores the language you selected in the language menu, so that the address without a language in it opens in that language on your next visit. It is read by this website only and contains nothing but "en" or "de".',
+  'consent.item.language.storage':
+    'First-party cookie and browser storage on this device, one year from your last selection',
   'consent.item.consent.name': 'Privacy decision',
   'consent.item.consent.purpose':
     'Stores your privacy choices and their version so you are not asked again.',

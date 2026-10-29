@@ -50,12 +50,15 @@ describe('consent configuration', () => {
     ]);
   });
   describe('what the deployment says it stores on a device', () => {
-    it('lists only the appearance preference when no decision can be made', () => {
-      expect(deviceStorageItems([]).map((item) => item.id)).toEqual(['theme']);
+    it('lists the settings a reader sets when no decision can be made', () => {
+      expect(deviceStorageItems([]).map((item) => item.id)).toEqual([
+        'theme',
+        'language',
+      ]);
     });
     it('adds the consent record once a decision is possible', () => {
       expect(deviceStorageItems(['statistics']).map((item) => item.id)).toEqual(
-        ['theme', 'consent'],
+        ['theme', 'language', 'consent'],
       );
     });
     it('never presents server-side processing as device storage', () => {

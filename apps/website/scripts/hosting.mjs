@@ -2,7 +2,18 @@
 // content security policy. The page emitter writes these into the Apache and
 // static-platform configuration, and the reference server sends exactly the
 // same values, so the browser tests run under the policy that production uses.
-export function contentSecurityPolicy(inlineScriptHash, extras = {}) {
+/**
+ * `inlineScriptHashes` is every inline script the build emits, as bare
+ * base64 digests. The pages carry one and the language gateway carries one,
+ * and both have to be pinned or the browser blocks the one it is not told
+ * about.
+ */
+export function contentSecurityPolicy(inlineScriptHashes, extras = {}) {
+  const hashes = (
+    Array.isArray(inlineScriptHashes)
+      ? inlineScriptHashes
+      : [inlineScriptHashes]
+  ).filter(Boolean);
   const directives = {
     'default-src': ["'self'"],
     'base-uri': ["'none'"],
@@ -12,7 +23,10 @@ export function contentSecurityPolicy(inlineScriptHash, extras = {}) {
     'img-src': ["'self'"],
     'font-src': ["'self'"],
     'style-src': ["'self'"],
-    'script-src': ["'self'", `'sha256-${inlineScriptHash}'`],
+    'script-src': [
+      "'self'",
+      ...[...new Set(hashes)].map((hash) => `'sha256-${hash}'`),
+    ],
     'connect-src': ["'none'"],
   };
   // An optional consent category that needs a third-party origin declares it,
@@ -29,9 +43,12 @@ export function contentSecurityPolicy(inlineScriptHash, extras = {}) {
     'upgrade-insecure-requests',
   ].join('; ');
 }
-export function securityHeaders(inlineScriptHash, extras = {}) {
+export function securityHeaders(inlineScriptHashes, extras = {}) {
   return {
-    'Content-Security-Policy': contentSecurityPolicy(inlineScriptHash, extras),
+    'Content-Security-Policy': contentSecurityPolicy(
+      inlineScriptHashes,
+      extras,
+    ),
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',

@@ -15,6 +15,23 @@ export interface SiteConfig {
   /** Absolute origin used for canonical URLs, sitemap and social metadata. */
   origin: string;
   /**
+   * Host names that answer but must never be the address of a page: they
+   * redirect to `origin`, keeping the path and the query. The canonical host
+   * itself is never in this list, and a redirect target is never built from
+   * a request header.
+   */
+  aliasHosts: string[];
+  /** Status code of the canonical host redirect; a permanent code. */
+  aliasRedirectStatus: 301 | 308;
+  /**
+   * Request paths the alias hosts must answer themselves instead of
+   * redirecting: certificate issuance and mail autodiscovery live on those
+   * domains and would break if every request were sent to the canonical host.
+   */
+  aliasPassThroughPrefixes: string[];
+  /** Address the public host proxies to; the container binds it alone. */
+  container: { host: string; port: number; listenPort: number };
+  /**
    * Absolute URL of the deployed browser editor, or `null` while it is not
    * published. The site never links to an address that does not answer.
    */
@@ -46,6 +63,30 @@ export const site: SiteConfig = {
     /\/$/,
     '',
   ),
+  aliasHosts: (
+    env('KOXORA_SITE_ALIAS_HOSTS') ??
+    'www.koxora.app,koxora.de,www.koxora.de,koxora.com,www.koxora.com'
+  )
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean),
+  // 308 keeps the method and the body of a non-GET request, which a 301 is
+  // allowed to drop. Roll out with a temporary code first: a permanent
+  // redirect is cached by browsers and is hard to take back.
+  aliasRedirectStatus: 308,
+  aliasPassThroughPrefixes: [
+    // Certificate issuance over HTTP-01.
+    '/.well-known/acme-challenge/',
+    // Mail client autoconfiguration on the domain itself.
+    '/.well-known/autoconfig/',
+    '/.well-known/autodiscover/',
+    '/autodiscover/',
+  ],
+  container: {
+    host: env('KOXORA_SITE_CONTAINER_HOST') ?? '127.0.0.1',
+    port: Number(env('KOXORA_SITE_CONTAINER_PORT') ?? 9402),
+    listenPort: Number(env('KOXORA_SITE_LISTEN_PORT') ?? 8080),
+  },
   editorUrl: env('KOXORA_SITE_EDITOR_URL')?.replace(/\/?$/, '/') ?? null,
   optionalConsent: (env('KOXORA_SITE_OPTIONAL_CONSENT') ?? '')
     .split(',')

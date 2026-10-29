@@ -20,6 +20,12 @@ import {
   type RouteId,
 } from './routes';
 import { site } from './site';
+import {
+  languageCookieName,
+  languageGatewayScript,
+  languageStorageKey,
+  negotiateLocale,
+} from './language';
 export interface BuildAssets {
   css: string[];
   js: string[];
@@ -104,15 +110,33 @@ export function renderNotFound(locale: Locale, assets: BuildAssets): string {
     noindex: true,
   });
 }
-/** Minimal language gateway for `/`. Hosting redirects before this is seen. */
+/**
+ * The language gateway for `/`, the one address that names no language.
+ *
+ * Three layers answer it, in this order, and all three implement the order
+ * documented in `src/language.ts`: the hosting layer redirects the request by
+ * the stored choice and then by the request languages; where it does not, the
+ * inline script below decides before the first paint; and where that cannot
+ * run either, this document stays a usable language-selection page. It is
+ * kept out of the search index, so it is never a second address for either
+ * home page.
+ */
 export function renderRootGateway(assets: BuildAssets): string {
   const t = translator(defaultLocale);
   const links = locales
     .map(
       (locale) =>
-        `<li><a href="${pathFor('home', locale)}" hreflang="${locale}" lang="${locale}">${
+        `<li><a href="${pathFor('home', locale)}" hreflang="${locale}" lang="${locale}" data-language-option="${locale}">${
           locale === 'de' ? t('nav.languageGerman') : t('nav.languageEnglish')
         }</a></li>`,
+    )
+    .join('');
+  // Both languages name the choice, because a reader who reaches this page
+  // has not been identified as speaking either of them.
+  const prompt = locales
+    .map(
+      (locale) =>
+        `<p lang="${locale}">${translator(locale)('nav.languageMenu')}</p>`,
     )
     .join('');
   const alternates = [
@@ -123,13 +147,17 @@ export function renderRootGateway(assets: BuildAssets): string {
     `<link rel="alternate" hreflang="x-default" href="${site.origin}${pathFor('home', defaultLocale)}" />`,
   ].join('');
   const target = pathFor('home', defaultLocale);
+  // No meta refresh: it can only name one fixed language, so it would send a
+  // reader without JavaScript to English even where the request asks for
+  // German. The hosting layer answers that case, and this page is what is
+  // left when it does not.
   return `${doctype}<html lang="${defaultLocale}" data-theme="dark"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>${t(
     'brand.name',
-  )}</title><meta name="robots" content="noindex, follow" /><link rel="canonical" href="${site.origin}${target}" />${alternates}<meta http-equiv="refresh" content="0; url=${target}" />${assets.css
+  )}</title><meta name="robots" content="noindex, follow" /><link rel="canonical" href="${site.origin}${target}" />${alternates}<script>${languageGatewayScript}</script>${assets.css
     .map((href) => `<link rel="stylesheet" href="${href}" />`)
     .join(
       '',
-    )}</head><body><main class="wrap gateway"><h1>${t('brand.name')}</h1><ul>${links}</ul></main></body></html>`;
+    )}</head><body><main class="wrap gateway"><h1>${t('brand.name')}</h1>${prompt}<ul>${links}</ul></main></body></html>`;
 }
 export function renderManifest(locale: Locale): string {
   const t = translator(locale);
@@ -223,7 +251,18 @@ export {
   redirects,
   site,
   themeScript,
+  languageGatewayScript,
+  languageCookieName,
+  languageStorageKey,
+  negotiateLocale,
 };
+export {
+  renderApacheAliases,
+  renderApacheProxy,
+  renderApacheStatic,
+  renderNginx,
+  renderNginxMain,
+} from './deploy-config';
 export { consentPolicyExtras } from './content/consent';
 export { internalReviewPhrases } from './content/launch';
 export type { Locale, RouteId };
