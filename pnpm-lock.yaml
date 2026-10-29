@@ -92,6 +92,9 @@ importers:
 
   apps/website:
     dependencies:
+      '@koxora/contact':
+        specifier: workspace:*
+        version: link:../../packages/contact
       '@koxora/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -111,6 +114,8 @@ importers:
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
+
+  packages/contact: {}
 
   packages/editor-core:
     dependencies:

@@ -364,6 +364,98 @@ ${passThroughPrefixes.map((prefix) => `  ProxyPass ${prefix} !`).join('\n')}
 }
 
 /**
+ * The contact endpoint's Apache rules, and nothing else.
+ *
+ * This is a separate file from the virtual host fragment on purpose, and the
+ * reason is worth stating because getting it wrong is a security problem
+ * rather than a misconfiguration.
+ *
+ * The rules below have to live **inside one `<VirtualHost>`** — the HTTPS host
+ * of the canonical domain. Enabled server-wide instead, with `a2enconf` or a
+ * file in `conf-enabled`, they would apply to every virtual host the server
+ * has: `/api/contact` would be aliased on unrelated sites, and anything else
+ * in the same file would leak with it. The earlier draft of the operator
+ * document offered exactly that as a fallback, and the Product Owner was
+ * right to have it removed.
+ *
+ * It also deliberately carries **no proxy rule for the website**. The running
+ * deployment already has a working reverse proxy to the container; this file
+ * adds one exclusion to it and maps one path, so nothing is set up twice and
+ * nothing already working is overwritten.
+ *
+ * `script` is the single file the web server may execute and `fpm` is the
+ * address it is handed to. Both come from the host, because a guessed
+ * deployment path generates a rule that points at nothing.
+ */
+export function renderApacheContact({
+  path,
+  script,
+  fpm,
+  canonicalHost,
+  generator = 'apps/website/scripts/emit-site.mjs',
+}: {
+  path: string;
+  script: string;
+  fpm: string;
+  canonicalHost: string;
+  generator?: string;
+}): string {
+  return `${header(generator)}
+# The contact endpoint of ${canonicalHost}.
+#
+# INCLUDE THIS INSIDE THE HTTPS <VirtualHost> OF ${canonicalHost}, AND NOWHERE
+# ELSE. It must not be enabled server-wide: a file in conf-enabled, or
+# a2enconf, applies to every virtual host on this server, and ${path} would
+# then be mapped on sites that have nothing to do with Koxora.
+#
+# Include it BEFORE that host's existing "ProxyPass /" line. The first
+# matching ProxyPass wins, so an exclusion that comes after the catch-all
+# never fires and every submission would reach the static website container
+# instead of PHP.
+#
+# It adds no proxy rule for the website itself. The existing reverse proxy to
+# the container stays exactly as it is.
+
+<IfModule mod_proxy.c>
+  # Keep the submission path away from the catch-all that serves the site.
+  ProxyPass ${path} !
+</IfModule>
+<IfModule mod_alias.c>
+  # One address, one file. The endpoint's code, settings and dependencies are
+  # outside every document root, so there is nothing else here to reach.
+  Alias ${path} "${script}"
+</IfModule>
+<Directory "${dirname(script)}">
+  # Everything in this directory is denied, and one file is granted back.
+  # Both the permission and the handler are scoped to this directory on
+  # purpose: a <Files> section at the top of a virtual host would apply to
+  # every directory it serves, and would hand any file of the same name
+  # anywhere on the site to PHP.
+  Options -Indexes -FollowSymLinks -ExecCGI
+  AllowOverride None
+  Require all denied
+  <Files "${basename(script)}">
+    Require all granted
+    <IfModule mod_proxy_fcgi.c>
+      SetHandler "proxy:${fpm}"
+    </IfModule>
+  </Files>
+</Directory>
+`;
+}
+
+/** The last segment of a POSIX path, without pulling in a Node module: this
+ * file is also bundled for the browser build. */
+function basename(path: string): string {
+  const parts = path.split('/');
+  return parts[parts.length - 1] ?? path;
+}
+/** Everything before the last segment, with no trailing slash. */
+function dirname(path: string): string {
+  const cut = path.lastIndexOf('/');
+  return cut <= 0 ? '/' : path.slice(0, cut);
+}
+/**
  * The Apache fragment that makes every other host a redirect to the canonical
  * one. The target is the configured canonical origin, written into the file:
  * it is never built from the request, so no `Host` header can turn this into

@@ -73,8 +73,8 @@ export interface Dimension {
   descriptionKey: MessageKey;
   claims: Record<ProductId, Claim>;
 }
-/** The day the whole table was last reviewed against its sources. */
-export const comparisonCheckedOn = '2026-10-25';
+/** Latest content review; each source retains its actual individual read date. */
+export const comparisonCheckedOn = '2026-10-28';
 export const products: Product[] = [
   {
     id: 'koxora',
@@ -122,76 +122,76 @@ export const products: Product[] = [
 export const sources: Source[] = [
   {
     id: 'koxora-repo',
-    url: 'https://github.com/Koxora-Development/koxora',
-    label: 'Koxora source repository, merged development version',
+    url: 'https://github.com/Koxora-Development/koxora/tree/0d610773fc895e99aa7c8371b34e98327ba8bcf2',
+    label: 'Koxora Studio 2.5, accepted merge of PR #39',
     checked: comparisonCheckedOn,
   },
   {
     id: 'drawio-home',
     url: 'https://www.drawio.com/',
     label: 'draw.io — Security-first diagramming',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'drawio-desktop',
     url: 'https://github.com/jgraph/drawio-desktop',
     label: 'jgraph/drawio-desktop — README and releases',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'excalidraw-repo',
     url: 'https://github.com/excalidraw/excalidraw',
     label: 'excalidraw/excalidraw — README and licence',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'excalidraw-plus',
     url: 'https://plus.excalidraw.com/',
     label: 'Excalidraw+ — product page',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'lucid-offline',
     url: 'https://help.lucid.co/hc/en-us/articles/14756313957268-Edit-offline-in-Lucid',
     label: 'Lucid Help Center — Edit offline in Lucid',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'lucid-requirements',
     url: 'https://help.lucid.co/hc/en-us/articles/360049892331-System-requirements-for-optimized-Lucid-performance',
     label:
       'Lucid Help Center — System requirements for optimized Lucid performance',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'lucid-pricing',
     url: 'https://lucid.app/pricing/lucidchart',
     label: 'Lucidchart pricing — free and premium diagramming plans',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'miro-pricing',
     url: 'https://miro.com/pricing/',
     label: 'Miro pricing — plans and what each includes',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'miro-apps',
     url: 'https://miro.com/apps/',
     label: 'Miro — download the apps',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'visio-plans',
     url: 'https://www.microsoft.com/en-us/microsoft-365/visio/visio-plans-and-pricing',
     label: 'Microsoft 365 Visio — compare subscription plans and pricing',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
   {
     id: 'visio-compare',
     url: 'https://support.microsoft.com/en-us/visio/compare-visio-versions-and-features',
     label: 'Microsoft Support — compare Visio versions and features',
-    checked: comparisonCheckedOn,
+    checked: '2026-10-25',
   },
 ];
 export function sourceById(id: string): Source {

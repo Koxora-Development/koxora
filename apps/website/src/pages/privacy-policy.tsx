@@ -2,7 +2,11 @@ import { Bullets, Note, Section } from '../components/ui';
 import { DataTable } from '../components/data-table';
 import { PageIntro } from '../components/page-intro';
 import type { PageContext } from '../components/navigation';
-import { operator, privacyPolicyVersion } from '../content/legal';
+import {
+  operator,
+  privacyPolicyVersion,
+  privacyPolicyUpdatedOn,
+} from '../content/legal';
 import { consentPromptRequired, deviceStorageItems } from '../content/consent';
 import { noTrackingKeys } from '../content/data';
 import { formatDate } from '../content/catalog';
@@ -10,7 +14,7 @@ import { pathFor } from '../routes';
 import { site } from '../site';
 import { showsInternalReviewNotes } from '../content/launch';
 export function PrivacyPolicyPage({ locale, t }: PageContext) {
-  const updated = formatDate(locale, site.contentDate);
+  const updated = formatDate(locale, privacyPolicyUpdatedOn);
   const stored = deviceStorageItems();
   return (
     <>
@@ -121,6 +125,17 @@ export function PrivacyPolicyPage({ locale, t }: PageContext) {
           <section>
             <h2>{t('privacyPolicy.contactForm.title')}</h2>
             <p>{t('privacyPolicy.contactForm.body')}</p>
+            {/* The form's own processing is described only where a form
+                exists. A deployment without a delivery service shows the
+                email paragraphs alone, because that is all it does. */}
+            {site.contactEndpoint ? (
+              <>
+                <p>{t('privacyPolicy.contactForm.form')}</p>
+                <p>{t('privacyPolicy.contactForm.storage')}</p>
+                <p>{t('privacyPolicy.contactForm.logs')}</p>
+                <p>{t('privacyPolicy.contactForm.accepted')}</p>
+              </>
+            ) : null}
             <p>{t('privacyPolicy.contactForm.basis')}</p>
           </section>
           <section>

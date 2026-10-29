@@ -8,6 +8,9 @@ import {
   StatusBadge,
 } from '../components/ui';
 import { PageIntro } from '../components/page-intro';
+import { StatusLegend } from '../components/status-legend';
+import { docsSections } from '../content/docs';
+import { pathFor } from '../routes';
 import type { PageContext } from '../components/navigation';
 import {
   plannedDocsKeys,
@@ -15,7 +18,18 @@ import {
   repositoryUrl,
 } from '../content/data';
 import { site } from '../site';
-export function DocsPage({ t }: PageContext) {
+const statusTones = {
+  available: 'available',
+  inDevelopment: 'in-development',
+  planned: 'planned',
+} as const;
+const statusLabels = {
+  available: 'status.available',
+  inDevelopment: 'status.inDevelopment',
+  planned: 'status.planned',
+} as const;
+export function DocsPage(context: PageContext) {
+  const { locale, t } = context;
   return (
     <>
       <PageIntro
@@ -23,7 +37,37 @@ export function DocsPage({ t }: PageContext) {
         title={t('docs.hero.title')}
         lead={t('docs.hero.lead')}
       />
-      <Section id="repository">
+      <Section id="sections">
+        <SectionHeader
+          title={t('docs.hub.title')}
+          description={t('docs.hub.note')}
+        />
+        {/* Each section says which state it describes, with the labels the
+            rest of this site uses; the legend repeats what they mean. */}
+        <Grid columns={2}>
+          {docsSections.map((section) => (
+            <Card
+              key={section.route}
+              title={t(section.titleKey)}
+              body={t(section.summaryKey)}
+              badge={
+                <StatusBadge
+                  tone={statusTones[section.status]}
+                  label={t(statusLabels[section.status])}
+                />
+              }
+            >
+              <ActionLink
+                href={pathFor(section.route, locale)}
+                label={t(section.titleKey)}
+                variant="quiet"
+              />
+            </Card>
+          ))}
+        </Grid>
+        <StatusLegend {...context} />
+      </Section>
+      <Section id="repository" tone="panel">
         <SectionHeader title={t('docs.available.title')} />
         <Grid columns={4}>
           {repositoryDocuments.map((document) => (
@@ -38,7 +82,7 @@ export function DocsPage({ t }: PageContext) {
           ))}
         </Grid>
       </Section>
-      <Section id="planned" tone="panel">
+      <Section id="planned">
         <SectionHeader
           title={t('docs.planned.title')}
           description={t('docs.planned.body')}

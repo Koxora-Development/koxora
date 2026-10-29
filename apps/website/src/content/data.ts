@@ -136,7 +136,7 @@ export const features: FeatureEntry[] = [
   },
   {
     id: 'pages',
-    status: 'in-development',
+    status: 'available',
     icon: 'tabs',
     titleKey: 'feature.pages.title',
     bodyKey: 'feature.pages.body',
@@ -144,11 +144,19 @@ export const features: FeatureEntry[] = [
   },
   {
     id: 'richText',
-    status: 'in-development',
+    status: 'available',
     icon: 'text',
     titleKey: 'feature.richText.title',
     bodyKey: 'feature.richText.body',
     highlight: true,
+  },
+  {
+    id: 'freehand',
+    status: 'available',
+    icon: 'cursor',
+    titleKey: 'feature.freehand.title',
+    bodyKey: 'feature.freehand.body',
+    highlight: false,
   },
   {
     id: 'desktop',
@@ -476,6 +484,13 @@ export const milestones: Milestone[] = [
     titleKey: 'milestone.editing.title',
     bodyKey: 'milestone.editing.body',
     path: 'docs/development/interactive-editing.md',
+  },
+  {
+    id: 'workbook',
+    phase: '2.5',
+    titleKey: 'milestone.workbook.title',
+    bodyKey: 'milestone.workbook.body',
+    path: 'docs/development/workbook-rich-text.md',
   },
 ];
 export function milestoneUrl(milestone: Milestone): string {

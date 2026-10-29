@@ -35,15 +35,49 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium firefox webkit
       - if: runner.os == 'Linux'
         run: pnpm test:e2e
+      # The contact endpoint is PHP behind the existing Apache, so the
+      # toolchain production uses is installed here: PHP 8.4, PHP-FPM and
+      # Apache. The website browser tests need it too, because they submit
+      # the form to the real endpoint rather than to a stand-in.
+      # php8.4-xml provides ext-dom, which PHPUnit requires and which the
+      # cli package does not pull in on its own.
+      - if: runner.os == 'Linux'
+        name: Install PHP 8.4, PHP-FPM and Apache
+        run: |
+          sudo add-apt-repository -y ppa:ondrej/php
+          sudo apt-get update
+          sudo apt-get install -y \
+            php8.4-cli php8.4-fpm php8.4-mbstring php8.4-curl php8.4-xml \
+            apache2 nginx-light libnginx-mod-http-js
+          sudo update-alternatives --set php /usr/bin/php8.4
+          php -v
+      - if: runner.os == 'Linux'
+        name: Install the contact endpoint dependencies
+        working-directory: apps/contact-php
+        run: composer install --no-interaction --no-progress --prefer-dist
+      # Syntax first, on the version production runs, then the manifest, then
+      # the advisories, then the suite.
+      - if: runner.os == 'Linux'
+        name: Check the contact endpoint
+        working-directory: apps/contact-php
+        run: |
+          find public src tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          composer validate --no-check-publish
+          composer audit
+          vendor/bin/phpunit --no-coverage
       - if: always() && runner.os == 'Linux'
         run: pnpm test:website
       # The generated container configuration is checked against a real NGINX
       # with the njs module, which is what decides the language in production.
       # Linux only: the check reports what is missing and passes elsewhere.
       - if: always() && runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y nginx-light libnginx-mod-http-js
-      - if: always() && runner.os == 'Linux'
         run: pnpm website:nginx
+      # And the generated Apache fragment is checked against a real Apache
+      # with PHP-FPM behind it, serving the real endpoint. An Alias after a
+      # catch-all never fires and a misplaced <Files> grants too much; neither
+      # shows up in a reading of the file.
+      - if: always() && runner.os == 'Linux'
+        run: pnpm website:apache
       # Parses and resolves the compose file; it needs no daemon.
       - if: always() && runner.os == 'Linux'
         run: pnpm website:container

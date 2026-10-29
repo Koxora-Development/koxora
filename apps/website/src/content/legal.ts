@@ -7,3 +7,6 @@ export const operator = {
   city: '20459 Hamburg',
 };
 export const privacyPolicyVersion = '1.0';
+
+// A product-content update does not change the legal text review date.
+export const privacyPolicyUpdatedOn = '2026-10-24';

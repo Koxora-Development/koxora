@@ -6,10 +6,18 @@ import { HomePage } from './home';
 import { FeaturesPage } from './features';
 import { LocalFirstPage } from './local-first';
 import { ComparePage } from './compare';
+import { ContactPage, ContactProblemPage, ContactSentPage } from './contact';
 import { comparisonPage } from './compare-product';
 import { RoadmapPage } from './roadmap';
 import { DownloadPage } from './download';
 import { DocsPage } from './docs';
+import {
+  DocsEditingPage,
+  DocsFaqPage,
+  DocsProjectsPage,
+  DocsStartPage,
+  DocsSupportPage,
+} from './docs-pages';
 import { ReleasesPage } from './releases';
 import { LegalNoticePage } from './legal-notice';
 import { PrivacyPolicyPage } from './privacy-policy';
@@ -18,6 +26,8 @@ export interface PageDefinition {
   Component: ComponentType<PageContext>;
   titleKey: MessageKey;
   descriptionKey: MessageKey;
+  /** `true` for a page that answers an action rather than being content. */
+  noindex?: boolean;
 }
 export const pageRegistry: Record<RouteId, PageDefinition> = {
   home: {
@@ -55,6 +65,23 @@ export const pageRegistry: Record<RouteId, PageDefinition> = {
     titleKey: 'cmp.page.lucidchart.meta.title',
     descriptionKey: 'cmp.page.lucidchart.meta.description',
   },
+  contact: {
+    Component: ContactPage,
+    titleKey: 'contact.meta.title',
+    descriptionKey: 'contact.meta.description',
+  },
+  contactSent: {
+    Component: ContactSentPage,
+    titleKey: 'contactSent.meta.title',
+    descriptionKey: 'contactSent.meta.description',
+    noindex: true,
+  },
+  contactProblem: {
+    Component: ContactProblemPage,
+    titleKey: 'contactProblem.meta.title',
+    descriptionKey: 'contactProblem.meta.description',
+    noindex: true,
+  },
   roadmap: {
     Component: RoadmapPage,
     titleKey: 'roadmap.meta.title',
@@ -69,6 +96,31 @@ export const pageRegistry: Record<RouteId, PageDefinition> = {
     Component: DocsPage,
     titleKey: 'docs.meta.title',
     descriptionKey: 'docs.meta.description',
+  },
+  docsStart: {
+    Component: DocsStartPage,
+    titleKey: 'docsStart.meta.title',
+    descriptionKey: 'docsStart.meta.description',
+  },
+  docsEditing: {
+    Component: DocsEditingPage,
+    titleKey: 'docsEditing.meta.title',
+    descriptionKey: 'docsEditing.meta.description',
+  },
+  docsProjects: {
+    Component: DocsProjectsPage,
+    titleKey: 'docsProjects.meta.title',
+    descriptionKey: 'docsProjects.meta.description',
+  },
+  docsFaq: {
+    Component: DocsFaqPage,
+    titleKey: 'docsFaq.meta.title',
+    descriptionKey: 'docsFaq.meta.description',
+  },
+  docsSupport: {
+    Component: DocsSupportPage,
+    titleKey: 'docsSupport.meta.title',
+    descriptionKey: 'docsSupport.meta.description',
   },
   releases: {
     Component: ReleasesPage,
