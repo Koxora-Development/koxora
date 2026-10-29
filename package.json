@@ -16,6 +16,7 @@
     "website:build": "pnpm --filter @koxora/website build",
     "website:preview": "pnpm --filter @koxora/website preview",
     "website:nginx": "node apps/website/scripts/check-nginx.mjs",
+    "website:container": "node apps/website/scripts/check-container.mjs",
     "desktop:dev": "pnpm --filter @koxora/studio-desktop dev",
     "desktop:build": "pnpm --filter @koxora/studio-desktop build",
     "typecheck": "tsc --noEmit",
