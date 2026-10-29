@@ -12,6 +12,9 @@ export type RouteId =
   | 'features'
   | 'localFirst'
   | 'compare'
+  | 'compareDrawio'
+  | 'compareMiro'
+  | 'compareLucidchart'
   | 'roadmap'
   | 'download'
   | 'docs'
@@ -57,6 +60,29 @@ export const routes: RouteDefinition[] = [
     aliases: { de: ['compare'] },
     nav: ['primary', 'product'],
     sitemap: { priority: 0.7, changeFrequency: 'monthly' },
+  },
+  // One page per comparison, under the comparison path in both languages, so
+  // the address says what the page is and stays stable if the set grows.
+  {
+    id: 'compareDrawio',
+    slugs: { en: 'compare/drawio', de: 'vergleich/drawio' },
+    aliases: { en: ['compare/diagrams-net'], de: ['vergleich/diagrams-net'] },
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'compareMiro',
+    slugs: { en: 'compare/miro', de: 'vergleich/miro' },
+    aliases: {},
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
+  },
+  {
+    id: 'compareLucidchart',
+    slugs: { en: 'compare/lucidchart', de: 'vergleich/lucidchart' },
+    aliases: {},
+    nav: [],
+    sitemap: { priority: 0.6, changeFrequency: 'monthly' },
   },
   {
     id: 'roadmap',

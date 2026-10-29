@@ -722,3 +722,123 @@
   font-size: 13px;
   color: var(--muted);
 }
+
+/* The sourced comparison. The table can be wider than a phone, so the
+   question column stays put while the product columns scroll, and the filter
+   lets a reader narrow it to the question or the product they care about. */
+.comparison .data-table th[scope='row'] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--panel);
+  min-width: 190px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 14px;
+}
+.comparison .data-table td {
+  min-width: 230px;
+}
+.comparison .data-table th[scope='col'] {
+  white-space: nowrap;
+}
+.claim {
+  display: inline-block;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+/* The status is readable as text first; colour only repeats what it says. */
+.claim-supported {
+  border-color: color-mix(in srgb, var(--cyan) 55%, var(--border-strong));
+  color: var(--cyan);
+}
+.claim-limited,
+.claim-planned {
+  border-color: color-mix(in srgb, var(--amber) 55%, var(--border-strong));
+  color: var(--amber);
+}
+.claim-notSupported {
+  border-color: var(--border-strong);
+  color: var(--muted);
+}
+.claim-unknown,
+.claim-info {
+  border-color: var(--border);
+  color: var(--faint);
+}
+.claim-note {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+.claim-sources {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.claim-sources a {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.comparison-filter {
+  display: grid;
+  gap: 16px;
+  margin-block: 20px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+}
+.comparison-filter fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+}
+.comparison-filter legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.comparison-filter label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+.comparison-filter input:disabled + span {
+  color: var(--faint);
+}
+.comparison-filter-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: center;
+}
+.comparison-filter-status {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+}
+.source-list {
+  margin: 16px 0 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 12px;
+  font-size: 14px;
+}
+.source-list .muted-note {
+  display: block;
+  margin-top: 2px;
+}

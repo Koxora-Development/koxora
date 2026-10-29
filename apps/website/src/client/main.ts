@@ -245,6 +245,61 @@ function setupLanguageMenu(): void {
     }, 140);
   });
 }
+/**
+ * The comparison filter. The table is complete without it, so the controls
+ * stay hidden until this runs: a checkbox that filters nothing would be worse
+ * than no checkbox. Rows carry their topic group and cells carry their
+ * product, so filtering is a matter of hiding, never of rebuilding.
+ */
+function setupComparisonFilter(): void {
+  for (const comparison of document.querySelectorAll<HTMLElement>(
+    '[data-comparison-filterable]',
+  )) {
+    const form = comparison.querySelector<HTMLFormElement>(
+      '[data-comparison-filter]',
+    );
+    const table = comparison.querySelector('table');
+    if (!form || !table) continue;
+    form.hidden = false;
+    const status = form.querySelector<HTMLElement>('[data-comparison-status]');
+    const checked = (name: string) =>
+      new Set(
+        [
+          ...form.querySelectorAll<HTMLInputElement>(
+            `input[name="${name}"]:checked`,
+          ),
+        ].map((input) => input.value),
+      );
+    const apply = () => {
+      const groups = checked('group');
+      const shown = checked('product');
+      const rows = [...table.querySelectorAll<HTMLTableRowElement>('tbody tr')];
+      let visibleRows = 0;
+      for (const row of rows) {
+        const visible = groups.has(row.dataset.group ?? '');
+        row.hidden = !visible;
+        if (visible) visibleRows += 1;
+      }
+      const cells = [...table.querySelectorAll<HTMLElement>('[data-product]')];
+      for (const cell of cells)
+        cell.hidden = !shown.has(cell.dataset.product ?? '');
+      if (status) {
+        const products = table.querySelectorAll('thead [data-product]').length;
+        status.textContent = (status.dataset.statusTemplate ?? '')
+          .replace('{rows}', String(visibleRows))
+          .replace('{total}', String(rows.length))
+          .replace('{columns}', String(shown.size))
+          .replace('{products}', String(products));
+      }
+    };
+    form.addEventListener('change', apply);
+    // A reset restores the defaults after the browser has applied them.
+    form.addEventListener('reset', () => window.setTimeout(apply, 0));
+    // The form must never navigate: it filters what is already on the page.
+    form.addEventListener('submit', (event) => event.preventDefault());
+    apply();
+  }
+}
 function formatTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -386,6 +441,7 @@ setupTheme();
 setupLanguagePreference();
 setupMenu();
 setupLanguageMenu();
+setupComparisonFilter();
 setupConsent();
 setupActiveSection();
 export type { ConsentRecord };

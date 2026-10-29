@@ -141,13 +141,12 @@ export const de: Record<WebsiteMessageKey, string> = {
   'home.compare.description':
     'Diagrammwerkzeuge sind ein reifes Feld mit starken Produkten. Koxora ist für einen bestimmten Arbeitsablauf gebaut: visuelle Arbeit, die auf Ihrem Gerät bleibt, offline weiterläuft und Dateien erzeugt, die Ihnen gehören.',
   'home.compare.focusTitle': 'Worauf Koxora optimiert',
-  'home.compare.peersTitle':
-    'Etablierte Werkzeuge, mit denen wir vergleichen werden',
+  'home.compare.peersTitle': 'Die Werkzeuge, mit denen Koxora verglichen wird',
   'home.compare.peersNote':
-    'Mehrere dieser Werkzeuge bieten ebenfalls Offline-, Desktop- oder Self-Hosting-Optionen und sind in ihrem Feld jeweils stark. Häkchentabellen ohne Belege veröffentlichen wir nicht.',
+    'Mehrere dieser Werkzeuge bieten ebenfalls Offline-, Desktop- oder Self-Hosting-Optionen und jedes ist in seinem Feld stark. Der Vergleich sagt das, mit einer Quelle für jede Aussage.',
   'home.compare.methodology':
-    'Der ausführliche Vergleich folgt in einem späteren Schritt: mit Quellen je Aussage, dem geprüften Tarif und der geprüften Version sowie dem Datum der jeweiligen Prüfung.',
-  'home.compare.link': 'Vergleich (in Vorbereitung)',
+    'Der Vergleich beantwortet zehn Fragen für sechs Produkte. Jede Aussage über ein anderes Produkt verweist auf die offizielle Seite, die sie belegt, und hält das Lesedatum fest.',
+  'home.compare.link': 'Den Vergleich lesen',
 
   'home.roadmap.kicker': 'Transparenz',
   'home.roadmap.title': 'Öffentlicher Entwicklungsstand',
@@ -225,33 +224,30 @@ export const de: Record<WebsiteMessageKey, string> = {
 
   'compare.meta.title': 'Koxora im Vergleich zu anderen Werkzeugen',
   'compare.meta.description':
-    'Wie sich Koxora neben draw.io, Lucidchart, Miro, Visio und Excalidraw einordnet. Der belegte Vergleich folgt; hier steht die Methode.',
+    'Koxora neben draw.io, Lucidchart, Miro, Microsoft Visio und Excalidraw. Jede Aussage über ein anderes Produkt nennt ihre Quelle und das Prüfdatum.',
   'compare.hero.eyebrow': 'Vergleich',
-  'compare.hero.title': 'Ein ehrlicher Vergleich braucht Belege',
+  'compare.hero.title': 'Ein Vergleich, den Sie nachprüfen können',
   'compare.hero.lead':
-    'Ein ausführlicher Vergleich mit draw.io, Lucidchart, Miro, Microsoft Visio und Excalidraw ist in Vorbereitung. Er ist noch nicht veröffentlicht, denn ein nützlicher Vergleich braucht aktuelle Quellen für jede Aussage statt Marketing-Häkchen.',
-  'compare.state.title': 'Diese Seite ist in Vorbereitung',
-  'compare.state.body':
-    'Hier stehen heute die Methode und die Einordnung. Die Vergleichstabellen, die Seiten je Werkzeug und die Empfehlungen nach Anwendungsfall folgen im nächsten Website-Schritt.',
-  'compare.method.title': 'Wie der Vergleich entsteht',
-  'compare.method.item1.title': 'Jede Aussage bekommt Quelle und Datum',
+    'Koxora neben draw.io, Lucidchart, Miro, Microsoft Visio und Excalidraw. Jede Aussage über ein anderes Produkt verweist auf eine offizielle Seite und hält das Datum fest, an dem diese Seite gelesen wurde. Wo eine Quelle etwas nicht aussagt, steht \u201enicht geprüft\u201c und keine Vermutung.',
+  'compare.method.title': 'Wie dieser Vergleich entsteht',
+  'compare.method.item1.title': 'Jede Aussage nennt Quelle und Datum',
   'compare.method.item1.body':
-    'Jede Aussage über ein anderes Produkt verweist auf dessen offizielle Dokumentation oder eine andere seriöse Quelle, nennt den geprüften Tarif und die geprüfte Version und hält fest, wann geprüft wurde.',
+    'Jede Aussage über ein anderes Produkt verweist auf die offizielle Seite, die sie belegt, und die Quellenliste hält fest, wann diese Seite gelesen wurde. Was betrachtet wurde \u2014 Tarif, Edition oder Build \u2014 steht neben jedem Produkt.',
   'compare.method.item2.title': 'Mehr als zwei Antworten',
   'compare.method.item2.body':
-    'Funktionen werden als unterstützt, nicht unterstützt, eingeschränkt oder tarifabhängig, für Koxora geplant oder ungeprüft ausgewiesen. Ein bloßes Häkchen verbirgt zu viel.',
+    'Eine Antwort ist unterstützt, eingeschränkt oder tarifabhängig, nicht unterstützt, für Koxora geplant, eine Beschreibung oder nicht geprüft. Ein bloßes Häkchen verbirgt zu viel, um nützlich zu sein.',
   'compare.method.item3.title': 'Anerkennung, wo sie hingehört',
   'compare.method.item3.body':
-    'Die anderen Werkzeuge sind starke Produkte mit echten Stärken, auch bei Offline- und Desktop-Nutzung. Der Vergleich benennt diese Stärken.',
+    'Das sind starke Produkte, und mehrere können etwas, das Koxora nicht kann. draw.io liefert eine Desktop-Anwendung, die seine Entwickler als vom Internet isoliert beschreiben; Lucidchart bietet Offline-Bearbeitung im Browser. Beides steht hier.',
   'compare.method.item4.title': 'Koxora gilt derselbe Maßstab',
   'compare.method.item4.body':
-    'Koxora-Funktionen erscheinen mit denselben Statusangaben wie überall auf dieser Website. Geplante Funktionen werden nie als verfügbar dargestellt.',
-  'compare.method.item5.title': 'Er wird aktuell gehalten',
+    'Die Koxora-Spalte beschreibt den zusammengeführten Entwicklungsstand des öffentlichen Repositories. Koxora hat keine öffentliche Veröffentlichung, es lässt sich heute also nichts installieren, und eine geplante Funktion ist als geplant markiert, nie abgehakt.',
+  'compare.method.item5.title': 'Er wird erneut geprüft, und sagt wann',
   'compare.method.item5.body':
-    'Funktionen, Tarife und Preise ändern sich. Der Vergleich wird vor Veröffentlichungen und in regelmäßigen Abständen erneut geprüft und zeigt das Datum der letzten Prüfung.',
+    'Funktionen, Tarife und Preise ändern sich, manchmal innerhalb von Wochen. Das Datum der letzten Prüfung steht auf dieser Seite, jede Quelle nennt ihr Lesedatum, und vor jeder Veröffentlichung wird erneut geprüft.',
   'compare.peers.title': 'Die betrachteten Werkzeuge',
   'compare.peers.note':
-    'Kurze, neutrale Beschreibungen dessen, wofür die Werkzeuge bekannt sind. Funktionsaussagen werden hier nicht getroffen; dafür braucht es den belegten Vergleich.',
+    'Was jedes Werkzeug ist und was betrachtet wurde, um die Fragen darunter zu beantworten.',
 
   'roadmap.meta.title': 'Roadmap und Entwicklungsstand',
   'roadmap.meta.description':
@@ -747,4 +743,263 @@ export const de: Record<WebsiteMessageKey, string> = {
   'project.statusMilestoneValue.published':
     'Studio-Phase 2.4 zusammengeführt \u00b7 Studio 2.5 in Arbeit',
   'legalNotice.contact.security': 'Erstkontakt bei einem Sicherheitsproblem',
+
+  'cmp.status.supported': 'Unterstützt',
+  'cmp.status.supported.definition':
+    'Eine offizielle Seite nennt die Funktion für das, was betrachtet wurde.',
+  'cmp.status.limited': 'Eingeschränkt oder tarifabhängig',
+  'cmp.status.limited.definition':
+    'Vorhanden, aber nur in einem bestimmten Tarif, einer bestimmten Edition oder Situation, die die Antwort benennt.',
+  'cmp.status.notSupported': 'Nicht unterstützt',
+  'cmp.status.notSupported.definition':
+    'Eine offizielle Seite sagt, dass es für das Betrachtete nicht verfügbar ist.',
+  'cmp.status.planned': 'Geplant',
+  'cmp.status.planned.definition':
+    'Dokumentierter Koxora-Umfang, der nicht umgesetzt ist. Er wird nie als verfügbar dargestellt.',
+  'cmp.status.unknown': 'Nicht geprüft',
+  'cmp.status.unknown.definition':
+    'Für diese Prüfung wurde keine offizielle Aussage gefunden und gelesen. Das bedeutet nicht, dass die Funktion fehlt.',
+  'cmp.status.info': 'Angaben',
+  'cmp.status.info.definition':
+    'Eine Frage, die ein Ja oder Nein nicht beantworten würde; der Eintrag beschreibt, was gefunden wurde.',
+  'cmp.group.independence': 'Unabhängigkeit',
+  'cmp.group.work': 'Zeichnen und Dateien',
+  'cmp.group.together': 'Teams und Dienste',
+  'cmp.group.cost': 'Lizenz und Preis',
+  'cmp.dim.offline.label': 'Funktioniert offline',
+  'cmp.dim.offline.description':
+    'Ob Sie weiterarbeiten können, wenn die Verbindung abbricht oder nie bestand.',
+  'cmp.dim.onDevice.label': 'Ihre Arbeit bleibt auf Ihrem Gerät',
+  'cmp.dim.onDevice.description':
+    'Ob die Diagramme auf Ihrem eigenen Rechner in Ihren eigenen Dateien liegen statt nur in einem Anbieterkonto.',
+  'cmp.dim.withoutAccount.label': 'Nutzbar ohne Konto',
+  'cmp.dim.withoutAccount.description':
+    'Ob Sie etwas zeichnen können, bevor Sie sich registrieren.',
+  'cmp.dim.desktop.label': 'Desktop-Anwendung',
+  'cmp.dim.desktop.description':
+    'Ob es eine Anwendung zum Installieren gibt und für welche Betriebssysteme.',
+  'cmp.dim.diagramTypes.label': 'Diagrammtypen',
+  'cmp.dim.diagramTypes.description':
+    'Für welche Arten von Diagrammen der Editor gebaut ist.',
+  'cmp.dim.importExport.label': 'Import und Export',
+  'cmp.dim.importExport.description':
+    'Welche Formate hinein- und hinausgehen und ob Ihre Arbeit wieder herauskommt.',
+  'cmp.dim.collaboration.label': 'Zusammenarbeit',
+  'cmp.dim.collaboration.description':
+    'Gemeinsames Bearbeiten, Kommentare und Teilen mit anderen Menschen.',
+  'cmp.dim.ai.label': 'Assistenzfunktionen',
+  'cmp.dim.ai.description': 'Generierte Inhalte oder ein Assistent im Editor.',
+  'cmp.dim.integration.label': 'Integrationen und Erweiterungen',
+  'cmp.dim.integration.description':
+    'Verbindungen zu anderen Werkzeugen und ob der Editor eingebettet oder erweitert werden kann.',
+  'cmp.dim.licence.label': 'Lizenz- und Preismodell',
+  'cmp.dim.licence.description':
+    'Wie das Produkt lizenziert und bezahlt wird. Beträge stehen hier nicht, weil sie sich ändern und je nach Region und Währung unterschiedlich sind.',
+  'cmp.product.koxora.description':
+    'Ein local-first Studio für Diagramme, offen entwickelt.',
+  'cmp.product.koxora.examined':
+    'Der zusammengeführte Entwicklungsstand des öffentlichen Repositories. Es gibt keine öffentliche Veröffentlichung, aus dieser Spalte lässt sich heute also nichts installieren.',
+  'cmp.product.drawio.description':
+    'Ein weit verbreiteter Diagrammeditor, im Browser und als Desktop-Anwendung, mit Integrationen in andere Werkzeuge.',
+  'cmp.product.drawio.examined':
+    'Die offizielle Produktseite und das Repository der Desktop-Anwendung.',
+  'cmp.product.excalidraw.description':
+    'Ein quelloffener Editor im handgezeichneten Stil, mit einer gehosteten Version und einem bezahlten Dienst darum.',
+  'cmp.product.excalidraw.examined':
+    'Das Projekt-Repository und die Produktseite von Excalidraw+.',
+  'cmp.product.lucidchart.description':
+    'Ein browserbasiertes Diagrammprodukt für Teams, mit Tarifen von einer kostenlosen Stufe aufwärts.',
+  'cmp.product.lucidchart.examined':
+    'Die veröffentlichten Hilfeartikel zur Offline-Bearbeitung und zu den Systemanforderungen sowie die Preisseite.',
+  'cmp.product.miro.description':
+    'Ein gemeinsames Whiteboard für Workshops und Planung, unter anderem zum Zeichnen von Diagrammen.',
+  'cmp.product.miro.examined':
+    'Die veröffentlichte Preisseite und die Downloadseite der Anwendungen.',
+  'cmp.product.visio.description':
+    'Das lange etablierte Diagrammprodukt von Microsoft, verkauft innerhalb von Microsoft-365-Tarifen und als Einmalkauf.',
+  'cmp.product.visio.examined':
+    'Der veröffentlichte Tarifvergleich und der Versions- und Funktionsvergleich im Microsoft-Support.',
+  'cmp.offline.koxora':
+    'Local-first von Anfang an. Der Entwicklungsstand läuft im Browser und braucht nach dem Laden keinen Server, und Projekte bleiben auf dem Gerät.',
+  'cmp.offline.drawio':
+    'Die Desktop-Anwendung wird von ihren Entwicklern als vollständig vom Internet isoliert beschrieben, abgesehen von einer täglichen Aktualisierungsprüfung, die abgeschaltet werden kann.',
+  'cmp.offline.excalidraw':
+    'Der gehostete Editor ist als progressive Web-App ausgewiesen, die offline funktioniert und automatisch in den Browser speichert.',
+  'cmp.offline.lucidchart':
+    'Offline-Bearbeitung wird in Chrome, Firefox und Edge auf macOS, Windows und Linux in allen Tarifen angeboten. Neue Dokumente lassen sich offline nicht anlegen, Echtzeit-Zusammenarbeit braucht eine Verbindung, die Dokumente müssen vor dem Verbindungsverlust geöffnet sein, und ein privates Fenster behält die Änderungen nicht.',
+  'cmp.offline.miro':
+    'Desktop-Anwendungen sind veröffentlicht, aber für diese Prüfung wurde keine offizielle Aussage zur Offline-Nutzung gefunden und gelesen.',
+  'cmp.offline.visio':
+    'Offline-Arbeit und Unterstützung lokaler Dateien sind für die Desktop-Anwendung genannt, die Visio Plan 2 oder eine Desktop-Edition als Einmalkauf voraussetzt. Die reinen Web-Varianten sind ohne beides aufgeführt.',
+  'cmp.onDevice.koxora':
+    'Projekte liegen im Browserspeicher Ihres eigenen Geräts und lassen sich in Projektdateien schreiben und daraus zurücklesen. Kein Koxora-Server erhält sie, weil es keinen gibt.',
+  'cmp.onDevice.drawio':
+    'Die Entwickler geben an, keinen Zugriff auf Ihre Diagramme zu haben: der Online-Editor nutzt Speicher, den Sie selbst mitbringen, und die Desktop-Anwendung speichert in lokale Dateien.',
+  'cmp.onDevice.excalidraw':
+    'Der gehostete Editor speichert automatisch in den Browser, und eine Zeichnung lässt sich als offene JSON-Datei speichern.',
+  'cmp.onDevice.lucidchart':
+    'Dokumente liegen im Lucid-Dienst. Die Offline-Funktion beschreibt einen Browser-Zwischenspeicher von etwa zehn Megabyte statt lokaler Dateien; darüber hinaus wurde für diese Prüfung nichts belegt.',
+  'cmp.onDevice.miro':
+    'Für diese Prüfung wurde keine offizielle Aussage dazu gefunden und gelesen, wo Boards liegen oder ob sie als lokale Dateien behalten werden können.',
+  'cmp.onDevice.visio':
+    'Unterstützung lokaler Dateien ist für die Desktop-Anwendung genannt, die Plan 2 oder eine Edition als Einmalkauf voraussetzt. Das lokale Speichern eines Diagramms als PNG oder JPEG ist für die Microsoft-365-Varianten aufgeführt.',
+  'cmp.withoutAccount.koxora':
+    'Keine Registrierung und kein Konto, das man anlegen könnte: der Editor hat überhaupt keine Anmeldung.',
+  'cmp.withoutAccount.drawio':
+    'Die offizielle Startseite gibt an, dass kein Konto und keine Registrierung nötig sind.',
+  'cmp.withoutAccount.excalidraw':
+    'Der kostenlose Editor wird als ohne Konto nutzbar beschrieben. Excalidraw+ ist eine bezahlte Erweiterung, und deren Testphase setzt eine Anmeldung voraus.',
+  'cmp.withoutAccount.lucidchart':
+    'Für diese Prüfung wurde keine offizielle Aussage zur Nutzung des Editors ohne Konto gefunden und gelesen.',
+  'cmp.withoutAccount.miro':
+    'Für diese Prüfung wurde keine offizielle Aussage dazu gefunden und gelesen, ob ein Board ohne Konto geöffnet werden kann.',
+  'cmp.withoutAccount.visio':
+    'Microsoft gibt an, dass der Webzugang ein Microsoft-365-Geschäfts- oder Schulkonto braucht und dass persönliche Identitäten wie outlook.com nicht unterstützt werden. Die Desktop-Anwendung braucht eine zugewiesene Lizenz.',
+  'cmp.desktop.koxora':
+    'Ein Desktop-Build für Linux, Windows und macOS ist dokumentierter Produktumfang und nicht umgesetzt. Es gibt keinen Download.',
+  'cmp.desktop.drawio':
+    'Installationspakete sind veröffentlicht für Windows, darunter ein ARM64- und ein portabler Build, für Linux als AppImage, deb und rpm sowie über die Snap- und Flatpak-Stores, und für macOS.',
+  'cmp.desktop.excalidraw':
+    'Das Repository dokumentiert die gehostete Web-Anwendung, die es als installierbar und offline nutzbar ausweist. Zu einer offiziellen Desktop-Anwendung wurde für diese Prüfung nichts belegt.',
+  'cmp.desktop.lucidchart':
+    'Die veröffentlichten Systemanforderungen beschreiben unterstützte Browser und die Betriebssysteme, auf denen sie laufen. Zu einer Desktop-Anwendung wurde für diese Prüfung nichts belegt.',
+  'cmp.desktop.miro':
+    'Desktop-Anwendungen werden für macOS angeboten, getrennt für Apple Silicon und Intel, sowie für Windows, auch über den Microsoft Store.',
+  'cmp.desktop.visio':
+    'Die Desktop-Anwendung ist für Visio Plan 2 und für die Editionen als Einmalkauf aufgeführt. Visio Plan 1 und Visio in Microsoft 365 sind als reine Web-Varianten aufgeführt.',
+  'cmp.diagramTypes.koxora':
+    'Der zusammengeführte Stand zeichnet Formen, einfachen Text und Verbindungen mit sichtbaren Ports. Der breitere Katalog an Diagrammfamilien ist geplant, und die Funktionsseite benennt die heutigen Grenzen.',
+  'cmp.diagramTypes.drawio':
+    'Für diese Prüfung nicht belegt. Die offiziellen Formbibliotheken sind umfangreich; welche Familien sie abdecken, wurde nicht gegen eine einzelne offizielle Seite bestätigt.',
+  'cmp.diagramTypes.excalidraw':
+    'Für diese Prüfung nicht belegt, abgesehen davon, dass sich das Projekt selbst als virtuelles Whiteboard im handgezeichneten Stil beschreibt.',
+  'cmp.diagramTypes.lucidchart': 'Für diese Prüfung nicht belegt.',
+  'cmp.diagramTypes.miro': 'Für diese Prüfung nicht belegt.',
+  'cmp.diagramTypes.visio':
+    'Microsoft führt das Ansehen und Bearbeiten von Dateien auf, die mit Visio 2000 und später erstellt wurden, und zwar für alle Microsoft-365-Varianten. Der vollständige Satz an Schablonen je Tarif wurde für diese Prüfung nicht belegt.',
+  'cmp.importExport.koxora':
+    'Projektarchive lassen sich schreiben und lesen, und ein Projekt lässt sich daraus wiederherstellen. Im zusammengeführten Stand gibt es keinen Bildexport und keinen Import aus anderen Werkzeugen; die Funktionsseite sagt das ebenfalls.',
+  'cmp.importExport.drawio': 'Für diese Prüfung nicht belegt.',
+  'cmp.importExport.excalidraw':
+    'Eine Zeichnung lässt sich als offene JSON-Datei exportieren, die das Projekt als eigenes Format beschreibt.',
+  'cmp.importExport.lucidchart': 'Für diese Prüfung nicht belegt.',
+  'cmp.importExport.miro': 'Für diese Prüfung nicht belegt.',
+  'cmp.importExport.visio':
+    'Das lokale Speichern eines Diagramms als PNG oder JPEG ist für die Microsoft-365-Varianten aufgeführt, ebenso das Ansehen und Bearbeiten von Dateien, die mit Visio 2000 und später erstellt wurden.',
+  'cmp.collaboration.koxora':
+    'Gemeinsames Bearbeiten ist dokumentierter Produktumfang und nicht umgesetzt. Nichts auf dieser Website stellt es als verfügbar dar.',
+  'cmp.collaboration.drawio': 'Für diese Prüfung nicht belegt.',
+  'cmp.collaboration.excalidraw':
+    'Das Projekt beschreibt sich selbst als kollaborativ und Ende-zu-Ende verschlüsselt.',
+  'cmp.collaboration.lucidchart':
+    'Echtzeit-Zusammenarbeit ist als Funktion des Produkts genannt und als eine, die eine Verbindung braucht.',
+  'cmp.collaboration.miro':
+    'Boards werden standardmäßig mit den Mitgliedern eines Teams geteilt. Im kostenlosen Tarif lassen sich unbegrenzt Boards anlegen, bearbeitbar bleiben aber nur die drei neuesten, und es gibt keine Besucher- oder Gastrollen.',
+  'cmp.collaboration.visio': 'Für diese Prüfung nicht belegt.',
+  'cmp.ai.koxora':
+    'Optionale Assistenz ist dokumentierter Produktumfang und nicht umgesetzt. Sie ist als optional geplant, ein Koxora ohne sie bleibt also vollständig.',
+  'cmp.ai.drawio': 'Für diese Prüfung nicht belegt.',
+  'cmp.ai.excalidraw':
+    'Generative Funktionen und eine Schnittstelle, über die ein Agent in einen Arbeitsbereich zeichnen kann, sind als Teil des bezahlten Angebots Excalidraw+ aufgeführt.',
+  'cmp.ai.lucidchart': 'Für diese Prüfung nicht belegt.',
+  'cmp.ai.miro':
+    'Assistenz wird mit einem tarifabhängigen Guthaben angeboten; der kostenlose Tarif ist als eingeschränkter Test aufgeführt, den die Fragen zur Preisgestaltung mit zehn Guthaben pro Monat beschreiben.',
+  'cmp.ai.visio': 'Für diese Prüfung nicht belegt.',
+  'cmp.integration.koxora':
+    'Integrationen und eine Plugin-Schnittstelle sind dokumentierter Produktumfang und nicht umgesetzt.',
+  'cmp.integration.drawio':
+    'Die offizielle Startseite nennt Google Drive, Docs und Slides, Microsoft SharePoint, OneDrive und Teams, Atlassian Confluence und Jira, GitHub-Repositories und Markdown, eine Editor-Erweiterung für VS Code und eine Erweiterung für Notion.',
+  'cmp.integration.excalidraw':
+    'Der Editor ist als Paket veröffentlicht, das andere Anwendungen einbetten können, und das Projekt ist quelloffen, also erweiterbar.',
+  'cmp.integration.lucidchart': 'Für diese Prüfung nicht belegt.',
+  'cmp.integration.miro':
+    'Die Preisseite nennt mehr als 250 Anwendungen, verfügbar ab dem kostenlosen Tarif.',
+  'cmp.integration.visio': 'Für diese Prüfung nicht belegt.',
+  'cmp.licence.koxora':
+    'Der Quellcode ist öffentlich. Eine Lizenz ist noch nicht veröffentlicht, es werden also bis dahin keine Rechte eingeräumt, und es gibt keinen Preis, weil es keine Veröffentlichung gibt. Das Impressum sagt dasselbe.',
+  'cmp.licence.drawio':
+    'Die Desktop-Anwendung ist unter der GPL Version 3 veröffentlicht und frei nutzbar. Der Online-Editor verlangt kein Konto.',
+  'cmp.licence.excalidraw':
+    'Der Editor ist unter der MIT-Lizenz veröffentlicht und wird als dauerhaft kostenlos beschrieben. Excalidraw+ ist ein bezahltes Angebot mit Testphase.',
+  'cmp.licence.lucidchart':
+    'Ein Abonnementprodukt mit einer kostenlosen Stufe. Die Tarifnamen, ihre Grenzen und die Beträge stehen auf der offiziellen Preisseite und werden hier nicht wiedergegeben, weil sie sich ändern und je nach Region unterschiedlich sind.',
+  'cmp.licence.miro':
+    'Die Tarife Free, Starter, Business und Enterprise. Im kostenlosen Tarif lassen sich unbegrenzt Boards anlegen, bearbeitbar bleiben aber nur die drei neuesten.',
+  'cmp.licence.visio':
+    'Visio in Microsoft 365, Visio Plan 1 und Visio Plan 2 sind Abonnements, und zusätzlich gibt es Desktop-Editionen als Einmalkauf. Nur Plan 2 und die Einmalkauf-Editionen sind mit der Desktop-Anwendung aufgeführt.',
+  'cmp.table.title': 'Zehn Fragen, sechs Produkte',
+  'cmp.table.description':
+    'Jede Antwort sagt, was gefunden wurde, und verweist auf die Seite, die es belegt. Mit den Filtern können Sie sich eine Frage oder ein Produkt einzeln ansehen.',
+  'cmp.table.caption':
+    'Koxora im Vergleich mit fünf anderen Diagrammwerkzeugen',
+  'cmp.table.question': 'Frage',
+  'cmp.filter.topics': 'Diese Themen zeigen',
+  'cmp.filter.products': 'Diese Produkte zeigen',
+  'cmp.filter.status':
+    '{rows} von {total} Fragen und {columns} von {products} Produkten werden gezeigt.',
+  'cmp.filter.reset': 'Wieder alles zeigen',
+  'cmp.filter.hint':
+    'Der Filter ist eine Bequemlichkeit. Ohne ihn und ohne JavaScript wird die ganze Tabelle gezeigt.',
+  'cmp.legend.title': 'Was die Antworten bedeuten',
+  'cmp.sources.title': 'Quellen',
+  'cmp.sources.note':
+    'Jede Seite in dieser Liste wurde am angegebenen Datum gelesen, und es wird hier nichts behauptet, was über diese Seiten hinausgeht. Wenn sich etwas geändert hat oder etwas falsch ist, schreiben Sie an {email}, dann wird es korrigiert.',
+  'cmp.sources.checkedOn': 'Gelesen am {date}',
+  'cmp.checked': 'Dieser Vergleich wurde zuletzt am {date} geprüft.',
+  'cmp.disclaimer.title': 'Was dieser Vergleich nicht ist',
+  'cmp.disclaimer.body':
+    'Er ist vom Koxora-Projekt geschrieben, lesen Sie ihn also als solchen. Er behauptet nicht, Koxora sei besser: er beantwortet zehn Fragen und zeigt, woher jede Antwort kommt. Mehrere dieser Produkte können Dinge, die Koxora nicht kann, und die Tabelle sagt das. Produktnamen und Marken gehören ihren Inhabern und werden zur Bezeichnung der Produkte verwendet, nicht um eine Empfehlung zu suggerieren.',
+  'cmp.pages.title': 'Ein Werkzeug auf einmal',
+  'cmp.pages.note':
+    'Kürzere Seiten, die dieselben Fragen für ein einzelnes Produkt beantworten, mit Hinweisen, welches Werkzeug zu welcher Aufgabe passt.',
+  'cmp.page.hero.eyebrow': 'Vergleich',
+  'cmp.page.table.title': 'Nebeneinander',
+  'cmp.page.choose.title': 'Was zu welcher Aufgabe passt',
+  'cmp.page.strengths.title': 'Was {product} gut macht',
+  'cmp.page.koxora.title': 'Was Koxora anders macht',
+  'cmp.page.chooseOther': '{product} passt, wenn',
+  'cmp.page.chooseKoxora': 'Koxora passt, wenn',
+  'cmp.page.full': 'Alle sechs Produkte, alle zehn Fragen',
+  'cmp.page.drawio.meta.title': 'Koxora im Vergleich mit draw.io',
+  'cmp.page.drawio.meta.description':
+    'draw.io und Koxora nebeneinander: Offline-Nutzung, wo die Dateien liegen, Konten, Desktop-Anwendungen und Lizenzen, jeweils mit Quelle und Prüfdatum.',
+  'cmp.page.drawio.hero.title': 'Koxora und draw.io',
+  'cmp.page.drawio.hero.lead':
+    'draw.io ist dem am nächsten, was Koxora werden will, und es ist bereits fertig. Diese Seite sagt, wo sich beide unterscheiden, mit einer Quelle für jede Aussage über draw.io.',
+  'cmp.page.drawio.strengths.body':
+    'Die Desktop-Anwendung wird von ihren Entwicklern als vollständig vom Internet isoliert beschrieben, abgesehen von einer täglichen Aktualisierungsprüfung, die abgeschaltet werden kann. Sie ist unter der GPL Version 3 veröffentlicht, für Windows einschließlich eines ARM64- und eines portablen Builds, für Linux als AppImage, deb, rpm, Snap und Flatpak sowie für macOS. Der Online-Editor braucht kein Konto und nutzt Speicher, den Sie selbst mitbringen, und die offizielle Seite nennt Integrationen mit Google, Microsoft, Atlassian, GitHub, VS Code und Notion. Es ist ein ausgereiftes Werkzeug mit einer großen Formbibliothek und Jahren an Nutzung.',
+  'cmp.page.drawio.koxora.body':
+    'Koxora steht am Anfang und hat keine öffentliche Veröffentlichung, der ehrliche Vergleich dreht sich heute also um die Absicht und nicht um ein fertiges Produkt. Koxora ist als ein Editor mit einem portablen Projektformat über Browser und Desktop gebaut, mit Deutsch und Englisch im Produkt ab der ersten Version und mit Cloud, Assistenz und Zusammenarbeit als optionalen Teilen statt als Standard. Vorhanden ist heute der Entwicklungsstand im offenen Repository: Formen, Text und Verbindungen, Projekte auf dem Gerät und Projektdateien, die geschrieben und gelesen werden können.',
+  'cmp.page.drawio.chooseOther':
+    'Sie heute ein fertiges Werkzeug brauchen, die große Formbibliothek wollen, in Google, Microsoft, Atlassian oder GitHub arbeiten oder eine installierte Anwendung wollen, die überhaupt nicht mit dem Internet spricht.',
+  'cmp.page.drawio.chooseKoxora':
+    'Sie ein Werkzeug begleiten wollen, das offen entwickelt wird, Wert auf ein portables Projektformat und eine deutsche Oberfläche von Anfang an legen und auf eine Veröffentlichung warten können.',
+  'cmp.page.miro.meta.title': 'Koxora im Vergleich mit Miro',
+  'cmp.page.miro.meta.description':
+    'Miro und Koxora nebeneinander: Zusammenarbeit, Offline-Nutzung, wo Boards liegen, Konten und Tarife, jeweils mit Quelle und Prüfdatum.',
+  'cmp.page.miro.hero.title': 'Koxora und Miro',
+  'cmp.page.miro.hero.lead':
+    'Miro und Koxora sind für unterschiedliche Situationen gebaut: ein gemeinsames Board für einen Workshop und ein Diagramm, das Sie auf Ihrem Rechner behalten. Diese Seite sagt, wo dieser Unterschied sichtbar wird, mit einer Quelle für jede Aussage über Miro.',
+  'cmp.page.miro.strengths.body':
+    'Miro ist für Menschen gebaut, die zusammenarbeiten. Boards werden standardmäßig mit einem Team geteilt, es gibt Desktop-Anwendungen für macOS, für Apple Silicon wie für Intel, und für Windows, die Preisseite nennt mehr als 250 Integrationen ab dem kostenlosen Tarif, und Assistenz wird mit einem Guthaben je Tarif angeboten. Für einen Workshop mit einem Dutzend Menschen auf einer Fläche ist es genau dafür gemacht, und das ist eine andere Aufgabe, als ein Diagramm zu zeichnen und die Datei zu behalten.',
+  'cmp.page.miro.koxora.body':
+    'Koxora beginnt am anderen Ende: die Arbeit ist Ihre, auf Ihrem Gerät, und ein Dienst ist etwas, das Sie hinzufügen können, statt etwas, mit dem Sie anfangen. Projekte liegen auf dem Gerät und in Projektdateien, nichts braucht ein Konto, und gemeinsames Bearbeiten ist als optional geplant. Koxora hat keine öffentliche Veröffentlichung, Miro ist heute also ein funktionierendes Produkt und Koxora nicht.',
+  'cmp.page.miro.chooseOther':
+    'es darum geht, dass eine Gruppe gleichzeitig auf einer Fläche arbeitet, Sie einen großen Katalog an Integrationen wollen oder Sie Workshops leiten und Vorlagen und Moderationswerkzeuge brauchen.',
+  'cmp.page.miro.chooseKoxora':
+    'das Diagramm wichtiger ist als die Besprechung, die Datei auf Ihrem Rechner bleiben muss, Sie ohne Konto und ohne Verbindung arbeiten wollen und auf eine Veröffentlichung warten können.',
+  'cmp.page.lucidchart.meta.title': 'Koxora im Vergleich mit Lucidchart',
+  'cmp.page.lucidchart.meta.description':
+    'Lucidchart und Koxora nebeneinander: Offline-Bearbeitung, wo Dokumente liegen, Konten, Zusammenarbeit und Tarife, jeweils mit Quelle und Prüfdatum.',
+  'cmp.page.lucidchart.hero.title': 'Koxora und Lucidchart',
+  'cmp.page.lucidchart.hero.lead':
+    'Lucidchart ist ein Diagrammprodukt für Teams, das auch offline im Browser funktioniert — das sollte man wissen, bevor jemand das Gegenteil behauptet. Diese Seite sagt, wo es sich von Koxora unterscheidet, mit einer Quelle für jede Aussage über Lucidchart.',
+  'cmp.page.lucidchart.strengths.body':
+    'Offline-Bearbeitung wird in allen Tarifen angeboten, in Chrome, Firefox und Edge, auf macOS, Windows und Linux, mit den Dokumenten, die Sie bereits geöffnet haben: der Browser behält die Änderungen und überträgt sie, sobald die Verbindung zurückkommt. Echtzeit-Zusammenarbeit ist Teil des Produkts, und die veröffentlichten Systemanforderungen sind bei Browsern und Betriebssystemen sehr konkret. Es ist ein Teamprodukt mit einer kostenlosen Stufe und bezahlten Tarifen.',
+  'cmp.page.lucidchart.koxora.body':
+    'Der Unterschied liegt nicht darin, ob es Offline gibt, sondern wo die Arbeit liegt. Lucidchart hält Dokumente im eigenen Dienst und legt für Offline-Änderungen etwa zehn Megabyte im Browser ab; Koxora behält Projekte auf dem Gerät und in Projektdateien, ohne Konto und ohne Server dahinter. Lucidchart ist ein fertiges Produkt und Koxora hat keine öffentliche Veröffentlichung, das ist also ein Vergleich von Entwürfen, nicht von Reife.',
+  'cmp.page.lucidchart.chooseOther':
+    'Ihr Team schon in Lucid arbeitet, Sie Echtzeit-Zusammenarbeit und Kommentare brauchen oder Sie ein fertiges Produkt mit Support dahinter wollen.',
+  'cmp.page.lucidchart.chooseKoxora':
+    'die Datei auf Ihrem Rechner statt in einem Anbieterkonto liegen muss, Sie ohne Registrierung anfangen wollen und auf eine Veröffentlichung warten können.',
 };
