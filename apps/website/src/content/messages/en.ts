@@ -73,7 +73,7 @@ export const en = {
     'Koxora Studio is a working technical preview. The public website is in review. There is no public release and no download yet.',
   'project.statusMilestone': 'Current milestone',
   'project.statusMilestoneValue':
-    'Studio phase 2.4 merged · Studio 2.5 and website W1 in progress',
+    'Studio phase 2.5 accepted and merged · Website W2 in review',
   'project.statusUpdated': 'Content last reviewed on {date}',
   'project.statusLink': 'Development status and roadmap',
 
@@ -188,7 +188,7 @@ export const en = {
   'features.limits.item3':
     'Undo history is bounded and session-only; it is not stored in the project file.',
   'features.limits.item4':
-    'Rich text is applied to a whole label; per-character formatting is not implemented.',
+    'Interactive links, moving pages between projects and a full layer manager are not implemented yet.',
   'features.limits.item5':
     'There is no collaboration, no cloud and no AI assistance in the product today.',
 
@@ -557,13 +557,13 @@ export const en = {
     'Pan, zoom, fit the content, and switch the grid and snapping on or off with adjustable spacing. Hold Alt to bypass snapping for a single action.',
   'feature.editing.title': 'Direct editing',
   'feature.editing.body':
-    'Click to select, drag a marquee for several elements, move and resize with handles, duplicate, align, distribute, and copy and paste inside the canvas.',
+    'Select, move, resize and duplicate objects. Edit compatible properties together, align or distribute a selection, arrange it without overlap, and change the stack order of shapes and connections within a layer.',
   'feature.history.title': 'Undo and redo',
   'feature.history.body':
-    'Every editing action is one reversible step. History is bounded per page and belongs to the session, so it never bloats your project file.',
+    'Undo and redo diagram edits and page operations across the current project. History is bounded to 100 steps and 16 MiB and lasts for the session; an open text draft has its own undo history.',
   'feature.projects.title': 'Projects on your device',
   'feature.projects.body':
-    'Create, rename and open projects that are saved automatically on your device. A previous save is kept so you can recover from a bad moment.',
+    'Create, rename, duplicate and switch local projects. Changes save automatically, with a previous save for recovery. Confirmed project deletion moves it to local Trash, where it can be restored.',
   'feature.files.title': 'Portable .koxora files',
   'feature.files.body':
     'Export a project as a documented archive, import it again on another device, or import a copy with a new identity. Unknown content from newer versions is preserved, not dropped.',
@@ -572,7 +572,7 @@ export const en = {
     'After the first visit the browser studio starts and runs without a network connection. No account, no sign-in, no waiting for a server.',
   'feature.typography.title': 'Text and formatting',
   'feature.typography.body':
-    'Serif, sans serif and monospace families from your own system, sizes from 8 to 96, bold, italic, underline, colour and alignment, applied to a label as a whole.',
+    'Search 20 font preferences with previews, sizes from 8 to 96, bold, italic, underline, colour and paragraph alignment. Fonts use your installed families and fallbacks, without external requests; appearance can differ between devices.',
   'feature.languages.title': 'English and German',
   'feature.languages.body':
     'The whole product and this website exist in both languages, chosen independently of your operating system. The architecture is ready for more languages.',
@@ -585,12 +585,12 @@ export const en = {
   'feature.recovery.title': 'Saving and recovery',
   'feature.recovery.body':
     'Changes are written to your device shortly after you stop typing, and the previous save stays available if something goes wrong.',
-  'feature.pages.title': 'Pages and tabs per project',
+  'feature.pages.title': 'Documents and diagram pages',
   'feature.pages.body':
-    'Several diagrams and pages inside one project, with editable tabs. Being implemented in the current studio milestone.',
-  'feature.richText.title': 'Richer text editing',
+    'Keep several documents and pages in one .koxora project. The sidebar navigator supports switching, renaming, duplicating, reordering and moving pages between documents, with individual zoom and canvas views.',
+  'feature.richText.title': 'Office-style rich-text editing',
   'feature.richText.body':
-    'Formatting within a label rather than for the whole label, closer to what an office application offers. Being implemented in the current studio milestone.',
+    'Edit text beside its canvas label with a formatting toolbar. Format individual words or selected passages in text elements, shapes, lines, arrows and connections; keep multiline content, clipboard formatting and text undo.',
   'feature.desktop.title': 'Desktop applications',
   'feature.desktop.body':
     'A desktop shell for Linux, Windows and macOS exists in the repository and runs from source. Signed, supported installers are not released yet.',
@@ -633,7 +633,7 @@ export const en = {
     'Monorepo, shared browser and desktop shell, localization, themes, local storage and continuous integration.',
   'phase.2.title': 'Editor',
   'phase.2.body':
-    'The canvas, shapes, text, connections, selection, manipulation, history, project files and recovery. Pages, tabs and richer text are being added now.',
+    'The editor foundation through accepted Studio 2.5 includes shapes, connections, multi-document/page navigation, rich text, batch properties, freehand drawing, stacking, non-overlap arrangement and portable project files. Further editor capabilities remain planned.',
   'phase.3.title': 'Data and export',
   'phase.3.body':
     'Table import, charts, and export to SVG, PNG, PDF and interactive HTML.',
@@ -738,8 +738,194 @@ export const en = {
   'project.statusSummary.published':
     'Koxora Studio is a working technical preview. There is no public release and no download yet.',
   'project.statusMilestoneValue.published':
-    'Studio phase 2.4 merged \u00b7 Studio 2.5 in progress',
+    'Studio phase 2.5 accepted and merged · No public Studio release',
   'legalNotice.contact.security': 'First contact about a security problem',
+
+  'docsStart.shot.alt':
+    'The Koxora studio with an empty project list, a New project button and an Import .koxora button.',
+  'docsEditing.shot.alt':
+    'The keyboard shortcut reference open over the editor, with a search field and the navigation shortcuts listed.',
+  'docsEditing.properties.alt':
+    'The properties of a selected element open over the editor, with text and formatting controls at the top.',
+
+  'docs.hub.title': 'Everything there is to read',
+  'docs.hub.note':
+    'Each section says which state it describes. Koxora has no public release, so "available" means implemented and merged in the development version you can run from the repository, never downloadable today.',
+  'docs.section.start.title': 'First steps with Koxora',
+  'docs.section.start.summary':
+    'Opening the studio, making a project, and what the first screen offers.',
+  'docs.section.editing.title': 'Editing a diagram',
+  'docs.section.editing.summary':
+    'Shapes, connections, rich text, freehand strokes, batch properties, arrangement and undo in the accepted Studio 2.5 development version.',
+  'docs.section.localFirst.title': 'Local-first, explained',
+  'docs.section.localFirst.summary':
+    'What local-first means here, and what it means for your files and your privacy.',
+  'docs.section.projects.title': 'Projects and file formats',
+  'docs.section.projects.summary':
+    'Manage documents and diagram pages, switch local projects, use Trash and keep portable .koxora backups.',
+  'docs.section.features.title': 'Available capabilities',
+  'docs.section.features.summary':
+    'The list of what is implemented, with the limits of the current version named.',
+  'docs.section.roadmap.title': 'Planned capabilities',
+  'docs.section.roadmap.summary':
+    'What is intended, in which order, with no committed dates.',
+  'docs.section.faq.title': 'Frequently asked questions',
+  'docs.section.faq.summary':
+    'Questions about the implemented editor, pages, formatting, offline storage and the features still planned.',
+  'docs.section.support.title': 'Reporting a problem, and getting help',
+  'docs.section.support.summary':
+    'Where a bug report goes, what to put in it, and where a security problem goes instead.',
+  'docsStart.meta.title': 'First steps with Koxora',
+  'docsStart.meta.description':
+    'Opening the Koxora studio, making a first project and finding your way around the first screen, with no account and nothing to install.',
+  'docsStart.hero.eyebrow': 'Documentation',
+  'docsStart.hero.title': 'First steps',
+  'docsStart.hero.lead':
+    'Koxora has no public release yet, so there is nothing to download. What follows describes the development version, which runs in a browser and keeps everything on your device.',
+  'docsStart.step1.title': 'Open the studio',
+  'docsStart.step1.body':
+    'The studio is a web application. It asks for no account, no email address and no sign-in: the first screen is the project list, and it is empty because nothing has been made yet. Until a public release exists, the way to run it is from the source repository.',
+  'docsStart.step2.title': 'Make a project, or bring one',
+  'docsStart.step2.body':
+    '"New project" starts an empty one. "Import .koxora" opens a project file you already have — from another device, from a backup, or from someone who sent you one. Both end in the same place: a project on this device.',
+  'docsStart.step3.title': 'Draw something',
+  'docsStart.step3.body':
+    'Choose a shape above the canvas and click or drag to place it. Use Line or Arrow to connect shapes, and Freehand pen to sketch. The Project navigator in the sidebar adds documents and diagram pages; each page keeps its own view.',
+  'docsStart.step4.title': 'Automatic saves and portable backups',
+  'docsStart.step4.body':
+    'Changes save on this device after a short pause; the header shows the save status. Save project also saves immediately. Export .koxora creates a portable backup. Nothing is uploaded to a Koxora server.',
+  'docsStart.shot.caption':
+    'The first screen of the studio, before any project exists. Captured from the development version.',
+  'docsStart.warning.title': 'One thing to know on the first day',
+  'docsStart.warning.body':
+    'A project lives in this browser on this device. Clearing the browser data, using a private window, or losing the device removes it. Export a .koxora file for anything you would be sorry to lose — that is the backup, and there is no copy anywhere else.',
+  'docsEditing.meta.title': 'Editing a diagram',
+  'docsEditing.meta.description':
+    'Use Studio 2.5 shapes, connections, rich-text formatting, freehand drawing, batch properties, stacking and undo in the merged development version.',
+  'docsEditing.hero.eyebrow': 'Documentation',
+  'docsEditing.hero.title': 'Editing a diagram',
+  'docsEditing.hero.lead':
+    'What the editor does today, described from the merged development version. Where something is not there yet, this page says so rather than leaving you to find out.',
+  'docsEditing.place.title': 'Placing shapes',
+  'docsEditing.place.body':
+    'Choose a rectangle, rounded rectangle, ellipse, diamond, triangle, hexagon, parallelogram, text element or container. Click to place it, drag to size it, or press Enter to insert at the view centre. Repeat insertion keeps a shape tool active. Line, Arrow and Freehand pen have their own drawing gestures.',
+  'docsEditing.select.title': 'Selecting',
+  'docsEditing.select.body':
+    'Click to select. Shift-click adds to or removes from the selection. Dragging across empty canvas draws a marquee around everything inside it, and Ctrl or Cmd with A selects everything on the page that can be edited. Escape clears a tool or a draft.',
+  'docsEditing.move.title': 'Moving and resizing',
+  'docsEditing.move.body':
+    'Drag a selection to move it. A single selected shape gets corner handles; holding Shift keeps its proportions. The arrow keys nudge by one unit or one grid step, and Shift multiplies that by ten. Snapping follows the grid, and holding Alt switches it off for as long as you hold it — the canvas shows a coloured border while snapping is on.',
+  'docsEditing.connect.title': 'Connecting shapes',
+  'docsEditing.connect.body':
+    'Choose Line or Arrow, then either click a visible port on the edge of each shape or click the shapes themselves and let the editor choose the anchor. Line draws no arrowhead; Arrow draws one. A connection keeps its chosen anchors when either shape is moved or resized. There is no obstacle routing and no connection from a shape to itself.',
+  'docsEditing.text.title': 'Text and formatting',
+  'docsEditing.text.body':
+    'Double-click a label or choose Edit text to open the canvas text editor; Element properties provides the same editor. Select a word or passage and apply font, size, bold, italic, underline or colour. Alignment applies to paragraphs. Ctrl/Cmd+B, I and U toggle formatting; paste keeps supported text styles and line breaks. Apply changes or Ctrl/Cmd+Enter commits the draft; Escape cancels it.',
+  'docsEditing.history.title': 'Undoing',
+  'docsEditing.history.body':
+    'Ctrl/Cmd+Z undoes and Ctrl/Cmd+Shift+Z or Ctrl+Y redoes. Project history follows edits across pages, including page creation, movement and deletion; it retains at most 100 steps within a 16 MiB bound. It resets when another project is opened and is not saved in .koxora. While a text draft is open, undo affects the draft; applying it creates one project edit. Restore project in Trash is separate from Undo.',
+  'docsEditing.keyboard.title': 'Doing it from the keyboard',
+  'docsEditing.keyboard.body':
+    'Every tool is reachable with Tab and the arrow keys, and the ports for connecting are too. F1 or the question mark opens a searchable list of every shortcut, in English and German, with Ctrl shown as Cmd on Apple computers. Text fields keep the editing shortcuts you already know.',
+  'docsEditing.shot.caption':
+    'The keyboard shortcut reference, opened with F1. Captured from the development version.',
+  'docsEditing.properties.caption':
+    'The properties of a selected element, with text and formatting first. Captured from the development version.',
+  'docsEditing.limits.title': 'Not there yet',
+  'docsEditing.limits.body':
+    'Image export, import from other diagram tools, interactive links, full layer management, collaboration, cloud sync and AI assistance are not implemented. The freehand pen has no eraser or pressure brushes. Undo history does not survive reopening a project. The capability list distinguishes the implemented development version from future work.',
+  'docsProjects.meta.title': 'Projects and file formats',
+  'docsProjects.meta.description':
+    'What a Koxora project is, where it is kept, what the .koxora file contains, how to move a project between devices and how to keep a backup.',
+  'docsProjects.hero.eyebrow': 'Documentation',
+  'docsProjects.hero.title': 'Projects and file formats',
+  'docsProjects.hero.lead':
+    'A project is yours, it is on your device, and it comes out as a file you keep. This page says exactly what that file is and what happens to it.',
+  'docsProjects.format.title': 'The .koxora file',
+  'docsProjects.format.body':
+    'Export creates one portable .koxora archive containing all documents, pages, page views, rich-text formatting and freehand strokes. Existing projects still open without conversion. The documented format stores structured text, not HTML. Keep a backup before editing in an older version: it cannot display every newer feature.',
+  'docsProjects.saved.title': 'Where a project is while you work',
+  'docsProjects.saved.body':
+    'In the browser, on the device you are using, in that browser’s own storage. Changes are written there automatically after a short pause. No Koxora server receives the project, because there is none, and nothing is uploaded.',
+  'docsProjects.transfer.title': 'Moving a project to another device',
+  'docsProjects.transfer.body':
+    'Export it to a .koxora file, move the file the way you would move any file, and import it on the other device. Browser storage belongs to one address on one device, so this is the way to carry work across — and it is the same way to hand a project to someone else.',
+  'docsProjects.backup.title': 'Keeping a backup',
+  'docsProjects.backup.body':
+    'Export the projects you care about to .koxora files and keep them where you keep your other documents. Clearing browser data, a private window, a reinstalled browser or a lost device all remove what is only in browser storage, and no copy exists anywhere else to restore it from. An exported file is the backup.',
+  'docsProjects.notStored.title': 'What the file does not contain',
+  'docsProjects.notStored.body':
+    'What you had selected, which tool was active, what was on the internal clipboard and the undo history are not written into a project. They belong to the session you are in. Data the current version does not understand is preserved rather than dropped, so a file written by a newer version does not lose what it carried.',
+  'docsFaq.meta.title': 'Frequently asked questions',
+  'docsFaq.meta.description':
+    'Answers about Studio 2.5 pages, rich text, freehand drawing, offline files, fonts and release status, with unimplemented features clearly identified.',
+  'docsFaq.hero.eyebrow': 'Documentation',
+  'docsFaq.hero.title': 'Frequently asked questions',
+  'docsFaq.hero.lead':
+    'Answered from what is implemented, not from what is planned. Where the honest answer is "not yet", it says so.',
+  'faq.account.q': 'Do I need an account?',
+  'faq.account.a':
+    'No. There is no registration, no sign-in and no account to create. The studio has no server behind it to hold one.',
+  'faq.release.q': 'Can I download Koxora?',
+  'faq.release.a':
+    'Not yet. There is no public release and no approved public installer download. Studio 2.5 is accepted and merged in the source repository. CI test packages do not constitute a published release; the download page will change only after a separate release approval.',
+  'faq.offline.q': 'Does it work without an internet connection?',
+  'faq.offline.a':
+    'The editor runs on your device and needs no server once it has loaded. Projects are stored locally, so the work itself does not depend on a connection.',
+  'faq.where.q': 'Where are my diagrams kept?',
+  'faq.where.a':
+    'In your browser’s own storage, on the device you are using, and in whatever .koxora files you export. Not on a Koxora server: there is none.',
+  'faq.clearing.q': 'What happens if I clear my browser data?',
+  'faq.clearing.a':
+    'Projects that exist only in browser storage are removed, and there is no copy to restore them from. Export a .koxora file for anything you want to keep. The studio says this on its own first screen too.',
+  'faq.formats.q': 'Which file formats can I use?',
+  'faq.formats.a':
+    'Koxora reads and writes its own .koxora project archive. Importing from other diagram tools and exporting to an image are not implemented yet; both are documented scope rather than something you can do today.',
+  'faq.today.q': 'What can the editor actually do right now?',
+  'faq.today.a':
+    'Studio 2.5 includes shapes and connections with ports, documents and diagram pages, formatting of individual words, batch properties, freehand drawing, stack order and arrangement without overlap. Projects save locally and can be exported as .koxora; session undo works across their pages. These features belong to the merged development version, not a public release.',
+  'faq.missing.q': 'What about working together, the cloud, or assistance?',
+  'faq.missing.a':
+    'None of the three is implemented. All three are documented product scope, and all three are planned as optional, so a Koxora without them stays a complete product rather than a crippled one.',
+  'faq.languages.q': 'Which languages is Koxora in?',
+  'faq.languages.a':
+    'English and German, in the product and on this website, selectable independently of the language your operating system is in. English is the fallback. A further language needs a resource file and its addresses, not a change to the application.',
+  'faq.price.q': 'What does it cost?',
+  'faq.price.a':
+    'There is nothing to buy, because there is no release. No price, no plan and no trial has been announced, and this site will not invent one.',
+  'faq.source.q': 'Is the source code public? Under which licence?',
+  'faq.source.a':
+    'The source code is public in the repository. A licence has not been published yet, which means no rights are granted until it is. The legal notice says the same thing, and it will change when the licence is decided.',
+  'faq.problem.q': 'I found a problem. Where does it go?',
+  'faq.problem.a':
+    'An ordinary bug goes to the support address or the contact form, and the support section says what to include. A security problem goes somewhere else: the security policy describes a separate route, and the details do not belong in an ordinary mailbox.',
+  'docsSupport.meta.title': 'Reporting a problem and getting help',
+  'docsSupport.meta.description':
+    'Where a Koxora bug report goes, what to put in it so it can be acted on, and where a security problem goes instead.',
+  'docsSupport.hero.eyebrow': 'Documentation',
+  'docsSupport.hero.title': 'Reporting a problem',
+  'docsSupport.hero.lead':
+    'A report that can be reproduced gets fixed; one that cannot usually does not. This page says what makes the difference, and where to send it.',
+  'docsSupport.include.title': 'What to put in a report',
+  'docsSupport.include.item1':
+    'What you did, step by step, in enough detail that someone else can do the same.',
+  'docsSupport.include.item2':
+    'What you expected to happen, and what happened instead.',
+  'docsSupport.include.item3':
+    'Which browser and which operating system, with their versions.',
+  'docsSupport.include.item4':
+    'Whether it happens every time, or only sometimes and under what conditions.',
+  'docsSupport.include.item5':
+    'A .koxora export of the project where it happens, if you can share one and it contains nothing confidential.',
+  'docsSupport.where.title': 'Where to send it',
+  'docsSupport.where.body':
+    'The contact form reaches the support mailbox, and so does writing to the address directly. Development happens in the open, so an issue in the public repository is also a good place for something reproducible — it is visible, it can be discussed, and it does not get lost in a mailbox.',
+  'docsSupport.security.title': 'A security problem goes elsewhere',
+  'docsSupport.security.body':
+    'Please do not send details of a vulnerability to the support mailbox or put them in a public issue. The security policy describes the route for that, what to send in a first message and what to expect in return.',
+  'docsSupport.expect.title': 'What to expect',
+  'docsSupport.expect.body':
+    'Koxora is a project under development without a release and without a support contract. Reports are read and taken seriously; no response time is promised, because promising one would be inventing a service level that does not exist.',
 
   'nav.contact': 'Contact',
   'contact.meta.title': 'Contact Koxora',
@@ -957,7 +1143,7 @@ export const en = {
   'cmp.desktop.visio':
     'The desktop application is listed for Visio Plan 2 and for the single-purchase editions. Visio Plan 1 and Visio in Microsoft 365 are listed as web only.',
   'cmp.diagramTypes.koxora':
-    'The merged version draws shapes, plain text and connections with visible ports. The wider catalogue of diagram families is planned, and the features page names the current limits.',
+    'The merged Studio 2.5 development version supports shapes, rich text, connections with ports, freehand strokes and several documents/pages per project. Guided diagram types and semantic auto-layout remain planned.',
   'cmp.diagramTypes.drawio':
     'Not verified for this review. The official shape libraries are extensive; which families they cover was not confirmed against a single official page.',
   'cmp.diagramTypes.excalidraw':
@@ -1033,7 +1219,8 @@ export const en = {
   'cmp.sources.note':
     'Every page in this list was read on the date given, and nothing here is claimed beyond what those pages say. If something has changed, or something is wrong, write to {email} and it will be corrected.',
   'cmp.sources.checkedOn': 'Read on {date}',
-  'cmp.checked': 'This comparison was last reviewed on {date}.',
+  'cmp.checked':
+    'Comparison content updated on {date}. Individual source review dates are listed below.',
   'cmp.disclaimer.title': 'What this comparison is not',
   'cmp.disclaimer.body':
     'It is written by the Koxora project, so read it as such. It does not claim that Koxora is better: it answers ten questions and shows where each answer comes from. Several of these products do things Koxora does not, and the table says so. Product names and trademarks belong to their owners and are used to identify the products, not to suggest any endorsement.',
@@ -1090,5 +1277,57 @@ export const en = {
     'your team already works in Lucid, you need real-time collaboration and comments, or you want a finished product with support behind it.',
   'cmp.page.lucidchart.chooseKoxora':
     'the file has to live on your machine rather than in a provider account, you want to start without registering, and you can wait for a release.',
+  'feature.freehand.title': 'Freehand drawing',
+  'feature.freehand.body':
+    'Sketch with mouse, touch, pen or keyboard. Set stroke colour and width, then move, resize, copy or delete each stroke like an object. Strokes save offline in your project; pressure brushes and an eraser are not included.',
+  'docsEditing.fonts.title': 'Fonts, colour and text limits',
+  'docsEditing.fonts.body':
+    'The searchable menu previews 20 font preferences using installed fonts and fallbacks. No fonts are downloaded; two missing families may look alike on your device. Sizes range from 8 to 96. Automatic colour adapts to the background; explicit colours stay as authored. A label holds up to 4,096 characters. A small shape can clip its display without discarding the stored text: resize it or reduce the font size.',
+  'docsEditing.batch.title': 'Changing several objects together',
+  'docsEditing.batch.body':
+    'Select objects with Shift-click or a marquee, then open Element properties or the context menu. Mixed values stay unchanged until you edit that property. A colour change leaves font choices and other formatting intact. Each batch change is one undo step; only properties supported by the selected objects are offered.',
+  'docsEditing.arrange.title': 'Aligning, arranging and stacking',
+  'docsEditing.arrange.body':
+    'Align appears for at least two selected shapes; Distribute needs three. Hover or focus previews a command and Escape cancels. Align shares an edge or centre and can overlap objects. Arrange without overlap is a separate action that moves selected editable objects around visible obstacles. Bring forward, Send backward, Bring to front and Send to back order shapes and connections within their existing layer. Each command can be undone; there is no full layer manager yet.',
+  'docsEditing.pen.title': 'Drawing freehand',
+  'docsEditing.pen.body':
+    'Choose Freehand pen, set stroke colour and width, and draw with mouse, touch or pen. Each completed stroke is an editable object saved in .koxora. For keyboard drawing, Enter starts at the view centre, arrows extend the stroke, Shift makes larger steps, and Enter finishes. Escape cancels an unfinished stroke. There are no pressure or tilt brushes, eraser or individual point editing.',
+  'docsProjects.pages.title': 'Documents and diagram pages',
+  'docsProjects.pages.body':
+    'One .koxora project can contain several documents, each with diagram pages. Use the Project navigator in the sidebar to switch pages; expanded canvas opens the same navigator from its button. Each page keeps its zoom, position and grid. The accepted Studio 2.5 uses this single hierarchy instead of the originally planned bottom diagram tabs.',
+  'docsProjects.actions.title': 'Creating and organising pages',
+  'docsProjects.actions.body':
+    'Use New document and New page, double-click or F2 to rename, and right-click, Shift+F10 or the row action button for page operations. Duplicate a page, reorder by dragging or Alt+Up/Down, or move it to another document in the same project. Deletion asks for confirmation and supports Undo. The last page of a document and the last document of a project are protected. Referenced pages may also be protected; moving pages between different projects is not supported.',
+  'docsProjects.trash.title': 'Switching, copying and deleting projects',
+  'docsProjects.trash.body':
+    'The navigator lists local projects. Switching saves the current work first; if saving fails, it stays open. Duplicate creates a complete project copy with a new project identity. Delete project asks for confirmation and moves it to local Trash; Restore project brings it back with its recovery data. Trash belongs to this device, is not an export or backup, and does not delete exported .koxora files.',
+  'faq.pages.q': 'Where are the diagram tabs?',
+  'faq.pages.a':
+    'Studio 2.5 provides several diagram pages through one sidebar Project navigator: project, document, page. It replaces the initially planned bottom tabs. Create, rename, duplicate, reorder or delete pages there, and move them between documents in the same project. Each page keeps its own view.',
+  'faq.richText.q':
+    'Can I format just one word, and do I need to download fonts?',
+  'faq.richText.a':
+    'Yes: select a word or passage in the canvas text editor and change its font, size, bold, italic, underline or colour. The 20 searchable font preferences use installed families and fallbacks. There are no external font downloads; missing families can look alike and layout can vary between systems. Formatting is stored in .koxora.',
+  'faq.pen.q': 'Can I sketch freehand?',
+  'faq.pen.a':
+    'Yes. The Freehand pen supports mouse, touch, pen and keyboard drawing, with stroke colour and width. Completed strokes can be edited as objects and saved offline. Pressure and tilt brushes, an eraser and point editing are not implemented.',
+  'faq.links.q': 'Can a shape link to another page or website?',
+  'faq.links.a':
+    'Interactive link authoring and activation are not implemented yet. Ordinary navigation between pages is available in the sidebar; it does not make shapes clickable links. Cross-project page transfer and a full layer manager are also future work.',
+  'milestone.workbook.title': 'Pages, rich text and freehand editing',
+  'milestone.workbook.body':
+    'Studio 2.5: project/document/page navigation, word-level formatting, offline font preferences, batch properties, freehand pen, stacking and non-overlap arrangement. Manually accepted and merged; no public release.',
+  'docsEditing.rich.alt':
+    'The Studio 2.5 canvas text editor showing mixed word formatting and its font toolbar.',
+  'docsEditing.rich.caption':
+    'The Studio 2.5 canvas text editor showing mixed word formatting and its font toolbar. Captured from the accepted development version; not a public release.',
+  'docsEditing.pen.alt':
+    'The Studio 2.5 freehand pen and a drawn stroke alongside a diagram.',
+  'docsEditing.pen.caption':
+    'The Studio 2.5 freehand pen and a drawn stroke alongside a diagram. Captured from the accepted development version; not a public release.',
+  'docsProjects.shot.alt':
+    'The Studio 2.5 sidebar navigator with multiple documents and pages and the page context menu.',
+  'docsProjects.shot.caption':
+    'The Studio 2.5 sidebar navigator with multiple documents and pages and the page context menu. Captured from the accepted development version; not a public release.',
 } as const;
 export type WebsiteMessageKey = keyof typeof en;

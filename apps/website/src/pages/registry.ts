@@ -11,6 +11,13 @@ import { comparisonPage } from './compare-product';
 import { RoadmapPage } from './roadmap';
 import { DownloadPage } from './download';
 import { DocsPage } from './docs';
+import {
+  DocsEditingPage,
+  DocsFaqPage,
+  DocsProjectsPage,
+  DocsStartPage,
+  DocsSupportPage,
+} from './docs-pages';
 import { ReleasesPage } from './releases';
 import { LegalNoticePage } from './legal-notice';
 import { PrivacyPolicyPage } from './privacy-policy';
@@ -89,6 +96,31 @@ export const pageRegistry: Record<RouteId, PageDefinition> = {
     Component: DocsPage,
     titleKey: 'docs.meta.title',
     descriptionKey: 'docs.meta.description',
+  },
+  docsStart: {
+    Component: DocsStartPage,
+    titleKey: 'docsStart.meta.title',
+    descriptionKey: 'docsStart.meta.description',
+  },
+  docsEditing: {
+    Component: DocsEditingPage,
+    titleKey: 'docsEditing.meta.title',
+    descriptionKey: 'docsEditing.meta.description',
+  },
+  docsProjects: {
+    Component: DocsProjectsPage,
+    titleKey: 'docsProjects.meta.title',
+    descriptionKey: 'docsProjects.meta.description',
+  },
+  docsFaq: {
+    Component: DocsFaqPage,
+    titleKey: 'docsFaq.meta.title',
+    descriptionKey: 'docsFaq.meta.description',
+  },
+  docsSupport: {
+    Component: DocsSupportPage,
+    titleKey: 'docsSupport.meta.title',
+    descriptionKey: 'docsSupport.meta.description',
   },
   releases: {
     Component: ReleasesPage,

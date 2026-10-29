@@ -932,3 +932,26 @@
 .form-status:empty {
   display: none;
 }
+
+/* The questions and answers. A description list, because that is what a list
+   of questions is, and because a screen reader then announces the pairing. */
+.faq {
+  display: grid;
+  gap: 24px;
+  margin: 0;
+  max-width: 70ch;
+}
+.faq > div {
+  display: grid;
+  gap: 6px;
+}
+.faq dt {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 17px;
+}
+.faq dd {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}

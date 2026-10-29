@@ -2,7 +2,11 @@ import { Bullets, Note, Section } from '../components/ui';
 import { DataTable } from '../components/data-table';
 import { PageIntro } from '../components/page-intro';
 import type { PageContext } from '../components/navigation';
-import { operator, privacyPolicyVersion } from '../content/legal';
+import {
+  operator,
+  privacyPolicyVersion,
+  privacyPolicyUpdatedOn,
+} from '../content/legal';
 import { consentPromptRequired, deviceStorageItems } from '../content/consent';
 import { noTrackingKeys } from '../content/data';
 import { formatDate } from '../content/catalog';
@@ -10,7 +14,7 @@ import { pathFor } from '../routes';
 import { site } from '../site';
 import { showsInternalReviewNotes } from '../content/launch';
 export function PrivacyPolicyPage({ locale, t }: PageContext) {
-  const updated = formatDate(locale, site.contentDate);
+  const updated = formatDate(locale, privacyPolicyUpdatedOn);
   const stored = deviceStorageItems();
   return (
     <>

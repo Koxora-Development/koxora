@@ -45,13 +45,8 @@ async function shape(p: Page, kind: string, x: number, y: number) {
   await clickWorld(p, x, y);
 }
 async function edit(p: Page, id: string, label: string) {
-  if (
-    !(await p.locator('.editing-more').getAttribute('open')) &&
-    !(await p
-      .locator('.editing-more')
-      .evaluate((e) => (e as HTMLDetailsElement).open))
-  )
-    await p.getByText('Align & more', { exact: true }).click();
+  if (!(await p.locator('.objects-panel').isVisible()))
+    await button(p, 'Objects').click();
   await p.getByLabel('Diagram element', { exact: true }).selectOption(id);
   await p
     .getByRole('textbox', { name: 'Label / text', exact: true })
@@ -178,6 +173,7 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
     .getByRole('dialog')
     .getByLabel('Import .koxora', { exact: true })
     .setInputFiles(path);
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.locator('[data-node-id]')).toHaveCount(3);
   await edit(page, ids[2], 'Imported and editable');
   await button(page, 'Apply changes').click();
@@ -236,7 +232,7 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
   expect(nodes[8].content.text).toBe('Standalone\nעברית <img src=x>');
   await expect(
     page.locator(
-      '.canvas-svg img,.canvas-svg foreignObject,.canvas-svg script',
+      '.canvas-svg img,.canvas-svg foreignObject:not(.scene-rich-label),.canvas-svg script',
     ),
   ).toHaveCount(0);
   await button(page, 'Rectangle').click();
@@ -267,7 +263,7 @@ test('German tools and modal focus stay usable after resize', async ({
     .focus();
   await page.keyboard.press('Enter');
   await page.keyboard.press('Escape');
-  await page.getByText('Ausrichten & mehr', { exact: true }).click();
+  await page.getByRole('button', { name: 'Objekte', exact: true }).click();
   const id = await page.locator('[data-node-id]').getAttribute('data-node-id');
   await page.getByLabel('Diagrammelement', { exact: true }).selectOption(id!);
   await page
@@ -363,7 +359,7 @@ test('untrusted optional fields render safely and oversized imported labels cann
     'clip-path',
     /^url\(#label-/,
   );
-  await page.getByText('Align & more', { exact: true }).click();
+  await page.getByRole('button', { name: 'Objects', exact: true }).click();
   await page
     .getByLabel('Diagram element', { exact: true })
     .selectOption(model.connections[0].id);

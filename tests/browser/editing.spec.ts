@@ -367,6 +367,11 @@ test('workspace and dashboard inline rename commit, cancel, validate and retain 
     'Name with spaces',
   );
   await page.getByRole('button', { name: /Local projects/ }).click();
+  await expect(
+    page
+      .locator('.project-card')
+      .getByRole('button', { name: 'Rename', exact: true }),
+  ).toBeEnabled();
   await page.locator('.project-card h3').dblclick();
   await input.fill('Dashboard title');
   await input.press('Tab');
@@ -508,7 +513,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
   await canvas(page).focus();
   await page.keyboard.press('Escape');
   await page.keyboard.press('Control+a');
-  await page.getByText('Align & more', { exact: true }).click();
+  await page.getByText('Align / Distribute', { exact: true }).click();
   await button(page, 'Align top').click();
   const model = (await exported(page)).project.documents[0].pages[0];
   expect(new Set(model.nodes.map((n) => n.geometry.y)).size).toBe(1);
@@ -519,10 +524,10 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
   await expect(
     page
       .getByRole('toolbar')
-      .getByRole('button', { name: 'Arrow', exact: true }),
+      .getByRole('button', { name: 'Freehand pen', exact: true }),
   ).toBeFocused();
   if (process.env.KOXORA_CAPTURE && test.info().project.name === 'chromium') {
-    await page.getByText('Align & more', { exact: true }).click();
+    await page.getByText('Align / Distribute', { exact: true }).click();
     await page
       .getByLabel('Project name', { exact: true })
       .fill('Release readiness');

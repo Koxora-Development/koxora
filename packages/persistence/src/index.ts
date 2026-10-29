@@ -16,6 +16,7 @@ interface RecordData {
   current: string;
   previous: string | null;
   recoverySource?: string;
+  deleted?: boolean;
 }
 export interface ProjectSummary {
   id: string;
@@ -37,7 +38,8 @@ function envelope(raw: string): RecordData {
       typeof data.current !== 'string' ||
       (data.previous !== null && typeof data.previous !== 'string') ||
       (data.recoverySource !== undefined &&
-        typeof data.recoverySource !== 'string')
+        typeof data.recoverySource !== 'string') ||
+      (data.deleted !== undefined && typeof data.deleted !== 'boolean')
     )
       throw new Error();
     return data;
@@ -47,14 +49,17 @@ function envelope(raw: string): RecordData {
 }
 export class ProjectRepository {
   constructor(private readonly store: SnapshotStore) {}
-  async list(): Promise<ProjectSummary[]> {
+  async list(deleted = false): Promise<ProjectSummary[]> {
     const keys = await this.store.keys();
     const items: ProjectSummary[] = [];
     // A project can contain large embedded assets. Bound list discovery to one
     // decoded archive at a time rather than multiplying peak memory by count.
     for (const id of keys) {
       try {
-        const { project } = await this.open(id);
+        const raw = await this.store.read(id);
+        if (raw === null) continue;
+        if ((envelope(raw).deleted === true) !== deleted) continue;
+        const { project } = await this.open(id, false, deleted);
         items.push({
           id,
           title: project.manifest.title,
@@ -77,23 +82,30 @@ export class ProjectRepository {
             'missing',
           ].includes(error.code)
         ) {
-          items.push({ id, title: null });
+          if (!deleted) items.push({ id, title: null });
         } else throw error;
       }
     }
     return items;
   }
-  async open(id: string, previous = false): Promise<OpenProject> {
+  async open(
+    id: string,
+    previous = false,
+    includeDeleted = false,
+  ): Promise<OpenProject> {
     const raw = await this.store.read(id);
     if (raw === null) throw new ProjectError('missing');
     let project: Project;
+    let removed = false;
     try {
       const data = envelope(raw);
+      removed = data.deleted === true && !includeDeleted;
+      if (removed) throw new ProjectError('missing');
       const text = previous ? data.previous : data.current;
       if (text === null) throw new ProjectError('missing');
       project = await parseProject(text);
     } catch (error) {
-      if (!previous || !this.store.readPrevious) throw error;
+      if (removed || !previous || !this.store.readPrevious) throw error;
       const backup = await this.store.readPrevious(id);
       if (backup === null) throw error;
       project = await parseProject(envelope(backup).current);
@@ -113,6 +125,7 @@ export class ProjectRepository {
       } catch {
         old = { current: '', previous: null, recoverySource: expected };
       }
+      if (old.deleted) throw new ProjectError('conflict');
       recoverySource = old.recoverySource;
       if (old.current === current) {
         await this.store.write(project.manifest.projectId, expected, expected);
@@ -128,6 +141,17 @@ export class ProjectRepository {
       ...(recoverySource === undefined ? {} : { recoverySource }),
     });
     await this.store.write(project.manifest.projectId, expected, next);
+    return next;
+  }
+  /** Reversible local deletion retains both snapshots and assets. CAS prevents erasing another session's changes. */
+  async setDeleted(
+    id: string,
+    expected: string,
+    deleted: boolean,
+  ): Promise<string> {
+    if (!isId(id)) throw new ProjectError('invalid');
+    const next = JSON.stringify({ ...envelope(expected), deleted });
+    await this.store.write(id, expected, next);
     return next;
   }
 }
