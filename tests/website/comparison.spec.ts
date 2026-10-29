@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { catalog, formatDate } from '../../apps/website/src/content/catalog';
+import { comparisonCheckedOn } from '../../apps/website/src/content/comparison';
 import { status } from './helpers';
 const comparisonPaths = [
   ['/en/compare/', 'en'],
@@ -30,13 +32,23 @@ test.describe('the sourced comparison', () => {
     page,
   }) => {
     await page.goto('/en/compare/');
+    // Derived from the data and the message catalogue, not written out here.
+    // A hard-coded date and wording broke this test the first time the
+    // comparison was reviewed again, which is a date the page is supposed to
+    // be able to change.
     await expect(page.locator('#sources')).toContainText(
-      'last reviewed on October 25, 2026',
+      catalog.translate('en', 'cmp.checked', {
+        date: formatDate('en', comparisonCheckedOn),
+      }),
     );
     const entries = page.locator('#sources .source-list li');
     expect(await entries.count()).toBeGreaterThanOrEqual(10);
+    // Each source carries its own read date, which is not the review date:
+    // re-reviewing the table does not re-read every page it cites.
     for (const index of [0, 1, 2])
-      await expect(entries.nth(index)).toContainText('Read on');
+      await expect(entries.nth(index)).toContainText(
+        catalog.translate('en', 'cmp.sources.checkedOn', { date: '' }).trim(),
+      );
   });
   test('links every source as an external, untracked reference', async ({
     page,
