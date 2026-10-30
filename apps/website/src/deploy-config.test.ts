@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
   acceptLanguageDepth,
@@ -264,6 +265,31 @@ describe('the canonical host redirects', () => {
   });
 });
 describe('the smoke tests for the alias hosts', () => {
+  it('parses a standard Location response using the system awk', () => {
+    // The generated operator script runs on Debian, where awk is often mawk:
+    // its IGNORECASE extension is not portable. Execute the emitted parser
+    // rather than checking the text of the generated script.
+    if (process.platform === 'win32') return;
+    const program = aliasSmokeTests.match(/\\n\\s+awk '([\\s\\S]+?)'\\n\\}/)?.[1];
+    expect(program).toBeDefined();
+    for (const header of ['Location', 'location', 'LOCATION']) {
+      const response = [
+        'HTTP/1.1 302 Found',
+        `${header}: https://koxora.app/de/funktionen/?ref=example`,
+        '',
+        '',
+      ].join('\\r\\n');
+      const result = spawnSync('awk', [program!], {
+        input: response,
+        encoding: 'utf8',
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.status).toBe(0);
+      expect(result.stdout.trim()).toBe(
+        '302 https://koxora.app/de/funktionen/?ref=example',
+      );
+    }
+  });
   // Website code cannot redirect a request that never reaches the website.
   // What it can do is generate the questions to ask afterwards from the same
   // host list the rules come from, so the tests cannot cover fewer names.
