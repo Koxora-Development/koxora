@@ -32,7 +32,8 @@
     "check:licenses": "node scripts/check-licenses.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm check:docs && pnpm check:licenses",
     "contact:contract": "node packages/contact/scripts/emit-contract.mjs",
-    "website:apache": "node apps/website/scripts/check-apache.mjs"
+    "website:apache": "node apps/website/scripts/check-apache.mjs",
+    "website:aliases": "node apps/website/scripts/check-apache-aliases.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

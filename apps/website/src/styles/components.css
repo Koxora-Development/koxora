@@ -843,6 +843,16 @@
   margin-top: 2px;
 }
 
+/* The published address, as a link a reader follows and a string they can
+   select and copy. It wraps rather than overflowing on a narrow screen,
+   because an address is one long word to a browser. */
+.contact-address {
+  margin-top: 4px;
+}
+.contact-address .action {
+  overflow-wrap: anywhere;
+}
+
 /* The contact form. One column, generous targets, and an error that sits
    under the field it belongs to rather than in a summary somewhere else. */
 .contact-form {

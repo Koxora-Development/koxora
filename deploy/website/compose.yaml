@@ -27,6 +27,12 @@ services:
         KOXORA_SITE_PUBLISHED: ${KOXORA_SITE_PUBLISHED:-false}
         KOXORA_SITE_OPTIONAL_CONSENT: ${KOXORA_SITE_OPTIONAL_CONSENT:-}
         KOXORA_SITE_CONTENT_DATE: ${KOXORA_SITE_CONTENT_DATE:-}
+        # Empty until the contact endpoint answers on the public host. See the
+        # comment on the same argument in the Dockerfile: setting it while
+        # /api/contact is not routed to PHP points the form at this static
+        # container.
+        KOXORA_SITE_CONTACT_ENDPOINT: ${KOXORA_SITE_CONTACT_ENDPOINT:-}
+        KOXORA_SITE_ALIAS_REDIRECT_STATUS: ${KOXORA_SITE_ALIAS_REDIRECT_STATUS:-}
     container_name: ${KOXORA_WEBSITE_CONTAINER:-koxora-website}
     restart: unless-stopped
     # Loopback only. The address Apache proxies to does not change, and no

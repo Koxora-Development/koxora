@@ -1,7 +1,66 @@
 import { describe, expect, it } from 'vitest';
-import { launchCopy, preLaunchPhrases } from './launch';
+import {
+  deploymentDiagnosticPhrases,
+  launchCopy,
+  preLaunchPhrases,
+} from './launch';
 import { catalog } from './catalog';
+import { en } from './messages/en';
+import { de } from './messages/de';
 import { locales } from '../routes';
+describe('copy addressed to a reader rather than to an operator', () => {
+  // The contact page published "The form is not switched on here" because
+  // "this deployment has no delivery service configured". That is a note to
+  // whoever installs the site, printed on a public page: it told a reader
+  // something about our infrastructure and nothing about how to reach us.
+  // The page emitter reads every emitted page for the same wording; this
+  // catches it one step earlier, in the message a page would render.
+  it('has no deployment wording in any message, in either language', () => {
+    for (const [language, messages] of [
+      ['English', en],
+      ['German', de],
+    ] as const)
+      for (const [key, message] of Object.entries(messages))
+        for (const phrase of deploymentDiagnosticPhrases)
+          expect(
+            message,
+            `${language} ${key} contains "${phrase}"`,
+          ).not.toContain(phrase);
+  });
+  it('bans the wording that was actually published, not a token list', () => {
+    // So this cannot pass by banning nothing in particular.
+    for (const phrase of [
+      'not switched on here',
+      'no delivery service',
+      'this deployment',
+      'nicht eingeschaltet',
+      'kein Versanddienst',
+    ])
+      expect(deploymentDiagnosticPhrases, phrase).toContain(phrase);
+    // And the names and addresses that only exist inside a deployment, which
+    // leak the same way: through copy written while looking at a server.
+    for (const token of ['KOXORA_SITE_', '127.0.0.1', 'TinyCP', 'PHP-FPM'])
+      expect(deploymentDiagnosticPhrases, token).toContain(token);
+  });
+  it('offers a way to make contact in both states of the page', () => {
+    // Whether or not a delivery service is configured, the page says where to
+    // write. The one without a form leads with the address rather than
+    // explaining the absence of a control.
+    for (const locale of locales) {
+      expect(
+        catalog.translate(locale, 'contact.hero.leadMail', {
+          email: 'support@koxora.app',
+        }),
+      ).toContain('support@koxora.app');
+      expect(
+        catalog.translate(locale, 'contact.mail.title').length,
+      ).toBeGreaterThan(0);
+      expect(
+        catalog.translate(locale, 'contact.mail.body').length,
+      ).toBeGreaterThan(0);
+    }
+  });
+});
 describe('launch-aware copy', () => {
   it('describes the website as unpublished before it is live', () => {
     const copy = launchCopy(false);

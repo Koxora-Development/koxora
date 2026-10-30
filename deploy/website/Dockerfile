@@ -56,17 +56,45 @@ ARG KOXORA_SITE_INDEXABLE=true
 ARG KOXORA_SITE_PUBLISHED=false
 ARG KOXORA_SITE_OPTIONAL_CONSENT=
 ARG KOXORA_SITE_CONTENT_DATE=
+# Where the contact form posts. Empty until the endpoint of ADR 0019 answers on
+# the public host: the page then publishes the support address instead of a
+# form, because a form that posts nowhere is worse than an address. It is a
+# build input because the form action and the content security policy are both
+# derived from it, so one image either has a working form or has none.
+#
+# The endpoint itself is not in this image and never will be. It runs under the
+# host's PHP-FPM behind the existing Apache, so setting this without the Apache
+# fragment of `docs/development/website-contact-form.md` installed would point
+# the form at the static container. The release document states that order, and
+# step 7 of the contact document is how it is proven before this is set.
+ARG KOXORA_SITE_CONTACT_ENDPOINT=
+# The redirect code the alias hosts answer with, recorded in the release note
+# beside the published files. 302 during a rollout, 308 once it is verified.
+ARG KOXORA_SITE_ALIAS_REDIRECT_STATUS=
 ENV KOXORA_SITE_ORIGIN=${KOXORA_SITE_ORIGIN} \
     KOXORA_SITE_EDITOR_URL=${KOXORA_SITE_EDITOR_URL} \
     KOXORA_SITE_INDEXABLE=${KOXORA_SITE_INDEXABLE} \
     KOXORA_SITE_PUBLISHED=${KOXORA_SITE_PUBLISHED} \
     KOXORA_SITE_OPTIONAL_CONSENT=${KOXORA_SITE_OPTIONAL_CONSENT} \
-    KOXORA_SITE_CONTENT_DATE=${KOXORA_SITE_CONTENT_DATE}
+    KOXORA_SITE_CONTENT_DATE=${KOXORA_SITE_CONTENT_DATE} \
+    KOXORA_SITE_CONTACT_ENDPOINT=${KOXORA_SITE_CONTACT_ENDPOINT} \
+    KOXORA_SITE_ALIAS_REDIRECT_STATUS=${KOXORA_SITE_ALIAS_REDIRECT_STATUS}
 RUN pnpm --filter @koxora/website build
 # The emitted site must not carry the build manifest or the configuration.
 RUN test -f apps/website/dist/index.html \
  && test -f apps/website/dist-deploy/nginx-koxora-website.conf \
  && test ! -d apps/website/dist/.vite
+# One mode for every published file, set here rather than inherited.
+#
+# COPY keeps the modes of what it copied, and the next stage keeps the modes of
+# what it copies from this one, so an asset that was not world-readable in the
+# build context stays unreadable in the image. The NGINX worker is
+# unprivileged, so it answers 403 for that one file while its neighbours are
+# served - which is exactly how two screenshots went missing from the live site
+# while a third loaded. Normalizing here makes the published files independent
+# of the tree the image was built from.
+RUN find apps/website/dist -type d -exec chmod 0755 {} + \
+ && find apps/website/dist -type f -exec chmod 0644 {} +
 
 FROM nginx:${NGINX_VERSION}-alpine AS runtime
 # The language decision is an algorithm, not a pattern match, so NGINX needs
@@ -79,11 +107,38 @@ RUN apk add --no-cache nginx-module-njs
 COPY --from=build /src/apps/website/dist-deploy/nginx-koxora-main.conf /etc/nginx/nginx.conf
 COPY --from=build /src/apps/website/dist-deploy/nginx-koxora-website.conf /etc/nginx/conf.d/koxora-website.conf
 COPY --from=build /src/apps/website/dist-deploy/nginx-koxora-language.js /etc/nginx/njs/koxora-language.js
-# The published files, and the release record beside them for support.
-COPY --from=build /src/apps/website/dist/ /usr/share/nginx/html/
-COPY --from=build /src/apps/website/dist-deploy/build-info.json /etc/nginx/koxora-build-info.json
-# The image is proven here: a configuration NGINX rejects, or a missing njs
-# module, fails the build instead of the deployment.
+# The published files, and the release record beside them for support. The
+# ownership is stated rather than inherited, for the same reason as the modes.
+COPY --from=build --chown=root:root /src/apps/website/dist/ /usr/share/nginx/html/
+COPY --from=build --chown=root:root /src/apps/website/dist-deploy/build-info.json /etc/nginx/koxora-build-info.json
+# The base image's own example server is removed. The generated main file
+# includes every file in conf.d, so leaving it there would load a second
+# server block nobody wrote next to the generated one.
+RUN rm -f /etc/nginx/conf.d/default.conf
+# A published file the unprivileged worker cannot read fails the build, instead
+# of being answered with 403 by the running container. The file is named in the
+# output, so a failure says which asset and not merely that something is wrong.
+RUN unreadable="$(find /usr/share/nginx/html \
+      \( -type f ! -perm -o+r \) -o \( -type d ! -perm -o+rx \) 2>/dev/null)"; \
+    if [ -n "$unreadable" ]; then \
+      echo 'Published files the web server cannot read:' >&2; \
+      echo "$unreadable" >&2; \
+      exit 1; \
+    fi
+# Everything from here runs as the account that serves the site.
+#
+# The master process ran as root before, and that is why the container could
+# not start at all under the compose file's `cap_drop: ALL`: a root master
+# chowns its temporary directories to the worker account, which needs
+# CAP_CHOWN, and NGINX exits with
+# `chown("/tmp/nginx-client-body", 101) failed (1: Operation not permitted)`.
+# An unprivileged master creates those directories as itself and chowns
+# nothing, so the container needs no capability at all. It also cannot write
+# to the published files, whatever happens to a configuration.
+USER nginx
+# The image is proven here, as the account that will run it: a configuration
+# NGINX rejects, a missing njs module, or a file the worker cannot read fails
+# the build instead of the deployment.
 RUN nginx -t
 # The container writes nothing outside a temporary directory, so it can run
 # with a read-only file system.

@@ -340,6 +340,7 @@ export const de: Record<WebsiteMessageKey, string> = {
   'footer.contact': 'Kontakt',
   'footer.contactSupport': 'Produkt und Support',
   'footer.supportTask': 'Fragen zu Koxora',
+  'footer.contactPage': 'Schreiben Sie uns',
   'footer.securityTask': 'Sicherheitsproblem gefunden?',
   'footer.contactPrivacy': 'Datenschutz',
   'footer.contactLegal': 'Rechtliches',
@@ -375,7 +376,7 @@ export const de: Record<WebsiteMessageKey, string> = {
   'consent.dialog.legalBasis': 'Rechtsgrundlage',
   'consent.dialog.noOptional.title': 'Derzeit ist keine Einwilligung nötig',
   'consent.dialog.noOptional.body':
-    'Diese Installation nutzt auf Ihrem Gerät ausschließlich unbedingt erforderliche Speicherung und keine optionale Analyse, Werbung oder eingebettete Fremddienste. Das Gesetz verlangt eine Einwilligung für das Speichern oder Auslesen von Informationen auf Ihrem Endgerät nur dort, wo dies für den von Ihnen gewünschten Dienst nicht unbedingt erforderlich ist. Koxora fragt deshalb nicht nach einer Entscheidung, die es nicht braucht. Ändert sich das, fragt dieser Dialog, bevor etwas Optionales geladen wird.',
+    'Diese Website nutzt auf Ihrem Gerät ausschließlich unbedingt erforderliche Speicherung und keine optionale Analyse, Werbung oder eingebettete Fremddienste. Das Gesetz verlangt eine Einwilligung für das Speichern oder Auslesen von Informationen auf Ihrem Endgerät nur dort, wo dies für den von Ihnen gewünschten Dienst nicht unbedingt erforderlich ist. Koxora fragt deshalb nicht nach einer Entscheidung, die es nicht braucht. Ändert sich das, fragt dieser Dialog, bevor etwas Optionales geladen wird.',
   'consent.state.saved':
     'Ihre Auswahl wurde am {date} auf diesem Gerät gespeichert.',
   'consent.state.none':
@@ -419,7 +420,7 @@ export const de: Record<WebsiteMessageKey, string> = {
     'Einwilligung nach § 25 Abs. 1 TDDDG und Art. 6 Abs. 1 lit. a DSGVO.',
   'consent.openSettings': 'Datenschutz-Einstellungen öffnen',
   'consent.noScript':
-    'Die Datenschutz-Einstellungen benötigen JavaScript im Browser. Diese Installation nutzt ausschließlich unbedingt erforderliche Speicherung, es gibt also nichts abzuschalten. Die Datenschutzerklärung beschreibt alles im Einzelnen.',
+    'Die Datenschutz-Einstellungen benötigen JavaScript im Browser. Diese Website nutzt ausschließlich unbedingt erforderliche Speicherung, es gibt also nichts abzuschalten. Die Datenschutzerklärung beschreibt alles im Einzelnen.',
 
   'privacySettings.meta.title': 'Datenschutz-Einstellungen',
   'privacySettings.meta.description':
@@ -942,11 +943,13 @@ export const de: Record<WebsiteMessageKey, string> = {
   'nav.contact': 'Kontakt',
   'contact.meta.title': 'Koxora kontaktieren',
   'contact.meta.description':
-    'Frage stellen, Rückmeldung geben, Problem melden. Das Formular erreicht das Koxora-Support-Postfach; die Adresse ist ebenfalls veröffentlicht.',
+    'Frage stellen, Rückmeldung geben, Problem melden. Nachrichten erreichen das Koxora-Support-Postfach, und die Adresse steht auf der Seite.',
   'contact.hero.eyebrow': 'Kontakt',
   'contact.hero.title': 'Schreiben Sie dem Projekt',
   'contact.hero.lead':
     'Fragen, Rückmeldungen und Problemmeldungen erreichen dasselbe Postfach. Das Formular unten schickt Ihre Nachricht dorthin; wenn Sie lieber Ihr eigenes Mailprogramm nutzen, ist die Adresse ebenfalls veröffentlicht.',
+  'contact.hero.leadMail':
+    'Fragen, Rückmeldungen und Problemmeldungen erreichen dasselbe Postfach. Schreiben Sie an {email}, ein Mensch liest mit. Für ein Sicherheitsproblem gibt es einen eigenen Weg, der unten beschrieben ist.',
   'contact.form.title': 'Nachricht senden',
   'contact.form.intro':
     'Nötig sind nur die Adresse und die Nachricht. Ein Name hilft, wenn Sie damit angesprochen werden möchten.',
@@ -997,14 +1000,19 @@ export const de: Record<WebsiteMessageKey, string> = {
   'contact.security.title': 'Ein Sicherheitsproblem gehört woandershin',
   'contact.security.body':
     'Bitte senden Sie Einzelheiten zu einer Schwachstelle nicht über dieses Formular: es erreicht ein gewöhnliches Postfach. Die Sicherheitsrichtlinie sagt, was zu senden ist, wohin und was Sie erwarten können.',
+  'contact.security.bodyMail':
+    'Bitte senden Sie Einzelheiten zu einer Schwachstelle nicht an die Support-Adresse: das ist ein gewöhnliches Postfach. Die Sicherheitsrichtlinie sagt, was zu senden ist, wohin und was Sie erwarten können.',
   'contact.security.link': 'Sicherheitsrichtlinie lesen',
   'contact.privacy.title': 'Was mit Ihren Angaben passiert',
   'contact.privacy.body':
     'Name, Adresse, Betreff und Nachricht, die Sie eingeben, werden an das Koxora-Support-Postfach gesendet, damit Ihre Anfrage beantwortet werden kann. Sie werden für nichts anderes verwendet, nicht für Werbung weitergegeben, und es gibt keinen Newsletter, für den man angemeldet würde. Die Datenschutzerklärung beschreibt die Verarbeitung, die Rechtsgrundlage und wie lange die Mail aufbewahrt wird.',
+  'contact.privacy.bodyMail':
+    'Eine Mail an diese Adresse wird gelesen, damit Ihre Anfrage beantwortet werden kann, und so lange aufbewahrt, wie das dauert. Sie wird für nichts anderes verwendet, nicht für Werbung weitergegeben, und es gibt keinen Newsletter, für den man angemeldet würde. Die Datenschutzerklärung beschreibt die Verarbeitung, die Rechtsgrundlage und wie lange die Mail aufbewahrt wird.',
   'contact.privacy.link': 'Datenschutzerklärung',
-  'contact.unconfigured.title': 'Das Formular ist hier nicht eingeschaltet',
-  'contact.unconfigured.body':
-    'Für diese Installation ist kein Versanddienst konfiguriert, deshalb wird kein Formular gezeigt: ein Formular, das nirgends ankommt, wäre schlechter als eine Adresse. Schreiben Sie stattdessen an {email}.',
+  'contact.mail.title': 'Schreiben Sie an das Support-Postfach',
+  'contact.mail.body':
+    'Eine Adresse für Fragen, Rückmeldungen und Problemmeldungen, gelesen von einem Menschen. Hilfreich ist es, den Teil von Koxora zu benennen, um den es geht, und bei einem Fehler die Schritte dazuzuschreiben.',
+  'contact.mail.hint': 'Öffnet Ihr eigenes Mailprogramm.',
   'contact.noscript':
     'Das Formular funktioniert ohne JavaScript: es wird als gewöhnliches Formular gesendet, und Sie landen auf einer Seite, die sagt, was passiert ist. Mit JavaScript bleiben Sie stattdessen auf dieser Seite.',
   'contactSent.meta.title': 'Nachricht angenommen',

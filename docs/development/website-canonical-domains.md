@@ -2,7 +2,11 @@
 
 **Status: prepared for review, 2026-10-25. Nothing in this document has been executed against the Product Owner's infrastructure. No DNS record, no Cloudflare setting and no TinyCP setting was changed, and no deployment was performed.** It is the operator half of Website W2.0 and of [Issue #31](https://github.com/Koxora-Development/koxora/issues/31): which files to install, in what order, and how to prove afterwards that the result is correct.
 
-Related: [W2.0 implementation notes](../platform/website-w2-0.md), [deployment and update guide](website-deployment.md), [the deployment handover issue](https://github.com/Koxora-Development/koxora/issues/22).
+Related: [W2.0 implementation notes](../platform/website-w2-0.md), [deployment and update guide](website-deployment.md), [the deployment handover issue](https://github.com/Koxora-Development/koxora/issues/22), [the production fixes document](website-w2-production-fixes.md).
+
+**Addendum, 2026-10-29.** Still true, and two things changed. The rollout code is now a **build input** rather than an edit to a generated file: `KOXORA_SITE_ALIAS_REDIRECT_STATUS=302` renders the rollout version, so step 4 below no longer asks anybody to edit a file that says not to. And the build emits `smoke-aliases.sh`, which is section 4 of this document as a script generated from the same host list the rules are, so the tests cannot cover fewer names than the rules do. `pnpm website:aliases` runs those rules against a real Apache before any of this is installed.
+
+**What website code cannot do.** A request for `koxora.de` never reaches the website container: it arrives at whatever terminates TLS for that name. No image rebuild redirects anything, and nothing in this repository can. Everything below needs the operator, and the Product Owner has said not to touch TinyCP or Apache during the W2 container update, so it needs their authorization first.
 
 ## 1. The target state
 
@@ -27,7 +31,8 @@ Related: [W2.0 implementation notes](../platform/website-w2-0.md), [deployment a
 | `nginx-koxora-language.js`   | In the website container as `/etc/nginx/njs/koxora-language.js`. The language algorithm the server runs                                                                      |
 | `nginx-koxora-website.conf`  | In the website container as `/etc/nginx/conf.d/koxora-website.conf`. It serves the emitted files, owns the redirects, the headers, the cache rules and the language decision |
 | `apache-koxora-proxy.conf`   | In the `koxora.app` HTTPS virtual host on the Hetzner host. It forwards to the container and adds nothing                                                                    |
-| `apache-koxora-aliases.conf` | One virtual host per alias name, on ports 80 and 443                                                                                                                         |
+| `apache-koxora-aliases.conf` | One virtual host per alias name, on ports 80 and 443. The redirect code is whatever the build was given                                                                      |
+| `smoke-aliases.sh`           | The tests in section 4, generated from the same host list. It changes nothing, bounds every request and exits non-zero on the first wrong answer                             |
 | `apache-koxora-app.conf`     | Only for a host that serves the emitted files directly, without a container. Not used by the current production layout                                                       |
 | `build-info.json`            | The record of the release: origin, alias hosts, redirect status, container address, policy and the hashes it pins                                                            |
 
@@ -38,10 +43,13 @@ Before installing anything, prove the files are accepted and behave as described
 ```sh
 pnpm install --frozen-lockfile
 pnpm website:build
-pnpm website:nginx     # nginx -t plus 111 assertions over HTTP
+pnpm website:nginx     # nginx -t plus 219 assertions over HTTP
+pnpm website:aliases   # the alias rules, against a real Apache
 ```
 
 That check needs NGINX with the njs module on the machine running it (`apt-get install nginx-light libnginx-mod-http-js` on Debian or Ubuntu). Without them it reports what is missing and passes, so it never gives false assurance; continuous integration installs both and a failure there is a real failure.
+
+`pnpm website:aliases` starts a real Apache with the generated alias rules and a stand-in for the canonical host, and asks what answers: every name, apex and `www`, on both ports, GET and HEAD, the path and the query intact, the root staying the root, the four pass-through prefixes answered locally, a forged `Host` header unable to change the target, and no rule matching the canonical name. It uses a local Apache where there is one and the official `httpd` image where there is a Docker daemon instead, and skips loudly with neither. **164 checks pass** for the `308` build and again for the `302` build. TLS is not part of it: the certificates are the operator's half, and `smoke-aliases.sh` checks them on the real hosts.
 
 Three properties of the generated files matter and are asserted by `apps/website/src/deploy-config.test.ts`:
 
@@ -57,16 +65,29 @@ The order is the point: a browser completes TLS before it is told to go somewher
 1. **DNS.** Point `koxora.de`, `www.koxora.de`, `koxora.com`, `www.koxora.com` and `www.koxora.app` at the host. Keep the mail records of `koxora.de` and `koxora.com` exactly as they are: this changes web traffic only. Confirm whether Cloudflare proxies each name, because that decides who terminates TLS.
 2. **Certificates.** Issue a certificate for every name through TinyCP's Let's Encrypt integration, with no redirect in place yet, and confirm each one answers over HTTPS. The generated alias virtual hosts answer `/.well-known/acme-challenge/` locally, so renewal keeps working after step 4.
 3. **Verify every name answers.** `curl -sSI https://koxora.de/` must complete the handshake. A handshake failure here is a certificate problem, not a redirect problem.
-4. **Install the alias virtual hosts** from `apache-koxora-aliases.conf`, but change `308` to `302` first. A permanent redirect is cached by browsers and by Cloudflare and is hard to take back.
-5. **Run the smoke tests** in section 4 against the temporary code.
-6. **Switch to 308** once they all pass, and run them again.
+4. **Install the alias virtual hosts** from a build made with `KOXORA_SITE_ALIAS_REDIRECT_STATUS=302`. A permanent redirect is cached by browsers and by Cloudflare and is hard to take back, so the rollout starts at the temporary code — and it is built rather than edited, so what is installed is what this repository renders:
+
+   ```sh
+   KOXORA_SITE_ALIAS_REDIRECT_STATUS=302 pnpm website:build
+   cat apps/website/dist-deploy/apache-koxora-aliases.conf   # five names, 302
+   ```
+
+5. **Run the smoke tests**: `sh apps/website/dist-deploy/smoke-aliases.sh`, from outside the host. It is section 4 of this document, generated. It exits non-zero on the first wrong answer.
+6. **Switch to 308** by rebuilding the same two files with `KOXORA_SITE_ALIAS_REDIRECT_STATUS=308` once the tests pass, installing them, and running the script again.
 7. **Only then** consider the container migration, which is a separate change and is described in [the deployment guide](website-deployment.md).
 
 If the redirects are implemented in Cloudflare instead, the equivalent is a Redirect Rule per alias zone with the expression `http.host in {"koxora.de" "www.koxora.de"}` and a dynamic target of `concat("https://koxora.app", http.request.uri.path)` preserving the query, with the ACME and autodiscovery paths excluded. The same order applies, and the same tests prove it. Do not install both: two layers of redirect are how a loop is built.
 
 ## 4. Smoke tests
 
-Run them from outside the host. `-s -S -o /dev/null -D -` prints the response headers only, and `--max-redirs 0` keeps each hop separate so a chain is visible.
+`pnpm website:build` writes these as `apps/website/dist-deploy/smoke-aliases.sh`, generated from the alias host list, so running the script and running the commands below are the same thing and the script cannot fall behind the configuration. Run it from outside the host:
+
+```sh
+sh smoke-aliases.sh                     # expects the code this build renders
+EXPECTED_STATUS=302 sh smoke-aliases.sh # during the rollout
+```
+
+What it does, and what to run by hand when only one answer is in question. `-s -S -o /dev/null -D -` prints the response headers only, and `--max-redirs 0` keeps each hop separate so a chain is visible.
 
 ```sh
 # 1. Each alias redirects to the canonical host, keeping path and query.
@@ -158,3 +179,4 @@ In Cloudflare, confirm that `/` is not cached and that the redirect of each alia
 - Whether the redirects live in Apache or in Cloudflare.
 - The date the permanent code is switched on.
 - The migration of the running container onto the generated NGINX configuration.
+- Authorization for any of it. None of section 3 has been run, and the current instruction is not to touch TinyCP or Apache during the container update. The authorization list is section 6 of [the production fixes document](website-w2-production-fixes.md).

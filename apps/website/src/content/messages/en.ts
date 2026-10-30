@@ -337,6 +337,7 @@ export const en = {
   'footer.contact': 'Contact',
   'footer.contactSupport': 'Product and support',
   'footer.supportTask': 'Questions about Koxora',
+  'footer.contactPage': 'Write to us',
   'footer.securityTask': 'Found a security problem?',
   'footer.contactPrivacy': 'Data protection',
   'footer.contactLegal': 'Legal',
@@ -372,7 +373,7 @@ export const en = {
   'consent.dialog.legalBasis': 'Legal basis',
   'consent.dialog.noOptional.title': 'Nothing to consent to right now',
   'consent.dialog.noOptional.body':
-    'This deployment uses only strictly necessary storage on your device, and no optional analytics, advertising or embedded third-party services. German law requires consent for storing or reading information on your device only where it is not strictly necessary for the service you asked for, so Koxora does not ask you for a decision it does not need. If that changes, this dialog will ask before anything optional is loaded.',
+    'This website uses only strictly necessary storage on your device, and no optional analytics, advertising or embedded third-party services. German law requires consent for storing or reading information on your device only where it is not strictly necessary for the service you asked for, so Koxora does not ask you for a decision it does not need. If that changes, this dialog will ask before anything optional is loaded.',
   'consent.state.saved': 'Your choice was saved on this device on {date}.',
   'consent.state.none': 'You have not made a choice on this device yet.',
   'consent.state.necessaryOnly': 'Only strictly necessary storage is in use.',
@@ -411,7 +412,7 @@ export const en = {
     'Consent under § 25(1) TDDDG and Art. 6(1)(a) GDPR.',
   'consent.openSettings': 'Open privacy settings',
   'consent.noScript':
-    'Privacy settings need JavaScript in your browser. This deployment uses only strictly necessary storage, so there is nothing to switch off. The privacy policy describes everything in detail.',
+    'Privacy settings need JavaScript in your browser. This website uses only strictly necessary storage, so there is nothing to switch off. The privacy policy describes everything in detail.',
 
   'privacySettings.meta.title': 'Privacy settings',
   'privacySettings.meta.description':
@@ -929,12 +930,18 @@ export const en = {
 
   'nav.contact': 'Contact',
   'contact.meta.title': 'Contact Koxora',
+  // True whether or not this deployment has a form, because a page
+  // description is read by a crawler that cannot see which one it got.
   'contact.meta.description':
-    'Ask a question, send feedback, report a problem. The form reaches the Koxora support mailbox; the address is published as well.',
+    'Ask a question, send feedback, report a problem. Messages reach the Koxora support mailbox, and the address is published on the page.',
   'contact.hero.eyebrow': 'Contact',
   'contact.hero.title': 'Write to the project',
   'contact.hero.lead':
     'Questions, feedback and problem reports all reach the same mailbox. The form below sends your message there; if you would rather use your own mail program, the address is published too.',
+  // The same page where there is no form: the address is the way, not a
+  // consolation for a missing control, and nothing here mentions why.
+  'contact.hero.leadMail':
+    'Questions, feedback and problem reports all reach the same mailbox. Write to {email} and a person will read it. A security problem has a route of its own, described below.',
   'contact.form.title': 'Send a message',
   'contact.form.intro':
     'Only the address and the message are needed. A name helps if you would like to be addressed by it.',
@@ -983,14 +990,21 @@ export const en = {
   'contact.security.title': 'A security problem goes elsewhere',
   'contact.security.body':
     'Please do not send details of a vulnerability through this form: it reaches an ordinary mailbox. The security policy says what to send, where to send it and what to expect.',
+  // The same warning on the page that has no form; it names the mailbox
+  // instead, so it does not point at a control that is not there.
+  'contact.security.bodyMail':
+    'Please do not send details of a vulnerability to the support address: it is an ordinary mailbox. The security policy says what to send, where to send it and what to expect.',
   'contact.security.link': 'Read the security policy',
   'contact.privacy.title': 'What happens to what you write',
   'contact.privacy.body':
     'The name, address, subject and message you enter are sent to the Koxora support mailbox so that your request can be answered. They are not used for anything else, not passed on for advertising, and there is no newsletter to be subscribed to. The privacy policy describes the processing, the legal basis and how long the mail is kept.',
+  'contact.privacy.bodyMail':
+    'A mail to this address is read so that your request can be answered, and is kept for as long as that takes. It is not used for anything else, not passed on for advertising, and there is no newsletter to be subscribed to. The privacy policy describes the processing, the legal basis and how long the mail is kept.',
   'contact.privacy.link': 'Privacy policy',
-  'contact.unconfigured.title': 'The form is not switched on here',
-  'contact.unconfigured.body':
-    'This deployment has no delivery service configured, so no form is shown: a form that posts nowhere would be worse than an address. Write to {email} instead.',
+  'contact.mail.title': 'Write to the support mailbox',
+  'contact.mail.body':
+    'One address for questions, feedback and problem reports, read by a person. It helps to name the part of Koxora your message is about, and to add the steps you took if something did not work.',
+  'contact.mail.hint': 'Opens your own mail program.',
   'contact.noscript':
     'The form works without JavaScript: it is sent as an ordinary form and you land on a page that says what happened. With JavaScript you stay on this page instead.',
   'contactSent.meta.title': 'Message accepted',

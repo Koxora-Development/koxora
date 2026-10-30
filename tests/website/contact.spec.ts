@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { status } from './helpers';
+import { expectNoHorizontalOverflow, openNavigation, status } from './helpers';
 import {
   contactField,
   honeypotField,
@@ -87,6 +87,110 @@ test.describe('the contact page', () => {
         /noindex/,
       );
       await expect(page.locator('h1')).toHaveCount(1);
+    }
+  });
+});
+/**
+ * Finding the page at all.
+ *
+ * The page existed, answered in both languages and was in the sitemap, and the
+ * Product Owner could not find a link to it on the live site: it was one entry
+ * in a footer column of resources. These tests are about the link rather than
+ * the page, on every layout the suite runs - desktop, tablet and phone - and
+ * with the keyboard and without JavaScript, because a reader who cannot find
+ * it has no way to report that they could not.
+ */
+test.describe('finding the contact page', () => {
+  test('is in the main navigation, in both languages', async ({ page }) => {
+    for (const [path, target, label] of [
+      ['/en/', '/en/contact/', 'Contact'],
+      ['/de/', '/de/kontakt/', 'Kontakt'],
+    ] as const) {
+      await page.goto(path);
+      await openNavigation(page);
+      const link = page.locator(`.primary-nav a[href="${target}"]`);
+      await expect(link, path).toHaveCount(1);
+      await expect(link).toHaveText(label);
+      await expect(link).toBeVisible();
+      await link.click();
+      await expect(page).toHaveURL(new RegExp(`${target}$`));
+      // And it says which page a reader is on, as the other entries do.
+      await expect(
+        page.locator(`.primary-nav a[href="${target}"]`),
+      ).toHaveAttribute('aria-current', 'page');
+    }
+  });
+  test('is in the footer column about contact, not among the resources', async ({
+    page,
+  }) => {
+    for (const [path, target] of [
+      ['/en/', '/en/contact/'],
+      ['/de/', '/de/kontakt/'],
+    ] as const) {
+      await page.goto(path);
+      const inContactColumn = page.locator(
+        `.footer-column-contact a[href="${target}"]`,
+      );
+      await expect(inContactColumn, path).toHaveCount(1);
+      // Once in the footer, so the two columns do not offer the same link
+      // twice with different words.
+      await expect(
+        page.locator(`.footer-nav a[href="${target}"]`),
+        path,
+      ).toHaveCount(1);
+    }
+  });
+  test('is reachable with the keyboard alone', async ({ page }) => {
+    await page.goto('/en/');
+    await openNavigation(page);
+    const link = page.locator('.primary-nav a[href="/en/contact/"]');
+    await link.focus();
+    await expect(link).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/en\/contact\/$/);
+  });
+  test('is in the document without JavaScript', async ({ browser }) => {
+    // The collapsed phone menu is opened by a script; without one it stays
+    // expanded, so the link has to be an ordinary link in the markup.
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    for (const [path, target] of [
+      ['http://127.0.0.1:4175/en/', '/en/contact/'],
+      ['http://127.0.0.1:4175/de/', '/de/kontakt/'],
+    ] as const) {
+      await page.goto(path);
+      await expect(
+        page.locator(`.primary-nav a[href="${target}"]`),
+        path,
+      ).toBeVisible();
+      await expect(
+        page.locator(`.footer-column-contact a[href="${target}"]`),
+        path,
+      ).toBeVisible();
+    }
+    await context.close();
+  });
+  test('reaches the page from the support documentation as well', async ({
+    page,
+  }) => {
+    for (const [path, target] of [
+      ['/en/docs/support/', '/en/contact/'],
+      ['/de/dokumentation/support/', '/de/kontakt/'],
+    ] as const) {
+      await page.goto(path);
+      await expect(
+        page.locator(`main a[href="${target}"]`).first(),
+        path,
+      ).toBeVisible();
+    }
+  });
+  test('fits the layout it is shown in, with no sideways scrolling', async ({
+    page,
+  }) => {
+    for (const path of ['/en/', '/de/', '/en/contact/', '/de/kontakt/']) {
+      await page.goto(path);
+      await openNavigation(page);
+      await expectNoHorizontalOverflow(page);
     }
   });
 });

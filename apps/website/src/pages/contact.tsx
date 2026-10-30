@@ -1,4 +1,4 @@
-import { Note, Section, SectionHeader } from '../components/ui';
+import { ActionLink, Note, Section, SectionHeader } from '../components/ui';
 import { PageIntro } from '../components/page-intro';
 import type { PageContext } from '../components/navigation';
 import { pathFor } from '../routes';
@@ -221,19 +221,43 @@ function ContactForm(context: PageContext) {
     </form>
   );
 }
+/**
+ * The contact page, in either of the two states it has.
+ *
+ * With a delivery service it leads with the form and publishes the address
+ * underneath it. Without one it leads with the address, as the page a reader
+ * came to use rather than an apology for a missing control.
+ *
+ * What it must never do is explain the deployment. The first version of this
+ * page said the form was "not switched on here" because "this deployment has
+ * no delivery service configured", which is a note to an operator printed on a
+ * public page: it tells a reader something about our infrastructure and
+ * nothing about how to reach us. A reader needs one address and a reason to
+ * trust it; `deploymentDiagnosticPhrases` keeps that wording out, and a test
+ * reads every emitted page to prove it.
+ */
 export function ContactPage(context: PageContext) {
   const { locale, t } = context;
   const email = site.email.support;
+  const hasForm = Boolean(site.contactEndpoint);
   return (
     <>
       <PageIntro
         eyebrow={t('contact.hero.eyebrow')}
         title={t('contact.hero.title')}
-        lead={t('contact.hero.lead')}
+        lead={
+          hasForm
+            ? t('contact.hero.lead')
+            : t('contact.hero.leadMail', { email })
+        }
       />
       <Section id="security">
         <Note tone="warning" title={t('contact.security.title')}>
-          <p>{t('contact.security.body')}</p>
+          <p>
+            {hasForm
+              ? t('contact.security.body')
+              : t('contact.security.bodyMail')}
+          </p>
           <p>
             <a href={site.securityUrl} rel="noopener">
               {t('contact.security.link')}
@@ -241,29 +265,44 @@ export function ContactPage(context: PageContext) {
           </p>
         </Note>
       </Section>
-      <Section id="form" tone="panel">
-        <SectionHeader
-          title={t('contact.form.title')}
-          description={t('contact.form.intro')}
-        />
-        {site.contactEndpoint ? (
+      {hasForm ? (
+        <Section id="form" tone="panel">
+          <SectionHeader
+            title={t('contact.form.title')}
+            description={t('contact.form.intro')}
+          />
           <ContactForm {...context} />
-        ) : (
-          <Note tone="info" title={t('contact.unconfigured.title')}>
-            <p>{t('contact.unconfigured.body', { email })}</p>
-          </Note>
-        )}
-      </Section>
-      <Section id="email">
-        <SectionHeader title={t('contact.fallback.title')} />
-        <p className="prose-lead">{t('contact.fallback.body', { email })}</p>
-        <p>
-          <a href={`mailto:${email}`}>{email}</a>
+        </Section>
+      ) : null}
+      {/* The address, as the alternative beside a form and as the way itself
+          without one. It is a link a reader can follow and a string they can
+          copy either way, so a reader without a configured mail program is
+          not left with a button that does nothing. */}
+      <Section id="email" tone={hasForm ? 'plain' : 'panel'}>
+        <SectionHeader
+          title={
+            hasForm ? t('contact.fallback.title') : t('contact.mail.title')
+          }
+          description={
+            hasForm
+              ? t('contact.fallback.body', { email })
+              : t('contact.mail.body')
+          }
+        />
+        <p className="contact-address">
+          <ActionLink
+            href={`mailto:${email}`}
+            label={email}
+            variant={hasForm ? 'secondary' : 'primary'}
+            hint={t('contact.mail.hint')}
+          />
         </p>
       </Section>
-      <Section id="privacy" tone="panel">
+      <Section id="privacy" tone={hasForm ? 'panel' : 'plain'}>
         <SectionHeader title={t('contact.privacy.title')} />
-        <p className="prose-lead">{t('contact.privacy.body')}</p>
+        <p className="prose-lead">
+          {hasForm ? t('contact.privacy.body') : t('contact.privacy.bodyMail')}
+        </p>
         <p>
           <a href={pathFor('privacyPolicy', locale)}>
             {t('contact.privacy.link')}

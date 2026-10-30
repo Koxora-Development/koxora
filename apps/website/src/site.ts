@@ -61,6 +61,19 @@ function contactEndpoint(value: string | undefined): string | null {
     return null;
   }
 }
+/**
+ * The redirect code the alias hosts answer with.
+ *
+ * Only the three codes that mean what this redirect means are accepted. A
+ * value this does not recognize falls back to the permanent code rather than
+ * being passed through, because an unrecognized number in a generated
+ * `RedirectMatch` is a configuration Apache may or may not accept, and the
+ * rollout decision is a Product Owner one rather than a typo's.
+ */
+function aliasRedirectStatus(value: string | undefined): 301 | 302 | 308 {
+  const code = Number(value);
+  return code === 301 || code === 302 || code === 308 ? code : 308;
+}
 export interface SiteConfig {
   /** Absolute origin used for canonical URLs, sitemap and social metadata. */
   origin: string;
@@ -71,8 +84,17 @@ export interface SiteConfig {
    * a request header.
    */
   aliasHosts: string[];
-  /** Status code of the canonical host redirect; a permanent code. */
-  aliasRedirectStatus: 301 | 308;
+  /**
+   * Status code of the canonical host redirect.
+   *
+   * 308 is the target state; 302 is what a rollout starts with, because a
+   * permanent redirect is cached by browsers and by a content network and is
+   * then hard to take back. It is configured rather than edited into the
+   * generated file afterwards: that file says it must not be edited by hand,
+   * and an operator who has to edit it anyway has no way to prove that what
+   * they installed is what this repository renders.
+   */
+  aliasRedirectStatus: 301 | 302 | 308;
   /**
    * Request paths the alias hosts must answer themselves instead of
    * redirecting: certificate issuance and mail autodiscovery live on those
@@ -150,9 +172,12 @@ export const site: SiteConfig = {
     .map((entry) => entry.trim().toLowerCase())
     .filter(Boolean),
   // 308 keeps the method and the body of a non-GET request, which a 301 is
-  // allowed to drop. Roll out with a temporary code first: a permanent
-  // redirect is cached by browsers and is hard to take back.
-  aliasRedirectStatus: 308,
+  // allowed to drop, and is the state to end at. Build with
+  // KOXORA_SITE_ALIAS_REDIRECT_STATUS=302 for the rollout, verify the answers
+  // with the generated smoke tests, and only then build the permanent code.
+  aliasRedirectStatus: aliasRedirectStatus(
+    env('KOXORA_SITE_ALIAS_REDIRECT_STATUS'),
+  ),
   aliasPassThroughPrefixes: [
     // Certificate issuance over HTTP-01.
     '/.well-known/acme-challenge/',

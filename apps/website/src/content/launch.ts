@@ -51,6 +51,36 @@ export const internalReviewPhrases = [
   'before this site is published',
   'vor der Veröffentlichung dieser Website',
 ];
+/**
+ * Wording that belongs in an operator document and never on a public page.
+ *
+ * The contact page published "The form is not switched on here" because "this
+ * deployment has no delivery service configured", and the consent notice told
+ * readers what "this deployment" stores. Both are notes to whoever installs
+ * the site: they tell a visitor something about our infrastructure and nothing
+ * about what they came for. The same list covers the names and addresses that
+ * only exist inside a deployment, because those leak the same way - through
+ * copy that was written while looking at a server.
+ *
+ * Unlike `internalReviewPhrases` this is checked on every build, published or
+ * not: the live site is where it was found, and it was not a published build.
+ */
+export const deploymentDiagnosticPhrases = [
+  'This deployment',
+  'this deployment',
+  'no delivery service',
+  'not switched on here',
+  'Diese Installation',
+  'diese Installation',
+  'kein Versanddienst',
+  'nicht eingeschaltet',
+  'KOXORA_SITE_',
+  'KOXORA_CONTACT_',
+  'PHP-FPM',
+  '127.0.0.1',
+  'TinyCP',
+];
+
 /** Whether this build still carries the notices written for the review. */
 export function showsInternalReviewNotes(
   published: boolean = site.published,

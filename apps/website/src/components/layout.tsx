@@ -246,14 +246,25 @@ function Footer(context: PageContext) {
               </ul>
             </div>
             {/* Two different errands, named so a reader can tell them apart:
-                an ordinary question goes to the support mailbox, a security
-                problem starts at the policy, which says what is safe to send
-                before a private channel exists. */}
+                an ordinary question goes to the contact page or to the support
+                mailbox, a security problem starts at the policy, which says
+                what is safe to send before a private channel exists.
+                The contact page is named first and here rather than among the
+                other resources, because this is the column a reader opens when
+                they are looking for a way to write. */}
             <div className="footer-column footer-column-contact">
               <h2>{t('footer.contact')}</h2>
               <dl className="footer-contacts">
                 <div>
                   <dt>{t('footer.supportTask')}</dt>
+                  <dd>
+                    <a
+                      className="footer-contact-page"
+                      href={pathFor('contact', locale)}
+                    >
+                      {t('footer.contactPage')}
+                    </a>
+                  </dd>
                   <dd>
                     <a href={`mailto:${site.email.support}`}>
                       {site.email.support}

@@ -78,7 +78,17 @@ jobs:
       # shows up in a reading of the file.
       - if: always() && runner.os == 'Linux'
         run: pnpm website:apache
-      # Parses and resolves the compose file; it needs no daemon.
+      # And the generated alias redirects are checked against a real Apache
+      # too. A RedirectMatch with a negative lookahead reads correctly and
+      # behaves otherwise, and nothing in this repository can redirect a
+      # request for koxora.de, so proving the rules before an operator
+      # installs them is the whole of what the repository can contribute.
+      - if: always() && runner.os == 'Linux'
+        run: pnpm website:aliases
+      # Resolves the compose file, then builds the image, runs it and asks it
+      # for every address the emitted pages reference. A published file the
+      # unprivileged worker cannot read is answered with 403 one address at a
+      # time, which is invisible in a build log.
       - if: always() && runner.os == 'Linux'
         run: pnpm website:container
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

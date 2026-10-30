@@ -2,7 +2,15 @@
 
 **Status: implemented for review, 2026-10-25. Nothing is activated.** The endpoint refuses to deliver until `KOXORA_CONTACT_ENABLED` is set, no Apache or TinyCP setting on the production host has been changed, and no SMTP credential exists anywhere in this repository. This is Website W2.2 of [the W2 plan](../platform/website-w2-plan.md), implementing [Issue #30](https://github.com/Koxora-Development/koxora/issues/30), and it follows the Product Owner's decision of 2026-10-25 to use the host's existing PHP-FPM rather than a service of its own — see [ADR 0019](../adr/0019-contact-delivery.md).
 
-Related: [the canonical domains runbook](website-canonical-domains.md). The container and release documents of Website W2.4a and W2.4b are on their own branches and are not linked from here, because a link to a document this branch does not carry is a broken one.
+Related: [the canonical domains runbook](website-canonical-domains.md), [the container document](website-container.md), [the release document](website-release.md), [the production fixes document](website-w2-production-fixes.md).
+
+**Addendum, 2026-10-29.** Two things this document assumed are now true, and one it did not cover.
+
+The image build can carry the endpoint. Website W2.4a declared six deployment inputs and not `KOXORA_SITE_CONTACT_ENDPOINT`, so every image that definition could build was an image without a form, whatever the host was configured to route. It is a build argument of the image and of the compose definition now, and an input of the release workflow.
+
+The page no longer explains itself. The unconfigured state used to say the form was "not switched on here" because "this deployment has no delivery service configured" — a note to whoever installs the site, printed where a visitor reads it. It now leads with the support address as the way to write, and a build fails if any page carries wording of that kind.
+
+What this document did not state is the **order** of the last two steps, and getting it the wrong way round publishes a form that cannot work. Step 9 below is that order.
 
 ## 1. What a reader sees
 
@@ -227,6 +235,21 @@ Set `KOXORA_CONTACT_ENABLED` to `true`, reload the pool, send one message throug
 
 Also confirm, at the mail provider rather than here: that the sender address is allowed to submit, that SPF and DKIM cover it, and that a reply to the reader's address actually leaves.
 
+### Step 9 — Release the website image with the endpoint set, and not before
+
+The endpoint is not in the website image and never will be: it runs under the host's PHP-FPM behind the existing Apache. So the form and the routing are two separate changes, and the routing has to come first. Setting `KOXORA_SITE_CONTACT_ENDPOINT` while `/api/contact` is not routed to PHP points the form at the static website container, which answers a submission with a 404 page — a form that posts nowhere, dressed as one that works.
+
+So: steps 1 to 8 above, in order, and only then
+
+```sh
+# A release, dispatched with contact_endpoint set to /api/contact.
+# See docs/development/website-release.md.
+```
+
+The release workflow enforces step 7 for this step: given a `contact_endpoint` input it asks the public host for that address and refuses to build unless it answers **405 with an `Allow` header**. It installs none of the endpoint and holds no credential of its own; it only declines to build a form that would post to the static container.
+
+Until that release the page publishes the support address, which works and says nothing about why.
+
 ## 5. How it defends itself
 
 | Against                       | How                                                                                                                                                                                                     |
@@ -278,7 +301,9 @@ The browser tests submit the form to the real endpoint, started by `apps/contact
 | The fragment cannot leak to another virtual host                            | **Verified.** The check serves two virtual hosts and fails if the second one can reach the endpoint. Including it server-wide instead, as the removed `a2enconf` route did, makes it fail |
 | The server validates exactly as the browser does                            | **Verified.** The same vectors run against both implementations                                                                                                                           |
 | The rate limit holds across workers                                         | **Verified.** Eight real processes, exactly three admitted                                                                                                                                |
-| The form works with and without JavaScript                                  | **Verified.** 383 browser tests across desktop, tablet and phone                                                                                                                          |
+| The form works with and without JavaScript                                  | **Verified.** Browser tests across desktop, tablet and phone, in both states of the page                                                                                                  |
+| The image build can carry the endpoint at all                               | **Verified since 2026-10-29.** It could not before; a test fails if the argument is dropped again                                                                                         |
+| No page tells a reader about the deployment                                 | **Verified.** The page emitter reads every emitted page and fails the build on that wording                                                                                               |
 | It runs on PHP 8.4                                                          | **Verified in continuous integration only.** This development container has PHP 8.3; the code targets 8.2 and newer and CI runs the suite on 8.4                                          |
 | Apache **on the production host**, with TinyCP's own generated virtual host | **Not verified.** The local Apache is a clean one built for the check, not TinyCP's. Step 6 is the open question                                                                          |
 | A message actually arrives in the mailbox                                   | **Not verified, and cannot be from here.** No SMTP credential exists; step 8 is where this is settled                                                                                     |

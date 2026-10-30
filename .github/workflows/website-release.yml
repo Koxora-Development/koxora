@@ -45,6 +45,14 @@ on:
         description: 'Address of the published studio, or empty while there is none'
         required: false
         type: string
+      contact_endpoint:
+        description: 'Where the contact form posts, or empty while delivery is off. The build refuses a path the public host does not already route to the endpoint.'
+        required: false
+        type: string
+      alias_redirect_status:
+        description: 'Redirect code the alias hosts answer with: 302 during a rollout, 308 once verified. Recorded in the release note.'
+        required: false
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -106,9 +114,47 @@ jobs:
           KOXORA_SITE_PUBLISHED: ${{ inputs.published }}
           KOXORA_SITE_INDEXABLE: ${{ inputs.indexable }}
           KOXORA_SITE_EDITOR_URL: ${{ inputs.editor_url }}
+          KOXORA_SITE_CONTACT_ENDPOINT: ${{ inputs.contact_endpoint }}
+          KOXORA_SITE_ALIAS_REDIRECT_STATUS: ${{ inputs.alias_redirect_status }}
         run: pnpm website:build
+      # A form may only be built once the endpoint it posts to actually
+      # answers. Website W2.4a could not pass this value at all, so every
+      # image it built published an address where a form belonged; being able
+      # to pass it brings the opposite risk, which this closes. The endpoint
+      # answers 405 with an Allow header to a GET, and the static website
+      # container answers a 404 page, so the two are told apart without
+      # sending anything.
+      - name: Refuse a contact endpoint the public host does not route
+        if: inputs.contact_endpoint != ''
+        env:
+          ENDPOINT: ${{ inputs.contact_endpoint }}
+        run: |
+          set -euo pipefail
+          case "$ENDPOINT" in
+            /*) target="https://koxora.app$ENDPOINT" ;;
+            https://*) target="$ENDPOINT" ;;
+            *) echo "contact_endpoint must be a path on the site or an https address" >&2; exit 1 ;;
+          esac
+          headers="$(curl -sS -o /dev/null -D - --max-time 20 "$target" || true)"
+          printf '%s\n' "$headers" | head -5
+          if ! printf '%s\n' "$headers" | grep -qiE '^HTTP/[0-9.]+ 405'; then
+            echo "$target did not answer 405; the endpoint is not routed there yet." >&2
+            echo "Install the generated Apache contact fragment and prove step 7 of" >&2
+            echo "docs/development/website-contact-form.md first. Releasing a form now" >&2
+            echo "would post submissions to the static website container." >&2
+            exit 1
+          fi
+          printf '%s\n' "$headers" | grep -qi '^allow:' || {
+            echo "$target answered 405 without an Allow header; that is not the endpoint." >&2
+            exit 1
+          }
       - name: Prove the generated configuration against a real NGINX
         run: pnpm website:nginx
+      # Builds the image and asks the running container for every address the
+      # emitted pages reference. A published file the unprivileged worker
+      # cannot read is answered with 403 one address at a time, which is
+      # invisible in a build log and was how two studio screenshots went
+      # missing from the live site.
       - run: pnpm website:container
       - name: Log in to the container registry
         run: |
@@ -132,6 +178,8 @@ jobs:
             --build-arg "KOXORA_SITE_PUBLISHED=${{ inputs.published }}" \
             --build-arg "KOXORA_SITE_INDEXABLE=${{ inputs.indexable }}" \
             --build-arg "KOXORA_SITE_EDITOR_URL=${{ inputs.editor_url }}" \
+            --build-arg "KOXORA_SITE_CONTACT_ENDPOINT=${{ inputs.contact_endpoint }}" \
+            --build-arg "KOXORA_SITE_ALIAS_REDIRECT_STATUS=${{ inputs.alias_redirect_status }}" \
             --label "org.opencontainers.image.revision=$REVISION" \
             --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             --tag "$tag" \
@@ -147,6 +195,24 @@ jobs:
           curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8099/en/ | grep -q '^200$'
           curl -fsS -o /dev/null -D - --max-redirs 0 \
             -H 'Accept-Language: de-DE,de;q=0.9' http://127.0.0.1:8099/ | grep -qi 'location: /de/'
+          # The pictures, from the image that is about to be pushed. They
+          # exist as Git blobs whatever happens, so only an HTTP answer says
+          # whether the server can read them: the live site answered 403 for
+          # two of them while serving a third from the same directory.
+          for name in editor-dark editor-light editor-small-en editor-small-de; do
+            for ext in webp png; do
+              case "$ext" in webp) type=image/webp ;; png) type=image/png ;; esac
+              answer="$(curl -sS -o /dev/null -w '%{http_code} %{content_type}' \
+                "http://127.0.0.1:8099/images/studio/$name.$ext")"
+              case "$answer" in
+                "200 $type"*) ;;
+                *) echo "/images/studio/$name.$ext answered $answer" >&2; exit 1 ;;
+              esac
+            done
+          done
+          # And the manifest, which the bundled type table has no entry for.
+          curl -sS -o /dev/null -w '%{content_type}\n' \
+            http://127.0.0.1:8099/en/site.webmanifest | grep -q 'application/manifest+json'
           docker logs release-check > image-logs.txt 2>&1 || true
           docker stop release-check
           docker push "$tag"
