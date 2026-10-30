@@ -588,9 +588,13 @@ bad() { printf '  FAIL %s\\n' "$1"; failures=$((failures + 1)); }
 hop() {
   if [ "$1" = HEAD ]; then set -- --head "$2"; else set -- -X "$1" "$2"; fi
   curl -sS -o /dev/null -D - --max-redirs 0 --max-time 15 "$@" 2>/dev/null |
-    awk 'BEGIN{IGNORECASE=1}
+    awk '
       /^HTTP\\//{code=$2}
-      /^location:/{sub(/^[Ll]ocation:[ \\t]*/,"");sub(/\\r$/,"");loc=$0}
+      tolower($0) ~ /^location:/ {
+        sub(/^[^:]*:[ \\t]*/,"");
+        sub(/\\r$/,"");
+        loc=$0
+      }
       END{print code, loc}'
 }
 
