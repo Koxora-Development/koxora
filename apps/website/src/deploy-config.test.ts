@@ -270,7 +270,7 @@ describe('the smoke tests for the alias hosts', () => {
     // its IGNORECASE extension is not portable. Execute the emitted parser
     // rather than checking the text of the generated script.
     if (process.platform === 'win32') return;
-    const program = aliasSmokeTests.match(/\\n\\s+awk '([\\s\\S]+?)'\\n\\}/)?.[1];
+    const program = aliasSmokeTests.match(/\n\s+awk '([\s\S]+?)'\n\}/)?.[1];
     expect(program).toBeDefined();
     for (const header of ['Location', 'location', 'LOCATION']) {
       const response = [
@@ -278,7 +278,7 @@ describe('the smoke tests for the alias hosts', () => {
         `${header}: https://koxora.app/de/funktionen/?ref=example`,
         '',
         '',
-      ].join('\\r\\n');
+      ].join('\r\n');
       const result = spawnSync('awk', [program!], {
         input: response,
         encoding: 'utf8',
