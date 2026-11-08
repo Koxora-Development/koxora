@@ -11,6 +11,8 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
+tauri-plugin-opener = "=2.7.2"
+url = "2"
 serde = { version = "1", features = ["derive"] }
 tempfile = "3"
 

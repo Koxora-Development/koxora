@@ -466,3 +466,22 @@
   opacity: 0.55;
   cursor: wait;
 }
+
+.element-links {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.element-links label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.element-links input,
+.element-links select {
+  width: 100%;
+  min-width: 0;
+}
+.element-links .field-help {
+  white-space: normal;
+}

@@ -1,3 +1,4 @@
+import { actionLink, connectionLink, remapConnectionLink } from './links';
 import {
   createProject,
   synchronizeIndexes,
@@ -115,7 +116,40 @@ export function applyWorkbook(
       )
     )
       throw new WorkbookError('references');
-    documents = documents.filter((d) => d !== doc);
+    if (
+      documents
+        .filter((d) => d !== doc)
+        .flatMap((d) => d.pages)
+        .some((p) =>
+          p.connections.some((e) => {
+            const link = connectionLink(e);
+            return (
+              link.state === 'ready' &&
+              link.target.type === 'page' &&
+              ids.has(link.target.pageId)
+            );
+          }),
+        )
+    )
+      throw new WorkbookError('references');
+    const retainedActions = doc.actions.filter((a) => !ids.has(a.targetId));
+    if (
+      retainedActions.some((a) => !actionLink(a)) ||
+      doc.animations.some((a) => !ids.has(a.targetId))
+    )
+      throw new WorkbookError('references');
+    // Keep known links to moved source pages when deleting their former owner.
+    documents = documents
+      .filter((d) => d !== doc)
+      .map((d) => ({
+        ...d,
+        actions: [
+          ...d.actions,
+          ...retainedActions.filter((a) =>
+            d.pages.some((p) => p.nodes.some((n) => n.id === a.targetId)),
+          ),
+        ],
+      }));
     if (doc.pages.some((p) => p.id === activePageId(project)))
       selected = {
         documentId: documents[0].id,
@@ -149,6 +183,7 @@ export function applyWorkbook(
         throw new WorkbookError('references');
       const map = new Map(pageIds(page).map((id) => [id, makeId()]));
       const mapped = (id: string) => map.get(id) ?? id;
+      const linkIds = Object.fromEntries(map);
       const copy: Page = {
         ...page,
         extensions: {
@@ -175,7 +210,7 @@ export function applyWorkbook(
           layerId: mapped(n.layerId),
         })),
         connections: page.connections.map((e) => ({
-          ...e,
+          ...remapConnectionLink(e, linkIds),
           id: mapped(e.id),
           layerId: mapped(e.layerId),
           sourceId: mapped(e.sourceId),
@@ -254,6 +289,22 @@ export function applyWorkbook(
                 ),
             ),
         )
+      )
+        throw new WorkbookError('references');
+      if (
+        documents
+          .flatMap((d) => d.pages)
+          .filter((p) => p !== page)
+          .some((p) =>
+            p.connections.some((e) => {
+              const link = connectionLink(e);
+              return (
+                link.state === 'ready' &&
+                link.target.type === 'page' &&
+                link.target.pageId === page.id
+              );
+            }),
+          )
       )
         throw new WorkbookError('references');
       documents = documents.map((d) =>

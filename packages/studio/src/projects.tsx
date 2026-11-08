@@ -962,6 +962,25 @@ export function Projects({ locale }: { locale: string }) {
                     onExpanded={setExpanded}
                     key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
                     ref={canvasRef}
+                    project={project}
+                    onFollowPage={(id) => {
+                      const doc = projectRef.current?.documents.find((d) =>
+                        d.pages.some((p) => p.id === id),
+                      );
+                      if (!doc || navigationLock.current) return false;
+                      switchPage(doc.id, id);
+                      setNotice(
+                        t('links.navigated', {
+                          page: doc.pages.find((p) => p.id === id)!.title,
+                        }),
+                      );
+                      requestAnimationFrame(() =>
+                        document
+                          .querySelector<HTMLElement>('.interactive-canvas')
+                          ?.focus(),
+                      );
+                      return true;
+                    }}
                     page={activePage}
                     styles={renderStyles}
                     onEdit={edit}

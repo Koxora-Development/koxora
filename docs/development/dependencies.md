@@ -60,3 +60,9 @@ A separate security commit updates only the Tokio lockfile entry to 1.54.1, reta
 ## Phase 2.5 text editor
 
 The Studio UI adds ProseMirror model 1.25.12, state 1.4.4, view 1.42.8, history 1.5.1, commands 1.7.2 and keymap 1.2.3, with their small transitive modules. These packages are MIT licensed; installed package license files and the repository license inventory are checked. They implement caret/selection/IME, deterministic transactions and text undo without remote services. No upstream files are modified. Retain their license notices in distributed application artifacts. The portable project format stores Koxora's narrow run model, not library-specific editor JSON. No font file is bundled, so no proprietary-font redistribution permission is assumed. All font choices use local fallbacks documented in the [Phase 2.5 guide](workbook-rich-text.md).
+
+## Phase 2.6 external URL opening
+
+The desktop adds the official `tauri-plugin-opener` 2.7.2 (`Apache-2.0 OR MIT`), pinned exactly for review, and makes the already locked `url` 2.5.8 a direct dependency. The lockfile adds 37 packages and removes/updates no existing package. Cargo metadata for all 37 additions reports 13 MIT and 24 MIT/Apache dual-license entries; no allowlist exception is added. The additions include `open` 5.4.5 and the Linux portal's zbus/async support. No JavaScript dependency is added.
+
+Studio disables the plugin's automatic JavaScript interception and grants only the custom main-window `open_external_url` command, which validates the allowlist in Rust. General opener/path/shell commands remain ungranted. Source inspection verified `OpenerExt::open_url` accepts a URL and the default handler selection; no arbitrary program is supplied. Native advisory/license CI remains required; metadata review is not a vulnerability scan. Full local Tauri compilation is blocked in this environment by missing GTK/GLib development packages.

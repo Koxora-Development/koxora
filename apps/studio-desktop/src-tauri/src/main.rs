@@ -1,8 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod export;
+mod links;
 mod storage;
 use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_opener::OpenerExt;
 fn root(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
     app.path()
         .app_data_dir()
@@ -85,15 +87,28 @@ async fn project_export(
     .await
     .map_err(|_| "storage".to_owned())?
 }
+#[tauri::command]
+fn open_external_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    let safe = links::safe_external_url(&url)?;
+    app.opener()
+        .open_url(safe, None::<&str>)
+        .map_err(|_| "openUrl".to_owned())
+}
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(
+            tauri_plugin_opener::Builder::new()
+                .open_js_links_on_click(false)
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             project_list,
             project_read,
             project_read_previous,
             project_write,
-            project_export
+            project_export,
+            open_external_url
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the desktop shell");

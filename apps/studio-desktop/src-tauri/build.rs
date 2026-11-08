@@ -6,6 +6,7 @@ fn main() {
             "project_read_previous",
             "project_write",
             "project_export",
+            "open_external_url",
         ]),
     ))
     .expect("failed to build desktop permissions");

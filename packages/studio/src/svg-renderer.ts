@@ -47,6 +47,7 @@ export class SvgRenderer {
       end: Point;
       arrow: boolean;
     } | null = null,
+    linkTitles: ReadonlyMap<string, string> = new Map(),
   ): boolean {
     const { camera, grid } = state;
     const step = gridStep(grid.spacing, camera.zoom) * camera.zoom;
@@ -80,6 +81,14 @@ export class SvgRenderer {
         this.elements.set(key, element);
         this.root.append(element);
       }
+      const element = this.elements.get(key)!;
+      const linkTitle = linkTitles.get(model.id);
+      element.toggleAttribute('data-linked', !!linkTitle);
+      const title = element.querySelector('title');
+      if (title)
+        title.textContent = linkTitle
+          ? `${model.label} — ${linkTitle}`
+          : model.label;
       this.elements
         .get(key)!
         .classList.toggle('connection-source', key === `node:${sourceId}`);
