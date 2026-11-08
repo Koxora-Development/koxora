@@ -1,3 +1,16 @@
+#[cfg(target_os = "linux")]
+#[path = "link_launcher.rs"]
+mod linux;
+
+pub fn open_external_url(value: &str) -> Result<(), String> {
+    let safe = safe_external_url(value)?;
+    #[cfg(target_os = "linux")]
+    let result = linux::open(&safe);
+    #[cfg(not(target_os = "linux"))]
+    let result = open::that_detached(safe);
+    result.map_err(|_| "openUrl".to_owned())
+}
+
 /// Match Studio's URL allowlist at the IPC boundary before invoking the OS.
 pub fn safe_external_url(value: &str) -> Result<String, String> {
     if value.is_empty()
@@ -30,6 +43,17 @@ pub fn safe_external_url(value: &str) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn rejects_unsafe_destinations_before_starting_a_handler() {
+        for value in [
+            "file:///tmp/test",
+            "javascript:alert(1)",
+            "https://user:pass@example.com",
+            "",
+        ] {
+            assert_eq!(open_external_url(value), Err("invalidUrl".into()));
+        }
+    }
     #[test]
     fn permits_only_explicit_web_and_mail_destinations() {
         for value in [

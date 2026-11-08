@@ -87,9 +87,10 @@ async fn project_export(
     .map_err(|_| "storage".to_owned())?
 }
 #[tauri::command]
-fn open_external_url(url: String) -> Result<(), String> {
-    let safe = links::safe_external_url(&url)?;
-    open::that_detached(safe).map_err(|_| "openUrl".to_owned())
+async fn open_external_url(url: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || links::open_external_url(&url))
+        .await
+        .map_err(|_| "openUrl".to_owned())?
 }
 fn main() {
     tauri::Builder::default()
