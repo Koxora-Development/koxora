@@ -30,7 +30,7 @@ Native `.koxora` save/reopen/import/export retains these records and opaque data
 
 ## Desktop boundary and dependency
 
-The only additional frontend capability is `allow-open-external-url`, restricted to the existing local main window. Its Rust command validates and calls the official `tauri-plugin-opener` API with the system default application. No general opener, path, shell, filesystem or remote-window permissions are granted. The plugin's automatic JavaScript link interception is explicitly disabled, so every opening goes through the custom validation boundary. `url` was already in the lockfile and is now a direct dependency. The plugin is pinned to 2.7.2; see [dependency review](dependencies.md).
+The only additional frontend capability is `allow-open-external-url`, restricted to the existing local main window. Its Rust command validates and calls `open::that_detached` with the system default application. No general opener, path, shell, filesystem or remote-window permissions are granted, and no plugin intercepts JavaScript links. The `open` crate is pinned to 5.4.5 with `shellexecute-on-windows` enabled and the `insecure` feature disabled; this is the same URL-opening backend used by Tauri's opener plugin. `url` was already in the lockfile and is now a direct dependency. See [dependency review](dependencies.md).
 
 ## Verification and Product Owner review
 

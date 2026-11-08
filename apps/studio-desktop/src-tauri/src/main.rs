@@ -4,7 +4,6 @@ mod links;
 mod storage;
 use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-use tauri_plugin_opener::OpenerExt;
 fn root(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
     app.path()
         .app_data_dir()
@@ -88,20 +87,13 @@ async fn project_export(
     .map_err(|_| "storage".to_owned())?
 }
 #[tauri::command]
-fn open_external_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
+fn open_external_url(url: String) -> Result<(), String> {
     let safe = links::safe_external_url(&url)?;
-    app.opener()
-        .open_url(safe, None::<&str>)
-        .map_err(|_| "openUrl".to_owned())
+    open::that_detached(safe).map_err(|_| "openUrl".to_owned())
 }
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(
-            tauri_plugin_opener::Builder::new()
-                .open_js_links_on_click(false)
-                .build(),
-        )
         .invoke_handler(tauri::generate_handler![
             project_list,
             project_read,
