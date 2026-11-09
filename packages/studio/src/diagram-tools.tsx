@@ -1,8 +1,16 @@
 import { useState } from 'react';
-import type { Page, Style } from '@koxora/project';
+import {
+  safeExternalUrl,
+  type Page,
+  type Style,
+  type Project,
+} from '@koxora/project';
+import { LinkFields } from './element-links';
 import { Dialog } from '@koxora/ui';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
+  elementLink,
+  type LinkTarget,
   isDrawing,
   isShapeKind,
   LINE_KEY,
@@ -251,6 +259,7 @@ function RoutingSelect({
   );
 }
 export function ElementDialog({
+  project,
   page,
   styles,
   id,
@@ -258,6 +267,7 @@ export function ElementDialog({
   onCancel,
   onApply,
 }: {
+  project: Project;
   page: Page;
   styles: Style[];
   id: string;
@@ -268,6 +278,21 @@ export function ElementDialog({
   const t = (key: MessageKey) => translate(locale, key);
   const node = page.nodes.find((n) => n.id === id),
     edge = page.connections.find((e) => e.id === id);
+  const initialLink = elementLink(project, id);
+  const [link, setLink] = useState<LinkTarget | null>(() =>
+    initialLink.state === 'ready' ? initialLink.target : null,
+  );
+  const [linkChanged, setLinkChanged] = useState(false);
+  const validLink =
+    !link ||
+    (link.type === 'url'
+      ? !!safeExternalUrl(link.url)
+      : project.documents.some((d) =>
+          d.pages.some((p) => p.id === link.pageId),
+        ));
+  const linkChange = linkChanged
+    ? { link: { target: link, actionId: crypto.randomUUID() } }
+    : {};
   const [geometry, setGeometry] = useState(node?.geometry);
   const line = node && isDrawing(node.kind);
   const [startArrow, setStartArrow] = useState(
@@ -344,11 +369,13 @@ export function ElementDialog({
         }}
         onSubmit={(e) => {
           e.preventDefault();
+          if (linkChanged && !validLink) return;
           if (
             onApply(
               node
                 ? {
                     type: 'updateNode',
+                    ...linkChange,
                     id,
                     text: plainText(richText),
                     ...(node.kind !== 'freehand' ? { richText } : {}),
@@ -358,6 +385,7 @@ export function ElementDialog({
                   }
                 : {
                     type: 'updateConnection',
+                    ...linkChange,
                     id,
                     options: { ...options, label: plainText(richText) },
                     richText,
@@ -380,6 +408,16 @@ export function ElementDialog({
             />
           </fieldset>
         )}
+        <LinkFields
+          project={project}
+          value={link}
+          initial={initialLink}
+          locale={locale}
+          onChange={(value) => {
+            setLink(value);
+            setLinkChanged(true);
+          }}
+        />
         {failed && <p role="alert">{t('diagram.error.invalid')}</p>}
         <details
           className="element-advanced"
@@ -486,7 +524,11 @@ export function ElementDialog({
           <button type="button" className="button" onClick={onCancel}>
             {t('project.cancel')}
           </button>
-          <button type="submit" className="button primary">
+          <button
+            type="submit"
+            className="button primary"
+            disabled={linkChanged && !validLink}
+          >
             {t('diagram.apply')}
           </button>
         </div>

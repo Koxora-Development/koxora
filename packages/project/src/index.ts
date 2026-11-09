@@ -27,6 +27,7 @@ import { validateProject } from './schema';
 import { readZip, writeZip } from './zip';
 import { parseProject as parseLegacy } from './legacy';
 export * from './types';
+export { safeExternalUrl } from './links';
 export { DEFAULT_LIMITS, ProjectError, sha256, isId } from './validation';
 export type { ResourceLimits, ErrorCode } from './validation';
 export { validateProject } from './schema';

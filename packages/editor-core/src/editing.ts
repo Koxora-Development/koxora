@@ -1,4 +1,10 @@
 import {
+  actionLink,
+  elementLink,
+  writeElementLink,
+  type LinkChange,
+} from './links';
+import {
   RICH_TEXT_KEY,
   readRichText,
   isRichText,
@@ -22,6 +28,7 @@ import {
   type Node,
   type Connection,
   type Page,
+  type Action,
 } from '@koxora/project';
 import { isDrawing, LINE_KEY, MIN_SIZE, movedGeometries } from './interaction';
 import type { Geometry } from './shapes';
@@ -43,6 +50,7 @@ import {
 } from './shapes';
 import { type ConnectionOptions, readConnection } from './connections';
 export type EditCommand =
+  | { type: 'link'; id: string; link: LinkChange }
   | {
       type: 'freehand';
       id: string;
@@ -89,6 +97,7 @@ export type EditCommand =
     }
   | {
       type: 'paste';
+      actions?: Action[];
       stackIds?: string[];
       nodes: Node[];
       connections: Connection[];
@@ -98,6 +107,7 @@ export type EditCommand =
     }
   | {
       type: 'updateNode';
+      link?: LinkChange;
       richText?: RichText;
       id: string;
       text: string;
@@ -108,6 +118,7 @@ export type EditCommand =
     }
   | {
       type: 'updateConnection';
+      link?: LinkChange;
       richText?: RichText;
       id: string;
       options: ConnectionOptions;
@@ -260,10 +271,16 @@ export function applyEdit(
     assertEditableElement(n);
     return n;
   };
+  let documents = project.documents;
   let nodes = page.nodes,
     connections = page.connections;
   let extensions = page.extensions;
-  if (command.type === 'stack') {
+  if (command.type === 'link') {
+    const item = [...nodes, ...connections].find((e) => e.id === command.id);
+    if (!item) throw new EditError('endpoint');
+    editable(item.layerId);
+    assertEditableElement(item);
+  } else if (command.type === 'stack') {
     if (page.extensions[STACK_KEY] !== undefined && !readStackOrder(page))
       throw new EditError('unsupported');
     if (!['forward', 'backward', 'front', 'back'].includes(command.action))
@@ -504,7 +521,10 @@ export function applyEdit(
         ) ||
         d.actions.some(
           (a) =>
-            removed.has(a.targetId) ||
+            (removed.has(a.targetId) &&
+              (!actionLink(a) ||
+                elementLink(project, a.targetId).state !== 'ready' ||
+                Object.keys(a.extensions).length > 0)) ||
             (typeof a.parameters.nodeId === 'string' &&
               removed.has(a.parameters.nodeId)),
         ) ||
@@ -517,11 +537,17 @@ export function applyEdit(
       )
         throw new EditError('unsupported');
     }
+    documents = documents.map((d) => ({
+      ...d,
+      actions: d.actions.filter((a) => !removed.has(a.targetId)),
+    }));
     nodes = nodes.filter((n) => !removed.has(n.id));
     connections = connections.filter((e) => !removed.has(e.id));
   } else if (command.type === 'duplicate' || command.type === 'paste') {
     const clipboard =
-      command.type === 'paste' ? command : copyElements(page, command.ids);
+      command.type === 'paste'
+        ? command
+        : copyElements(page, command.ids, project);
     if (command.type === 'paste') editable(command.layerId);
     if (![command.offset.x, command.offset.y].every(Number.isFinite))
       throw new EditError('invalid');
@@ -586,6 +612,13 @@ export function applyEdit(
         ],
       },
     };
+    const actions = (clipboard.actions ?? []).map((a) => {
+      if (!ids.has(a.targetId)) throw new EditError('invalid');
+      return { ...a, id: copyId(a.id), targetId: copyId(a.targetId) };
+    });
+    documents = documents.map((d) =>
+      d.id === documentId ? { ...d, actions: [...d.actions, ...actions] } : d,
+    );
     nodes = [...nodes, ...copiedNodes];
     connections = [...connections, ...copiedEdges];
   } else if (command.type === 'updateNode') {
@@ -709,7 +742,7 @@ export function applyEdit(
           },
     );
   }
-  const next: Project = {
+  let next: Project = {
     ...project,
     manifest: {
       ...project.manifest,
@@ -717,7 +750,7 @@ export function applyEdit(
         Math.max(Date.parse(now), Date.parse(project.manifest.updatedAt)),
       ).toISOString(),
     },
-    documents: project.documents.map((d) =>
+    documents: documents.map((d) =>
       d.id !== documentId
         ? d
         : {
@@ -728,6 +761,13 @@ export function applyEdit(
           },
     ),
   };
+  if ('link' in command && command.link !== undefined) {
+    try {
+      next = writeElementLink(next, command.id, command.link);
+    } catch {
+      throw new EditError('unsupported');
+    }
+  }
   validateProject(next);
   return next;
 }
@@ -749,7 +789,13 @@ export function assertGeometry(
 export function copyElements(
   page: Page,
   selected: readonly string[],
-): { nodes: Node[]; connections: Connection[]; stackIds: string[] } {
+  project?: Project,
+): {
+  nodes: Node[];
+  connections: Connection[];
+  stackIds: string[];
+  actions: Action[];
+} {
   const ids = new Set(selected),
     layers = layerStates(page.layers);
   const nodes = page.nodes.filter((n) => ids.has(n.id));
@@ -770,9 +816,22 @@ export function copyElements(
   )
     throw new EditError('endpoint');
   const copied = new Set([...nodes, ...connections].map((item) => item.id));
+  const actions =
+    project?.documents
+      .flatMap((d) => d.actions)
+      .filter((a) => nodeIds.has(a.targetId)) ?? [];
+  // Unknown action semantics may contain identities we cannot safely remap.
+  if (
+    actions.some(
+      (a) =>
+        !actionLink(a) || elementLink(project!, a.targetId).state !== 'ready',
+    )
+  )
+    throw new EditError('unsupported');
   return {
     nodes,
     connections,
+    actions,
     stackIds: orderedElements(page)
       .filter((item) => copied.has(item.id))
       .map((item) => item.id),

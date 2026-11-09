@@ -12,3 +12,4 @@ export * from './studio-history';
 export * from './freehand';
 export * from './stacking';
 export * from './contrast';
+export * from './links';

@@ -1,3 +1,4 @@
+import { openExternalLink } from './external-links';
 import { ContextMenu } from './context-menu';
 import { menuAnchor, type MenuAnchor } from './menu-anchor';
 import { InlineText } from './inline-text';
@@ -12,8 +13,10 @@ import {
   type Ref,
 } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
-import type { Page, Style, Node } from '@koxora/project';
+import type { Page, Style, Node, Project } from '@koxora/project';
 import {
+  elementLink,
+  pageLinks,
   buildScene,
   freehandGeometry,
   MAX_FREEHAND_POINTS,
@@ -73,6 +76,8 @@ export interface CanvasHandle {
   snapshot: () => CanvasState;
 }
 interface Props {
+  project: Project;
+  onFollowPage: (pageId: string) => boolean;
   onNavigate: () => void;
   expanded: boolean;
   onExpanded: (value: boolean) => void;
@@ -88,6 +93,8 @@ interface Props {
   ref?: Ref<CanvasHandle>;
 }
 export function Canvas({
+  project,
+  onFollowPage,
   onNavigate,
   expanded,
   onExpanded: setExpanded,
@@ -354,6 +361,71 @@ export function Canvas({
       (n) => n.id === id && n.editable,
     ),
   );
+  const links = useMemo(() => pageLinks(project, page), [project, page]);
+  const selectedLink =
+    selected.length === 1
+      ? (links.get(selected[0]) ?? { state: 'none' as const })
+      : { state: 'none' as const };
+  const descriptions = useMemo(() => {
+    const names = new Map(
+      project.documents.flatMap((d) =>
+        d.pages.map(
+          (p) => [p.id, { document: d.title, page: p.title }] as const,
+        ),
+      ),
+    );
+    return new Map(
+      [...links].map(([id, link]) => {
+        let description = '';
+        if (link.state === 'unsupported')
+          description = translate(locale, 'links.unsupported');
+        if (link.state === 'ready') {
+          if (link.target.type === 'url')
+            description = translate(locale, 'links.externalTarget', {
+              url: link.target.url,
+            });
+          else {
+            const name = names.get(link.target.pageId);
+            description = name
+              ? translate(locale, 'links.pageTarget', name)
+              : translate(locale, 'links.missing');
+          }
+        }
+        return [id, description];
+      }),
+    );
+  }, [links, project.documents, locale]);
+  const linkDescription = (id: string) => descriptions.get(id) ?? '';
+  function followLink(id: string) {
+    if (
+      ![...scene.nodes, ...scene.connections].some(
+        (item) => item.id === id && item.editable,
+      )
+    )
+      return;
+    const link = elementLink(project, id);
+    if (link.state !== 'ready') {
+      setFeedback('links.unsupported');
+      return;
+    }
+    if (link.target.type === 'page') {
+      if (!onFollowPage(link.target.pageId)) setFeedback('links.missing');
+    } else {
+      void openExternalLink(link.target.url)
+        .then(() => setFeedback('links.opened'))
+        .catch(() => setFeedback('links.failed'));
+    }
+  }
+  const linkTitles = useRef<ReadonlyMap<string, string>>(new Map());
+  useEffect(() => {
+    linkTitles.current = new Map(
+      [...descriptions].map(([id, description]) => [
+        id,
+        `${description} — ${translate(locale, 'links.help')}`,
+      ]),
+    );
+    controls.current?.refresh();
+  }, [descriptions, locale]);
   const previewing = useRef(false);
   function previewArrangement(action: Alignment | 'tidy' | null) {
     previewing.current = action !== null;
@@ -368,6 +440,7 @@ export function Canvas({
   }
   function command(
     action:
+      | 'followLink'
       | 'delete'
       | 'duplicate'
       | 'copy'
@@ -395,7 +468,9 @@ export function Canvas({
       ),
     );
     try {
-      if (action === 'undo' || action === 'redo') {
+      if (action === 'followLink') {
+        if (selection.current.length === 1) followLink(selection.current[0]);
+      } else if (action === 'undo' || action === 'redo') {
         if (onHistory(action)) select([]);
         else setFeedback('editing.noHistory');
       } else if (action === 'text') {
@@ -409,18 +484,19 @@ export function Canvas({
       } else if (action === 'delete') {
         if (ids.length && onEdit({ type: 'delete', ids })) select([]);
       } else if (action === 'copy') {
-        clipboard.current = copyElements(page, ids);
+        clipboard.current = copyElements(page, ids, project);
         setHasClipboard(true);
         setFeedback('editing.copied');
       } else if (action === 'duplicate' || action === 'paste') {
         const content =
-          action === 'paste' ? clipboard.current : copyElements(page, ids);
+          action === 'paste'
+            ? clipboard.current
+            : copyElements(page, ids, project);
         if (!content) return;
         const idMap = Object.fromEntries(
-          [...content.nodes, ...content.connections].map((n) => [
-            n.id,
-            crypto.randomUUID(),
-          ]),
+          [...content.nodes, ...content.connections, ...content.actions].map(
+            (n) => [n.id, crypto.randomUUID()],
+          ),
         );
         const offset = {
           x: state.current.grid.spacing,
@@ -433,7 +509,9 @@ export function Canvas({
               : { type: 'duplicate', ids, idMap, offset },
           )
         )
-          select(Object.values(idMap));
+          select(
+            [...content.nodes, ...content.connections].map((n) => idMap[n.id]),
+          );
       } else {
         const geometries =
           action === 'tidy'
@@ -568,6 +646,7 @@ export function Canvas({
         snapping,
         sourceRef.current ? active.candidates : [],
         linkPreview,
+        linkTitles.current,
       );
       if (nextLimited !== lastLimited) {
         lastLimited = nextLimited;
@@ -1090,6 +1169,11 @@ export function Canvas({
         schedule();
         return;
       }
+      if (event.key === 'Enter' && event.altKey && active.tool === 'select') {
+        event.preventDefault();
+        active.command('followLink');
+        return;
+      }
       const modifier = event.ctrlKey || event.metaKey;
       if (
         modifier &&
@@ -1516,6 +1600,18 @@ export function Canvas({
             count: editableSelection.length,
           })}
         </span>
+        {selectedLink.state !== 'none' && (
+          <button
+            className="button compact"
+            title={linkDescription(selected[0])}
+            disabled={
+              selectedLink.state !== 'ready' || editableSelection.length !== 1
+            }
+            onClick={() => command('followLink')}
+          >
+            {t('links.open')}
+          </button>
+        )}
         {!!editableSelection.length && (
           <>
             <button
@@ -1748,6 +1844,7 @@ export function Canvas({
       )}
       {editing && !inline && (
         <ElementDialog
+          project={project}
           key={editing}
           page={page}
           styles={styles}
@@ -1833,6 +1930,18 @@ export function Canvas({
           label={t('editing.actions')}
           onClose={() => setContextMenu(null)}
         >
+          {selectedLink.state !== 'none' && (
+            <button
+              role="menuitem"
+              disabled={
+                selectedLink.state !== 'ready' || editableSelection.length !== 1
+              }
+              title={linkDescription(selected[0])}
+              onClick={() => command('followLink')}
+            >
+              {t('links.open')}
+            </button>
+          )}
           {editableSelection.length === 1 &&
             !page.nodes.some(
               (n) => n.id === editableSelection[0] && n.kind === 'freehand',

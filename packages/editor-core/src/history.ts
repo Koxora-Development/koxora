@@ -4,10 +4,11 @@ import {
   type Node,
   type Connection,
   type Page,
+  type Action,
 } from '@koxora/project';
 import { applyEdit, EditError, type EditCommand } from './editing';
 
-type Element = Node | Connection;
+type Element = Node | Connection | Action;
 interface Change<T extends Element> {
   id: string;
   before?: T;
@@ -16,6 +17,7 @@ interface Change<T extends Element> {
   afterIndex: number;
 }
 interface Entry {
+  actions: { documentId: string; changes: Change<Action>[] }[];
   nodes: Change<Node>[];
   connections: Change<Connection>[];
   extensions?: { before: Page['extensions']; after: Page['extensions'] };
@@ -102,13 +104,27 @@ export class CommandHistory {
       .find((d) => d.id === documentId)!
       .pages.find((p) => p.id === pageId)!;
     const delta = {
+      actions: project.documents
+        .map((d) => ({
+          documentId: d.id,
+          changes: changes(
+            d.actions,
+            next.documents.find((n) => n.id === d.id)!.actions,
+          ),
+        }))
+        .filter((d) => d.changes.length),
       nodes: changes(before.nodes, after.nodes),
       connections: changes(before.connections, after.connections),
       ...(JSON.stringify(before.extensions) !== JSON.stringify(after.extensions)
         ? { extensions: { before: before.extensions, after: after.extensions } }
         : {}),
     };
-    if (!delta.nodes.length && !delta.connections.length && !delta.extensions)
+    if (
+      !delta.nodes.length &&
+      !delta.connections.length &&
+      !delta.extensions &&
+      !delta.actions.length
+    )
       return project;
     const key = this.key(project, documentId, pageId);
     const branch = this.branches.get(key) ?? { undo: [], redo: [] };
@@ -183,14 +199,23 @@ export class CommandHistory {
           Math.max(Date.parse(now), Date.parse(project.manifest.updatedAt)),
         ).toISOString(),
       },
-      documents: project.documents.map((d) =>
-        d.id === documentId
-          ? {
-              ...d,
-              pages: d.pages.map((p) => (p.id === pageId ? restored : p)),
-            }
-          : d,
-      ),
+      documents: project.documents
+        .map((d) => ({
+          ...d,
+          actions: restore(
+            d.actions,
+            entry.actions.find((a) => a.documentId === d.id)?.changes ?? [],
+            undo,
+          ),
+        }))
+        .map((d) =>
+          d.id === documentId
+            ? {
+                ...d,
+                pages: d.pages.map((p) => (p.id === pageId ? restored : p)),
+              }
+            : d,
+        ),
     };
     validateProject(next);
     b[direction].pop();

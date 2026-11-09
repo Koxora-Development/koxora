@@ -50,6 +50,7 @@ export const SHORTCUT_GROUPS: {
       { keys: 'shortcuts.keys.formatText', action: 'shortcuts.formatText' },
       { keys: 'shortcuts.keys.stack', action: 'shortcuts.stack' },
       { keys: 'shortcuts.keys.pen', action: 'shortcuts.pen' },
+      { keys: 'shortcuts.keys.followLink', action: 'shortcuts.followLink' },
     ],
   },
   {
