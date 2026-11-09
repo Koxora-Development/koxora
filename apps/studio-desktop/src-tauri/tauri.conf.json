@@ -51,6 +51,11 @@
         },
         "desktopTemplate": "integration/koxora.desktop.hbs"
       }
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "integration/windows-associations.nsh"
+      }
     }
   }
 }
