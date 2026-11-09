@@ -211,16 +211,29 @@ fn validate_tree_at(path: &Path, depth: usize) -> Result<(), String> {
     }
     Ok(())
 }
+fn coordination_file(path: &Path, root: &Path) -> bool {
+    path.file_name().is_some_and(|name| name == "write.lock")
+        && path.parent().is_some_and(|parent| {
+            parent.parent() == Some(root)
+                && parent
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(crate::storage::valid_id)
+        })
+}
 fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
     validate_tree(from)?;
+    copy_tree_at(from, to, from)
+}
+fn copy_tree_at(from: &Path, to: &Path, root: &Path) -> Result<(), String> {
     for entry in io(fs::read_dir(from))? {
         let entry = io(entry)?;
         let target = to.join(entry.file_name());
         if io(entry.file_type())?.is_dir() {
             io(fs::create_dir(&target))?;
-            copy_tree(&entry.path(), &target)?;
+            copy_tree_at(&entry.path(), &target, root)?;
             sync_dir(&target)?;
-        } else {
+        } else if !coordination_file(&entry.path(), root) {
             io(fs::copy(entry.path(), &target))?;
             io(OpenOptions::new()
                 .write(true)
@@ -231,12 +244,15 @@ fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
     Ok(())
 }
 fn verify_tree(from: &Path, to: &Path) -> Result<(), String> {
+    verify_tree_at(from, to, from)
+}
+fn verify_tree_at(from: &Path, to: &Path, root: &Path) -> Result<(), String> {
     for entry in io(fs::read_dir(from))? {
         let entry = io(entry)?;
         let target = to.join(entry.file_name());
         if io(entry.file_type())?.is_dir() {
-            verify_tree(&entry.path(), &target)?;
-        } else {
+            verify_tree_at(&entry.path(), &target, root)?;
+        } else if !coordination_file(&entry.path(), root) {
             let mut a = io(File::open(entry.path()))?;
             let mut b = io(File::open(target))?;
             let mut left = [0; 65536];
@@ -379,5 +395,36 @@ mod tests {
         fs::create_dir(&parent).unwrap();
         fs::write(parent.join(".koxora-migration.lock"), "").unwrap();
         location.change(&parent, false).unwrap();
+    }
+    #[test]
+    fn coordination_locks_are_recreated_and_unknown_nested_lock_data_is_preserved() {
+        let (temp, config, default) = setup();
+        let location = Location::acquire(&config, &default).unwrap();
+        location.keep().unwrap();
+        let id = "00000000-0000-4000-8000-000000000001";
+        crate::storage::write(&default, id, None, "one").unwrap();
+        fs::create_dir(default.join(id).join("recovery")).unwrap();
+        fs::write(
+            default.join(id).join("recovery/write.lock"),
+            "opaque recovery bytes",
+        )
+        .unwrap();
+        let parent = temp.path().join("dest");
+        fs::create_dir(&parent).unwrap();
+        location.change(&parent, false).unwrap();
+        let target = location.root().unwrap();
+        assert!(!target.join(id).join("write.lock").exists());
+        assert_eq!(
+            fs::read(target.join(id).join("recovery/write.lock")).unwrap(),
+            b"opaque recovery bytes"
+        );
+        crate::storage::write(&target, id, Some("one"), "two").unwrap();
+        assert!(target.join(id).join("write.lock").is_file());
+        assert_eq!(
+            crate::storage::read_previous(&target, id)
+                .unwrap()
+                .as_deref(),
+            Some("one")
+        );
     }
 }

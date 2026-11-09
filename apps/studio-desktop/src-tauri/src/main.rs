@@ -24,7 +24,7 @@ fn storage_keep(app: tauri::AppHandle) -> Result<(), String> {
 }
 #[tauri::command]
 fn storage_open(app: tauri::AppHandle) -> Result<(), String> {
-    open::that_detached(location(&app)?.root()?).map_err(|_| "storage".into())
+    links::open_folder(&location(&app)?.root()?)
 }
 #[tauri::command]
 async fn storage_change(
