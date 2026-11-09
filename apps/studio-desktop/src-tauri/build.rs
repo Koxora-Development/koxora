@@ -1,6 +1,10 @@
 fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
+            "storage_status",
+            "storage_keep",
+            "storage_open",
+            "storage_change",
             "project_list",
             "project_read",
             "project_read_previous",

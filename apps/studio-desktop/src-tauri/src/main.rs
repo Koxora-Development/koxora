@@ -1,26 +1,75 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod export;
 mod links;
+mod location;
 mod storage;
 use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-fn root(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
-    app.path()
-        .app_data_dir()
-        .map(|p| p.join("projects-v1"))
-        .map_err(|_| "storage".into())
+fn location(app: &tauri::AppHandle) -> Result<location::Location, String> {
+    location::Location::acquire(
+        &app.path().app_config_dir().map_err(|_| "storage")?,
+        &app.path()
+            .app_data_dir()
+            .map_err(|_| "storage")?
+            .join("projects-v1"),
+    )
+}
+#[tauri::command]
+fn storage_status(app: tauri::AppHandle) -> Result<location::Status, String> {
+    location(&app)?.status()
+}
+#[tauri::command]
+fn storage_keep(app: tauri::AppHandle) -> Result<(), String> {
+    location(&app)?.keep()
+}
+#[tauri::command]
+fn storage_open(app: tauri::AppHandle) -> Result<(), String> {
+    open::that_detached(location(&app)?.root()?).map_err(|_| "storage".into())
+}
+#[tauri::command]
+async fn storage_change(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    title: String,
+    restore: bool,
+) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let chosen = app
+            .dialog()
+            .file()
+            .set_parent(&window)
+            .set_title(title)
+            .blocking_pick_folder();
+        let Some(chosen) = chosen else {
+            return Ok(false);
+        };
+        let path = chosen.into_path().map_err(|_| "storage")?;
+        location(&app)?.change(&path, restore)?;
+        Ok(true)
+    })
+    .await
+    .map_err(|_| "storage".to_owned())?
 }
 #[tauri::command]
 fn project_list(app: tauri::AppHandle) -> Result<Vec<String>, String> {
-    storage::list(&root(&app)?)
+    {
+        let location = location(&app)?;
+        storage::list(&location.root()?)
+    }
 }
 #[tauri::command]
 fn project_read(app: tauri::AppHandle, id: String) -> Result<Option<String>, String> {
-    storage::read(&root(&app)?, &id)
+    {
+        let location = location(&app)?;
+        storage::read(&location.root()?, &id)
+    }
 }
 #[tauri::command]
 fn project_read_previous(app: tauri::AppHandle, id: String) -> Result<Option<String>, String> {
-    storage::read_previous(&root(&app)?, &id)
+    {
+        let location = location(&app)?;
+        storage::read_previous(&location.root()?, &id)
+    }
 }
 #[tauri::command]
 fn project_write(
@@ -29,7 +78,10 @@ fn project_write(
     expected: Option<String>,
     value: String,
 ) -> Result<(), String> {
-    storage::write(&root(&app)?, &id, expected.as_deref(), &value)
+    {
+        let location = location(&app)?;
+        storage::write(&location.root()?, &id, expected.as_deref(), &value)
+    }
 }
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -96,6 +148,10 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            storage_status,
+            storage_keep,
+            storage_open,
+            storage_change,
             project_list,
             project_read,
             project_read_previous,

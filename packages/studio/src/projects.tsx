@@ -1,3 +1,4 @@
+import { StorageSettings } from './storage-settings';
 import { ProjectTree, type ProjectAction } from './project-tree';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
@@ -652,6 +653,22 @@ export function Projects({ locale }: { locale: string }) {
           <span className="count">{items.length}</span>
         </button>
         {!expanded && navigation}
+        <StorageSettings
+          locale={locale}
+          run={preserveAndRun}
+          onChanged={() => {
+            history.clear();
+            session.current += 1;
+            setLoadVersion(session.current);
+            setProject(null);
+            setSaved(null);
+            setToken(null);
+            setPageId(null);
+            setPendingNavigation(false);
+            setView('dashboard');
+            setExpanded(false);
+          }}
+        />
         <div className="sidebar-bottom">
           <Icon name="shield" />
           <strong>{t('status.local')}</strong>

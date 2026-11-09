@@ -455,5 +455,18 @@
   "links.opened": "Link handed to your browser or mail application. If nothing opens, check your browser settings.",
   "links.failed": "The link could not be opened. Check the address and your browser or mail application.",
   "shortcuts.keys.followLink": "Alt + Enter",
-  "shortcuts.followLink": "Open the selected element’s link"
+  "shortcuts.followLink": "Open the selected element’s link",
+  "storage.settings": "Settings · Storage",
+  "storage.choose": "Choose the parent folder for project data",
+  "storage.description": "This location stores local projects, snapshots and recovery data. It does not move the application or your separately exported .koxora files.",
+  "storage.path": "Effective project data directory",
+  "storage.support": "Use a writable local disk. Network shares and synchronised folders are not supported. The selected folder receives a projects-v1 subfolder. Close older Koxora builds before changing storage.",
+  "storage.space": "Available space cannot be reported reliably here. Copy failures keep the original data active.",
+  "storage.failure": "Storage could not be changed or accessed. Check permissions, free space, connected disks and other running instances. Migration requires a destination without projects-v1. To reconnect existing data, choose Restore. No source data was deleted.",
+  "storage.progress": "Copying and verifying project data. Keep the application open.",
+  "storage.restore": "Restore an existing projects-v1 folder instead of migrating (current data stays at its location)",
+  "storage.retained": "The old location is retained as a backup. Restore explicitly switches repositories without merging or overwriting either location.",
+  "storage.open": "Open folder",
+  "storage.change": "Change location…",
+  "storage.keep": "Keep default and continue"
 }
