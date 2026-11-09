@@ -5,7 +5,11 @@ import type { Invoke } from '@koxora/persistence';
 const nativeCore = (
   window as unknown as { __TAURI__?: { core: { invoke: Invoke } } }
 ).__TAURI__?.core;
-type Status = { directory: string; firstRun: boolean };
+type Status = {
+  directory: string;
+  firstRun: boolean;
+  availableBytes?: number | null;
+};
 export function StorageSettings({
   locale,
   initial = false,
@@ -21,7 +25,8 @@ export function StorageSettings({
   onLocale?: (locale: string) => void;
   run?: (action: () => Promise<void>) => Promise<boolean>;
 }) {
-  const t = (key: MessageKey) => translate(locale, key);
+  const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
+    translate(locale, key, values);
   const [status, setStatus] = useState<Status | null>(null);
   const [opened, setOpened] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -112,7 +117,15 @@ export function StorageSettings({
             {status?.directory ?? t('storage.unavailable')}
           </p>
           <p>{t('storage.support')}</p>
-          <p>{t('storage.space')}</p>
+          <p>
+            {typeof status?.availableBytes === 'number'
+              ? t('storage.available', {
+                  mib: new Intl.NumberFormat(locale, {
+                    maximumFractionDigits: 0,
+                  }).format(status.availableBytes / 1048576),
+                })
+              : t('storage.space')}
+          </p>
           {error && <p role="alert">{t('storage.failure')}</p>}
           {busy && <p role="status">{t('storage.progress')}</p>}
           <label className="checkbox-label">

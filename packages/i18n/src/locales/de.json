@@ -468,5 +468,6 @@
   "storage.retained": "Der bisherige Speicher bleibt als Sicherung erhalten. Wiederherstellen wechselt den Speicher ausdrücklich, ohne Daten zusammenzuführen oder zu überschreiben.",
   "storage.open": "Ordner öffnen",
   "storage.change": "Speicherort ändern …",
-  "storage.keep": "Standard beibehalten und fortfahren"
+  "storage.keep": "Standard beibehalten und fortfahren",
+  "storage.available": "Vom Dateisystem gemeldeter freier Speicher: {mib} MiB (Diagnose, keine Reservierung)."
 }

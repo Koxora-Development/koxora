@@ -468,5 +468,6 @@
   "storage.retained": "The old location is retained as a backup. Restore explicitly switches repositories without merging or overwriting either location.",
   "storage.open": "Open folder",
   "storage.change": "Change location…",
-  "storage.keep": "Keep default and continue"
+  "storage.keep": "Keep default and continue",
+  "storage.available": "Available space reported by filesystem: {mib} MiB (diagnostic, not a reservation)."
 }

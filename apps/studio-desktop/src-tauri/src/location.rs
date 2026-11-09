@@ -18,6 +18,7 @@ struct Config {
 pub struct Status {
     pub directory: String,
     pub first_run: bool,
+    pub available_bytes: Option<u64>,
 }
 pub struct Location {
     config: PathBuf,
@@ -72,6 +73,7 @@ impl Location {
         let root = self.root()?;
         Ok(Status {
             directory: root.to_string_lossy().into_owned(),
+            available_bytes: available_space(&root),
             first_run: !self.config.exists() && io(fs::read_dir(root))?.next().is_none(),
         })
     }
@@ -271,6 +273,30 @@ fn verify_tree_at(from: &Path, to: &Path, root: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+/// Filesystem-reported available bytes are diagnostic only, never reserved space.
+fn available_space(path: &Path) -> Option<u64> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        let path = std::ffi::CString::new(path.as_os_str().as_bytes()).ok()?;
+        let mut stats = std::mem::MaybeUninit::<libc::statvfs>::uninit();
+        // SAFETY: CString is NUL terminated; the OS writes the structure only on success.
+        if unsafe { libc::statvfs(path.as_ptr(), stats.as_mut_ptr()) } != 0 {
+            return None;
+        }
+        // SAFETY: statvfs returned success and initialized every field we read.
+        let stats = unsafe { stats.assume_init() };
+        u128::from(stats.f_bavail)
+            .checked_mul(u128::from(stats.f_frsize))?
+            .try_into()
+            .ok()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        None
+    }
+}
 fn sync_dir(path: &Path) -> Result<(), String> {
     #[cfg(unix)]
     {
@@ -426,5 +452,13 @@ mod tests {
                 .as_deref(),
             Some("one")
         );
+    }
+    #[cfg(unix)]
+    #[test]
+    fn space_diagnostic_is_reported_only_for_a_readable_filesystem() {
+        let (temp, config, default) = setup();
+        let location = Location::acquire(&config, &default).unwrap();
+        assert!(location.status().unwrap().available_bytes.is_some());
+        assert_eq!(available_space(&temp.path().join("missing")), None);
     }
 }

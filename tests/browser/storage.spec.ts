@@ -15,6 +15,7 @@ test.beforeEach(async ({ page }) => {
                 directory:
                   sessionStorage.getItem('location') ?? '/default/projects-v1',
                 firstRun: !sessionStorage.getItem('location'),
+                availableBytes: 512 * 1048576,
               };
             if (command === 'storage_keep') {
               sessionStorage.setItem('location', '/default/projects-v1');
@@ -48,6 +49,7 @@ test('first run chooses storage before project discovery and is remembered offli
 }) => {
   await page.goto('/');
   await expect(page.getByRole('dialog')).toContainText('/default/projects-v1');
+  await expect(page.getByRole('dialog')).toContainText('512 MiB');
   await expect(
     page.getByRole('button', { name: 'New project', exact: true }),
   ).toHaveCount(0);

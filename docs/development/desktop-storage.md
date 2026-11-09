@@ -14,7 +14,7 @@ The bootstrap file `storage-v1.json` lives in Tauri's per-user **app_config_dir*
 | Windows | `%APPDATA%\app.koxora.studio`                     | `%APPDATA%\app.koxora.studio\projects-v1`                        |
 | macOS   | `~/Library/Application Support/app.koxora.studio` | `~/Library/Application Support/app.koxora.studio/projects-v1`    |
 
-Choose a parent folder on a writable local disk; Koxora creates `projects-v1` below it. An existing target is rejected rather than merged. Settings shows the absolute effective path and opens it with the OS. Available-space reporting is explicitly unavailable; write/copy failures retain the source. No installer changes move data: AppImage and DMG have no wizard; NSIS uses the same first-run flow, avoiding installation-directory/data-directory confusion. Updates/uninstallation must retain user data. No installer-time selector is claimed.
+Choose a parent folder on a writable local disk; Koxora creates `projects-v1` below it. An existing target is rejected rather than merged. Settings shows the absolute effective path and opens it with the OS. On Unix, available space is reported by statvfs as a diagnostic only, with no reservation or capacity guarantee. If unsupported or unreadable (including the current Windows fallback), the interface explicitly reports unavailability; write/copy failures retain the source. No installer changes move data: AppImage and DMG have no wizard; NSIS uses the same first-run flow, avoiding installation-directory/data-directory confusion. Updates/uninstallation must retain user data. No installer-time selector is claimed.
 
 ## Migration, interruption and recovery
 
@@ -48,3 +48,5 @@ Repeat first launch, migration, restore, offline restart and Save As on Windows 
 - Full check initially exposed checkout permissions (`0600` from this environment's umask) on existing website screenshots. Restoring their ordinary readable modes changes no Git blobs. Final combined-check and native CI outcomes belong to the PR; no unrun packaging or OS acceptance is claimed here.
 
 The first CI run built Linux AppImage/DEB and both macOS DMGs successfully and passed their native tests and Rust supply-chain gate. Windows exposed copying a held coordination lock; this is corrected with a reserved-path exclusion and a save/recovery regression. The native link browser mock now acknowledges storage bootstrap. Full local Linux Tauri testing passed 27 tests before this regression addition. Final rerun outcomes are recorded in the PR.
+
+Available-space diagnostics use the already locked libc dependency directly on Unix, with bounded CString/statvfs handling, checked arithmetic and a nonfatal unavailable fallback. They do not change write/migration behavior.
