@@ -1,16 +1,12 @@
 import { useState } from 'react';
-import {
-  safeExternalUrl,
-  type Page,
-  type Style,
-  type Project,
-} from '@koxora/project';
+import { type Page, type Style, type Project } from '@koxora/project';
 import { LinkFields } from './element-links';
 import { Dialog } from '@koxora/ui';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
   elementLink,
   type LinkTarget,
+  validLinkTarget,
   isDrawing,
   isShapeKind,
   LINE_KEY,
@@ -283,13 +279,7 @@ export function ElementDialog({
     initialLink.state === 'ready' ? initialLink.target : null,
   );
   const [linkChanged, setLinkChanged] = useState(false);
-  const validLink =
-    !link ||
-    (link.type === 'url'
-      ? !!safeExternalUrl(link.url)
-      : project.documents.some((d) =>
-          d.pages.some((p) => p.id === link.pageId),
-        ));
+  const validLink = validLinkTarget(project, link);
   const linkChange = linkChanged
     ? { link: { target: link, actionId: crypto.randomUUID() } }
     : {};

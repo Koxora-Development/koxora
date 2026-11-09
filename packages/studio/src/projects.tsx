@@ -1,3 +1,4 @@
+import { NavigationContext } from './navigation-context';
 import { ProjectTree, type ProjectAction } from './project-tree';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
@@ -6,6 +7,8 @@ import { ProjectTitle, ProjectNameField } from './project-title';
 import { Canvas, type CanvasHandle } from './canvas';
 import {
   activePageId,
+  buildScene,
+  type LinkTarget,
   StudioHistory,
   WorkbookError,
   type WorkbookCommand,
@@ -80,6 +83,11 @@ export function Projects({ locale }: { locale: string }) {
   const [history] = useState(() => new StudioHistory());
   const [loadVersion, setLoadVersion] = useState(0);
   const canvasRef = useRef<CanvasHandle>(null);
+  const [focusTarget, setFocusTarget] = useState<{
+    id: string;
+    nonce: number;
+  } | null>(null);
+  const [missingTarget, setMissingTarget] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const dirty = project !== saved || pendingNavigation,
@@ -191,6 +199,7 @@ export function Projects({ locale }: { locale: string }) {
       );
       if (next === current) return false;
       setProject(next);
+      setFocusTarget(null);
       setPageId(activePageId(next));
       setError(null);
       setPendingNavigation(false);
@@ -202,6 +211,7 @@ export function Projects({ locale }: { locale: string }) {
   }
   function switchPage(documentId: string, id: string) {
     if (navigationLock.current) return;
+    setFocusTarget(null);
     setView('workspace');
     setNavigatorOpen(false);
     const current = snapshot();
@@ -220,6 +230,7 @@ export function Projects({ locale }: { locale: string }) {
         () => crypto.randomUUID(),
         new Date().toISOString(),
       );
+      setFocusTarget(null);
       setProject(next);
       setPageId(activePageId(next));
       setPendingNavigation(false);
@@ -381,6 +392,7 @@ export function Projects({ locale }: { locale: string }) {
     else action();
   }
   function enter(next: Project) {
+    setFocusTarget(null);
     history.clear();
     session.current += 1;
     setLoadVersion(session.current);
@@ -419,6 +431,8 @@ export function Projects({ locale }: { locale: string }) {
   }
   async function preserveAndRun(action: () => Promise<void>): Promise<boolean> {
     if (busy || navigationLock.current) return false;
+    if (document.activeElement instanceof HTMLElement)
+      document.activeElement.blur();
     navigationLock.current = true;
     setNavigationBusy(true);
     setOperation('saving');
@@ -442,8 +456,64 @@ export function Projects({ locale }: { locale: string }) {
       setOperation(null);
     }
   }
+  function followTarget(
+    target: Exclude<LinkTarget, { type: 'url' } | { type: 'page' }>,
+  ) {
+    void preserveAndRun(async () => {
+      const current = snapshot();
+      if (!current) return;
+      const external =
+        target.type === 'project' &&
+        target.projectId !== current.manifest.projectId;
+      let destination: Project;
+      let destinationToken: string | null = token;
+      try {
+        if (external && target.type === 'project') {
+          const result = await repository.open(target.projectId);
+          destination = result.project;
+          destinationToken = result.token;
+        } else destination = current;
+        const id = target.pageId ?? activePageId(destination);
+        const doc = destination.documents.find((d) =>
+          d.pages.some((p) => p.id === id),
+        );
+        const page = doc?.pages.find((p) => p.id === id);
+        if (!doc || !page) throw new ProjectError('missing');
+        if (target.elementId) {
+          const scene = buildScene(page, [
+            ...destination.themes.flatMap((t) => t.styles),
+            ...destination.documents.flatMap((d) => d.styles),
+          ]);
+          if (
+            ![...scene.nodes, ...scene.connections].some(
+              (item) => item.id === target.elementId,
+            )
+          )
+            throw new ProjectError('missing');
+        }
+        if (external) {
+          enter(destination);
+          setSaved(destination);
+          setToken(destinationToken);
+        }
+        setProject(selectPage(destination, doc.id, page.id));
+        setPageId(page.id);
+        setView('workspace');
+        setNavigatorOpen(false);
+        setPendingNavigation(false);
+        setFocusTarget(
+          target.elementId ? { id: target.elementId, nonce: Date.now() } : null,
+        );
+        setNotice(t('links.navigated', { page: page.title }));
+      } catch (error) {
+        setMissingTarget(true);
+        throw error;
+      }
+    });
+  }
   function openFromTree(id: string) {
     if (id === projectRef.current?.manifest.projectId) {
+      setFocusTarget(null);
       setView('workspace');
       return;
     }
@@ -494,6 +564,7 @@ export function Projects({ locale }: { locale: string }) {
           history.clear();
           session.current += 1;
           setLoadVersion(session.current);
+          setFocusTarget(null);
           setProject(null);
           setSaved(null);
           setToken(null);
@@ -636,6 +707,29 @@ export function Projects({ locale }: { locale: string }) {
   );
   return (
     <div className="application-body">
+      {missingTarget && (
+        <Dialog
+          title={t('links.targetMissing')}
+          onCancel={() => setMissingTarget(false)}
+        >
+          <p role="alert">{t('links.locateHelp')}</p>
+          <div className="dialog-actions">
+            <button className="button" onClick={() => setMissingTarget(false)}>
+              {t('project.cancel')}
+            </button>
+            <button
+              className="button primary"
+              onClick={() => {
+                setMissingTarget(false);
+                setError(null);
+                setImporting(true);
+              }}
+            >
+              {t('links.locate')}
+            </button>
+          </div>
+        </Dialog>
+      )}
       <aside className="project-sidebar">
         <div className="sidebar-label">{t('nav.studio')}</div>
         <button
@@ -956,45 +1050,59 @@ export function Projects({ locale }: { locale: string }) {
                   aria-modal={expanded ? true : undefined}
                   aria-label={t('workspace.canvas')}
                 >
-                  <Canvas
-                    expanded={expanded}
-                    onNavigate={() => setNavigatorOpen(true)}
-                    onExpanded={setExpanded}
-                    key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
-                    ref={canvasRef}
-                    project={project}
-                    onFollowPage={(id) => {
-                      const doc = projectRef.current?.documents.find((d) =>
-                        d.pages.some((p) => p.id === id),
-                      );
-                      if (!doc || navigationLock.current) return false;
-                      switchPage(doc.id, id);
-                      setNotice(
-                        t('links.navigated', {
-                          page: doc.pages.find((p) => p.id === id)!.title,
-                        }),
-                      );
-                      requestAnimationFrame(() =>
-                        document
-                          .querySelector<HTMLElement>('.interactive-canvas')
-                          ?.focus(),
-                      );
-                      return true;
+                  <NavigationContext.Provider
+                    value={{
+                      projects: items,
+                      loadProject: async (id) => {
+                        const current = projectRef.current;
+                        return current?.manifest.projectId === id
+                          ? current
+                          : (await repository.open(id)).project;
+                      },
+                      follow: followTarget,
                     }}
-                    page={activePage}
-                    styles={renderStyles}
-                    onEdit={edit}
-                    history={history.status(
-                      project,
-                      activeDocument.id,
-                      activePage.id,
-                    )}
-                    onHistory={travel}
-                    documentTitle={activeDocument.title}
-                    locale={locale}
-                    onCommit={commitCanvas}
-                    onPending={setPendingNavigation}
-                  />
+                  >
+                    <Canvas
+                      expanded={expanded}
+                      onNavigate={() => setNavigatorOpen(true)}
+                      onExpanded={setExpanded}
+                      key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
+                      ref={canvasRef}
+                      project={project}
+                      focusTarget={navigationBusy ? null : focusTarget}
+                      onFollowPage={(id) => {
+                        const doc = projectRef.current?.documents.find((d) =>
+                          d.pages.some((p) => p.id === id),
+                        );
+                        if (!doc || navigationLock.current) return false;
+                        switchPage(doc.id, id);
+                        setNotice(
+                          t('links.navigated', {
+                            page: doc.pages.find((p) => p.id === id)!.title,
+                          }),
+                        );
+                        requestAnimationFrame(() =>
+                          document
+                            .querySelector<HTMLElement>('.interactive-canvas')
+                            ?.focus(),
+                        );
+                        return true;
+                      }}
+                      page={activePage}
+                      styles={renderStyles}
+                      onEdit={edit}
+                      history={history.status(
+                        project,
+                        activeDocument.id,
+                        activePage.id,
+                      )}
+                      onHistory={travel}
+                      documentTitle={activeDocument.title}
+                      locale={locale}
+                      onCommit={commitCanvas}
+                      onPending={setPendingNavigation}
+                    />
+                  </NavigationContext.Provider>
                   {expanded && navigatorOpen && (
                     <Dialog
                       title={t('tree.heading')}

@@ -455,5 +455,18 @@
   "links.opened": "Link an deinen Browser oder dein E-Mail-Programm übergeben. Falls nichts geöffnet wird, prüfe die Browsereinstellungen.",
   "links.failed": "Der Link konnte nicht geöffnet werden. Prüfe die Adresse und deinen Browser oder dein E-Mail-Programm.",
   "shortcuts.keys.followLink": "Alt + Eingabe",
-  "shortcuts.followLink": "Link des ausgewählten Elements öffnen"
+  "shortcuts.followLink": "Link des ausgewählten Elements öffnen",
+  "links.element": "Element in diesem Projekt",
+  "links.project": "Anderes lokales Projekt",
+  "links.targetProject": "Zielprojekt",
+  "links.targetElement": "Zielelement",
+  "links.chooseProject": "Lokales Projekt wählen",
+  "links.chooseElement": "Element wählen",
+  "links.projectHome": "Gespeicherte Projektseite",
+  "links.pageOnly": "Nur Seite (kein Element)",
+  "links.localProjects": "Nur auf diesem Gerät verfügbare Projekte werden angezeigt. Namen dürfen sich ändern; Links verwenden stabile Identitäten.",
+  "links.targetMissing": "Ziel nicht verfügbar",
+  "links.locateHelp": "Das Ziel fehlt, ist ausgeblendet oder nicht lesbar. Importiere das erwartete .koxora-Projekt auf dieses Gerät oder wähle in den Linkeigenschaften ein anderes Ziel. Dateien werden weder automatisch gesucht noch neu verknüpft.",
+  "links.locate": "Durch .koxora-Import suchen …",
+  "links.projectTarget": "Lokales Projekt {project}"
 }

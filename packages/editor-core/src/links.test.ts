@@ -403,3 +403,156 @@ describe('explicit diagram links', () => {
     ).toThrow('layer');
   });
 });
+
+describe('portable project and element destinations', () => {
+  it('round trips stable foreign project/page/element IDs without paths or title coupling', async () => {
+    let project = fixture();
+    const p = project.documents[0].pages[0];
+    const target: LinkTarget = {
+      type: 'project',
+      projectId: id(),
+      pageId: id(),
+      elementId: id(),
+    };
+    for (const item of [p.nodes[0], p.connections[0]])
+      project = setLink(project, item.id, target);
+    project.manifest.title = 'Renamed source';
+    const loaded = await importProject(await exportProject(project));
+    for (const item of [p.nodes[0], p.connections[0]])
+      expect(elementLink(loaded, item.id)).toEqual({ state: 'ready', target });
+    expect(JSON.stringify(loaded.documents)).not.toContain('file://');
+  });
+  it('remaps local element targets inside duplicated pages and retains foreign identities', () => {
+    let project = fixture();
+    const d = project.documents[0],
+      p = d.pages[0];
+    project = setLink(project, p.nodes[0].id, {
+      type: 'element',
+      pageId: p.id,
+      elementId: p.nodes[1].id,
+    });
+    const foreign: LinkTarget = {
+      type: 'project',
+      projectId: id(),
+      pageId: id(),
+      elementId: id(),
+    };
+    project = setLink(project, p.connections[0].id, foreign);
+    const result = applyWorkbook(
+      project,
+      { type: 'duplicatePage', pageId: p.id, title: 'Copy' },
+      id,
+      now,
+    );
+    const copy = result.documents[0].pages.find(
+      (page) => page.title === 'Copy',
+    )!;
+    expect(elementLink(result, copy.nodes[0].id)).toEqual({
+      state: 'ready',
+      target: { type: 'element', pageId: copy.id, elementId: copy.nodes[1].id },
+    });
+    expect(elementLink(result, copy.connections[0].id)).toEqual({
+      state: 'ready',
+      target: foreign,
+    });
+  });
+  it('retains opaque action metadata inertly when converting or removing a legacy link', async () => {
+    let project = fixture();
+    const p = project.documents[0].pages[0],
+      source = p.nodes[0].id;
+    project = setLink(project, source, {
+      type: 'url',
+      url: 'https://example.com/',
+    });
+    const original = project.documents[0].actions[0];
+    original.extensions['future.example'] = { opaque: true };
+    project = setLink(project, source, {
+      type: 'element',
+      pageId: p.id,
+      elementId: p.nodes[1].id,
+    });
+    const loaded = await importProject(await exportProject(project));
+    expect(loaded.documents[0].actions).toHaveLength(0);
+    expect(
+      JSON.stringify(loaded.documents[0].pages[0].nodes[0].extensions),
+    ).toContain('future.example');
+    expect(elementLink(loaded, source).state).toBe('ready');
+    project = setLink(loaded, source, null);
+    expect(elementLink(project, source).state).toBe('none');
+    expect(JSON.stringify(project.documents)).toContain('future.example');
+  });
+  it('rejects arbitrary paths, partial identities and unknown semantics without rewriting them', () => {
+    const project = fixture();
+    const p = project.documents[0].pages[0];
+    expect(() =>
+      setLink(project, p.nodes[0].id, {
+        type: 'project',
+        projectId: '../../private',
+      }),
+    ).toThrow();
+    expect(() =>
+      setLink(project, p.nodes[0].id, {
+        type: 'project',
+        projectId: id(),
+        elementId: id(),
+      }),
+    ).toThrow();
+    p.nodes[0].extensions[LINK_KEY] = {
+      version: 3,
+      type: 'project',
+      projectId: id(),
+      future: { keep: true },
+    };
+    expect(elementLink(project, p.nodes[0].id)).toEqual({
+      state: 'unsupported',
+    });
+    expect(() => setLink(project, p.nodes[0].id, null)).toThrow();
+  });
+  it('preserves missing imported local targets so deletion produces an explicit missing destination', async () => {
+    let project = fixture();
+    const p = project.documents[0].pages[0];
+    const target: LinkTarget = {
+      type: 'element',
+      pageId: p.id,
+      elementId: p.nodes[1].id,
+    };
+    project = setLink(project, p.nodes[0].id, target);
+    project = applyEdit(
+      project,
+      project.documents[0].id,
+      p.id,
+      { type: 'delete', ids: [p.nodes[1].id] },
+      now,
+    );
+    const loaded = await importProject(await exportProject(project));
+    expect(elementLink(loaded, p.nodes[0].id)).toEqual({
+      state: 'ready',
+      target,
+    });
+  });
+  it('undoes and redoes new destinations through the ordinary command history', () => {
+    let project = fixture();
+    const d = project.documents[0],
+      p = d.pages[0],
+      history = new StudioHistory();
+    const target: LinkTarget = {
+      type: 'element',
+      pageId: p.id,
+      elementId: p.nodes[1].id,
+    };
+    project = history.execute(
+      project,
+      d.id,
+      p.id,
+      { type: 'link', id: p.nodes[0].id, link: { target, actionId: id() } },
+      now,
+    );
+    project = history.travel(project, d.id, p.id, 'undo', now);
+    expect(elementLink(project, p.nodes[0].id).state).toBe('none');
+    project = history.travel(project, d.id, p.id, 'redo', now);
+    expect(elementLink(project, p.nodes[0].id)).toEqual({
+      state: 'ready',
+      target,
+    });
+  });
+});
