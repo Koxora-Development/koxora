@@ -62,3 +62,5 @@ Validation on 2026-11-09: `pnpm check` passed (33 files, 510 tests), including 3
 ### Reproducible synthetic review files
 
 After installing the locked development dependencies, run `node scripts/generate-studio-review-pack.mjs`. It creates the ignored `node_modules/.cache/koxora/studio-review-pack/` directory with validated source/destination archives, a missing-target/locate pair, a Unicode/punctuation filename, three full-format storage/asset fixtures, an intentionally invalid archive, instructions and `SHA256SUMS`. The data is synthetic; it contains no accounts, credentials or user filesystem paths. The pack contains no application executable and is not a release. `sha256sum -c SHA256SUMS` verifies the individual files; use the matching PR's unsigned AppImage separately.
+
+The generator requires a fresh empty output directory (an optional command-line directory may be supplied), refuses symlinks/collisions, and exclusively creates its output files. Manifest timestamps are normalized immediately before serialization so two runs from the same commit produce identical file hashes. It does not overwrite a previous pack or unrelated data.
