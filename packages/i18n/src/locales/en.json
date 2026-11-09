@@ -455,5 +455,10 @@
   "links.opened": "Link handed to your browser or mail application. If nothing opens, check your browser settings.",
   "links.failed": "The link could not be opened. Check the address and your browser or mail application.",
   "shortcuts.keys.followLink": "Alt + Enter",
-  "shortcuts.followLink": "Open the selected element’s link"
+  "shortcuts.followLink": "Open the selected element’s link",
+  "opening.failed": "Could not open requested project",
+  "opening.help": "Your current project is retained. For an existing project identity with changed content, retry as a new project. Cancel skips this request and continues the queue. For an invalid or inaccessible file, fix it and open it again.",
+  "opening.retry": "Retry opening",
+  "opening.tooMany": "Too many files were requested. Open at most 32 files at a time, then retry the remaining files.",
+  "opening.drop": "Drop .koxora files here to open them. Current work is saved before switching."
 }

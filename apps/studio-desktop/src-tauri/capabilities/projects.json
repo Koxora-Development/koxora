@@ -8,6 +8,9 @@
     "allow-project-write",
     "allow-project-export",
     "allow-project-read-previous",
-    "allow-open-external-url"
+    "allow-open-external-url",
+    "allow-project-open-next",
+    "allow-project-open-ack",
+    "allow-project-open-choose"
   ]
 }

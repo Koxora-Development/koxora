@@ -51,6 +51,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: cargo fmt --check
         working-directory: apps/studio-desktop/src-tauri
+      - name: Test optional Linux association integration
+        if: runner.os == 'Linux'
+        run: python3 -m unittest discover -s tests/native -v
       - name: Build unsigned native bundle
         run: pnpm --filter @koxora/studio-desktop exec tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci -- --locked
         env:
@@ -59,6 +62,12 @@ jobs:
         working-directory: apps/studio-desktop/src-tauri
       - run: cargo test --locked --target ${{ matrix.target }}
         working-directory: apps/studio-desktop/src-tauri
+      - name: Include optional AppImage integration helper
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir -p apps/studio-desktop/src-tauri/target/${{ matrix.target }}/release/bundle/integration
+          cp apps/studio-desktop/src-tauri/integration/appimage-integration.py apps/studio-desktop/src-tauri/integration/koxora.xml apps/studio-desktop/src-tauri/icons/icon.png apps/studio-desktop/src-tauri/target/${{ matrix.target }}/release/bundle/integration/
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: unsigned-desktop-${{ matrix.target }}
