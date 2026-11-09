@@ -80,6 +80,7 @@ export interface CanvasHandle {
 interface Props {
   project: Project;
   focusTarget?: { id: string; nonce: number } | null;
+  onTargetApplied: () => void;
   onFollowPage: (pageId: string) => boolean;
   onNavigate: () => void;
   expanded: boolean;
@@ -98,6 +99,7 @@ interface Props {
 export function Canvas({
   project,
   focusTarget,
+  onTargetApplied,
   onFollowPage,
   onNavigate,
   expanded,
@@ -1441,9 +1443,10 @@ export function Canvas({
     // Content transactions replace the scene; navigation retains the current scene.
   }, [content, scene, locale, layerId, styles]);
   useEffect(() => {
-    if (focusTarget && !controls.current?.target(focusTarget.id))
-      setFeedback('links.missing');
-  }, [focusTarget]);
+    if (!focusTarget) return;
+    if (!controls.current?.target(focusTarget.id)) setFeedback('links.missing');
+    onTargetApplied();
+  }, [focusTarget, onTargetApplied]);
   useEffect(() => {
     if (!expanded) return;
     const root =

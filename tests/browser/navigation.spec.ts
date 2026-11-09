@@ -134,8 +134,23 @@ test('local element navigation centers/selects, survives history, and clears aft
   page,
 }) => {
   await page.goto('/');
-  const project = fixture('Local elements'),
-    p = project.documents[0].pages[0];
+  let project = fixture('Local elements');
+  const doc = project.documents[0],
+    p = doc.pages[0];
+  project = applyEdit(
+    project,
+    doc.id,
+    p.id,
+    {
+      type: 'link',
+      id: p.nodes[1].id,
+      link: {
+        target: { type: 'project', projectId: randomUUID() },
+        actionId: randomUUID(),
+      },
+    },
+    now,
+  );
   await imported(page, project);
   const dialog = await properties(page, p.nodes[0].id);
   await dialog.getByLabel('Link type', { exact: true }).selectOption('element');
@@ -158,6 +173,40 @@ test('local element navigation centers/selects, survives history, and clears aft
       '{}',
   ) as { x: number; y: number };
   expect(camera.x).toBeGreaterThan(1000);
+  await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  const zoomBefore = (
+    JSON.parse(
+      (await page.locator('.interactive-canvas').getAttribute('data-camera')) ??
+        '{}',
+    ) as { zoom: number }
+  ).zoom;
+  await page.getByRole('button', { name: 'Open link', exact: true }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'Destination unavailable' }),
+  ).toBeVisible();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Cancel', exact: true })
+    .click();
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  const zoomAfter = (
+    JSON.parse(
+      (await page.locator('.interactive-canvas').getAttribute('data-camera')) ??
+        '{}',
+    ) as { zoom: number }
+  ).zoom;
+  expect(zoomAfter).toBe(zoomBefore);
   await expect(page.locator('.save-status')).toHaveText('Saved on this device');
   await page.reload();
   await page.getByRole('button', { name: 'Open project', exact: true }).click();

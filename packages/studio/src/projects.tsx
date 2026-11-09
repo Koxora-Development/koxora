@@ -1070,6 +1070,7 @@ export function Projects({ locale }: { locale: string }) {
                       ref={canvasRef}
                       project={project}
                       focusTarget={navigationBusy ? null : focusTarget}
+                      onTargetApplied={() => setFocusTarget(null)}
                       onFollowPage={(id) => {
                         const doc = projectRef.current?.documents.find((d) =>
                           d.pages.some((p) => p.id === id),
