@@ -82,6 +82,12 @@ async function harness(page: Page, initial: number[] | null) {
               records.set(args.id as string, args.value as string);
               return;
             }
+            if (command === 'project_export') {
+              (
+                window as unknown as { openingTest: { exported?: unknown } }
+              ).openingTest.exported = args.bytes;
+              return '/exports/current.koxora';
+            }
             if (command === 'project_open_next') return queue[0] ?? null;
             if (command === 'project_open_ack') {
               const test = (
@@ -541,4 +547,66 @@ test('an explicit local follow during an in-flight save runs once after the writ
   expect((await parseProject(JSON.parse(raw).current)).manifest.title).toBe(
     'Saved before follow',
   );
+});
+
+test('explicit Save As waits for an in-flight save and exports the saved draft', async ({
+  page,
+}) => {
+  await harness(page, await bytes('Before export'));
+  const title = page.getByRole('textbox', {
+    name: 'Project name',
+    exact: true,
+  });
+  await expect(title).toHaveValue('Before export');
+  await page.evaluate(() => {
+    (
+      window as unknown as { openingTest: { holdWrites: boolean } }
+    ).openingTest.holdWrites = true;
+  });
+  await title.fill('Exported draft');
+  await title.press('Tab');
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          !!(window as unknown as { openingTest: { releaseWrite: unknown } })
+            .openingTest.releaseWrite,
+      ),
+    )
+    .toBe(true);
+  await page.getByRole('button', { name: 'Save as…', exact: true }).click();
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { openingTest: { exported?: unknown } })
+          .openingTest.exported,
+    ),
+  ).toBeUndefined();
+  await page.evaluate(() => {
+    const test = (
+      window as unknown as {
+        openingTest: { holdWrites: boolean; releaseWrite: () => void };
+      }
+    ).openingTest;
+    test.holdWrites = false;
+    test.releaseWrite();
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { openingTest: { exported?: number[] } })
+            .openingTest.exported?.length ?? 0,
+      ),
+    )
+    .toBeGreaterThan(0);
+  const data = await page.evaluate(
+    () =>
+      (window as unknown as { openingTest: { exported: number[] } }).openingTest
+        .exported,
+  );
+  const imported = await (
+    await import('../../packages/project/src/index')
+  ).importProject(new Uint8Array(data));
+  expect(imported.manifest.title).toBe('Exported draft');
 });

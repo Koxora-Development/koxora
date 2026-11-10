@@ -110,6 +110,7 @@ export function Projects({ locale }: { locale: string }) {
   const [history] = useState(() => new StudioHistory());
   const [loadVersion, setLoadVersion] = useState(0);
   const canvasRef = useRef<CanvasHandle>(null);
+  const [queuedExport, setQueuedExport] = useState<string | null>(null);
   const [queuedFollow, setQueuedFollow] = useState<{
     sourceId: string;
     target: Exclude<LinkTarget, { type: 'url' } | { type: 'page' }>;
@@ -705,6 +706,11 @@ export function Projects({ locale }: { locale: string }) {
   });
   async function exportFile() {
     if (!project) return;
+    if (operation === 'saving' && !navigationLock.current) {
+      setQueuedExport(project.manifest.projectId);
+      return;
+    }
+    if (busy || navigationLock.current) return;
     const current = snapshot();
     if (!current) return;
     setOperation('exporting');
@@ -749,6 +755,17 @@ export function Projects({ locale }: { locale: string }) {
       setOperation(null);
     }
   }
+  const resumeExport = useEffectEvent(() => {
+    if (!queuedExport || busy || navigationLock.current || dialogOpen) return;
+    setQueuedExport(null);
+    if (projectRef.current?.manifest.projectId === queuedExport)
+      void exportFile();
+  });
+  useEffect(() => {
+    if (!queuedExport || busy || navigationBusy || dialogOpen) return;
+    const timer = window.setTimeout(() => resumeExport(), 0);
+    return () => window.clearTimeout(timer);
+  }, [queuedExport, busy, navigationBusy, dialogOpen]);
   const actions = (
     <>
       <button
@@ -943,6 +960,7 @@ export function Projects({ locale }: { locale: string }) {
           run={preserveAndRun}
           onChanged={() => {
             setQueuedFollow(null);
+            setQueuedExport(null);
             setFocusTarget(null);
             setMissingTarget(false);
             setNotice(null);
@@ -1245,7 +1263,7 @@ export function Projects({ locale }: { locale: string }) {
                 </button>
                 <button
                   className="button primary"
-                  disabled={busy}
+                  disabled={busy && operation !== 'saving'}
                   onClick={() => void exportFile()}
                 >
                   <Icon name="export" />
