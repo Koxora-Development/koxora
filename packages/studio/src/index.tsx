@@ -1,3 +1,4 @@
+import { StorageGate } from './storage-settings';
 import './phase25.css';
 import { Projects } from './projects';
 import { useEffect, useState } from 'react';
@@ -89,7 +90,12 @@ export function Studio() {
           {t('storage.unavailable')}
         </div>
       )}
-      <Projects locale={preferences.locale} />
+      <StorageGate
+        locale={preferences.locale}
+        onLocale={(locale) => updatePreferences({ ...preferences, locale })}
+      >
+        <Projects locale={preferences.locale} />
+      </StorageGate>
     </div>
   );
 }

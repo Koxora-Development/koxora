@@ -1679,8 +1679,10 @@ dependencies = [
 name = "koxora-desktop"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "open",
  "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

@@ -455,5 +455,19 @@
   "links.opened": "Link an deinen Browser oder dein E-Mail-Programm übergeben. Falls nichts geöffnet wird, prüfe die Browsereinstellungen.",
   "links.failed": "Der Link konnte nicht geöffnet werden. Prüfe die Adresse und deinen Browser oder dein E-Mail-Programm.",
   "shortcuts.keys.followLink": "Alt + Eingabe",
-  "shortcuts.followLink": "Link des ausgewählten Elements öffnen"
+  "shortcuts.followLink": "Link des ausgewählten Elements öffnen",
+  "storage.settings": "Einstellungen · Speicher",
+  "storage.choose": "Übergeordneten Ordner für Projektdaten wählen",
+  "storage.description": "Hier liegen lokale Projekte, Speicherstände und Wiederherstellungsdaten. Die Anwendung und separat exportierte .koxora-Dateien werden nicht verschoben.",
+  "storage.path": "Aktiver Projektdatenordner",
+  "storage.support": "Verwende einen beschreibbaren lokalen Datenträger. Netzwerkfreigaben und synchronisierte Ordner werden nicht unterstützt. Im gewählten Ordner wird projects-v1 angelegt. Schließe ältere Koxora-Versionen vor dem Speicherwechsel.",
+  "storage.space": "Freier Speicherplatz kann hier nicht zuverlässig angezeigt werden. Bei Kopierfehlern bleiben die ursprünglichen Daten aktiv.",
+  "storage.failure": "Speicher konnte nicht geändert oder geöffnet werden. Prüfe Berechtigungen, freien Platz, angeschlossene Datenträger und weitere laufende Instanzen. Eine Migration benötigt ein Ziel ohne projects-v1. Wähle Wiederherstellen für vorhandene Daten. Quelldaten wurden nicht gelöscht.",
+  "storage.progress": "Projektdaten werden kopiert und geprüft. Anwendung geöffnet lassen.",
+  "storage.restore": "Vorhandenen projects-v1-Ordner wiederherstellen statt migrieren (aktuelle Daten bleiben am bisherigen Ort)",
+  "storage.retained": "Der bisherige Speicher bleibt als Sicherung erhalten. Wiederherstellen wechselt den Speicher ausdrücklich, ohne Daten zusammenzuführen oder zu überschreiben.",
+  "storage.open": "Ordner öffnen",
+  "storage.change": "Speicherort ändern …",
+  "storage.keep": "Standard beibehalten und fortfahren",
+  "storage.available": "Vom Dateisystem gemeldeter freier Speicher: {mib} MiB (Diagnose, keine Reservierung)."
 }

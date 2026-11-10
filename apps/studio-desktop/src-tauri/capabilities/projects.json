@@ -8,6 +8,10 @@
     "allow-project-write",
     "allow-project-export",
     "allow-project-read-previous",
-    "allow-open-external-url"
+    "allow-open-external-url",
+    "allow-storage-status",
+    "allow-storage-keep",
+    "allow-storage-open",
+    "allow-storage-change"
   ]
 }

@@ -293,6 +293,8 @@ test('native IPC receives only an explicitly followed URL and reports opener fai
             command: string,
             args: Record<string, unknown> = {},
           ) => {
+            if (command === 'storage_status')
+              return { directory: '/test/projects-v1', firstRun: false };
             if (command === 'project_list') return [...records.keys()];
             if (command === 'project_read')
               return records.get(args.id as string) ?? null;
