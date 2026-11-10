@@ -41,6 +41,16 @@ async function harness(page: Page, initial: number[] | null) {
             command: string,
             args: Record<string, unknown> = {},
           ) => {
+            if (command === 'storage_status')
+              return {
+                directory:
+                  sessionStorage.getItem('location') ?? '/default/projects-v1',
+                firstRun: false,
+              };
+            if (command === 'storage_change') {
+              sessionStorage.setItem('location', '/migrated/projects-v1');
+              return true;
+            }
             if (command === 'project_list') return [...records.keys()];
             if (command === 'project_read')
               return records.get(args.id as string) ?? null;
@@ -246,4 +256,63 @@ test('browser drop validates files, retains work and offers explicit conflict re
   await expect(
     page.getByRole('textbox', { name: 'Project name', exact: true }),
   ).toHaveValue('Dropped');
+});
+
+test('combined storage migration holds warm requests until the dialog closes and preserves the source', async ({
+  page,
+}) => {
+  await harness(page, await bytes('Before migration'));
+  await expect(
+    page.getByRole('textbox', { name: 'Project name', exact: true }),
+  ).toHaveValue('Before migration');
+  await page
+    .getByRole('button', { name: 'Settings · Storage', exact: true })
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Settings · Storage' });
+  await expect(dialog).toContainText('/default/projects-v1');
+  await enqueue(page, await bytes('Queued during migration'));
+  // More than two queue polling intervals: a modal must keep this request pending.
+  await expect
+    .poll(async () => {
+      await page.waitForTimeout(1800);
+      return page.evaluate(
+        () =>
+          (window as unknown as { openingTest: { queue: unknown[] } })
+            .openingTest.queue.length,
+      );
+    })
+    .toBe(1);
+  await expect(
+    page.getByRole('textbox', { name: 'Project name', exact: true }),
+  ).toHaveValue('Before migration');
+  await dialog
+    .getByRole('button', { name: 'Change location…', exact: true })
+    .click();
+  await expect(dialog).toContainText('/migrated/projects-v1');
+  await expect(page.locator('.workspace-header')).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { openingTest: { queue: unknown[] } })
+            .openingTest.queue.length,
+      ),
+    )
+    .toBe(1);
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(
+    page.getByRole('textbox', { name: 'Project name', exact: true }),
+  ).toHaveValue('Queued during migration');
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (
+            window as unknown as {
+              openingTest: { records: Map<string, string> };
+            }
+          ).openingTest.records.size,
+      ),
+    )
+    .toBe(2);
 });

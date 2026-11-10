@@ -74,6 +74,7 @@ export function Projects({ locale }: { locale: string }) {
   const dropRunning = useRef(false);
   const [dropFailed, setDropFailed] = useState(false);
   const [dropCopy, setDropCopy] = useState(false);
+  const [storageModal, setStorageModal] = useState(false);
   const [importing, setImporting] = useState(false),
     [asCopy, setAsCopy] = useState(false);
   const [error, setError] = useState<MessageKey | null>(null),
@@ -631,6 +632,8 @@ export function Projects({ locale }: { locale: string }) {
   useEffect(() => {
     if (
       dropFailed ||
+      missingTarget ||
+      storageModal ||
       !dropped.length ||
       busy ||
       importing ||
@@ -788,7 +791,14 @@ export function Projects({ locale }: { locale: string }) {
           invoke={native.invoke}
           locale={locale}
           error={error}
-          paused={busy || importing || !!confirmation || navigationBusy}
+          paused={
+            busy ||
+            importing ||
+            !!confirmation ||
+            navigationBusy ||
+            storageModal ||
+            missingTarget
+          }
           onError={(code) => {
             setError(
               code === 'tooMany'
@@ -888,8 +898,12 @@ export function Projects({ locale }: { locale: string }) {
         {!expanded && navigation}
         <StorageSettings
           locale={locale}
+          onModalChange={setStorageModal}
           run={preserveAndRun}
           onChanged={() => {
+            setFocusTarget(null);
+            setMissingTarget(false);
+            setNotice(null);
             history.clear();
             session.current += 1;
             setLoadVersion(session.current);

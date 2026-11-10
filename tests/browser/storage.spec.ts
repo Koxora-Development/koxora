@@ -10,6 +10,7 @@ test.beforeEach(async ({ page }) => {
             command: string,
             args: Record<string, unknown> = {},
           ) => {
+            if (command === 'project_open_next') return null;
             if (command === 'storage_status')
               return {
                 directory:

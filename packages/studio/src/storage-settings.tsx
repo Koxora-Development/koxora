@@ -17,12 +17,14 @@ export function StorageSettings({
   run,
   onChanged,
   onLocale,
+  onModalChange,
 }: {
   locale: string;
   initial?: boolean;
   onReady?: () => void;
   onChanged?: () => void;
   onLocale?: (locale: string) => void;
+  onModalChange?: (opened: boolean) => void;
   run?: (action: () => Promise<void>) => Promise<boolean>;
 }) {
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
@@ -32,6 +34,9 @@ export function StorageSettings({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  useEffect(() => {
+    onModalChange?.(opened);
+  }, [opened, onModalChange]);
   useEffect(() => {
     if (!nativeCore) {
       onReady?.();
