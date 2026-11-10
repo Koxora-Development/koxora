@@ -53,3 +53,4 @@ Phase 2.5 adds [workbook navigation and rich text](docs/development/workbook-ric
 Phase 2.6 adds [explicit diagram links](docs/development/interactive-links.md) for review: author URL or same-project page destinations in element properties, then follow with Open link or Alt+Enter. Native project round trips, undo/redo and stable page identities preserve links. Product Owner acceptance remains pending.
 
 Configurable desktop project storage is prepared in [the storage-location guide](docs/development/desktop-storage.md), including migration, retained backups, explicit recovery and CachyOS acceptance. This review work does not authorize a merge or public release.
+[Native project opening](docs/development/native-opening.md) documents `.koxora` cold/warm opening, file associations, the optional per-user AppImage integration helper and the packaged OS acceptance matrix. Review builds are not public releases.

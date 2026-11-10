@@ -469,5 +469,10 @@
   "storage.open": "Ordner öffnen",
   "storage.change": "Speicherort ändern …",
   "storage.keep": "Standard beibehalten und fortfahren",
-  "storage.available": "Vom Dateisystem gemeldeter freier Speicher: {mib} MiB (Diagnose, keine Reservierung)."
+  "storage.available": "Vom Dateisystem gemeldeter freier Speicher: {mib} MiB (Diagnose, keine Reservierung).",
+  "opening.failed": "Angefordertes Projekt konnte nicht geöffnet werden",
+  "opening.help": "Das aktuelle Projekt bleibt erhalten. Bei vorhandener Projektidentität mit geändertem Inhalt als neues Projekt erneut versuchen. Abbrechen überspringt diese Anfrage und fährt mit der Warteschlange fort. Ungültige oder unzugängliche Dateien korrigieren und erneut öffnen.",
+  "opening.retry": "Öffnen erneut versuchen",
+  "opening.tooMany": "Zu viele Dateien angefordert. Höchstens 32 Dateien gleichzeitig öffnen, danach die übrigen Dateien erneut öffnen.",
+  "opening.drop": ".koxora-Dateien zum Öffnen hier ablegen. Aktuelle Arbeit wird vor dem Wechsel gespeichert."
 }

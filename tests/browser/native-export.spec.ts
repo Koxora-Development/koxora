@@ -29,6 +29,7 @@ test.beforeEach(async ({ page }) => {
           ) => {
             if (command === 'storage_status')
               return { directory: '/test/projects-v1', firstRun: false };
+            if (command === 'project_open_next') return null;
             if (command === 'project_list') return [...records.keys()];
             if (command === 'project_read')
               return records.get(args.id as string) ?? null;

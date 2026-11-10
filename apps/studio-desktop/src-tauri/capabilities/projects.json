@@ -12,6 +12,9 @@
     "allow-storage-status",
     "allow-storage-keep",
     "allow-storage-open",
-    "allow-storage-change"
+    "allow-storage-change",
+    "allow-project-open-next",
+    "allow-project-open-ack",
+    "allow-project-open-choose"
   ]
 }

@@ -4,6 +4,7 @@ import {
   createProject,
   exportProject,
   importProject,
+  serializeProject,
   type Project,
 } from '../../packages/project/src/index';
 import {
@@ -283,40 +284,48 @@ test('repairs missing connector destinations and follows links using German cont
 test('native IPC receives only an explicitly followed URL and reports opener failure', async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    const records = new Map<string, string>();
-    Object.assign(window, {
-      nativeLinks: [],
-      __TAURI__: {
-        core: {
-          invoke: async (
-            command: string,
-            args: Record<string, unknown> = {},
-          ) => {
-            if (command === 'storage_status')
-              return { directory: '/test/projects-v1', firstRun: false };
-            if (command === 'project_list') return [...records.keys()];
-            if (command === 'project_read')
-              return records.get(args.id as string) ?? null;
-            if (command === 'project_write') {
-              records.set(args.id as string, args.value as string);
-              return;
-            }
-            if (command === 'open_external_url') {
-              (
-                window as unknown as { nativeLinks: unknown[] }
-              ).nativeLinks.push(args.url);
-              throw new Error('openUrl');
-            }
-            throw new Error(command);
-          },
-        },
-      },
-    });
-  });
   const project = fixture(),
     node = project.documents[0].pages[0].nodes[0];
-  await open(page, project);
+  const raw = await serializeProject(project);
+  await page.addInitScript(
+    ({ id, raw }) => {
+      const records = new Map<string, string>([
+        [id, JSON.stringify({ current: raw, previous: null })],
+      ]);
+      Object.assign(window, {
+        nativeLinks: [],
+        __TAURI__: {
+          core: {
+            invoke: async (
+              command: string,
+              args: Record<string, unknown> = {},
+            ) => {
+              if (command === 'storage_status')
+                return { directory: '/test/projects-v1', firstRun: false };
+              if (command === 'project_open_next') return null;
+              if (command === 'project_list') return [...records.keys()];
+              if (command === 'project_read')
+                return records.get(args.id as string) ?? null;
+              if (command === 'project_write') {
+                records.set(args.id as string, args.value as string);
+                return;
+              }
+              if (command === 'open_external_url') {
+                (
+                  window as unknown as { nativeLinks: unknown[] }
+                ).nativeLinks.push(args.url);
+                throw new Error('openUrl');
+              }
+              throw new Error(command);
+            },
+          },
+        },
+      });
+    },
+    { id: project.manifest.projectId, raw },
+  );
+  await page.goto('/');
+  await button(page, 'Open project').click();
   const dialog = await properties(page, node.id);
   await dialog.getByLabel('Link type', { exact: true }).selectOption('url');
   await dialog

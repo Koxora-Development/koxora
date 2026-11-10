@@ -1,4 +1,5 @@
 import { StorageSettings } from './storage-settings';
+import { NativeOpen } from './native-open';
 import { ProjectTree, type ProjectAction } from './project-tree';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
@@ -66,6 +67,10 @@ export function Projects({ locale }: { locale: string }) {
     [operation, setOperation] = useState<Operation | null>('loading');
   const [view, setView] = useState<'dashboard' | 'workspace'>('dashboard'),
     [pageId, setPageId] = useState<string | null>(null);
+  const [dropped, setDropped] = useState<File[]>([]);
+  const dropRunning = useRef(false);
+  const [dropFailed, setDropFailed] = useState(false);
+  const [dropCopy, setDropCopy] = useState(false);
   const [importing, setImporting] = useState(false),
     [asCopy, setAsCopy] = useState(false);
   const [error, setError] = useState<MessageKey | null>(null),
@@ -420,6 +425,9 @@ export function Projects({ locale }: { locale: string }) {
   }
   async function preserveAndRun(action: () => Promise<void>): Promise<boolean> {
     if (busy || navigationLock.current) return false;
+    // Flush focused field/text drafts before freezing mutations for navigation.
+    if (document.activeElement instanceof HTMLElement)
+      document.activeElement.blur();
     navigationLock.current = true;
     setNavigationBusy(true);
     setOperation('saving');
@@ -507,28 +515,81 @@ export function Projects({ locale }: { locale: string }) {
       }
     });
   }
+  async function importBytes(bytes: Uint8Array, copy: boolean, reopen = false) {
+    const imported = await importProject(bytes);
+    if (copy) imported.manifest.projectId = crypto.randomUUID();
+    if (reopen && !copy) {
+      // Reopening the same unmodified portable file is idempotent. A changed
+      // archive with an existing ID must still require explicit import-as-copy.
+      try {
+        const stored = await repository.open(imported.manifest.projectId);
+        const original = await exportProject(stored.project);
+        const incoming = await exportProject(imported);
+        if (
+          original.length === incoming.length &&
+          original.every((b, i) => b === incoming[i])
+        ) {
+          enter(stored.project);
+          setSaved(stored.project);
+          setToken(stored.token);
+          return;
+        }
+      } catch (error) {
+        if (!(error instanceof ProjectError && error.code === 'missing'))
+          throw error;
+      }
+    }
+    const next = await repository.save(imported, null);
+    setImporting(false);
+    enter(imported);
+    setSaved(imported);
+    setToken(next);
+    await refresh();
+  }
   async function importFile(file: File | undefined) {
     if (!file) return;
     setOperation('importing');
     setError(null);
     try {
       if (file.size > MAX_BYTES) throw new ProjectError('tooLarge');
-      const imported = await importProject(
-        new Uint8Array(await file.arrayBuffer()),
-      );
-      if (asCopy) imported.manifest.projectId = crypto.randomUUID();
-      const next = await repository.save(imported, null);
-      setImporting(false);
-      enter(imported);
-      setSaved(imported);
-      setToken(next);
-      await refresh();
+      await importBytes(new Uint8Array(await file.arrayBuffer()), asCopy);
     } catch (error) {
       report(error);
     } finally {
       setOperation(null);
     }
   }
+  useEffect(() => {
+    if (
+      dropFailed ||
+      !dropped.length ||
+      busy ||
+      importing ||
+      confirmation ||
+      dropRunning.current ||
+      native
+    )
+      return;
+    dropRunning.current = true;
+    const file = dropped[0];
+    void preserveAndRun(async () => {
+      if (file.size > MAX_BYTES) throw new ProjectError('tooLarge');
+      await importBytes(
+        new Uint8Array(await file.arrayBuffer()),
+        dropCopy,
+        true,
+      );
+    })
+      .then((ok) => {
+        if (ok) {
+          setDropped((current) => current.slice(1));
+          setDropCopy(false);
+        } else setDropFailed(true);
+      })
+      .finally(() => {
+        dropRunning.current = false;
+      });
+  });
   async function exportFile() {
     if (!project) return;
     const current = snapshot();
@@ -636,7 +697,87 @@ export function Projects({ locale }: { locale: string }) {
     />
   );
   return (
-    <div className="application-body">
+    <div
+      className="application-body"
+      onDragOver={(event) => {
+        if (!native && event.dataTransfer.types.includes('Files'))
+          event.preventDefault();
+      }}
+      onDrop={(event) => {
+        if (native || !event.dataTransfer.files.length) return;
+        event.preventDefault();
+        const files = Array.from(event.dataTransfer.files);
+        if (dropped.length + files.length > 32) {
+          setError('opening.tooMany');
+          return;
+        }
+        setDropped((current) => [...current, ...files]);
+      }}
+    >
+      {native && (
+        <NativeOpen
+          invoke={native.invoke}
+          locale={locale}
+          error={error}
+          paused={busy || importing || !!confirmation || navigationBusy}
+          onError={(code) => {
+            setError(
+              code === 'tooMany'
+                ? 'opening.tooMany'
+                : code === 'tooLarge'
+                  ? 'project.error.tooLarge'
+                  : code === 'invalid'
+                    ? 'project.error.invalid'
+                    : 'project.error.storage',
+            );
+          }}
+          onOpen={(bytes, copy) =>
+            preserveAndRun(async () => {
+              await importBytes(bytes, copy, true);
+            })
+          }
+        />
+      )}
+      {dropFailed && (
+        <Dialog
+          title={t('opening.failed')}
+          onCancel={() => {
+            setDropped((current) => current.slice(1));
+            setDropFailed(false);
+            setDropCopy(false);
+          }}
+        >
+          <p>{dropped[0]?.name}</p>
+          {error && <p role="alert">{t(error)}</p>}
+          <p>{t('opening.help')}</p>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={dropCopy}
+              onChange={(event) => setDropCopy(event.target.checked)}
+            />
+            {t('project.asCopy')}
+          </label>
+          <div className="dialog-actions">
+            <button
+              className="button"
+              onClick={() => {
+                setDropped((current) => current.slice(1));
+                setDropFailed(false);
+                setDropCopy(false);
+              }}
+            >
+              {t('project.cancel')}
+            </button>
+            <button
+              className="button primary"
+              onClick={() => setDropFailed(false)}
+            >
+              {t('opening.retry')}
+            </button>
+          </div>
+        </Dialog>
+      )}
       <aside className="project-sidebar">
         <div className="sidebar-label">{t('nav.studio')}</div>
         <button
@@ -715,21 +856,42 @@ export function Projects({ locale }: { locale: string }) {
           >
             <p>{t('import.description')}</p>
             {errorMessage}
-            <label className="import-drop">
-              <Icon name="import" />
-              <strong>{t('import.choose')}</strong>
-              <input
-                type="file"
-                accept=".koxora"
-                aria-label={t('project.import')}
+            {native ? (
+              <button
+                className="button primary"
                 disabled={busy}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  void importFile(file);
+                onClick={() => {
+                  setImporting(false);
+                  setOperation('opening');
+                  void native
+                    .invoke('project_open_choose', {
+                      title: t('project.import'),
+                      filter: t('export.fileType'),
+                      asCopy,
+                    })
+                    .catch(report)
+                    .finally(() => setOperation(null));
                 }}
-              />
-            </label>
+              >
+                {t('import.choose')}
+              </button>
+            ) : (
+              <label className="import-drop">
+                <Icon name="import" />
+                <strong>{t('import.choose')}</strong>
+                <input
+                  type="file"
+                  accept=".koxora"
+                  aria-label={t('project.import')}
+                  disabled={busy}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    void importFile(file);
+                  }}
+                />
+              </label>
+            )}
             <label className="checkbox-label">
               <input
                 type="checkbox"
@@ -894,6 +1056,7 @@ export function Projects({ locale }: { locale: string }) {
                 </ul>
               )}
             </section>
+            {!native && <p className="field-help">{t('opening.drop')}</p>}
             <div className="dashboard-footnote">
               <Icon name="shield" />
               <p>{t('project.backup')}</p>
@@ -912,6 +1075,7 @@ export function Projects({ locale }: { locale: string }) {
                   heading="h1"
                   titleRef={titleRef}
                 />
+                {!native && <p className="field-help">{t('opening.drop')}</p>}
                 <p
                   className={`save-status ${dirty ? 'pending' : ''}`}
                   aria-live="polite"

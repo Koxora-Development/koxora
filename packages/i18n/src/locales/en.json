@@ -469,5 +469,10 @@
   "storage.open": "Open folder",
   "storage.change": "Change location…",
   "storage.keep": "Keep default and continue",
-  "storage.available": "Available space reported by filesystem: {mib} MiB (diagnostic, not a reservation)."
+  "storage.available": "Available space reported by filesystem: {mib} MiB (diagnostic, not a reservation).",
+  "opening.failed": "Could not open requested project",
+  "opening.help": "Your current project is retained. For an existing project identity with changed content, retry as a new project. Cancel skips this request and continues the queue. For an invalid or inaccessible file, fix it and open it again.",
+  "opening.retry": "Retry opening",
+  "opening.tooMany": "Too many files were requested. Open at most 32 files at a time, then retry the remaining files.",
+  "opening.drop": "Drop .koxora files here to open them. Current work is saved before switching."
 }
