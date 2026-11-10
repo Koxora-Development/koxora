@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { applyEdit, elementLink } from '../../packages/editor-core/src/index';
 test.setTimeout(60000);
 import {
   createProject,
@@ -315,4 +316,76 @@ test('combined storage migration holds warm requests until the dialog closes and
       ),
     )
     .toBe(2);
+});
+
+test('warm requests wait for unapplied element link drafts without losing their values', async ({
+  page,
+}) => {
+  let source = createProject(
+    'Link draft source',
+    randomUUID,
+    '2026-11-10T00:00:00.000Z',
+  );
+  const doc = source.documents[0],
+    target = doc.pages[0],
+    id = randomUUID();
+  source = applyEdit(
+    source,
+    doc.id,
+    target.id,
+    {
+      type: 'insert',
+      id,
+      kind: 'rectangle',
+      position: { x: 0, y: 0 },
+      layerId: target.layers[0].id,
+      text: 'Source',
+    },
+    '2026-11-10T00:00:00.000Z',
+  );
+  await harness(page, Array.from(await exportProject(source)));
+  await expect(
+    page.getByRole('textbox', { name: 'Project name', exact: true }),
+  ).toHaveValue('Link draft source');
+  const picker = page.getByLabel('Diagram element', { exact: true });
+  if (!(await picker.isVisible()))
+    await page.getByRole('button', { name: 'Objects', exact: true }).click();
+  await picker.selectOption(id);
+  const dialog = page.getByRole('dialog', { name: 'Element properties' });
+  await dialog.getByLabel('Link type', { exact: true }).selectOption('url');
+  await dialog
+    .getByLabel('URL address', { exact: true })
+    .fill('https://example.org/pending-draft');
+  await enqueue(page, await bytes('After link dialog'));
+  await page.waitForTimeout(1800);
+  await expect(dialog.getByLabel('URL address', { exact: true })).toHaveValue(
+    'https://example.org/pending-draft',
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { openingTest: { queue: unknown[] } })
+            .openingTest.queue.length,
+      ),
+    )
+    .toBe(1);
+  await dialog
+    .getByRole('button', { name: 'Apply changes', exact: true })
+    .click();
+  await expect(
+    page.getByRole('textbox', { name: 'Project name', exact: true }),
+  ).toHaveValue('After link dialog');
+  const stored = await page.evaluate(
+    (id) =>
+      (
+        window as unknown as { openingTest: { records: Map<string, string> } }
+      ).openingTest.records.get(id)!,
+    source.manifest.projectId,
+  );
+  const saved = await parseProject(JSON.parse(stored).current);
+  expect(elementLink(saved, id)).toMatchObject({
+    state: 'ready',
+    target: { type: 'url', url: 'https://example.org/pending-draft' },
+  });
 });

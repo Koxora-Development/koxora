@@ -10,7 +10,7 @@ Based on `main` at `f6a1b2dabd4fc6edbfb6d90d55dcc9f9af5687f3`:
 2. Opening PR #53: `fd124b3f4cb008676581080ef0cd12e77fff2d4f`.
 3. Navigation PR #54: `45097181bc0d3ea86c07e171661f360a58939e68`.
 
-Original branches and PRs remain untouched. The local integration commits combine their source; no GitHub PR is merged. Native custom-command manifests, dependencies, bootstrap, queue and translations retain all three contracts. Opening requests wait during storage and missing-target dialogs; migration clears stale focus/history/session state. A combined IPC regression checks a warm request queued through a storage change. Browser IPC mocks cover contracts, not actual filesystem copying or OS association.
+Original branches and PRs remain untouched. The local integration commits combine their source; no GitHub PR is merged. Native custom-command manifests, dependencies, bootstrap, queue and translations retain all three contracts. Opening requests wait during all native HTML dialogs, including storage, missing-target and unapplied element-editing dialogs; migration clears stale focus/history/session state. Combined IPC regressions check warm requests queued through a storage change and an unapplied link draft. Link controls explicitly disable while repository operations are busy, preventing autosave from silently dropping a follow click. Browser IPC mocks cover contracts, not actual filesystem copying or OS association.
 
 ## One-profile acceptance on CachyOS
 

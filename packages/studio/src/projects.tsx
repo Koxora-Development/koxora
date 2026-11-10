@@ -75,6 +75,20 @@ export function Projects({ locale }: { locale: string }) {
   const [dropFailed, setDropFailed] = useState(false);
   const [dropCopy, setDropCopy] = useState(false);
   const [storageModal, setStorageModal] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  useEffect(() => {
+    const update = () =>
+      setDialogOpen(!!document.querySelector('dialog[open]'));
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['open'],
+    });
+    update();
+    return () => observer.disconnect();
+  }, []);
   const [importing, setImporting] = useState(false),
     [asCopy, setAsCopy] = useState(false);
   const [error, setError] = useState<MessageKey | null>(null),
@@ -632,6 +646,7 @@ export function Projects({ locale }: { locale: string }) {
   useEffect(() => {
     if (
       dropFailed ||
+      dialogOpen ||
       missingTarget ||
       storageModal ||
       !dropped.length ||
@@ -1246,6 +1261,7 @@ export function Projects({ locale }: { locale: string }) {
                   <NavigationContext.Provider
                     value={{
                       projects: items,
+                      busy,
                       loadProject: async (id) => {
                         const current = projectRef.current;
                         return current?.manifest.projectId === id

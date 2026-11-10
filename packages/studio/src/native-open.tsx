@@ -39,11 +39,20 @@ export function NativeOpen({
     let failedPoll = false;
     async function poll() {
       try {
-        if (!state.current.paused && !occupied.current) {
+        if (
+          !state.current.paused &&
+          !occupied.current &&
+          !document.querySelector('dialog[open]')
+        ) {
           occupied.current = true;
           const request = await invoke<Request | null>('project_open_next');
           failedPoll = false;
-          if (request && active && !state.current.paused) {
+          if (
+            request &&
+            active &&
+            !state.current.paused &&
+            !document.querySelector('dialog[open]')
+          ) {
             const ok =
               completed.current === request.id ||
               (request.error

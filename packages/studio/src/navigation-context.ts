@@ -4,6 +4,7 @@ import type { ProjectSummary } from '@koxora/persistence';
 import type { LinkTarget } from '@koxora/editor-core';
 export const NavigationContext = createContext<{
   projects: ProjectSummary[];
+  busy: boolean;
   loadProject: (id: string) => Promise<Project>;
   follow: (
     target: Exclude<LinkTarget, { type: 'url' } | { type: 'page' }>,

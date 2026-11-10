@@ -416,6 +416,7 @@ export function Canvas({
   }, [links, project.documents, locale, navigation?.projects]);
   const linkDescription = (id: string) => descriptions.get(id) ?? '';
   function followLink(id: string) {
+    if (navigation?.busy) return;
     if (
       ![...scene.nodes, ...scene.connections].some(
         (item) => item.id === id && item.editable,
@@ -1655,7 +1656,9 @@ export function Canvas({
             className="button compact"
             title={linkDescription(selected[0])}
             disabled={
-              selectedLink.state !== 'ready' || editableSelection.length !== 1
+              navigation?.busy ||
+              selectedLink.state !== 'ready' ||
+              editableSelection.length !== 1
             }
             onClick={() => command('followLink')}
           >
@@ -1984,7 +1987,9 @@ export function Canvas({
             <button
               role="menuitem"
               disabled={
-                selectedLink.state !== 'ready' || editableSelection.length !== 1
+                navigation?.busy ||
+                selectedLink.state !== 'ready' ||
+                editableSelection.length !== 1
               }
               title={linkDescription(selected[0])}
               onClick={() => command('followLink')}
