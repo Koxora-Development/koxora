@@ -1660,6 +1660,7 @@ export function Canvas({
               selectedLink.state !== 'ready' ||
               editableSelection.length !== 1
             }
+            onMouseDown={(event) => event.preventDefault()}
             onClick={() => command('followLink')}
           >
             {t('links.open')}
@@ -1992,6 +1993,7 @@ export function Canvas({
                 editableSelection.length !== 1
               }
               title={linkDescription(selected[0])}
+              onMouseDown={(event) => event.preventDefault()}
               onClick={() => command('followLink')}
             >
               {t('links.open')}
