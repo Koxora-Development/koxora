@@ -35,7 +35,15 @@ async function harness(page: Page, initial: number[] | null) {
       });
     if (initial) enqueue(initial);
     Object.assign(window, {
-      openingTest: { enqueue, records, queue, picker: initial, ackFailures: 0 },
+      openingTest: {
+        enqueue,
+        records,
+        queue,
+        picker: initial,
+        ackFailures: 0,
+        holdWrites: false,
+        releaseWrite: null,
+      },
       __TAURI__: {
         core: {
           invoke: async (
@@ -56,6 +64,18 @@ async function harness(page: Page, initial: number[] | null) {
             if (command === 'project_read')
               return records.get(args.id as string) ?? null;
             if (command === 'project_write') {
+              const test = (
+                window as unknown as {
+                  openingTest: {
+                    holdWrites: boolean;
+                    releaseWrite: (() => void) | null;
+                  };
+                }
+              ).openingTest;
+              if (test.holdWrites)
+                await new Promise<void>((resolve) => {
+                  test.releaseWrite = resolve;
+                });
               if ((records.get(args.id as string) ?? null) !== args.expected)
                 throw 'conflict';
               records.set(args.id as string, args.value as string);
@@ -370,9 +390,35 @@ test('warm requests wait for unapplied element link drafts without losing their 
       ),
     )
     .toBe(1);
+  await page.evaluate(() => {
+    (
+      window as unknown as { openingTest: { holdWrites: boolean } }
+    ).openingTest.holdWrites = true;
+  });
   await dialog
     .getByRole('button', { name: 'Apply changes', exact: true })
     .click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          !!(window as unknown as { openingTest: { releaseWrite: unknown } })
+            .openingTest.releaseWrite,
+      ),
+    )
+    .toBe(true);
+  await expect(
+    page.getByRole('button', { name: 'Open link', exact: true }),
+  ).toBeDisabled();
+  await page.evaluate(() => {
+    const test = (
+      window as unknown as {
+        openingTest: { holdWrites: boolean; releaseWrite: () => void };
+      }
+    ).openingTest;
+    test.holdWrites = false;
+    test.releaseWrite();
+  });
   await expect(
     page.getByRole('textbox', { name: 'Project name', exact: true }),
   ).toHaveValue('After link dialog');
