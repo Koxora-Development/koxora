@@ -183,3 +183,84 @@ test('native settings explicitly register Open With and expose restore mode in E
     'Deine Standard-App bleibt unverändert',
   );
 });
+
+test('integration status failures stay visible and a missing AppImage can still be unregistered', async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    Object.assign(window, {
+      compactStatusFails: true,
+      __TAURI__: {
+        core: {
+          invoke: async (
+            command: string,
+            args: Record<string, unknown> = {},
+          ) => {
+            if (command === 'storage_status')
+              return { directory: '/test/projects-v1', firstRun: false };
+            if (command === 'project_list') return [];
+            if (command === 'project_open_next') return null;
+            if (command === 'appimage_integration') {
+              if (
+                (window as unknown as { compactStatusFails: boolean })
+                  .compactStatusFails
+              )
+                throw 'integrationFailed';
+              return {
+                available: true,
+                canRegister: false,
+                registered: false,
+                path: '/moved/Koxora.AppImage',
+                refreshNeeded: args.action === 'remove',
+              };
+            }
+            throw command;
+          },
+        },
+      },
+    }),
+  );
+  await page.goto('/');
+  await page
+    .getByRole('button', { name: 'Settings · Storage', exact: true })
+    .click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('alert')).toContainText(
+    'Integration could not be completed',
+  );
+  await page.evaluate(() => {
+    (window as unknown as { compactStatusFails: boolean }).compactStatusFails =
+      false;
+  });
+  await dialog
+    .getByRole('button', { name: 'Check integration again', exact: true })
+    .click();
+  await expect(dialog).toContainText('This AppImage was moved');
+  await expect(
+    dialog.getByRole('button', { name: 'Set up Open With', exact: true }),
+  ).toBeDisabled();
+  await dialog
+    .getByRole('button', { name: 'Remove integration', exact: true })
+    .click();
+  await expect(dialog).toContainText('Desktop caches may need refreshing');
+});
+
+test('zoom-sized viewport keeps the last property field clear of actions', async ({
+  page,
+}) => {
+  const { dialog } = await properties(page);
+  await page.setViewportSize({ width: 640, height: 450 });
+  await dialog.getByText('Geometry and appearance', { exact: true }).click();
+  const last = dialog.locator('.element-fields input').last();
+  await last.focus();
+  const field = await last.boundingBox();
+  const footer = await dialog.locator('.dialog-actions').boundingBox();
+  expect(field!.y + field!.height).toBeLessThanOrEqual(footer!.y + 1);
+  expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+    true,
+  );
+  await dialog
+    .getByRole('button', { name: 'Apply changes', exact: true })
+    .click();
+  await expect(dialog).toHaveCount(0);
+});
