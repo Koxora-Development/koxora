@@ -474,5 +474,18 @@
   "opening.help": "Your current project is retained. For an existing project identity with changed content, retry as a new project. Cancel skips this request and continues the queue. For an invalid or inaccessible file, fix it and open it again.",
   "opening.retry": "Retry opening",
   "opening.tooMany": "Too many files were requested. Open at most 32 files at a time, then retry the remaining files.",
-  "opening.drop": "Drop .koxora files here to open them. Current work is saved before switching."
+  "opening.drop": "Drop .koxora files here to open them. Current work is saved before switching.",
+  "links.element": "Element in this project",
+  "links.project": "Another local project",
+  "links.targetProject": "Destination project",
+  "links.targetElement": "Destination element",
+  "links.chooseProject": "Choose a local project",
+  "links.chooseElement": "Choose an element",
+  "links.projectHome": "Project’s saved page",
+  "links.pageOnly": "Page only (no element)",
+  "links.localProjects": "Only projects already available on this device are listed. Names may change; links use stable identities.",
+  "links.targetMissing": "Destination unavailable",
+  "links.locateHelp": "The destination is missing, hidden or unreadable. Import the expected .koxora project onto this device, or edit the source link to choose a replacement. No files are searched or relinked automatically.",
+  "links.locate": "Locate by importing .koxora…",
+  "links.projectTarget": "Local project {project}"
 }

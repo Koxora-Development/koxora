@@ -48,6 +48,7 @@ export class SvgRenderer {
       arrow: boolean;
     } | null = null,
     linkTitles: ReadonlyMap<string, string> = new Map(),
+    highlighted: string | null = null,
   ): boolean {
     const { camera, grid } = state;
     const step = gridStep(grid.spacing, camera.zoom) * camera.zoom;
@@ -125,6 +126,26 @@ export class SvgRenderer {
       cursor = element.nextElementSibling;
     }
     this.overlay.replaceChildren();
+    const target = [...scene.nodes, ...scene.connections].find(
+      (item) => item.id === highlighted,
+    );
+    if (target) {
+      const b = target.bounds,
+        margin = 7 / camera.zoom;
+      this.overlay.append(
+        svg('rect', {
+          x: b.x - margin,
+          y: b.y - margin,
+          width: b.width + 2 * margin,
+          height: b.height + 2 * margin,
+          fill: 'none',
+          stroke: 'var(--accent)',
+          'stroke-width': 3 / camera.zoom,
+          'pointer-events': 'none',
+          'data-navigation-highlight': target.id,
+        }),
+      );
+    }
     if (connectionPreview) {
       const { start, end, arrow } = connectionPreview;
       this.overlay.append(

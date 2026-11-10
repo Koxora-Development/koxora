@@ -1,9 +1,11 @@
+import { NavigationContext } from './navigation-context';
 import { openExternalLink } from './external-links';
 import { ContextMenu } from './context-menu';
 import { menuAnchor, type MenuAnchor } from './menu-anchor';
 import { InlineText } from './inline-text';
 import { FormatSelection } from './format-selection';
 import {
+  useContext,
   useEffect,
   useMemo,
   useId,
@@ -77,6 +79,8 @@ export interface CanvasHandle {
 }
 interface Props {
   project: Project;
+  focusTarget?: { id: string; nonce: number } | null;
+  onTargetApplied: () => void;
   onFollowPage: (pageId: string) => boolean;
   onNavigate: () => void;
   expanded: boolean;
@@ -94,6 +98,8 @@ interface Props {
 }
 export function Canvas({
   project,
+  focusTarget,
+  onTargetApplied,
   onFollowPage,
   onNavigate,
   expanded,
@@ -109,11 +115,14 @@ export function Canvas({
   onPending,
   ref,
 }: Props) {
+  const navigation = useContext(NavigationContext);
+  const highlighted = useRef<string | null>(null);
   const t = (key: MessageKey) => translate(locale, key);
   const [initial] = useState(() => readCanvas(page));
   const state = useRef<CanvasState>(initial);
   const [grid, setGrid] = useState(initial.grid);
   const controls = useRef<{
+    target: (id: string) => boolean;
     camera: (action: 'in' | 'out' | 'reset' | 'fit') => void;
     settings: () => void;
     refresh: () => void;
@@ -132,6 +141,7 @@ export function Canvas({
   const [formatting, setFormatting] = useState<string[] | null>(null);
   const [objects, setObjects] = useState(false);
   function select(ids: string[]) {
+    if (!ids.includes(highlighted.current ?? '')) highlighted.current = null;
     selection.current = ids;
     setSelectedState(ids);
     controls.current?.refresh();
@@ -384,6 +394,15 @@ export function Canvas({
             description = translate(locale, 'links.externalTarget', {
               url: link.target.url,
             });
+          else if (link.target.type === 'project')
+            description = translate(locale, 'links.projectTarget', {
+              project:
+                navigation?.projects.find(
+                  (p) =>
+                    link.target.type === 'project' &&
+                    p.id === link.target.projectId,
+                )?.title ?? link.target.projectId,
+            });
           else {
             const name = names.get(link.target.pageId);
             description = name
@@ -394,7 +413,7 @@ export function Canvas({
         return [id, description];
       }),
     );
-  }, [links, project.documents, locale]);
+  }, [links, project.documents, locale, navigation?.projects]);
   const linkDescription = (id: string) => descriptions.get(id) ?? '';
   function followLink(id: string) {
     if (
@@ -410,11 +429,11 @@ export function Canvas({
     }
     if (link.target.type === 'page') {
       if (!onFollowPage(link.target.pageId)) setFeedback('links.missing');
-    } else {
+    } else if (link.target.type === 'url') {
       void openExternalLink(link.target.url)
         .then(() => setFeedback('links.opened'))
         .catch(() => setFeedback('links.failed'));
-    }
+    } else navigation?.follow(link.target);
   }
   const linkTitles = useRef<ReadonlyMap<string, string>>(new Map());
   useEffect(() => {
@@ -647,6 +666,7 @@ export function Canvas({
         sourceRef.current ? active.candidates : [],
         linkPreview,
         linkTitles.current,
+        highlighted.current,
       );
       if (nextLimited !== lastLimited) {
         lastLimited = nextLimited;
@@ -690,6 +710,31 @@ export function Canvas({
         ),
       );
     controls.current = {
+      target(id) {
+        const item = [...scene.nodes, ...scene.connections].find(
+          (item) => item.id === id,
+        );
+        if (!item) return false;
+        interaction.current.select(item.editable ? [id] : []);
+        highlighted.current = id;
+        const b = item.bounds;
+        change(
+          fitBounds(
+            {
+              x: b.x - 60,
+              y: b.y - 60,
+              width: Math.max(1, b.width) + 120,
+              height: Math.max(1, b.height) + 120,
+            },
+            size,
+          ),
+        );
+        commit();
+        element.setAttribute('data-navigation-target', id);
+        element.focus({ preventScroll: true });
+        schedule();
+        return true;
+      },
       refresh: schedule,
       preview(geometries) {
         preview = geometries
@@ -1397,6 +1442,11 @@ export function Canvas({
     };
     // Content transactions replace the scene; navigation retains the current scene.
   }, [content, scene, locale, layerId, styles]);
+  useEffect(() => {
+    if (!focusTarget) return;
+    if (!controls.current?.target(focusTarget.id)) setFeedback('links.missing');
+    onTargetApplied();
+  }, [focusTarget, onTargetApplied]);
   useEffect(() => {
     if (!expanded) return;
     const root =

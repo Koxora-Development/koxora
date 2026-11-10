@@ -474,5 +474,18 @@
   "opening.help": "Das aktuelle Projekt bleibt erhalten. Bei vorhandener Projektidentität mit geändertem Inhalt als neues Projekt erneut versuchen. Abbrechen überspringt diese Anfrage und fährt mit der Warteschlange fort. Ungültige oder unzugängliche Dateien korrigieren und erneut öffnen.",
   "opening.retry": "Öffnen erneut versuchen",
   "opening.tooMany": "Zu viele Dateien angefordert. Höchstens 32 Dateien gleichzeitig öffnen, danach die übrigen Dateien erneut öffnen.",
-  "opening.drop": ".koxora-Dateien zum Öffnen hier ablegen. Aktuelle Arbeit wird vor dem Wechsel gespeichert."
+  "opening.drop": ".koxora-Dateien zum Öffnen hier ablegen. Aktuelle Arbeit wird vor dem Wechsel gespeichert.",
+  "links.element": "Element in diesem Projekt",
+  "links.project": "Anderes lokales Projekt",
+  "links.targetProject": "Zielprojekt",
+  "links.targetElement": "Zielelement",
+  "links.chooseProject": "Lokales Projekt wählen",
+  "links.chooseElement": "Element wählen",
+  "links.projectHome": "Gespeicherte Projektseite",
+  "links.pageOnly": "Nur Seite (kein Element)",
+  "links.localProjects": "Nur auf diesem Gerät verfügbare Projekte werden angezeigt. Namen dürfen sich ändern; Links verwenden stabile Identitäten.",
+  "links.targetMissing": "Ziel nicht verfügbar",
+  "links.locateHelp": "Das Ziel fehlt, ist ausgeblendet oder nicht lesbar. Importiere das erwartete .koxora-Projekt auf dieses Gerät oder wähle in den Linkeigenschaften ein anderes Ziel. Dateien werden weder automatisch gesucht noch neu verknüpft.",
+  "links.locate": "Durch .koxora-Import suchen …",
+  "links.projectTarget": "Lokales Projekt {project}"
 }

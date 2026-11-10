@@ -1,4 +1,9 @@
-import { actionLink, connectionLink, remapConnectionLink } from './links';
+import {
+  actionLink,
+  connectionLink,
+  remapConnectionLink,
+  remapElementLink,
+} from './links';
 import {
   createProject,
   synchronizeIndexes,
@@ -205,7 +210,7 @@ export function applyWorkbook(
           ...(l.parentId ? { parentId: mapped(l.parentId) } : {}),
         })),
         nodes: page.nodes.map((n) => ({
-          ...n,
+          ...remapElementLink(n, linkIds),
           id: mapped(n.id),
           layerId: mapped(n.layerId),
         })),
