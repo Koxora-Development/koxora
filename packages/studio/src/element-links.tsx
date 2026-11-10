@@ -138,7 +138,7 @@ export function LinkFields({
                   onChange({ type: 'url', url: event.target.value })
                 }
               />
-              <span className="field-help">{t('links.externalHelp')}</span>
+
               {!!value.url && !safeExternalUrl(value.url) && (
                 <span role="alert">{t('links.invalid')}</span>
               )}
@@ -170,9 +170,9 @@ export function LinkFields({
                   </option>
                 ))}
               </select>
-              <span className="field-help">{t('links.localProjects')}</span>
+
               {(!projects.length || failed) && (
-                <span role="status">{t('links.locateHelp')}</span>
+                <span role="status">{t('links.targetMissing')}</span>
               )}
             </label>
           )}
@@ -189,7 +189,9 @@ export function LinkFields({
                   <option value="">{t('links.projectHome')}</option>
                 )}
                 {missing && (
-                  <option value={value.pageId}>{t('links.missing')}</option>
+                  <option value={value.pageId}>
+                    {t('links.targetMissing')}
+                  </option>
                 )}
                 {destination?.documents.map((d) => (
                   <optgroup key={d.id} label={d.title}>
@@ -254,7 +256,17 @@ export function LinkFields({
               {t('links.remove')}
             </button>
           )}
-          <p className="field-help">{t('links.help')}</p>
+          <details className="field-help compact-help">
+            <summary>{t('controls.help')}</summary>
+            <p>{t('links.help')}</p>
+            {value?.type === 'url' && <p>{t('links.externalHelp')}</p>}
+            {value?.type === 'project' && (
+              <>
+                <p>{t('links.localProjects')}</p>
+                <p>{t('links.locateHelp')}</p>
+              </>
+            )}
+          </details>
         </>
       )}
     </fieldset>

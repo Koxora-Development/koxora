@@ -348,7 +348,11 @@ export function ElementDialog({
     </label>
   );
   return (
-    <Dialog title={t('diagram.properties')} onCancel={onCancel}>
+    <Dialog
+      className="properties-dialog"
+      title={t('diagram.properties')}
+      onCancel={onCancel}
+    >
       <form
         className="element-form"
         onKeyDown={(event) => {

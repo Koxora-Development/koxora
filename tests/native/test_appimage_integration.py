@@ -30,6 +30,30 @@ class AppImageIntegration(unittest.TestCase):
             self.assertFalse(desktop.exists())
             self.assertFalse((data / "mime/packages/koxora-appimage.xml").exists())
 
+    def test_registration_evidence_matches_files_and_symlinks_never_overwrite_targets(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            app = root / "Koxora.AppImage"
+            app.write_text("#!/bin/sh\nexit 0\n")
+            app.chmod(0o755)
+            data = root / "data"
+            env = {**os.environ, "XDG_DATA_HOME": str(data)}
+            subprocess.run(["python3", "-I", str(HELPER), str(app)], env=env, check=True)
+            record = json.loads((data / "applications/app.koxora.studio-appimage.json").read_text())
+            self.assertEqual(record["appimage"], str(app.resolve()))
+            desktop = data / "applications/app.koxora.studio-appimage.desktop"
+            self.assertEqual(record["desktop"], desktop.read_text())
+            sentinel = root / "sentinel"
+            sentinel.write_text("retain this data")
+            desktop.unlink()
+            desktop.symlink_to(sentinel)
+            result = subprocess.run(["python3", "-I", str(HELPER), str(app)], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(sentinel.read_text(), "retain this data")
+            subprocess.run(["python3", str(HELPER), "--remove"], env=env, check=True)
+            self.assertEqual(sentinel.read_text(), "retain this data")
+            self.assertFalse((data / "applications/app.koxora.studio-appimage.json").exists())
+
     @unittest.skipUnless(shutil.which("gio"), "GLib Desktop Entry launcher unavailable")
     def test_real_desktop_launcher_preserves_punctuation_and_filename_arguments(self):
         with tempfile.TemporaryDirectory() as temp:

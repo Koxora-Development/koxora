@@ -1,11 +1,18 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod export;
+mod integration;
 mod links;
 mod location;
 mod opening;
 mod storage;
 use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+#[tauri::command]
+async fn appimage_integration(action: integration::Action) -> Result<integration::Status, String> {
+    tauri::async_runtime::spawn_blocking(move || integration::run(action))
+        .await
+        .map_err(|_| "integrationFailed".to_owned())?
+}
 fn location(app: &tauri::AppHandle) -> Result<location::Location, String> {
     location::Location::acquire(
         &app.path().app_config_dir().map_err(|_| "storage")?,
@@ -213,6 +220,7 @@ fn main() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            appimage_integration,
             storage_status,
             storage_keep,
             storage_open,

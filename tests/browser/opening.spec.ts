@@ -50,6 +50,7 @@ async function harness(page: Page, initial: number[] | null) {
             command: string,
             args: Record<string, unknown> = {},
           ) => {
+            if (command === 'appimage_integration') return { available: false };
             if (command === 'storage_status')
               return {
                 directory:

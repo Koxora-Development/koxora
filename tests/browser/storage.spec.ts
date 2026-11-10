@@ -11,6 +11,7 @@ test.beforeEach(async ({ page }) => {
             args: Record<string, unknown> = {},
           ) => {
             if (command === 'project_open_next') return null;
+            if (command === 'appimage_integration') return { available: false };
             if (command === 'storage_status')
               return {
                 directory:

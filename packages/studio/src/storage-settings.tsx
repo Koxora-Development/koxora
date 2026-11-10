@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
 import { Dialog } from '@koxora/ui';
+import { AppImageIntegration } from './appimage-integration';
 import type { Invoke } from '@koxora/persistence';
 const nativeCore = (
   window as unknown as { __TAURI__?: { core: { invoke: Invoke } } }
@@ -87,12 +88,16 @@ export function StorageSettings({
   return (
     <>
       {!initial && (
-        <button className="button" onClick={() => setOpened(true)}>
+        <button
+          className="button storage-trigger"
+          onClick={() => setOpened(true)}
+        >
           {t('storage.settings')}
         </button>
       )}
       {opened && (
         <Dialog
+          className="storage-dialog"
           title={t('storage.settings')}
           onCancel={() => {
             if (!busy && !initial) setOpened(false);
@@ -114,56 +119,70 @@ export function StorageSettings({
               </select>
             </label>
           )}
-          <p>{t('storage.description')}</p>
-          <p>
-            <strong>{t('storage.path')}</strong>
-          </p>
-          <p className="storage-path">
-            {status?.directory ?? t('storage.unavailable')}
-          </p>
-          <p>{t('storage.support')}</p>
-          <p>
-            {typeof status?.availableBytes === 'number'
-              ? t('storage.available', {
-                  mib: new Intl.NumberFormat(locale, {
-                    maximumFractionDigits: 0,
-                  }).format(status.availableBytes / 1048576),
-                })
-              : t('storage.space')}
-          </p>
+          <section className="settings-section">
+            <h3>{t('storage.path')}</h3>
+            <p className="storage-path">
+              {status?.directory ?? t('storage.unavailable')}
+            </p>
+            <p className="settings-note">
+              {typeof status?.availableBytes === 'number'
+                ? t('storage.available', {
+                    mib: new Intl.NumberFormat(locale, {
+                      maximumFractionDigits: 0,
+                    }).format(status.availableBytes / 1048576),
+                  })
+                : t('storage.space')}
+            </p>
+            <div className="settings-actions">
+              <button
+                className="button"
+                disabled={busy || !status}
+                onClick={() => {
+                  void nativeCore!
+                    .invoke('storage_open')
+                    .catch(() => setError(true));
+                }}
+              >
+                {t('storage.open')}
+              </button>
+            </div>
+          </section>
+          <section className="settings-section">
+            <h3>{t('storage.manage')}</h3>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={restoring}
+                disabled={busy}
+                onChange={(e) => setRestoring(e.target.checked)}
+              />
+              {t('storage.restoreShort')}
+            </label>
+            <p className="settings-note">
+              {t(restoring ? 'storage.restoreMode' : 'storage.retainedShort')}
+            </p>
+            <details className="settings-help">
+              <summary>{t('storage.details')}</summary>
+              <p>{t('storage.description')}</p>
+              <p>{t('storage.support')}</p>
+              <p>{t('storage.retained')}</p>
+            </details>
+          </section>
+          {!initial && (
+            <AppImageIntegration locale={locale} invoke={nativeCore.invoke} />
+          )}
           {error && <p role="alert">{t('storage.failure')}</p>}
           {busy && <p role="status">{t('storage.progress')}</p>}
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={restoring}
-              disabled={busy}
-              onChange={(e) => setRestoring(e.target.checked)}
-            />
-            {t('storage.restore')}
-          </label>
-          <p>{t('storage.retained')}</p>
           <div className="dialog-actions">
             <button
-              className="button"
-              disabled={busy || !status}
-              onClick={() => {
-                void nativeCore!
-                  .invoke('storage_open')
-                  .catch(() => setError(true));
-              }}
-            >
-              {t('storage.open')}
-            </button>
-            <button
-              className="button"
+              className={initial ? 'button' : 'button primary'}
               disabled={busy}
               onClick={() => void change()}
             >
-              {t('storage.change')}
+              {t(restoring ? 'storage.restoreAction' : 'storage.change')}
             </button>
             <button
-              className="button primary"
+              className={initial ? 'button primary' : 'button'}
               disabled={busy || (initial && !status)}
               onClick={() => {
                 if (!initial) {

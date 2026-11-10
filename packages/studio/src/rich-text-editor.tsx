@@ -432,9 +432,12 @@ export function RichTextEditor({
             base.textColor === 'none' ? '0 0 0 var(--ink)' : undefined,
         }}
       />
-      <p className="field-help">
-        {t('rich.help')} {t('text.editContrast')}
-      </p>
+      <details className="field-help compact-help">
+        <summary>{t('controls.help')}</summary>
+        <p>
+          {t('rich.help')} {t('text.editContrast')}
+        </p>
+      </details>
       {notice && (
         <p role="status" className="field-help">
           {t(notice)}

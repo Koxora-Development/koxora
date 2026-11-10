@@ -74,7 +74,11 @@ export function FormatSelection({
     setFailed(!onApply({ type: 'format', ids, patch: { [key]: value } }));
   }
   return (
-    <Dialog title={t('format.heading')} onCancel={onClose}>
+    <Dialog
+      className="properties-dialog"
+      title={t('format.heading')}
+      onCancel={onClose}
+    >
       <p className="field-help">{t('format.help')}</p>
       <div className="element-fields batch-fields">
         {(['fill', 'stroke', 'textColor'] as const)

@@ -2026,6 +2026,7 @@ export function Canvas({
                 )}
               </button>
             ))}
+          {editableSelection.length > 0 && <div role="separator" />}
           {editableSelection.length > 0 &&
             (['forward', 'backward', 'front', 'back'] as const).map(
               (action) => (
@@ -2051,6 +2052,7 @@ export function Canvas({
               {t('shape.freehand')}
             </button>
           )}
+          <div role="separator" />
           <button
             role="menuitem"
             onClick={() => {

@@ -1,0 +1,303 @@
+/* One density scale for Studio surfaces; portable diagram content keeps its own scale. */
+.studio-shell .app-header {
+  min-height: 54px;
+  padding: 8px 18px;
+  gap: 18px;
+}
+.studio-shell .brand {
+  font-size: 1.2rem;
+}
+.studio-shell .brand-mark {
+  width: 28px;
+  height: 28px;
+}
+.studio-shell .application-body {
+  min-height: calc(100dvh - 55px);
+}
+.studio-shell .button,
+.studio-dialog .button,
+.studio-shell .icon-button {
+  min-height: var(--control-height);
+  padding: 5px 10px;
+  border-radius: var(--control-radius);
+  gap: 6px;
+}
+.studio-shell .icon-button {
+  width: var(--control-height);
+  padding: 6px;
+}
+.studio-shell .preference-controls select {
+  padding: 5px 8px;
+}
+.studio-shell .project-sidebar {
+  width: 242px;
+  padding: 12px 8px;
+}
+.studio-shell .nav-item {
+  padding: 8px;
+}
+.studio-shell .tree-item,
+.studio-shell .tree-actions {
+  min-height: var(--control-height);
+}
+.studio-shell .tree-heading {
+  padding: 8px 4px;
+}
+.studio-shell .tree-create {
+  margin: 8px 0;
+}
+.studio-shell .sidebar-bottom {
+  padding: 12px 8px;
+}
+.studio-shell .interactive-stage .editing-toolbar {
+  min-height: 44px;
+  padding: 6px 10px;
+}
+.studio-shell .editing-toolbar .selection-count {
+  padding-block: 7px;
+}
+.context-menu {
+  min-width: 208px;
+  border-radius: var(--radius);
+  padding: 4px;
+  font-size: var(--ui-font-size);
+  box-shadow: 0 10px 32px #0002;
+}
+.context-menu button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  line-height: 1.3;
+}
+.context-menu [role='separator'] {
+  border-top: 1px solid var(--line);
+  margin: 4px 6px;
+}
+.context-menu button:focus-visible {
+  outline-offset: -2px;
+}
+.studio-dialog input:not([type='checkbox']):not([type='color']),
+.studio-dialog select {
+  min-height: var(--control-height);
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  padding: 5px 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--ui-font-size);
+  max-width: 100%;
+  min-width: 0;
+}
+.studio-dialog label {
+  font-size: 0.75rem;
+}
+.studio-dialog p {
+  line-height: 1.45;
+}
+.studio-dialog .checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+.studio-dialog input[type='checkbox'] {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin: 1px 0;
+}
+.studio-dialog summary {
+  cursor: pointer;
+  padding-block: 6px;
+  font-size: 0.75rem;
+  font-weight: 550;
+}
+.studio-dialog details > p {
+  margin-top: 6px;
+}
+.studio-dialog legend {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.properties-dialog {
+  width: min(680px, calc(100vw - 24px));
+}
+.properties-dialog .label-editor,
+.properties-dialog .element-links {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+}
+.properties-dialog .rich-toolbar {
+  padding: 5px;
+  gap: 5px;
+  border: 0;
+  background: var(--surface-muted);
+}
+.properties-dialog .rich-toolbar label {
+  gap: 4px;
+}
+.properties-dialog .font-picker {
+  min-width: 118px;
+}
+.properties-dialog .font-picker summary {
+  padding: 6px 8px;
+}
+.properties-dialog .rich-toolbar input[type='number'] {
+  width: 56px;
+}
+.properties-dialog .ProseMirror {
+  min-height: 70px;
+  padding: 10px;
+}
+.properties-dialog .rich-text-host {
+  max-height: 24vh;
+  margin-top: 6px;
+}
+.properties-dialog .element-links {
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+.properties-dialog .element-links > p,
+.properties-dialog .element-links > button {
+  grid-column: 1/-1;
+}
+.properties-dialog .element-links > button {
+  justify-self: start;
+}
+.properties-dialog .element-links label {
+  gap: 4px;
+}
+.properties-dialog .element-links label:has(input[inputmode='url']) {
+  grid-column: 1/-1;
+}
+.properties-dialog .element-fields {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.properties-dialog .element-advanced {
+  border-top: 1px solid var(--line);
+}
+.properties-dialog .element-advanced .element-fields {
+  padding-top: 6px;
+}
+.properties-dialog .dialog-actions {
+  margin-top: 0;
+}
+.studio-dialog .dialog-actions {
+  position: sticky;
+  bottom: -18px;
+  margin-bottom: -18px;
+  padding-bottom: 14px;
+  background: var(--surface);
+  z-index: 2;
+}
+.storage-dialog {
+  width: min(560px, calc(100vw - 24px));
+}
+.settings-section {
+  display: grid;
+  gap: 8px;
+  padding-block: 12px;
+  border-top: 1px solid var(--line);
+}
+.settings-section:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+.settings-section h3 {
+  font-size: 0.8rem;
+}
+.settings-section .storage-path {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--surface-muted);
+  overflow-wrap: anywhere;
+  user-select: text;
+  font-size: 0.75rem;
+}
+.settings-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.settings-help {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 10px 6px;
+}
+.settings-help:not([open]) {
+  padding-bottom: 2px;
+}
+.settings-help p + p {
+  margin-top: 6px;
+}
+.settings-note {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+@media (max-width: 600px) {
+  .studio-shell .project-sidebar {
+    width: 100%;
+    padding: 8px;
+  }
+  .studio-shell .app-header {
+    padding: 8px 12px;
+  }
+  .properties-dialog .element-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .properties-dialog .element-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .studio-dialog .dialog-actions {
+    position: static;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+@media (pointer: coarse) {
+  :root {
+    --control-height: 44px;
+  }
+  .context-menu button,
+  .studio-dialog summary,
+  .studio-dialog .checkbox-label {
+    min-height: 44px;
+  }
+  .studio-dialog .checkbox-label {
+    align-items: center;
+  }
+  .studio-shell .rich-toolbar button {
+    min-height: 44px;
+  }
+}
+
+.properties-dialog .element-links > details {
+  grid-column: 1/-1;
+}
+.studio-dialog .compact-help {
+  margin: 0;
+}
+.studio-dialog .compact-help p {
+  font-size: 0.75rem;
+}
+.studio-dialog .settings-section .checkbox-label {
+  margin: 0;
+}
+
+@media (pointer: coarse) {
+  .studio-shell .rich-toolbar button {
+    min-width: 44px;
+  }
+  .studio-dialog .rich-toolbar input[type='color'] {
+    width: 44px;
+    height: 44px;
+  }
+}

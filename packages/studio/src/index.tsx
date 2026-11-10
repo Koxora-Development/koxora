@@ -1,5 +1,6 @@
 import { StorageGate } from './storage-settings';
 import './phase25.css';
+import './compact.css';
 import { Projects } from './projects';
 import { useEffect, useState } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';

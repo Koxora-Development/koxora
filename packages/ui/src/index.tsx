@@ -50,10 +50,12 @@ export function Dialog({
   title,
   children,
   onCancel,
+  className = '',
 }: {
   title: string;
   children: ReactNode;
   onCancel: () => void;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -68,6 +70,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
+      className={`studio-dialog ${className}`}
       aria-label={title}
       tabIndex={-1}
       onKeyDown={(event) => {
@@ -80,7 +83,7 @@ export function Dialog({
         if (event.key !== 'Tab') return;
         const elements = [
           ...event.currentTarget.querySelectorAll<HTMLElement>(
-            'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+            'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, a[href], [tabindex]:not([tabindex="-1"])',
           ),
         ].filter((element) => element.getClientRects().length > 0);
         const first = elements[0],

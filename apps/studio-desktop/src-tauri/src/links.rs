@@ -1,6 +1,6 @@
 #[cfg(target_os = "linux")]
 #[path = "link_launcher.rs"]
-mod linux;
+pub(crate) mod linux;
 
 pub fn open_external_url(value: &str) -> Result<(), String> {
     let safe = safe_external_url(value)?;
