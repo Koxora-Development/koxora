@@ -104,6 +104,10 @@ export function Projects({ locale }: { locale: string }) {
   const [history] = useState(() => new StudioHistory());
   const [loadVersion, setLoadVersion] = useState(0);
   const canvasRef = useRef<CanvasHandle>(null);
+  const [queuedFollow, setQueuedFollow] = useState<{
+    sourceId: string;
+    target: Exclude<LinkTarget, { type: 'url' } | { type: 'page' }>;
+  } | null>(null);
   const [focusTarget, setFocusTarget] = useState<{
     id: string;
     nonce: number;
@@ -478,9 +482,20 @@ export function Projects({ locale }: { locale: string }) {
       setOperation(null);
     }
   }
+  useEffect(() => {
+    if (!queuedFollow || busy || navigationBusy || dialogOpen) return;
+    setQueuedFollow(null);
+    if (projectRef.current?.manifest.projectId === queuedFollow.sourceId)
+      followTarget(queuedFollow.target);
+  });
   function followTarget(
     target: Exclude<LinkTarget, { type: 'url' } | { type: 'page' }>,
   ) {
+    const sourceId = projectRef.current?.manifest.projectId;
+    if (sourceId && operation === 'saving' && !navigationLock.current) {
+      setQueuedFollow({ sourceId, target });
+      return;
+    }
     void preserveAndRun(async () => {
       const current = snapshot();
       if (!current) return;
@@ -916,6 +931,7 @@ export function Projects({ locale }: { locale: string }) {
           onModalChange={setStorageModal}
           run={preserveAndRun}
           onChanged={() => {
+            setQueuedFollow(null);
             setFocusTarget(null);
             setMissingTarget(false);
             setNotice(null);
@@ -1261,7 +1277,7 @@ export function Projects({ locale }: { locale: string }) {
                   <NavigationContext.Provider
                     value={{
                       projects: items,
-                      busy,
+                      busy: busy && operation !== 'saving',
                       loadProject: async (id) => {
                         const current = projectRef.current;
                         return current?.manifest.projectId === id

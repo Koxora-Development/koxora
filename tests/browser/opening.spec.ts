@@ -409,7 +409,7 @@ test('warm requests wait for unapplied element link drafts without losing their 
     .toBe(true);
   await expect(
     page.getByRole('button', { name: 'Open link', exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await page.evaluate(() => {
     const test = (
       window as unknown as {
@@ -434,4 +434,110 @@ test('warm requests wait for unapplied element link drafts without losing their 
     state: 'ready',
     target: { type: 'url', url: 'https://example.org/pending-draft' },
   });
+});
+
+test('an explicit local follow during an in-flight save runs once after the write completes', async ({
+  page,
+}) => {
+  let source = createProject(
+    'Saving source',
+    randomUUID,
+    '2026-11-10T00:00:00.000Z',
+  );
+  const doc = source.documents[0],
+    p = doc.pages[0],
+    a = randomUUID(),
+    b = randomUUID();
+  for (const [id, x] of [
+    [a, 0],
+    [b, 1400],
+  ] as const)
+    source = applyEdit(
+      source,
+      doc.id,
+      p.id,
+      {
+        type: 'insert',
+        id,
+        kind: 'rectangle',
+        position: { x, y: 0 },
+        layerId: p.layers[0].id,
+        text: id === a ? 'Source' : 'Destination',
+      },
+      '2026-11-10T00:00:00.000Z',
+    );
+  source = applyEdit(
+    source,
+    doc.id,
+    p.id,
+    {
+      type: 'link',
+      id: a,
+      link: {
+        target: { type: 'element', pageId: p.id, elementId: b },
+        actionId: randomUUID(),
+      },
+    },
+    '2026-11-10T00:00:00.000Z',
+  );
+  await harness(page, Array.from(await exportProject(source)));
+  await expect(
+    page.getByRole('textbox', { name: 'Project name', exact: true }),
+  ).toHaveValue('Saving source');
+  const picker = page.getByLabel('Diagram element', { exact: true });
+  if (!(await picker.isVisible()))
+    await page.getByRole('button', { name: 'Objects', exact: true }).click();
+  await picker.selectOption(a);
+  await page
+    .getByRole('dialog', { name: 'Element properties' })
+    .getByRole('button', { name: 'Cancel', exact: true })
+    .click();
+  await page.evaluate(() => {
+    (
+      window as unknown as { openingTest: { holdWrites: boolean } }
+    ).openingTest.holdWrites = true;
+  });
+  await page
+    .getByRole('textbox', { name: 'Project name', exact: true })
+    .fill('Saved before follow');
+  await page
+    .getByRole('textbox', { name: 'Project name', exact: true })
+    .press('Tab');
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          !!(window as unknown as { openingTest: { releaseWrite: unknown } })
+            .openingTest.releaseWrite,
+      ),
+    )
+    .toBe(true);
+  await page.getByRole('button', { name: 'Open link', exact: true }).click();
+  await expect(page.locator('.interactive-canvas')).toHaveAttribute(
+    'data-selection',
+    JSON.stringify([a]),
+  );
+  await page.evaluate(() => {
+    const test = (
+      window as unknown as {
+        openingTest: { holdWrites: boolean; releaseWrite: () => void };
+      }
+    ).openingTest;
+    test.holdWrites = false;
+    test.releaseWrite();
+  });
+  await expect(page.locator('.interactive-canvas')).toHaveAttribute(
+    'data-selection',
+    JSON.stringify([b]),
+  );
+  const raw = await page.evaluate(
+    (id) =>
+      (
+        window as unknown as { openingTest: { records: Map<string, string> } }
+      ).openingTest.records.get(id)!,
+    source.manifest.projectId,
+  );
+  expect((await parseProject(JSON.parse(raw).current)).manifest.title).toBe(
+    'Saved before follow',
+  );
 });
