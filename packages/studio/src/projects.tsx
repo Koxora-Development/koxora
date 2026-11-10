@@ -2,7 +2,13 @@ import { StorageSettings } from './storage-settings';
 import { NativeOpen } from './native-open';
 import { NavigationContext } from './navigation-context';
 import { ProjectTree, type ProjectAction } from './project-tree';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog, Icon } from '@koxora/ui';
 import { ProjectTitle, ProjectNameField } from './project-title';
@@ -482,12 +488,6 @@ export function Projects({ locale }: { locale: string }) {
       setOperation(null);
     }
   }
-  useEffect(() => {
-    if (!queuedFollow || busy || navigationBusy || dialogOpen) return;
-    setQueuedFollow(null);
-    if (projectRef.current?.manifest.projectId === queuedFollow.sourceId)
-      followTarget(queuedFollow.target);
-  });
   function followTarget(
     target: Exclude<LinkTarget, { type: 'url' } | { type: 'page' }>,
   ) {
@@ -548,6 +548,17 @@ export function Projects({ locale }: { locale: string }) {
       }
     });
   }
+  const resumeFollow = useEffectEvent(() => {
+    if (!queuedFollow || busy || navigationBusy || dialogOpen) return;
+    setQueuedFollow(null);
+    if (projectRef.current?.manifest.projectId === queuedFollow.sourceId)
+      followTarget(queuedFollow.target);
+  });
+  useEffect(() => {
+    if (!queuedFollow || busy || navigationBusy || dialogOpen) return;
+    const timer = window.setTimeout(() => resumeFollow(), 0);
+    return () => window.clearTimeout(timer);
+  }, [queuedFollow, busy, navigationBusy, dialogOpen]);
   function openFromTree(id: string) {
     if (id === projectRef.current?.manifest.projectId) {
       setFocusTarget(null);
