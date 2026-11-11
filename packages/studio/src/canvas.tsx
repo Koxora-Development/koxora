@@ -1640,7 +1640,8 @@ export function Canvas({
         ),
       ].filter(
         (element) =>
-          element.tabIndex >= 0 &&
+          (element.tabIndex >= 0 ||
+            (element.isContentEditable && !element.hasAttribute('tabindex'))) &&
           element.getClientRects().length &&
           !element.closest('[inert]'),
       );

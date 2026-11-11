@@ -119,7 +119,7 @@ test('invalid files, versions and duplicate keys leave the active project unchan
       buffer: Buffer.from(bytes),
     });
     await expect(page.getByRole('alert')).toBeVisible();
-    await expect(page.locator('.inspector input')).toHaveValue(
+    await expect(page.locator('.office-document-name input')).toHaveValue(
       'Überblick 世界 مرحبا',
     );
   }

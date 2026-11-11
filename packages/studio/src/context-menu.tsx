@@ -32,11 +32,11 @@ export function ContextMenu({
       left: Math.max(8, Math.min(anchor.x, window.innerWidth - box.width - 8)),
       top: Math.max(8, Math.min(anchor.y, window.innerHeight - box.height - 8)),
     });
-    element
-      .querySelector<HTMLElement>(
+    (
+      element.querySelector<HTMLElement>(
         '[role="menuitem"]:not(:disabled), [role="menuitemcheckbox"]:not(:disabled)',
-      )
-      ?.focus({ preventScroll: true });
+      ) ?? element
+    ).focus({ preventScroll: true });
     const outside = (e: Event) => {
       if (
         !element.contains(e.target as Node) &&
@@ -77,6 +77,7 @@ export function ContextMenu({
       ref={root}
       className="context-menu"
       role="menu"
+      tabIndex={-1}
       aria-label={label}
       style={position}
       onBlur={(e) => {
