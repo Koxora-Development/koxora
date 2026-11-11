@@ -76,6 +76,7 @@ test('create, rename, reopen offline, export, import and recover', async ({
     .fill('Renamed copy');
   await page.getByRole('textbox', { name: 'Project name' }).press('Enter');
   await saved(page);
+  await page.getByText('Project details', { exact: true }).click();
   await page.getByRole('button', { name: 'Recover previous save' }).click();
   await page
     .getByRole('dialog')
