@@ -17,7 +17,9 @@ test('guest startup defaults to English on a German OS with no backend requests'
   );
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(
-    page.getByRole('combobox', { name: 'Language', exact: true }),
+    page
+      .locator('.office-statusbar')
+      .getByRole('combobox', { name: 'Language', exact: true }),
   ).toHaveValue('en');
   expect(external).toEqual([]);
   expect(errors).toEqual([]);
@@ -32,9 +34,11 @@ test('language and dark theme persist across offline reload without changing doc
     localStorage.setItem('synthetic.project', 'My unchanged diagram'),
   );
   await page
+    .locator('.office-statusbar')
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
   await page
+    .locator('.office-statusbar')
     .getByRole('combobox', { name: 'Darstellung', exact: true })
     .selectOption('dark');
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
@@ -56,7 +60,9 @@ test('language and dark theme persist across offline reload without changing doc
   await context.setOffline(true);
   await page.reload();
   await expect(
-    page.getByRole('combobox', { name: 'Sprache', exact: true }),
+    page
+      .locator('.office-statusbar')
+      .getByRole('combobox', { name: 'Sprache', exact: true }),
   ).toHaveValue('de');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.locator('.connection')).toHaveText('Offline');
@@ -64,6 +70,7 @@ test('language and dark theme persist across offline reload without changing doc
     await page.evaluate(() => localStorage.getItem('synthetic.project')),
   ).toBe('My unchanged diagram');
   await page
+    .locator('.office-statusbar')
     .getByRole('combobox', { name: 'Sprache', exact: true })
     .selectOption('en');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
@@ -82,6 +89,7 @@ test('blocked preference storage leaves a usable localized session', async ({
   });
   await page.goto('/');
   await page
+    .locator('.office-statusbar')
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
   await expect(page.getByRole('alert')).toContainText('für diese Sitzung');

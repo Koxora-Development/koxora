@@ -1,4 +1,8 @@
 import { StorageSettings } from './storage-settings';
+import { OfficeMenubar, type OfficeMenuItem } from './office-menu';
+import { OfficeSettings } from './office-settings';
+import { AppImageIntegration } from './appimage-integration';
+import type { Theme } from './preferences';
 import { NativeOpen } from './native-open';
 import { NavigationContext } from './navigation-context';
 import { ProjectTree, type ProjectAction } from './project-tree';
@@ -12,9 +16,16 @@ import {
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog, Icon } from '@koxora/ui';
 import { ProjectTitle, ProjectNameField } from './project-title';
-import { Canvas, type CanvasHandle } from './canvas';
+import {
+  Canvas,
+  type CanvasHandle,
+  type CanvasCommand,
+  type CanvasCommandState,
+} from './canvas';
 import {
   activePageId,
+  shapeKinds,
+  layerStates,
   buildScene,
   type LinkTarget,
   StudioHistory,
@@ -46,7 +57,17 @@ const native = (
   window as unknown as { __TAURI__?: { core: { invoke: Invoke } } }
 ).__TAURI__?.core;
 type Operation = 'loading' | 'opening' | 'saving' | 'importing' | 'exporting';
-export function Projects({ locale }: { locale: string }) {
+export function Projects({
+  locale,
+  theme,
+  onLocale,
+  onTheme,
+}: {
+  locale: string;
+  theme: Theme;
+  onLocale: (locale: string) => void;
+  onTheme: (theme: Theme) => void;
+}) {
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
     translate(locale, key, values);
   const [repository] = useState(
@@ -80,7 +101,18 @@ export function Projects({ locale }: { locale: string }) {
   const dropRunning = useRef(false);
   const [dropFailed, setDropFailed] = useState(false);
   const [dropCopy, setDropCopy] = useState(false);
-  const [storageModal, setStorageModal] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [navigatorVisible, setNavigatorVisible] = useState(
+    () => window.innerWidth >= 1000,
+  );
+  const [propertyDraft, setPropertyDraft] = useState(false);
+  const [commandState, setCommandState] = useState<CanvasCommandState>(() => ({
+    selected: 0,
+    canPaste: false,
+    propertiesVisible: window.innerWidth >= 1000,
+    objectsVisible: false,
+  }));
   const [dialogOpen, setDialogOpen] = useState(false);
   useEffect(() => {
     const update = () =>
@@ -106,6 +138,7 @@ export function Projects({ locale }: { locale: string }) {
   } | null>(null);
   const [focusVersion, setFocusVersion] = useState(0);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
   const session = useRef(0);
   const [history] = useState(() => new StudioHistory());
   const [loadVersion, setLoadVersion] = useState(0);
@@ -212,6 +245,7 @@ export function Projects({ locale }: { locale: string }) {
     }
   }
   function travel(direction: 'undo' | 'redo'): boolean {
+    if (canvasRef.current && !canvasRef.current.prepare()) return false;
     if (navigationLock.current) return false;
     if (
       !project ||
@@ -242,6 +276,7 @@ export function Projects({ locale }: { locale: string }) {
     }
   }
   function switchPage(documentId: string, id: string) {
+    if (canvasRef.current && !canvasRef.current.prepare()) return;
     if (navigationLock.current) return;
     setFocusTarget(null);
     setView('workspace');
@@ -252,6 +287,7 @@ export function Projects({ locale }: { locale: string }) {
     setPendingNavigation(false);
   }
   function workbook(command: WorkbookCommand): boolean {
+    if (canvasRef.current && !canvasRef.current.prepare()) return false;
     if (navigationLock.current) return false;
     const current = snapshot();
     if (!current) return false;
@@ -366,19 +402,24 @@ export function Projects({ locale }: { locale: string }) {
     };
   }, [repository]);
   useEffect(() => {
-    if (focusVersion > 0) titleRef.current?.focus();
+    if (focusVersion > 0) (nameRef.current ?? titleRef.current)?.focus();
   }, [focusVersion]);
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty && !propertyDraft) return;
     const warn = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [dirty]);
+  }, [dirty, propertyDraft]);
   const save = useCallback(async () => {
-    if (!project || operation) return;
+    if (
+      !project ||
+      operation ||
+      (canvasRef.current && !canvasRef.current.prepare())
+    )
+      return;
     const current = snapshot();
     if (!current) return;
     setOperation('saving');
@@ -402,7 +443,8 @@ export function Projects({ locale }: { locale: string }) {
       busy ||
       error ||
       confirmation ||
-      importing
+      importing ||
+      propertyDraft
     )
       return;
     const timer = window.setTimeout(() => void save(), 600);
@@ -416,8 +458,10 @@ export function Projects({ locale }: { locale: string }) {
     save,
     confirmation,
     importing,
+    propertyDraft,
   ]);
   function replace(action: () => void) {
+    if (canvasRef.current && !canvasRef.current.prepare()) return;
     const current = snapshot();
     if (dirty || current !== saved)
       setConfirmation({ message: 'project.discard', action });
@@ -462,7 +506,12 @@ export function Projects({ locale }: { locale: string }) {
     }
   }
   async function preserveAndRun(action: () => Promise<void>): Promise<boolean> {
-    if (busy || navigationLock.current) return false;
+    if (
+      busy ||
+      navigationLock.current ||
+      (canvasRef.current && !canvasRef.current.prepare())
+    )
+      return false;
     // Flush focused field/text drafts before freezing mutations for navigation.
     if (document.activeElement instanceof HTMLElement)
       document.activeElement.blur();
@@ -550,16 +599,32 @@ export function Projects({ locale }: { locale: string }) {
     });
   }
   const resumeFollow = useEffectEvent(() => {
-    if (!queuedFollow || busy || navigationBusy || dialogOpen) return;
+    if (
+      !queuedFollow ||
+      busy ||
+      navigationBusy ||
+      dialogOpen ||
+      propertyDraft ||
+      (canvasRef.current && !canvasRef.current.prepare())
+    )
+      return;
     setQueuedFollow(null);
     if (projectRef.current?.manifest.projectId === queuedFollow.sourceId)
       followTarget(queuedFollow.target);
   });
   useEffect(() => {
-    if (!queuedFollow || busy || navigationBusy || dialogOpen) return;
+    if (
+      !queuedFollow ||
+      busy ||
+      navigationBusy ||
+      dialogOpen ||
+      propertyDraft ||
+      (canvasRef.current && !canvasRef.current.prepare())
+    )
+      return;
     const timer = window.setTimeout(() => resumeFollow(), 0);
     return () => window.clearTimeout(timer);
-  }, [queuedFollow, busy, navigationBusy, dialogOpen]);
+  }, [queuedFollow, busy, navigationBusy, dialogOpen, propertyDraft]);
   function openFromTree(id: string) {
     if (id === projectRef.current?.manifest.projectId) {
       setFocusTarget(null);
@@ -673,9 +738,10 @@ export function Projects({ locale }: { locale: string }) {
   useEffect(() => {
     if (
       dropFailed ||
+      propertyDraft ||
       dialogOpen ||
       missingTarget ||
-      storageModal ||
+      settingsOpen ||
       !dropped.length ||
       busy ||
       importing ||
@@ -705,7 +771,7 @@ export function Projects({ locale }: { locale: string }) {
       });
   });
   async function exportFile() {
-    if (!project) return;
+    if (!project || (canvasRef.current && !canvasRef.current.prepare())) return;
     if (operation === 'saving' && !navigationLock.current) {
       setQueuedExport(project.manifest.projectId);
       return;
@@ -756,16 +822,76 @@ export function Projects({ locale }: { locale: string }) {
     }
   }
   const resumeExport = useEffectEvent(() => {
-    if (!queuedExport || busy || navigationLock.current || dialogOpen) return;
+    if (
+      !queuedExport ||
+      busy ||
+      navigationLock.current ||
+      dialogOpen ||
+      propertyDraft ||
+      (canvasRef.current && !canvasRef.current.prepare())
+    )
+      return;
     setQueuedExport(null);
     if (projectRef.current?.manifest.projectId === queuedExport)
       void exportFile();
   });
   useEffect(() => {
-    if (!queuedExport || busy || navigationBusy || dialogOpen) return;
+    if (!queuedExport || busy || navigationBusy || dialogOpen || propertyDraft)
+      return;
     const timer = window.setTimeout(() => resumeExport(), 0);
     return () => window.clearTimeout(timer);
-  }, [queuedExport, busy, navigationBusy, dialogOpen]);
+  }, [queuedExport, busy, navigationBusy, dialogOpen, propertyDraft]);
+  const projectDetails = project && (
+    <details className="office-project-details">
+      {' '}
+      <summary>{t('workspace.details')}</summary>
+      <dl className="project-properties">
+        <div>
+          <dt>{t('workspace.documents')}</dt>
+          <dd>{project.documents.length}</dd>
+        </div>
+        <div>
+          <dt>{t('workspace.pages')}</dt>
+          <dd>
+            {project.documents.reduce((n, doc) => n + doc.pages.length, 0)}
+          </dd>
+        </div>
+        <div>
+          <dt>{t('workspace.datasets')}</dt>
+          <dd>{project.datasets.length}</dd>
+        </div>
+        <div>
+          <dt>{t('workspace.assets')}</dt>
+          <dd>{project.assets.length}</dd>
+        </div>
+      </dl>
+      <div className="inspector-section">
+        <h3>{t('workspace.updated')}</h3>
+        <p>{date(project.manifest.updatedAt)}</p>
+        <h3>{t('workspace.created')}</h3>
+        <p>{date(project.manifest.createdAt)}</p>
+      </div>
+      <div className="storage-note">
+        <Icon name="shield" />
+        <h3>{t('workspace.autosaveTitle')}</h3>
+        <p>{t('workspace.autosaveDescription')}</p>
+      </div>
+      <button
+        className="button recovery-button"
+        disabled={busy || !token}
+        onClick={() =>
+          setConfirmation({
+            message: 'project.recoverConfirm',
+            action: () =>
+              replace(() => void open(project.manifest.projectId, true)),
+          })
+        }
+      >
+        <Icon name="refresh" />
+        {t('project.recover')}
+      </button>
+    </details>
+  );
   const actions = (
     <>
       <button
@@ -791,6 +917,24 @@ export function Projects({ locale }: { locale: string }) {
       </button>
     </>
   );
+  function storageChanged() {
+    setQueuedFollow(null);
+    setQueuedExport(null);
+    setFocusTarget(null);
+    setMissingTarget(false);
+    setNotice(null);
+    history.clear();
+    session.current += 1;
+    setLoadVersion(session.current);
+    setProject(null);
+    setSaved(null);
+    setToken(null);
+    setPageId(null);
+    setPendingNavigation(false);
+    setView('dashboard');
+    setExpanded(false);
+    setPropertyDraft(false);
+  }
   const errorMessage = error && (
     <div className="notification error" role="alert">
       <strong>{t('feedback.attention')}</strong>
@@ -815,7 +959,9 @@ export function Projects({ locale }: { locale: string }) {
       items={items}
       trash={trash}
       busy={busy}
-      locked={navigationBusy || (busy && operation !== 'saving')}
+      locked={
+        propertyDraft || navigationBusy || (busy && operation !== 'saving')
+      }
       locale={locale}
       error={error}
       onOpen={openFromTree}
@@ -826,9 +972,270 @@ export function Projects({ locale }: { locale: string }) {
       onHistory={travel}
     />
   );
+  const unavailable =
+    !project || navigationBusy || (busy && operation !== 'saving');
+  const selected = commandState.selected;
+  const command = (action: CanvasCommand) => () =>
+    canvasRef.current?.run(action);
+  const openImport = () =>
+    replace(() => {
+      setError(null);
+      setImporting(true);
+    });
+  const menus: {
+    label: string;
+    disabled?: boolean;
+    items: OfficeMenuItem[];
+  }[] = [
+    {
+      label: t('office.menu.file'),
+      items: [
+        {
+          label: t('project.create'),
+          action: () => replace(create),
+          disabled: busy || propertyDraft,
+          shortcut: '',
+        },
+        {
+          label: t('project.import'),
+          action: openImport,
+          disabled: busy || propertyDraft,
+        },
+        {
+          label: t('office.recent'),
+          children: items.slice(0, 12).map((item) => ({
+            label: item.title ?? t('project.unreadable'),
+            action: () => openFromTree(item.id),
+            disabled: busy || propertyDraft,
+          })),
+          disabled: !items.length,
+        },
+        { label: '', separator: true },
+        {
+          label: t('project.save'),
+          action: () => void save(),
+          disabled: !project || busy || propertyDraft,
+          shortcut: 'Ctrl+S',
+        },
+        {
+          label: t(native ? 'export.saveAs' : 'project.export'),
+          action: () => void exportFile(),
+          disabled: unavailable || propertyDraft,
+          shortcut: 'Ctrl+Shift+S',
+        },
+        { label: '', separator: true },
+        { label: t('office.settings'), action: () => setSettingsOpen(true) },
+      ],
+    },
+    {
+      label: t('office.menu.edit'),
+      disabled: !project,
+      items: [
+        {
+          label: t('editing.undo'),
+          action: command('undo'),
+          disabled:
+            unavailable ||
+            propertyDraft ||
+            !activePage ||
+            !activeDocument ||
+            !project ||
+            !history.status(project, activeDocument.id, activePage.id).undo,
+          shortcut: 'Ctrl+Z',
+        },
+        {
+          label: t('editing.redo'),
+          action: command('redo'),
+          disabled:
+            unavailable ||
+            propertyDraft ||
+            !activePage ||
+            !activeDocument ||
+            !project ||
+            !history.status(project, activeDocument.id, activePage.id).redo,
+          shortcut: 'Ctrl+Y',
+        },
+        { label: '', separator: true },
+        {
+          label: t('editing.copy'),
+          action: command('copy'),
+          disabled: unavailable || !selected || propertyDraft,
+          shortcut: 'Ctrl+C',
+        },
+        {
+          label: t('editing.paste'),
+          action: command('paste'),
+          disabled: unavailable || !commandState.canPaste || propertyDraft,
+          shortcut: 'Ctrl+V',
+        },
+        {
+          label: t('editing.duplicate'),
+          action: command('duplicate'),
+          disabled: unavailable || !selected || propertyDraft,
+          shortcut: 'Ctrl+D',
+        },
+        {
+          label: t('editing.delete'),
+          action: command('delete'),
+          disabled: unavailable || !selected || propertyDraft,
+          shortcut: 'Del',
+        },
+        {
+          label: t('office.selectAll'),
+          action: command('selectAll'),
+          disabled: unavailable || propertyDraft,
+          shortcut: 'Ctrl+A',
+        },
+      ],
+    },
+    {
+      label: t('office.menu.view'),
+      items: [
+        {
+          label: t('tree.heading'),
+          checked: navigatorVisible,
+          action: () => setNavigatorVisible((value) => !value),
+        },
+        {
+          label: t('format.objects'),
+          checked: commandState.objectsVisible,
+          action: () => canvasRef.current?.toggleObjects(),
+          disabled: !project,
+        },
+        {
+          label: t('office.properties'),
+          checked: commandState.propertiesVisible,
+          action: () => canvasRef.current?.toggleProperties(),
+          disabled: !project,
+        },
+        { label: '', separator: true },
+        {
+          label: t('canvas.zoomIn'),
+          action: () => canvasRef.current?.zoom('in'),
+          disabled: !project,
+        },
+        {
+          label: t('canvas.zoomOut'),
+          action: () => canvasRef.current?.zoom('out'),
+          disabled: !project,
+        },
+        {
+          label: t('canvas.reset'),
+          action: () => canvasRef.current?.zoom('reset'),
+          disabled: !project,
+        },
+        {
+          label: t('canvas.fit'),
+          action: () => canvasRef.current?.zoom('fit'),
+          disabled: !project,
+        },
+        {
+          label: t(expanded ? 'canvas.restore' : 'canvas.expand'),
+          checked: expanded,
+          action: () => {
+            if (!canvasRef.current || canvasRef.current.prepare())
+              setExpanded((value) => !value);
+          },
+          disabled: !project,
+        },
+      ],
+    },
+    {
+      label: t('office.menu.insert'),
+      disabled: !project,
+      items: [...shapeKinds, 'freehand' as const].map((kind) => ({
+        label: t(`shape.${kind}`),
+        action: () => canvasRef.current?.tool(kind),
+        disabled:
+          unavailable ||
+          propertyDraft ||
+          !activePage ||
+          !activePage.layers.some(
+            (layer) => layerStates(activePage.layers).get(layer.id)?.editable,
+          ),
+      })),
+    },
+    {
+      label: t('office.menu.format'),
+      disabled: !project,
+      items: [
+        {
+          label: t('diagram.properties'),
+          action: command('properties'),
+          disabled: unavailable || !selected,
+        },
+        {
+          label: t('rich.edit'),
+          action: command('text'),
+          disabled: unavailable || selected !== 1 || propertyDraft,
+        },
+        {
+          label: t('stack.heading'),
+          disabled: unavailable || !selected || propertyDraft,
+          children: (['forward', 'backward', 'front', 'back'] as const).map(
+            (action) => ({
+              label: t(`stack.${action}`),
+              action: command(action),
+            }),
+          ),
+        },
+        {
+          label: t('format.align'),
+          disabled: unavailable || selected < 2 || propertyDraft,
+          children: (
+            [
+              'left',
+              'center',
+              'right',
+              'top',
+              'middle',
+              'bottom',
+              'horizontal',
+              'vertical',
+            ] as const
+          ).map((action) => ({
+            label: t(`editing.align.${action}` as MessageKey),
+            action: command(action),
+            preview: (active) =>
+              canvasRef.current?.preview(active ? action : null),
+          })),
+        },
+        {
+          label: t('arrange.tidy'),
+          action: command('tidy'),
+          preview: (active) =>
+            canvasRef.current?.preview(active ? 'tidy' : null),
+          disabled: unavailable || selected < 2 || propertyDraft,
+        },
+      ],
+    },
+    {
+      label: t('office.menu.help'),
+      items: [
+        {
+          label: t('canvas.help'),
+          action: () => canvasRef.current?.showHelp(),
+          disabled: !project,
+          shortcut: 'F1',
+        },
+      ],
+    },
+  ];
   return (
     <div
-      className="application-body"
+      className={`application-body office-application ${navigatorVisible ? '' : 'navigator-hidden'}`}
+      onKeyDown={(event) => {
+        if (
+          (event.ctrlKey || event.metaKey) &&
+          event.key.toLowerCase() === 's' &&
+          !event.defaultPrevented &&
+          !(event.target as HTMLElement).closest('dialog')
+        ) {
+          event.preventDefault();
+          if (event.shiftKey) void exportFile();
+          else void save();
+        }
+      }}
       onDragOver={(event) => {
         if (!native && event.dataTransfer.types.includes('Files'))
           event.preventDefault();
@@ -844,6 +1251,159 @@ export function Projects({ locale }: { locale: string }) {
         setDropped((current) => [...current, ...files]);
       }}
     >
+      <OfficeMenubar label={t('office.menu.label')} menus={menus} />
+      <header
+        className={`office-quickbar ${project && view === 'workspace' ? 'workspace-header' : ''}`}
+        role="toolbar"
+        aria-label={t('office.fileTools')}
+      >
+        <button
+          className="office-tool-button"
+          aria-label={t('project.create')}
+          title={t('project.create')}
+          disabled={busy || propertyDraft}
+          onClick={() => replace(create)}
+        >
+          <Icon name="plus" />
+        </button>
+        <button
+          className="office-tool-button"
+          aria-label={t('project.import')}
+          title={t('project.import')}
+          disabled={busy || propertyDraft}
+          onClick={openImport}
+        >
+          <Icon name="import" />
+        </button>
+        <button
+          className="office-tool-button"
+          aria-label={t('project.save')}
+          title={`${t('project.save')} · Ctrl+S`}
+          disabled={!project || busy || propertyDraft}
+          onClick={() => void save()}
+        >
+          <Icon name="save" />
+        </button>
+        <button
+          className="office-tool-button"
+          aria-label={t(native ? 'export.saveAs' : 'project.export')}
+          title={t(native ? 'export.saveAs' : 'project.export')}
+          disabled={unavailable || propertyDraft}
+          onClick={() => void exportFile()}
+        >
+          <Icon name="export" />
+        </button>
+        <span className="office-toolbar-divider" />
+        <button
+          className="office-tool-button"
+          aria-label={t('editing.undo')}
+          title={t('editing.undo')}
+          disabled={
+            unavailable ||
+            propertyDraft ||
+            !activePage ||
+            !activeDocument ||
+            !project ||
+            !history.status(project, activeDocument.id, activePage.id).undo
+          }
+          onClick={command('undo')}
+        >
+          <Icon name="undo" />
+        </button>
+        <button
+          className="office-tool-button"
+          aria-label={t('editing.redo')}
+          title={t('editing.redo')}
+          disabled={
+            unavailable ||
+            propertyDraft ||
+            !activePage ||
+            !activeDocument ||
+            !project ||
+            !history.status(project, activeDocument.id, activePage.id).redo
+          }
+          onClick={command('redo')}
+        >
+          <Icon name="redo" />
+        </button>
+        <span className="office-toolbar-divider" />
+        <button
+          className="office-tool-button"
+          aria-label={t('tree.heading')}
+          title={t('tree.heading')}
+          aria-pressed={navigatorVisible}
+          onClick={() =>
+            expanded
+              ? setNavigatorOpen(true)
+              : setNavigatorVisible((value) => !value)
+          }
+        >
+          <Icon name="layers" />
+        </button>
+        <button
+          className="office-tool-button"
+          aria-label={t('office.properties')}
+          title={t('office.properties')}
+          aria-pressed={commandState.propertiesVisible}
+          disabled={!project}
+          onClick={() => canvasRef.current?.toggleProperties()}
+        >
+          <Icon name="panel" />
+        </button>
+        <button
+          className="office-tool-button"
+          aria-label={t('format.objects')}
+          title={t('format.objects')}
+          aria-pressed={commandState.objectsVisible}
+          disabled={!project}
+          onClick={() => canvasRef.current?.toggleObjects()}
+        >
+          <Icon name="grid" />
+        </button>
+        <button
+          className="office-tool-button"
+          aria-label={t('canvas.expand')}
+          title={t('canvas.expand')}
+          disabled={!project}
+          onClick={() => {
+            if (canvasRef.current?.prepare()) setExpanded(true);
+          }}
+        >
+          <Icon name="expand" />
+        </button>
+        {project && (
+          <div className="office-document-name">
+            <h1 className="sr-only">{project.manifest.title}</h1>
+            <ProjectNameField
+              inputRef={nameRef}
+              title={project.manifest.title}
+              locale={locale}
+              disabled={busy || propertyDraft}
+              onRename={renameActive}
+            />
+          </div>
+        )}
+        <p
+          className={`save-status ${dirty || propertyDraft ? 'pending' : ''}`}
+          aria-live="polite"
+        >
+          {propertyDraft
+            ? t('office.unapplied')
+            : operation
+              ? t(`operation.${operation}`)
+              : project
+                ? t(dirty ? 'project.unsaved' : 'project.saved')
+                : t('status.local')}
+        </p>
+        <button
+          className="office-tool-button"
+          aria-label={t('office.settings')}
+          title={t('office.settings')}
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Icon name="settings" />
+        </button>
+      </header>
       {native && (
         <NativeOpen
           invoke={native.invoke}
@@ -851,10 +1411,11 @@ export function Projects({ locale }: { locale: string }) {
           error={error}
           paused={
             busy ||
+            propertyDraft ||
             importing ||
             !!confirmation ||
             navigationBusy ||
-            storageModal ||
+            settingsOpen ||
             missingTarget
           }
           onError={(code) => {
@@ -938,12 +1499,17 @@ export function Projects({ locale }: { locale: string }) {
           </div>
         </Dialog>
       )}
-      <aside className="project-sidebar">
+      <aside
+        className="project-sidebar"
+        aria-label={t('tree.heading')}
+        hidden={!navigatorVisible}
+      >
         <div className="sidebar-label">{t('nav.studio')}</div>
         <button
           className={`nav-item ${view === 'dashboard' ? 'selected' : ''}`}
           aria-current={view === 'dashboard' ? 'page' : undefined}
           onClick={() => {
+            if (canvasRef.current && !canvasRef.current.prepare()) return;
             snapshot();
             setView('dashboard');
             setFocusVersion((n) => n + 1);
@@ -954,28 +1520,6 @@ export function Projects({ locale }: { locale: string }) {
           <span className="count">{items.length}</span>
         </button>
         {!expanded && navigation}
-        <StorageSettings
-          locale={locale}
-          onModalChange={setStorageModal}
-          run={preserveAndRun}
-          onChanged={() => {
-            setQueuedFollow(null);
-            setQueuedExport(null);
-            setFocusTarget(null);
-            setMissingTarget(false);
-            setNotice(null);
-            history.clear();
-            session.current += 1;
-            setLoadVersion(session.current);
-            setProject(null);
-            setSaved(null);
-            setToken(null);
-            setPageId(null);
-            setPendingNavigation(false);
-            setView('dashboard');
-            setExpanded(false);
-          }}
-        />
         <div className="sidebar-bottom">
           <Icon name="shield" />
           <strong>{t('status.local')}</strong>
@@ -1230,70 +1774,6 @@ export function Projects({ locale }: { locale: string }) {
           </>
         ) : (
           <>
-            <header className="workspace-header">
-              <div>
-                <p className="eyebrow">{t('nav.workspace')}</p>
-                <ProjectTitle
-                  title={project.manifest.title}
-                  locale={locale}
-                  disabled={busy}
-                  onRename={renameActive}
-                  heading="h1"
-                  titleRef={titleRef}
-                />
-                {!native && <p className="field-help">{t('opening.drop')}</p>}
-                <p
-                  className={`save-status ${dirty ? 'pending' : ''}`}
-                  aria-live="polite"
-                >
-                  <Icon name={dirty ? 'clock' : 'check'} />
-                  {operation
-                    ? t(`operation.${operation}`)
-                    : t(dirty ? 'project.unsaved' : 'project.saved')}
-                </p>
-              </div>
-              <div className="action-row">
-                <button
-                  className="button"
-                  disabled={busy}
-                  onClick={() => void save()}
-                >
-                  <Icon name="check" />
-                  {t('project.save')}
-                </button>
-                <button
-                  className="button primary"
-                  disabled={busy && operation !== 'saving'}
-                  onClick={() => void exportFile()}
-                >
-                  <Icon name="export" />
-                  {t(native ? 'export.saveAs' : 'project.export')}
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label={t('project.import')}
-                  title={t('project.import')}
-                  disabled={busy}
-                  onClick={() =>
-                    replace(() => {
-                      setError(null);
-                      setImporting(true);
-                    })
-                  }
-                >
-                  <Icon name="import" />
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label={t('project.create')}
-                  title={t('project.create')}
-                  disabled={busy}
-                  onClick={() => replace(create)}
-                >
-                  <Icon name="plus" />
-                </button>
-              </div>
-            </header>
             <div className="workspace-layout">
               {activePage && activeDocument && (
                 <div
@@ -1323,13 +1803,21 @@ export function Projects({ locale }: { locale: string }) {
                       key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
                       ref={canvasRef}
                       project={project}
+                      projectDetails={projectDetails}
+                      onPropertyDraft={setPropertyDraft}
+                      onCommandState={setCommandState}
                       focusTarget={navigationBusy ? null : focusTarget}
                       onTargetApplied={() => setFocusTarget(null)}
                       onFollowPage={(id) => {
                         const doc = projectRef.current?.documents.find((d) =>
                           d.pages.some((p) => p.id === id),
                         );
-                        if (!doc || navigationLock.current) return false;
+                        if (
+                          !doc ||
+                          navigationLock.current ||
+                          (canvasRef.current && !canvasRef.current.prepare())
+                        )
+                          return false;
                         switchPage(doc.id, id);
                         setNotice(
                           t('links.navigated', {
@@ -1368,69 +1856,37 @@ export function Projects({ locale }: { locale: string }) {
                   )}
                 </div>
               )}
-              <aside className="inspector" aria-label={t('workspace.details')}>
-                <h2>{t('workspace.details')}</h2>
-                <ProjectNameField
-                  title={project.manifest.title}
-                  locale={locale}
-                  disabled={busy}
-                  onRename={renameActive}
-                />
-                <dl className="project-properties">
-                  <div>
-                    <dt>{t('workspace.documents')}</dt>
-                    <dd>{project.documents.length}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('workspace.pages')}</dt>
-                    <dd>
-                      {project.documents.reduce(
-                        (n, doc) => n + doc.pages.length,
-                        0,
-                      )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('workspace.datasets')}</dt>
-                    <dd>{project.datasets.length}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('workspace.assets')}</dt>
-                    <dd>{project.assets.length}</dd>
-                  </div>
-                </dl>
-                <div className="inspector-section">
-                  <h3>{t('workspace.updated')}</h3>
-                  <p>{date(project.manifest.updatedAt)}</p>
-                  <h3>{t('workspace.created')}</h3>
-                  <p>{date(project.manifest.createdAt)}</p>
-                </div>
-                <div className="storage-note">
-                  <Icon name="shield" />
-                  <h3>{t('workspace.autosaveTitle')}</h3>
-                  <p>{t('workspace.autosaveDescription')}</p>
-                </div>
-                <button
-                  className="button recovery-button"
-                  disabled={busy || !token}
-                  onClick={() =>
-                    setConfirmation({
-                      message: 'project.recoverConfirm',
-                      action: () =>
-                        replace(
-                          () => void open(project.manifest.projectId, true),
-                        ),
-                    })
-                  }
-                >
-                  <Icon name="refresh" />
-                  {t('project.recover')}
-                </button>
-              </aside>
             </div>
           </>
         )}
       </main>
+      {settingsOpen && (
+        <OfficeSettings
+          locale={locale}
+          theme={theme}
+          onLocale={onLocale}
+          onTheme={onTheme}
+          blocked={propertyDraft}
+          busy={settingsBusy}
+          onClose={() => setSettingsOpen(false)}
+          storage={
+            native ? (
+              <StorageSettings
+                embedded
+                locale={locale}
+                run={preserveAndRun}
+                onChanged={storageChanged}
+                onBusyChange={setSettingsBusy}
+              />
+            ) : undefined
+          }
+          integration={
+            native ? (
+              <AppImageIntegration locale={locale} invoke={native.invoke} />
+            ) : undefined
+          }
+        />
+      )}
     </div>
   );
 }

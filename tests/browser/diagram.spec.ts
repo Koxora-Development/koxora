@@ -48,6 +48,7 @@ async function edit(p: Page, id: string, label: string) {
   if (!(await p.locator('.objects-panel').isVisible()))
     await button(p, 'Objects').click();
   await p.getByLabel('Diagram element', { exact: true }).selectOption(id);
+  await p.getByRole('tab', { name: 'Text', exact: true }).click();
   await p
     .getByRole('textbox', { name: 'Label / text', exact: true })
     .fill(label);
@@ -90,8 +91,9 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
   ].entries()) {
     await edit(page, ids[i], label);
     if (!i) {
-      await page.getByText('Geometry and appearance', { exact: true }).click();
+      await page.getByRole('tab', { name: 'Format', exact: true }).click();
       await page.getByLabel('Fill', { exact: true }).fill('#cffafe');
+      await page.getByRole('tab', { name: 'Text', exact: true }).click();
       await page.getByLabel('Text size', { exact: true }).fill('18');
     }
     await button(page, 'Apply changes').click();
@@ -250,7 +252,7 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
   await page.keyboard.press('Escape');
   await expect(page.locator('.canvas-expanded')).toHaveCount(0);
 });
-test('German tools and modal focus stay usable after resize', async ({
+test('German tools and docked properties stay usable after resize', async ({
   page,
 }) => {
   await create(page);
@@ -266,6 +268,7 @@ test('German tools and modal focus stay usable after resize', async ({
   await page.getByRole('button', { name: 'Objekte', exact: true }).click();
   const id = await page.locator('[data-node-id]').getAttribute('data-node-id');
   await page.getByLabel('Diagrammelement', { exact: true }).selectOption(id!);
+  await page.getByRole('tab', { name: 'Text', exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Beschriftung / Text', exact: true })
     .fill('Prüfung bestanden');

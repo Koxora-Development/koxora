@@ -81,11 +81,21 @@ test('first run chooses storage before project discovery and is remembered offli
   await page.reload();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page
-    .getByRole('button', { name: 'Einstellungen · Speicher', exact: true })
+    .getByRole('button', { name: 'Einstellungen …', exact: true })
     .click();
-  await expect(page.getByRole('dialog')).toContainText(
-    '/chosen/世界/projects-v1',
-  );
+  const settings = page.getByRole('dialog', {
+    name: 'Einstellungen …',
+    exact: true,
+  });
+  await settings
+    .getByRole('button', { name: 'Projektspeicher', exact: true })
+    .click();
+  await expect(
+    settings.getByRole('region', {
+      name: 'Einstellungen · Speicher',
+      exact: true,
+    }),
+  ).toContainText('/chosen/世界/projects-v1');
 });
 test('migration failure preserves session and successful switch resets workspace before reopen', async ({
   page,
@@ -94,25 +104,29 @@ test('migration failure preserves session and successful switch resets workspace
   await page.getByRole('button', { name: 'Keep default and continue' }).click();
   await page.getByRole('button', { name: 'New project', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('Saved on this device');
-  await page
-    .getByRole('button', { name: 'Settings · Storage', exact: true })
+  await page.getByRole('button', { name: 'Settings…', exact: true }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings…', exact: true });
+  await settings
+    .getByRole('button', { name: 'Project storage', exact: true })
     .click();
+  const storage = settings.getByRole('region', {
+    name: 'Settings · Storage',
+    exact: true,
+  });
   await page.evaluate(() => sessionStorage.setItem('fail', '1'));
-  await page
+  await storage
     .getByRole('button', { name: 'Change location…', exact: true })
     .click();
-  await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
+  await expect(storage.getByRole('alert')).toBeVisible();
   await expect(page.locator('.workspace-header h1')).toHaveText(
     'Untitled project',
   );
   await page.evaluate(() => sessionStorage.removeItem('fail'));
-  await page
+  await storage
     .getByRole('button', { name: 'Change location…', exact: true })
     .click();
-  await expect(page.getByRole('dialog')).toContainText(
-    '/chosen/世界/projects-v1',
-  );
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(storage).toContainText('/chosen/世界/projects-v1');
+  await settings.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.locator('.workspace-header')).toHaveCount(0);
   await page.getByRole('button', { name: 'Open project', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('Saved on this device');

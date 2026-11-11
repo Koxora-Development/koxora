@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
-import { Dialog } from '@koxora/ui';
+import { PropertySurface } from './property-surface';
 import { AppImageIntegration } from './appimage-integration';
 import type { Invoke } from '@koxora/persistence';
 const nativeCore = (
@@ -19,7 +19,11 @@ export function StorageSettings({
   onChanged,
   onLocale,
   onModalChange,
+  embedded = false,
+  onBusyChange,
 }: {
+  embedded?: boolean;
+  onBusyChange?: (busy: boolean) => void;
   locale: string;
   initial?: boolean;
   onReady?: () => void;
@@ -31,10 +35,13 @@ export function StorageSettings({
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
     translate(locale, key, values);
   const [status, setStatus] = useState<Status | null>(null);
-  const [opened, setOpened] = useState(false);
+  const [opened, setOpened] = useState(embedded);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  useEffect(() => {
+    onBusyChange?.(busy);
+  }, [busy, onBusyChange]);
   useEffect(() => {
     onModalChange?.(opened);
   }, [opened, onModalChange]);
@@ -87,7 +94,7 @@ export function StorageSettings({
   }
   return (
     <>
-      {!initial && (
+      {!initial && !embedded && (
         <button
           className="button storage-trigger"
           onClick={() => setOpened(true)}
@@ -96,8 +103,8 @@ export function StorageSettings({
         </button>
       )}
       {opened && (
-        <Dialog
-          className="storage-dialog"
+        <PropertySurface
+          panel={embedded}
           title={t('storage.settings')}
           onCancel={() => {
             if (!busy && !initial) setOpened(false);
@@ -168,7 +175,7 @@ export function StorageSettings({
               <p>{t('storage.retained')}</p>
             </details>
           </section>
-          {!initial && (
+          {!initial && !embedded && (
             <AppImageIntegration locale={locale} invoke={nativeCore.invoke} />
           )}
           {error && <p role="alert">{t('storage.failure')}</p>}
@@ -181,29 +188,31 @@ export function StorageSettings({
             >
               {t(restoring ? 'storage.restoreAction' : 'storage.change')}
             </button>
-            <button
-              className={initial ? 'button primary' : 'button'}
-              disabled={busy || (initial && !status)}
-              onClick={() => {
-                if (!initial) {
-                  setOpened(false);
-                  return;
-                }
-                setBusy(true);
-                void nativeCore!
-                  .invoke('storage_keep')
-                  .then(() => {
+            {!embedded && (
+              <button
+                className={initial ? 'button primary' : 'button'}
+                disabled={busy || (initial && !status)}
+                onClick={() => {
+                  if (!initial) {
                     setOpened(false);
-                    onReady?.();
-                  })
-                  .catch(() => setError(true))
-                  .finally(() => setBusy(false));
-              }}
-            >
-              {t(initial ? 'storage.keep' : 'project.cancel')}
-            </button>
+                    return;
+                  }
+                  setBusy(true);
+                  void nativeCore!
+                    .invoke('storage_keep')
+                    .then(() => {
+                      setOpened(false);
+                      onReady?.();
+                    })
+                    .catch(() => setError(true))
+                    .finally(() => setBusy(false));
+                }}
+              >
+                {t(initial ? 'storage.keep' : 'project.cancel')}
+              </button>
+            )}
           </div>
-        </Dialog>
+        </PropertySurface>
       )}
     </>
   );

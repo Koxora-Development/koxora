@@ -1,6 +1,7 @@
 import { StorageGate } from './storage-settings';
 import './phase25.css';
 import './compact.css';
+import './office.css';
 import { Projects } from './projects';
 import { useEffect, useState } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
@@ -49,6 +50,25 @@ export function Studio() {
           <span className="brand-divider" />
           <small>{t('app.subtitle')}</small>
         </a>
+        <span className="office-window-caption">{t('office.windowTitle')}</span>
+      </header>
+      {storageFailed && (
+        <div className="notification error" role="alert">
+          {t('storage.unavailable')}
+        </div>
+      )}
+      <StorageGate
+        locale={preferences.locale}
+        onLocale={(locale) => updatePreferences({ ...preferences, locale })}
+      >
+        <Projects
+          locale={preferences.locale}
+          theme={preferences.theme}
+          onLocale={(locale) => updatePreferences({ ...preferences, locale })}
+          onTheme={(theme) => updatePreferences({ ...preferences, theme })}
+        />
+      </StorageGate>
+      <footer className="office-statusbar">
         <span className="connection">
           <Icon name="shield" />
           {t(online ? 'status.online' : 'status.offline')}
@@ -85,18 +105,7 @@ export function Studio() {
             </select>
           </label>
         </div>
-      </header>
-      {storageFailed && (
-        <div className="notification error" role="alert">
-          {t('storage.unavailable')}
-        </div>
-      )}
-      <StorageGate
-        locale={preferences.locale}
-        onLocale={(locale) => updatePreferences({ ...preferences, locale })}
-      >
-        <Projects locale={preferences.locale} />
-      </StorageGate>
+      </footer>
     </div>
   );
 }

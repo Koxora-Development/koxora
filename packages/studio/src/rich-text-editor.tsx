@@ -214,6 +214,12 @@ export function RichTextEditor({
       view.current = null;
     };
   }, [initial]);
+  useEffect(() => {
+    view.current?.dom.setAttribute(
+      'aria-label',
+      translate(locale, 'diagram.label'),
+    );
+  }, [locale]);
   function align(value: Appearance['align']) {
     const editor = view.current;
     if (!editor) return;

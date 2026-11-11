@@ -203,9 +203,15 @@ test('invalid requests pause queue, cancellation continues, picker import-as-cop
       window as unknown as { openingTest: { picker: number[] } }
     ).openingTest.picker = data;
   }, data);
+  await page.getByRole('button', { name: 'Settings…', exact: true }).click();
   await page
+    .getByRole('dialog', { name: 'Settings…', exact: true })
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
+  await page
+    .getByRole('dialog', { name: 'Einstellungen …', exact: true })
+    .getByRole('button', { name: 'Schließen', exact: true })
+    .click();
   await page
     .getByRole('button', { name: '.koxora importieren', exact: true })
     .click();
@@ -293,11 +299,16 @@ test('combined storage migration holds warm requests until the dialog closes and
   await expect(
     page.getByRole('textbox', { name: 'Project name', exact: true }),
   ).toHaveValue('Before migration');
-  await page
-    .getByRole('button', { name: 'Settings · Storage', exact: true })
+  await page.getByRole('button', { name: 'Settings…', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Settings…', exact: true });
+  await dialog
+    .getByRole('button', { name: 'Project storage', exact: true })
     .click();
-  const dialog = page.getByRole('dialog', { name: 'Settings · Storage' });
-  await expect(dialog).toContainText('/default/projects-v1');
+  const storage = dialog.getByRole('region', {
+    name: 'Settings · Storage',
+    exact: true,
+  });
+  await expect(storage).toContainText('/default/projects-v1');
   await enqueue(page, await bytes('Queued during migration'));
   // More than two queue polling intervals: a modal must keep this request pending.
   await expect
@@ -313,10 +324,10 @@ test('combined storage migration holds warm requests until the dialog closes and
   await expect(
     page.getByRole('textbox', { name: 'Project name', exact: true }),
   ).toHaveValue('Before migration');
-  await dialog
+  await storage
     .getByRole('button', { name: 'Change location…', exact: true })
     .click();
-  await expect(dialog).toContainText('/migrated/projects-v1');
+  await expect(storage).toContainText('/migrated/projects-v1');
   await expect(page.locator('.workspace-header')).toHaveCount(0);
   await expect
     .poll(() =>
@@ -327,7 +338,7 @@ test('combined storage migration holds warm requests until the dialog closes and
       ),
     )
     .toBe(1);
-  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(
     page.getByRole('textbox', { name: 'Project name', exact: true }),
   ).toHaveValue('Queued during migration');
@@ -345,7 +356,7 @@ test('combined storage migration holds warm requests until the dialog closes and
     .toBe(2);
 });
 
-test('warm requests wait for unapplied element link drafts without losing their values', async ({
+test('warm requests wait for unapplied docked link drafts without losing their values', async ({
   page,
 }) => {
   let source = createProject(
@@ -378,16 +389,20 @@ test('warm requests wait for unapplied element link drafts without losing their 
   if (!(await picker.isVisible()))
     await page.getByRole('button', { name: 'Objects', exact: true }).click();
   await picker.selectOption(id);
-  const dialog = page.getByRole('dialog', { name: 'Element properties' });
-  await dialog.getByLabel('Link type', { exact: true }).selectOption('url');
-  await dialog
+  const properties = page.getByRole('region', {
+    name: 'Element properties',
+    exact: true,
+  });
+  await properties.getByRole('tab', { name: 'Links', exact: true }).click();
+  await properties.getByLabel('Link type', { exact: true }).selectOption('url');
+  await properties
     .getByLabel('URL address', { exact: true })
     .fill('https://example.org/pending-draft');
   await enqueue(page, await bytes('After link dialog'));
   await page.waitForTimeout(1800);
-  await expect(dialog.getByLabel('URL address', { exact: true })).toHaveValue(
-    'https://example.org/pending-draft',
-  );
+  await expect(
+    properties.getByLabel('URL address', { exact: true }),
+  ).toHaveValue('https://example.org/pending-draft');
   await expect
     .poll(() =>
       page.evaluate(
@@ -402,9 +417,10 @@ test('warm requests wait for unapplied element link drafts without losing their 
       window as unknown as { openingTest: { holdWrites: boolean } }
     ).openingTest.holdWrites = true;
   });
-  await dialog
+  await properties
     .getByRole('button', { name: 'Apply changes', exact: true })
     .click();
+  await expect(properties).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(
@@ -415,7 +431,9 @@ test('warm requests wait for unapplied element link drafts without losing their 
     )
     .toBe(true);
   await expect(
-    page.getByRole('button', { name: 'Open link', exact: true }),
+    page
+      .getByRole('complementary', { name: 'Properties', exact: true })
+      .getByRole('button', { name: 'Open link', exact: true }),
   ).toBeEnabled();
   await page.evaluate(() => {
     const test = (
@@ -495,10 +513,14 @@ test('an explicit local follow during an in-flight save runs once after the writ
   if (!(await picker.isVisible()))
     await page.getByRole('button', { name: 'Objects', exact: true }).click();
   await picker.selectOption(a);
-  await page
-    .getByRole('dialog', { name: 'Element properties' })
-    .getByRole('button', { name: 'Cancel', exact: true })
+  const properties = page.getByRole('region', {
+    name: 'Element properties',
+    exact: true,
+  });
+  await properties
+    .getByRole('button', { name: 'Discard', exact: true })
     .click();
+  await expect(properties).toBeVisible();
   await page.evaluate(() => {
     (
       window as unknown as { openingTest: { holdWrites: boolean } }
@@ -519,7 +541,9 @@ test('an explicit local follow during an in-flight save runs once after the writ
       ),
     )
     .toBe(true);
-  await page.getByRole('button', { name: 'Open link', exact: true }).click();
+  await page.locator('.interactive-canvas').focus();
+  await page.locator('.interactive-canvas').press('Shift+F10');
+  await page.getByRole('menuitem', { name: 'Open link', exact: true }).click();
   await expect(page.locator('.interactive-canvas')).toHaveAttribute(
     'data-selection',
     JSON.stringify([a]),

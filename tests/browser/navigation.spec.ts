@@ -48,11 +48,32 @@ async function properties(page: Page, id: string) {
   if (!(await picker.isVisible()))
     await page.getByRole('button', { name: 'Objects', exact: true }).click();
   await picker.selectOption(id);
-  return page.getByRole('dialog', { name: 'Element properties' });
+  const dock = page.getByRole('region', {
+    name: 'Element properties',
+    exact: true,
+  });
+  await dock.getByRole('tab', { name: 'Links', exact: true }).click();
+  return dock;
 }
 async function select(page: Page, id: string) {
   const d = await properties(page, id);
-  await d.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await d.getByRole('button', { name: 'Discard', exact: true }).click();
+}
+async function follow(page: Page, name = 'Open link') {
+  const canvas = page.locator('.interactive-canvas');
+  await canvas.focus();
+  await canvas.press('Shift+F10');
+  await page.getByRole('menuitem', { name, exact: true }).click();
+}
+async function german(page: Page) {
+  await page.getByRole('button', { name: 'Settings…', exact: true }).click();
+  const settings = page.getByRole('dialog');
+  await settings
+    .getByRole('combobox', { name: 'Language', exact: true })
+    .selectOption('de');
+  await settings
+    .getByRole('button', { name: 'Schließen', exact: true })
+    .click();
 }
 test('authors foreign project and element targets, saves drafts and highlights locked destinations offline', async ({
   page,
@@ -86,7 +107,7 @@ test('authors foreign project and element targets, saves drafts and highlights l
   await page
     .getByRole('textbox', { name: 'Project name', exact: true })
     .fill('Source draft saved');
-  await page.getByRole('button', { name: 'Open link', exact: true }).click();
+  await follow(page);
   await expect(
     page.getByRole('textbox', { name: 'Project name', exact: true }),
   ).toHaveValue('Destination project');
@@ -124,7 +145,7 @@ test('authors foreign project and element targets, saves drafts and highlights l
     target.nodes[1].id,
   );
   await select(page, p.nodes[0].id);
-  await page.getByRole('button', { name: 'Open link', exact: true }).click();
+  await follow(page);
   await expect(page.locator('.interactive-canvas')).toHaveAttribute(
     'data-navigation-target',
     target.nodes[1].id,
@@ -163,7 +184,7 @@ test('local element navigation centers/selects, survives history, and clears aft
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await page.getByRole('button', { name: 'Redo', exact: true }).click();
   await select(page, p.nodes[0].id);
-  await page.getByRole('button', { name: 'Open link', exact: true }).click();
+  await follow(page);
   await expect(page.locator('.interactive-canvas')).toHaveAttribute(
     'data-selection',
     JSON.stringify([p.nodes[1].id]),
@@ -186,7 +207,7 @@ test('local element navigation centers/selects, survives history, and clears aft
         '{}',
     ) as { zoom: number }
   ).zoom;
-  await page.getByRole('button', { name: 'Open link', exact: true }).click();
+  await follow(page);
   await expect(
     page.getByRole('dialog', { name: 'Destination unavailable' }),
   ).toBeVisible();
@@ -223,7 +244,7 @@ test('local element navigation centers/selects, survives history, and clears aft
     )
     .toBeGreaterThan(1000);
   await select(page, p.nodes[0].id);
-  await page.getByRole('button', { name: 'Open link', exact: true }).click();
+  await follow(page);
   await page.getByRole('button', { name: 'New page', exact: true }).click();
   await expect(
     page.getByRole('treeitem', { name: 'Page 2', exact: true }),
@@ -263,7 +284,7 @@ test('missing projects offer explicit locate/import without switching workspace'
   expect(elementLink(project, p.nodes[0].id).state).toBe('ready');
   await imported(page, project);
   await select(page, p.nodes[0].id);
-  await page.getByRole('button', { name: 'Open link', exact: true }).click();
+  await follow(page);
   await expect(
     page.getByRole('dialog', { name: 'Destination unavailable' }),
   ).toBeVisible();
@@ -311,10 +332,8 @@ test('hidden foreign elements stay hidden and report unavailable in German', asy
   await imported(page, dest);
   await imported(page, source);
   await select(page, p.nodes[0].id);
-  await page
-    .getByRole('combobox', { name: 'Language', exact: true })
-    .selectOption('de');
-  await page.getByRole('button', { name: 'Link öffnen', exact: true }).click();
+  await german(page);
+  await follow(page, 'Link öffnen');
   await expect(
     page.getByRole('dialog', { name: 'Ziel nicht verfügbar' }),
   ).toBeVisible();

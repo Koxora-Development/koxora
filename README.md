@@ -54,4 +54,6 @@ Phase 2.6 adds [explicit diagram links](docs/development/interactive-links.md) f
 
 Configurable desktop project storage is prepared in [the storage-location guide](docs/development/desktop-storage.md), including migration, retained backups, explicit recovery and CachyOS acceptance. This review work does not authorize a merge or public release.
 [Native project opening](docs/development/native-opening.md) documents `.koxora` cold/warm opening, file associations, the optional per-user AppImage integration helper and the packaged OS acceptance matrix. Review builds are not public releases.
+
+The unmerged [Office-style workbench](docs/development/office-studio.md) replaces large property dialogs with a compact dock and conventional application menus. Rotation and mirroring authoring are tracked separately in Issue #57.
 The remaining project/element navigation from Issue #24 is prepared in [the navigation guide](docs/development/project-element-navigation.md): explicit local project identities, element camera/highlight targets, missing-target import/relink guidance and portable optional version-2 links. Interactive exports remain deferred.

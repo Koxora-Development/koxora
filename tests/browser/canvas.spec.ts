@@ -103,9 +103,25 @@ test('pointer-centered zoom, wheel pan, drag, keyboard, resize and expanded canv
   expect(await camera(page)).toEqual(stable);
   await page.getByLabel('Spacing', { exact: true }).focus();
   await page.keyboard.press('Tab');
-  await expect(
-    page.getByRole('button', { name: 'Project navigator', exact: true }),
-  ).toBeFocused();
+  expect(
+    await page
+      .locator('.canvas-workbook-expanded')
+      .evaluate((root) => root.contains(document.activeElement)),
+  ).toBe(true);
+  // The persistent dock participates in the expanded workspace's focus order.
+  for (let index = 0; index < 30; index++) {
+    await page.keyboard.press('Tab');
+    expect(
+      await page
+        .locator('.canvas-workbook-expanded')
+        .evaluate((root) => root.contains(document.activeElement)),
+    ).toBe(true);
+  }
+  const hideProperties = page.getByRole('button', {
+    name: 'Hide properties',
+    exact: true,
+  });
+  if (await hideProperties.isVisible()) await hideProperties.click();
   await page
     .getByRole('button', { name: 'Restore workspace', exact: true })
     .click();
@@ -228,9 +244,10 @@ test('export captures an in-progress wheel gesture without waiting for autosave'
     element.dispatchEvent(
       new WheelEvent('wheel', { deltaY: 75, cancelable: true }),
     );
-    const button = [...document.querySelectorAll('button')].find((button) =>
-      button.textContent?.includes('Export .koxora'),
-    )!;
+    const button = document.querySelector<HTMLButtonElement>(
+      '.office-quickbar button[aria-label="Export .koxora"]',
+    );
+    if (!button) throw new Error('The Office export action is missing');
     button.click();
   });
   const path = await (await downloaded).path();
@@ -242,17 +259,20 @@ test('German controls, focus help and grid styling work in both themes', async (
   page,
 }) => {
   await create(page);
+  const help = page
+    .getByRole('menubar')
+    .getByRole('menuitem', { name: 'Help', exact: true });
+  await help.click();
   await page
-    .getByRole('button', { name: 'Keyboard shortcuts', exact: true })
+    .getByRole('menuitem', { name: 'Keyboard shortcuts', exact: true })
     .click();
   await expect(page.getByRole('dialog')).toContainText(
     'Move, resize and arrange',
   );
   await page.keyboard.press('Escape');
-  await expect(
-    page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }),
-  ).toBeFocused();
+  await expect(help).toBeFocused();
   await page
+    .locator('.office-statusbar')
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
   await expect(
@@ -265,6 +285,7 @@ test('German controls, focus help and grid styling work in both themes', async (
     page.getByRole('button', { name: 'Einrasten', exact: true }),
   ).toBeVisible();
   await page
+    .locator('.office-statusbar')
     .getByRole('combobox', { name: 'Darstellung', exact: true })
     .selectOption('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -349,7 +370,14 @@ test('recovering a previous save remounts the canvas even with identical project
   await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
   await page.getByRole('button', { name: 'Grid', exact: true }).click();
   await saved(page);
-  await page
+  const properties = page.getByRole('complementary', {
+    name: 'Properties',
+    exact: true,
+  });
+  if (!(await properties.isVisible()))
+    await page.getByRole('button', { name: 'Properties', exact: true }).click();
+  await properties.getByText('Project details', { exact: true }).click();
+  await properties
     .getByRole('button', { name: 'Recover previous save', exact: true })
     .click();
   await page
@@ -388,11 +416,11 @@ test('expanded help closes independently and keeps background fields inaccessibl
     page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }),
   ).toBeFocused();
   await expect(page.locator('.canvas-expanded')).toBeVisible();
-  await expect(page.locator('.inspector')).toHaveJSProperty('inert', true);
-  const backgroundName = page.getByRole('textbox', {
-    name: 'Project name',
-    exact: true,
-  });
+  await expect(page.locator('.office-quickbar')).toHaveJSProperty(
+    'inert',
+    true,
+  );
+  const backgroundName = page.locator('.office-document-name input');
   await backgroundName.evaluate((element) => element.focus());
   await expect(backgroundName).not.toBeFocused();
   await page.keyboard.press('Escape');

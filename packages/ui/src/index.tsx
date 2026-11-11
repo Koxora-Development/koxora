@@ -15,8 +15,20 @@ export type IconName =
   | 'layers'
   | 'close'
   | 'refresh'
-  | 'shield';
+  | 'shield'
+  | 'save'
+  | 'undo'
+  | 'redo'
+  | 'panel'
+  | 'settings'
+  | 'expand';
 const paths: Record<IconName, string> = {
+  expand: 'M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6',
+  save: 'M4 3h13l4 4v14H3V3zM7 3v6h10V3M7 21v-8h10v8',
+  undo: 'M8 5 3 10l5 5M3 10h10a7 7 0 0 1 7 7',
+  redo: 'm16 5 5 5-5 5m5-5H11a7 7 0 0 0-7 7',
+  panel: 'M3 4h18v16H3zM15 4v16M17 8h2M17 12h2M17 16h2',
+  settings: 'M4 7h16M4 17h16M8 4v6m8 4v6',
   plus: 'M12 5v14M5 12h14',
   import: 'M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4',
   export: 'M12 15V3m-5 5 5-5 5 5M4 16v4h16v-4',

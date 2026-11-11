@@ -17,6 +17,25 @@ import {
 const now = '2026-10-25T10:00:00.000Z';
 const button = (p: Page, name: string) =>
   p.getByRole('button', { name, exact: true });
+async function menu(page: Page, name: string) {
+  await page
+    .getByRole('menubar')
+    .getByRole('menuitem', { name, exact: true })
+    .click();
+}
+async function preference(page: Page, label: string, value: string) {
+  await button(page, 'Settings…').click();
+  const dialog = page.getByRole('dialog');
+  await dialog
+    .getByRole('combobox', { name: label, exact: true })
+    .selectOption(value);
+  await dialog
+    .getByRole('button', {
+      name: value === 'de' ? 'Schließen' : 'Close',
+      exact: true,
+    })
+    .click();
+}
 async function setup(page: Page, load = true) {
   let project = createProject('Product launch', () => crypto.randomUUID(), now);
   const d = project.documents[0],
@@ -69,7 +88,10 @@ async function open(page: Page, project: Project) {
 async function exported(page: Page) {
   if (await button(page, 'Restore workspace').isVisible()) {
     await button(page, 'Restore workspace').click();
-    await expect(page.locator('.inspector')).toHaveJSProperty('inert', false);
+    await expect(page.locator('.office-quickbar')).toHaveJSProperty(
+      'inert',
+      false,
+    );
   }
   const download = page.waitForEvent('download');
   await button(page, 'Export .koxora').click();
@@ -201,13 +223,9 @@ test('workbook tree keeps focus, reorder, duplicate, delete/undo, views and docu
   expect(result.documents[1].pages[1].id).toBe(first);
   expect(result.documents[1].pages[1].viewport.zoom).toBe(zoom);
   await capture(page, 'workbook-light');
-  await page
-    .getByRole('combobox', { name: 'Appearance', exact: true })
-    .selectOption('dark');
+  await preference(page, 'Appearance', 'dark');
   await capture(page, 'workbook-dark');
-  await page
-    .getByRole('combobox', { name: 'Appearance', exact: true })
-    .selectOption('light');
+  await preference(page, 'Appearance', 'light');
   await button(page, 'Save project').click();
   await expect(
     page.getByText('Saved on this device', { exact: true }),
@@ -384,7 +402,10 @@ test('mixed batch properties preserve spans and right click selection, with atom
     .locator('.context-menu')
     .getByRole('menuitem', { name: 'Element properties', exact: true })
     .click();
-  const dialog = page.getByRole('dialog', { name: 'Format selection' });
+  const dialog = page.getByRole('region', {
+    name: 'Format selection',
+    exact: true,
+  });
   await expect(
     dialog.getByRole('combobox', { name: 'Font family', exact: true }),
   ).toHaveValue('');
@@ -395,9 +416,13 @@ test('mixed batch properties preserve spans and right click selection, with atom
     .selectOption('arial');
   await capture(page, 'batch-format');
   await dialog.getByRole('button', { name: 'Done', exact: true }).click();
-  await page.locator('.selection-align summary').click();
+  await menu(page, 'Format');
+  await page
+    .getByRole('menuitem', { name: 'Align / Distribute', exact: true })
+    .press('ArrowRight');
   await capture(page, 'selection-alignment');
-  await page.locator('.selection-align summary').click();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
   const result = await exported(page),
     nodes = result.documents[0].pages[0].nodes;
   expect(nodes.slice(0, 2).map((n) => resolveAppearance(n).fill)).toEqual([
@@ -427,9 +452,7 @@ test('many pages, 20 fonts and compact German selection controls remain reachabl
       now,
     );
   await open(page, project);
-  await page
-    .getByRole('combobox', { name: 'Language', exact: true })
-    .selectOption('de');
+  await preference(page, 'Language', 'de');
   await page.setViewportSize({ width: 390, height: 900 });
   const tabs = page.locator('[role=treeitem][data-page-id]');
   await tabs.first().focus();
@@ -446,6 +469,16 @@ test('many pages, 20 fonts and compact German selection controls remain reachabl
   ).toHaveCount(0);
   await expect(
     page.getByText('Ausrichten / Verteilen', { exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole('button', { name: 'Projektnavigation', exact: true })
+    .click();
+  await expect(page.locator('.project-sidebar')).toBeHidden();
+  // Desktop docks become overlays at this width. Close both through the
+  // Office toolbar before reaching the drawing tools underneath them.
+  await button(page, 'Eigenschaften').click();
+  await expect(
+    page.getByRole('complementary', { name: 'Eigenschaften', exact: true }),
   ).toHaveCount(0);
   await button(page, 'Text').click();
   await page.locator('.interactive-canvas').focus();
@@ -503,6 +536,10 @@ test('rich labels on connectors retain explicit ports after text editing and pag
   await page
     .getByLabel('Diagram element', { exact: true })
     .selectOption(project.documents[0].pages[0].connections[0].id);
+  await page
+    .getByRole('region', { name: 'Element properties', exact: true })
+    .getByRole('tab', { name: 'Text', exact: true })
+    .click();
   const editor = page.getByRole('textbox', {
     name: 'Label / text',
     exact: true,
@@ -625,8 +662,14 @@ test('text-only batch selection hides shape fill and border controls', async ({
     bounds[1]!.y + bounds[1]!.height / 2,
   );
   await page.keyboard.up('Shift');
-  await button(page, 'Element properties').click();
-  const dialog = page.getByRole('dialog', { name: 'Format selection' });
+  await menu(page, 'Format');
+  await page
+    .getByRole('menuitem', { name: 'Element properties', exact: true })
+    .click();
+  const dialog = page.getByRole('region', {
+    name: 'Format selection',
+    exact: true,
+  });
   await expect(dialog.getByLabel('Fill', { exact: true })).toHaveCount(0);
   await expect(dialog.getByLabel('Outline', { exact: true })).toHaveCount(0);
   await expect(dialog.getByLabel('Outline width', { exact: true })).toHaveCount(
