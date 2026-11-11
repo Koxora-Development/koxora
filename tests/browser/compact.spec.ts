@@ -109,6 +109,23 @@ test('menubar toggles its current menu and uses one keyboard tab stop', async ({
       .getByRole('toolbar', { name: 'File and editing tools' })
       .getByRole('button', { name: 'New project', exact: true }),
   ).toBeFocused();
+  await file.click();
+  await fileMenu
+    .getByRole('menuitem', { name: 'Settings…', exact: true })
+    .click();
+  await page
+    .getByRole('dialog')
+    .getByLabel('Language', { exact: true })
+    .selectOption('de');
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Schließen', exact: true })
+    .click();
+  await expect(
+    page
+      .getByRole('menubar')
+      .getByRole('menuitem', { name: 'Datei', exact: true }),
+  ).toBeFocused();
 });
 
 test('stacking submenu keeps keyboard focus when the pointer leaves and returns with Left or Escape', async ({

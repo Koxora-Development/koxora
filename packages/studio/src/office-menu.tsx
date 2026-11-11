@@ -264,7 +264,7 @@ export function OfficeMenubar({
       >
         {menus.map((menu, index) => (
           <button
-            key={menu.label}
+            key={index}
             type="button"
             role="menuitem"
             aria-haspopup="menu"

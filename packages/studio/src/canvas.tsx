@@ -1643,6 +1643,7 @@ export function Canvas({
           (element.tabIndex >= 0 ||
             (element.isContentEditable && !element.hasAttribute('tabindex'))) &&
           element.getClientRects().length &&
+          element.checkVisibility() &&
           !element.closest('[inert]'),
       );
       const first = focusable[0],
