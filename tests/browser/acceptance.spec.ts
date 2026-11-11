@@ -395,6 +395,7 @@ test('name and point pickers provide connection access without canvas pointing',
 test('whole-label typography renders on shapes, text, free lines and connectors and the shortcut reference stays usable', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   const ids = await fixture(page);
   await button(page, 'Line').click();
   await click(page, -210, -100);

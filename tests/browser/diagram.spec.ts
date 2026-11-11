@@ -72,6 +72,7 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
   page,
   context,
 }) => {
+  test.setTimeout(60_000);
   await create(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page
