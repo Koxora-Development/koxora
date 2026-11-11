@@ -13,7 +13,7 @@ test('guest startup defaults to English on a German OS with no backend requests'
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Ideas start here.',
+    'Project library',
   );
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(
@@ -44,7 +44,7 @@ test('language and dark theme persist across offline reload without changing doc
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Hier beginnen Ideen.',
+    'Projektbibliothek',
   );
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -74,7 +74,7 @@ test('language and dark theme persist across offline reload without changing doc
     .getByRole('combobox', { name: 'Sprache', exact: true })
     .selectOption('en');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Ideas start here.',
+    'Project library',
   );
 });
 test('blocked preference storage leaves a usable localized session', async ({
@@ -111,6 +111,6 @@ test('responsive shell has no horizontal overflow and supports keyboard skip nav
   await page.keyboard.press('Enter');
   await expect(page.getByRole('main')).toBeFocused();
   await expect(
-    page.getByRole('heading', { name: 'Ideas start here.', exact: true }),
+    page.getByRole('heading', { name: 'Project library', exact: true }),
   ).toBeVisible();
 });
