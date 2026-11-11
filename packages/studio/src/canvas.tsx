@@ -1,3 +1,4 @@
+import { WorkbenchControls } from './workbench-controls';
 import { NavigationContext } from './navigation-context';
 import { openExternalLink } from './external-links';
 import { ContextMenu } from './context-menu';
@@ -117,6 +118,7 @@ interface Props {
   onTargetApplied: () => void;
   onFollowPage: (pageId: string) => boolean;
   onNavigate: () => void;
+  navigatorOpen: boolean;
   expanded: boolean;
   onExpanded: (value: boolean) => void;
   page: Page;
@@ -139,6 +141,7 @@ export function Canvas({
   onTargetApplied,
   onFollowPage,
   onNavigate,
+  navigatorOpen,
   expanded,
   onExpanded: setExpanded,
   page,
@@ -1614,6 +1617,12 @@ export function Canvas({
         }
       branch = branch.parentElement;
     }
+    if (!root.contains(document.activeElement))
+      root
+        .querySelector<HTMLElement>(
+          '.expanded-workbench-tools button:not(:disabled)',
+        )
+        ?.focus({ preventScroll: true });
     const keydown = (event: KeyboardEvent) => {
       if (
         event.target instanceof Element &&
@@ -1660,7 +1669,13 @@ export function Canvas({
     return () => {
       root.removeEventListener('keydown', keydown);
       for (const item of hidden) item.element.inert = item.inert;
-      if (previous?.isConnected) previous.focus();
+      if (!root.classList.contains('canvas-workbook-expanded')) {
+        const trigger = document.querySelector<HTMLElement>(
+          '.office-quickbar [data-workbench-control="expand"]:not(:disabled)',
+        );
+        if (trigger) trigger.focus({ preventScroll: true });
+        else if (previous?.isConnected) previous.focus();
+      }
     };
   }, [expanded, setExpanded]);
   useEffect(() => {
@@ -1673,71 +1688,103 @@ export function Canvas({
   }
   return (
     <div
-      className={`office-canvas-layout ${inspectorOpen ? '' : 'properties-hidden'}`}
+      id={`sheet-page-${page.id}`}
+      role="tabpanel"
+      aria-label={page.title}
+      className={`office-canvas-layout ${expanded ? 'expanded-workbench' : ''} ${inspectorOpen ? '' : 'properties-hidden'}`}
+      onKeyDown={(event) => {
+        if (event.target instanceof Element && event.target.closest('dialog'))
+          return;
+        if (
+          helpShortcut(event.key) &&
+          !(
+            event.target instanceof Element &&
+            event.target.closest(
+              'input,textarea,select,dialog,[contenteditable="true"]',
+            )
+          )
+        ) {
+          event.preventDefault();
+          cancelInput.current();
+          setHelp(true);
+          return;
+        }
+        if (
+          (event.ctrlKey || event.metaKey) &&
+          !event.defaultPrevented &&
+          event.target instanceof Element &&
+          !event.target.closest(
+            'input, textarea, select, dialog, [contenteditable="true"], .interactive-canvas',
+          )
+        ) {
+          const shortcut = editingShortcut(event);
+          if (shortcut === 'selectAll') {
+            event.preventDefault();
+            select(
+              [...scene.nodes, ...scene.connections]
+                .filter((n) => n.editable)
+                .map((n) => n.id),
+            );
+          } else if (shortcut) {
+            event.preventDefault();
+            command(shortcut);
+          }
+        }
+
+        if (event.key === 'Escape' && previewing.current) {
+          event.preventDefault();
+          event.stopPropagation();
+          previewArrangement(null);
+          const details = (event.target as HTMLElement).closest('details');
+          if (details) details.open = false;
+          return;
+        }
+        if (
+          event.key === 'Escape' &&
+          !editing &&
+          (cancelInput.current() ||
+            tool !== 'select' ||
+            selected.length ||
+            contextMenu)
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          activate('select');
+          select([]);
+        }
+      }}
     >
+      {expanded && (
+        <div
+          className="expanded-workbench-tools"
+          role="toolbar"
+          aria-label={t('office.workbenchTools')}
+        >
+          <WorkbenchControls
+            locale={locale}
+            expanded
+            navigator={navigatorOpen}
+            properties={inspectorOpen}
+            objects={objects}
+            onNavigator={onNavigate}
+            onProperties={() => {
+              if (prepare()) setInspectorOpen((value) => !value);
+            }}
+            onObjects={() => setObjects((value) => !value)}
+            onExpand={() => {
+              if (prepare()) setExpanded(false);
+            }}
+          />
+          <span className="expanded-workbench-title" dir="auto">
+            {documentTitle} / {page.title}
+          </span>
+          <button className="button compact" onClick={() => setHelp(true)}>
+            {t('canvas.help')}
+          </button>
+        </div>
+      )}
       <section
         ref={stage}
-        onKeyDown={(event) => {
-          if (event.target instanceof Element && event.target.closest('dialog'))
-            return;
-          if (
-            helpShortcut(event.key) &&
-            !(
-              event.target instanceof Element &&
-              event.target.closest(
-                'input,textarea,select,dialog,[contenteditable="true"]',
-              )
-            )
-          ) {
-            event.preventDefault();
-            cancelInput.current();
-            setHelp(true);
-            return;
-          }
-          if (
-            (event.ctrlKey || event.metaKey) &&
-            !event.defaultPrevented &&
-            event.target instanceof Element &&
-            !event.target.closest(
-              'input, textarea, select, dialog, [contenteditable="true"], .interactive-canvas',
-            )
-          ) {
-            const shortcut = editingShortcut(event);
-            if (shortcut === 'selectAll') {
-              event.preventDefault();
-              select(
-                [...scene.nodes, ...scene.connections]
-                  .filter((n) => n.editable)
-                  .map((n) => n.id),
-              );
-            } else if (shortcut) {
-              event.preventDefault();
-              command(shortcut);
-            }
-          }
-
-          if (event.key === 'Escape' && previewing.current) {
-            event.preventDefault();
-            event.stopPropagation();
-            previewArrangement(null);
-            const details = (event.target as HTMLElement).closest('details');
-            if (details) details.open = false;
-            return;
-          }
-          if (
-            event.key === 'Escape' &&
-            !editing &&
-            (cancelInput.current() ||
-              tool !== 'select' ||
-              selected.length ||
-              contextMenu)
-          ) {
-            event.preventDefault();
-            event.stopPropagation();
-            activate('select');
-            select([]);
-          }
-        }}
         className={`canvas-stage interactive-stage ${expanded ? 'canvas-expanded' : ''}`}
         aria-label={t('workspace.canvas')}
       >

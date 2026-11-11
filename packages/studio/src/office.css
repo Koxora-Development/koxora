@@ -912,3 +912,188 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Workbook sheets stay with the document in both workspace modes. */
+.studio-shell .canvas-workbook {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.studio-shell .canvas-workbook > .office-canvas-layout {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+.workbench-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.office-canvas-layout.expanded-workbench {
+  grid-template-rows: 34px minmax(0, 1fr);
+}
+.expanded-workbench-tools {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 8px;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.expanded-workbench-title {
+  flex: 1;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.expanded-workbench .canvas-toolbar {
+  display: none;
+}
+.workbook-sheetbar {
+  display: flex;
+  align-items: center;
+  flex: 0 0 32px;
+  min-width: 0;
+  padding: 0 5px;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+.sheet-scroll-controls {
+  display: flex;
+  flex: 0 0 auto;
+}
+.sheet-scroll-controls .office-tool-button {
+  width: 22px;
+  font-size: 20px;
+}
+.sheet-document {
+  max-width: 145px;
+  min-width: 65px;
+  height: 24px;
+  min-height: 24px;
+  font-size: 11px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 1px 20px 1px 5px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.workbook-sheet-tabs {
+  flex: 1;
+  display: flex;
+  align-self: stretch;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  scrollbar-width: none;
+}
+.workbook-sheet-tabs > button {
+  flex: 0 0 auto;
+  max-width: 220px;
+  min-width: 70px;
+  padding: 4px 15px;
+  border: 0;
+  border-inline-end: 1px solid var(--line);
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  border-radius: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.workbook-sheet-tabs > button:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.workbook-sheet-tabs > button[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 650;
+}
+.workbook-sheet-tabs > button[aria-disabled='true'] {
+  opacity: 0.65;
+  cursor: default;
+}
+.sheet-add {
+  flex-shrink: 0;
+}
+@media (max-width: 999px) {
+  .expanded-workbench .office-properties {
+    inset-block-start: 34px;
+  }
+}
+@media (pointer: coarse) {
+  .workbook-sheetbar {
+    flex-basis: 46px;
+  }
+  .sheet-document {
+    min-height: 44px;
+  }
+  .office-canvas-layout.expanded-workbench {
+    grid-template-rows: 48px minmax(0, 1fr);
+  }
+  .expanded-workbench .office-properties {
+    inset-block-start: 48px;
+  }
+}
+.office-navigator-dialog {
+  width: min(460px, calc(100vw - 24px));
+}
+.office-navigator-dialog .studio-navigator .project-tree {
+  max-height: 55dvh;
+  overflow-y: auto;
+}
+/* Keep the navigator footer and trash reachable when a workbook has many sheets. */
+.studio-shell .office-application {
+  grid-template-columns: 232px minmax(0, 1fr);
+}
+.studio-shell .office-application.navigator-hidden {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.studio-shell .project-sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.studio-shell .project-sidebar > .nav-item {
+  flex: 0 0 auto;
+}
+.studio-shell .project-sidebar > .studio-navigator {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.studio-shell .project-sidebar .studio-navigator .project-tree {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+.studio-shell .project-sidebar .studio-navigator .tree-heading,
+.studio-shell .project-sidebar .studio-navigator .tree-create {
+  flex: 0 0 auto;
+}
+.studio-shell .project-sidebar .studio-navigator .project-trash {
+  flex: 0 1 auto;
+  max-height: 35%;
+  overflow-y: auto;
+}
+@media (max-width: 999px) {
+  .studio-shell .office-application {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+  .studio-shell .project-sidebar {
+    width: 232px;
+  }
+}

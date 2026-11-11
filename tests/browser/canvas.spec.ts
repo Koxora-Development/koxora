@@ -123,6 +123,7 @@ test('pointer-centered zoom, wheel pan, drag, keyboard, resize and expanded canv
   });
   if (await hideProperties.isVisible()) await hideProperties.click();
   await page
+    .locator('.expanded-workbench-tools')
     .getByRole('button', { name: 'Restore workspace', exact: true })
     .click();
   await canvas(page).focus();
@@ -402,6 +403,7 @@ test('expanded help closes independently and keeps background fields inaccessibl
     .getByRole('button', { name: 'Expand canvas', exact: true })
     .click();
   await page
+    .locator('.expanded-workbench-tools')
     .getByRole('button', { name: 'Keyboard shortcuts', exact: true })
     .click();
   await expect(
@@ -413,7 +415,9 @@ test('expanded help closes independently and keeps background fields inaccessibl
     page.getByRole('dialog', { name: 'Keyboard shortcuts', exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }),
+    page
+      .locator('.expanded-workbench-tools')
+      .getByRole('button', { name: 'Keyboard shortcuts', exact: true }),
   ).toBeFocused();
   await expect(page.locator('.canvas-expanded')).toBeVisible();
   await expect(page.locator('.office-quickbar')).toHaveJSProperty(

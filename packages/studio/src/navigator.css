@@ -1,0 +1,257 @@
+/* Shared by the docked navigator and its expanded view. */
+.project-tree-panel.studio-navigator {
+  min-width: 0;
+  color: var(--ink);
+  background: var(--surface);
+}
+.studio-navigator.project-tree-panel .tree-heading {
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.015em;
+}
+.studio-navigator .tree-heading strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-weight: 650;
+}
+.studio-navigator .icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.studio-navigator .tree-heading strong > .icon {
+  color: var(--accent);
+}
+.studio-navigator.project-tree-panel .navigator-add-project {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  min-height: 26px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+}
+.studio-navigator .navigator-add-project:hover:not(:disabled) {
+  border-color: var(--line);
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+.studio-navigator.project-tree-panel .project-tree {
+  padding: 6px;
+  scrollbar-gutter: stable;
+}
+.studio-navigator.project-tree-panel .tree-row {
+  position: relative;
+  gap: 0;
+  margin-block: 1px;
+  border-radius: 4px;
+}
+.studio-navigator .tree-row[data-kind='project'] {
+  margin-block-start: 5px;
+}
+.studio-navigator .tree-row[data-kind='project']:first-child {
+  margin-block-start: 0;
+}
+.studio-navigator .tree-row:hover,
+.studio-navigator .tree-row:focus-within {
+  background: var(--surface-muted);
+}
+.studio-navigator .tree-row[data-kind='page'][data-current='true'] {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 var(--accent);
+}
+.studio-navigator.project-tree-panel .tree-item {
+  min-height: 30px;
+  gap: 6px;
+  padding: 5px 4px;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 11px;
+  line-height: 18px;
+}
+.studio-navigator .tree-row[data-kind='project'] > .tree-item {
+  font-weight: 650;
+}
+.studio-navigator .tree-row[data-kind='document'] > .tree-item {
+  font-weight: 550;
+}
+.studio-navigator
+  .tree-row[data-kind='project'][data-current='true']
+  .navigator-kind {
+  color: var(--accent);
+}
+.studio-navigator .tree-item.active {
+  color: var(--accent);
+  font-weight: 650;
+}
+.studio-navigator .tree-name {
+  flex: 1;
+  min-width: 0;
+}
+.studio-navigator .tree-disclosure {
+  display: grid;
+  place-items: center;
+  width: 9px;
+  height: 16px;
+}
+.studio-navigator .navigator-chevron {
+  width: 5px;
+  height: 5px;
+  border-block-start: 1.5px solid currentColor;
+  border-inline-end: 1.5px solid currentColor;
+  color: var(--muted);
+  transform: rotate(45deg);
+}
+.studio-navigator .navigator-chevron.expanded {
+  transform: translateY(-2px) rotate(135deg);
+}
+.studio-navigator .navigator-kind {
+  display: flex;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.studio-navigator .tree-item.active .navigator-kind {
+  color: inherit;
+}
+.studio-navigator .tree-dirty {
+  font-size: 13px;
+  line-height: 1;
+  margin-inline: 2px;
+}
+.studio-navigator.project-tree-panel .tree-actions {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  min-height: 28px;
+  border-radius: 4px;
+  color: var(--muted);
+  opacity: 0.65;
+}
+.studio-navigator .tree-row:hover .tree-actions,
+.studio-navigator .tree-row:focus-within .tree-actions {
+  opacity: 1;
+}
+.studio-navigator .navigator-more {
+  display: flex;
+  gap: 2px;
+}
+.studio-navigator .navigator-more i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.studio-navigator.project-tree-panel .tree-create {
+  display: flex;
+  gap: 5px;
+  padding: 8px;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.studio-navigator.project-tree-panel .tree-create .button,
+.studio-navigator.project-tree-panel .project-trash .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 27px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 16px;
+}
+.studio-navigator .tree-create .button {
+  flex: 1 1 auto;
+}
+.studio-navigator .tree-create .icon,
+.studio-navigator .project-trash .icon {
+  width: 13px;
+  height: 13px;
+}
+.studio-navigator.project-tree-panel .project-trash {
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+.studio-navigator .project-trash summary {
+  cursor: pointer;
+  padding-block: 3px;
+}
+.studio-navigator .project-trash > div {
+  align-items: center;
+  gap: 8px;
+}
+.studio-navigator .project-trash > div > span {
+  min-width: 0;
+  flex: 1;
+  color: var(--ink);
+}
+.studio-navigator .tree-item:focus-visible,
+.studio-navigator .tree-actions:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.studio-navigator .tree-actions[aria-disabled='true'] {
+  opacity: 0.4;
+}
+@media (pointer: coarse) {
+  .studio-navigator.project-tree-panel .tree-item,
+  .studio-navigator.project-tree-panel .tree-actions,
+  .studio-navigator.project-tree-panel .navigator-add-project,
+  .studio-navigator.project-tree-panel .tree-create .button,
+  .studio-navigator.project-tree-panel .project-trash .button {
+    min-height: 40px;
+  }
+  .studio-navigator.project-tree-panel .tree-actions,
+  .studio-navigator.project-tree-panel .navigator-add-project {
+    width: 40px;
+  }
+}
+.studio-navigator .project-trash .navigator-trash-entry {
+  display: flex;
+  gap: 5px;
+  margin-block-start: 5px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface-muted);
+}
+.studio-navigator .navigator-trash-icon {
+  display: flex;
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+.studio-navigator .project-trash .navigator-trash-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.studio-navigator .project-trash .navigator-trash-entry .button {
+  flex: 0 0 auto;
+  padding: 4px;
+  width: 27px;
+  background: var(--surface);
+}
+.studio-navigator .navigator-trash-purge:hover:not(:disabled),
+.studio-navigator .navigator-trash-purge:focus-visible {
+  color: var(--error);
+  border-color: currentColor;
+}
+.studio-navigator .navigator-purge-dialog .navigator-confirm-purge {
+  color: var(--error);
+  border: 1px solid currentColor;
+  font-weight: 650;
+}
+.studio-navigator .navigator-purge-dialog p {
+  overflow-wrap: anywhere;
+}

@@ -128,7 +128,7 @@ test('navigator menus stay interactive inside expanded canvas and preserve keybo
     true,
   );
   await page
-    .locator('.canvas-expanded')
+    .locator('.expanded-workbench-tools')
     .getByRole('button', { name: 'Project navigator', exact: true })
     .click();
   const nav = page.getByRole('dialog', {
@@ -207,7 +207,7 @@ test('sidebar saves before project switching, duplicates complete projects and r
     true,
   );
   await page
-    .locator('.canvas-expanded')
+    .locator('.expanded-workbench-tools')
     .getByRole('button', { name: 'Project navigator', exact: true })
     .click();
   const root = page.getByRole('treeitem', {
@@ -224,7 +224,7 @@ test('sidebar saves before project switching, duplicates complete projects and r
     .click();
   await expect(page.getByRole('tree')).toBeVisible();
   await page.locator('.project-trash summary').click();
-  await button(page, 'Restore project').click();
+  await button(page, 'Restore project: Second project (copy)').click();
   await page
     .getByRole('treeitem', { name: 'Second project (copy)', exact: true })
     .click();

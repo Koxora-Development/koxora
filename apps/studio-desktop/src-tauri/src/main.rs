@@ -91,6 +91,15 @@ fn project_write(
         storage::write(&location.root()?, &id, expected.as_deref(), &value)
     }
 }
+#[tauri::command]
+async fn project_remove(app: tauri::AppHandle, id: String, expected: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let location = location(&app)?;
+        storage::remove(&location.root()?, &id, &expected)
+    })
+    .await
+    .map_err(|_| "storage".to_owned())?
+}
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ExportLabels {
@@ -232,6 +241,7 @@ fn main() {
             project_read,
             project_read_previous,
             project_write,
+            project_remove,
             project_export,
             open_external_url
         ])

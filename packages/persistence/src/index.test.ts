@@ -30,6 +30,12 @@ class MemoryStore implements SnapshotStore {
       throw new ProjectError('conflict');
     this.data.set(id, value);
   }
+  async remove(id: string, expected: string) {
+    if (this.fail) throw new ProjectError('storage');
+    if (this.data.get(id) !== expected || JSON.parse(expected).deleted !== true)
+      throw new ProjectError('conflict');
+    this.data.delete(id);
+  }
 }
 function setup() {
   const store = new MemoryStore();
@@ -270,4 +276,165 @@ it('trashes and restores complete snapshots with CAS protection and unchanged re
   expect(await repo.list(true)).toEqual([]);
   expect((await repo.open(key)).project.manifest.title).toBe('Second');
   expect((await repo.open(key, true)).project.manifest.title).toBe('First');
+});
+
+it('permanently removes a trashed record with its recovery payload while preserving unrelated projects', async () => {
+  const { repo, project, store } = setup();
+  const key = project.manifest.projectId;
+  const first = await repo.save(project, null);
+  project.manifest.title = 'Updated before trash';
+  const second = await repo.save(project, first);
+  const trashed = await repo.setDeleted(key, second, true);
+  const unrelated = createProject(
+    'Keep',
+    () => crypto.randomUUID(),
+    project.manifest.updatedAt,
+  );
+  const keep = await repo.save(unrelated, null);
+  const withRecovery = JSON.stringify({
+    ...JSON.parse(trashed),
+    recoverySource: 'opaque damaged source',
+  });
+  await store.write(key, trashed, withRecovery);
+  await repo.purge(key, withRecovery);
+  expect(await store.read(key)).toBeNull();
+  expect(await repo.list(true)).toEqual([]);
+  await expect(repo.open(key)).rejects.toMatchObject({ code: 'missing' });
+  await expect(repo.open(key, true, true)).rejects.toMatchObject({
+    code: 'missing',
+  });
+  expect(await store.read(unrelated.manifest.projectId)).toBe(keep);
+  // A deliberately reimported portable file may reuse a locally purged identity.
+  await repo.save(project, null);
+  expect((await repo.open(key)).project.manifest.title).toBe(
+    'Updated before trash',
+  );
+});
+it('purge rejects active, restored, stale, malformed and unavailable records without deleting them', async () => {
+  const { repo, project, store } = setup();
+  const key = project.manifest.projectId;
+  const active = await repo.save(project, null);
+  await expect(repo.purge(key, active)).rejects.toMatchObject({
+    code: 'conflict',
+  });
+  expect(await store.read(key)).toBe(active);
+  const trashed = await repo.setDeleted(key, active, true);
+  store.fail = true;
+  await expect(repo.purge(key, trashed)).rejects.toMatchObject({
+    code: 'storage',
+  });
+  expect(await store.read(key)).toBe(trashed);
+  store.fail = false;
+  const restored = await repo.setDeleted(key, trashed, false);
+  await expect(repo.purge(key, trashed)).rejects.toMatchObject({
+    code: 'conflict',
+  });
+  await expect(repo.purge('../outside', trashed)).rejects.toMatchObject({
+    code: 'invalid',
+  });
+  await expect(repo.purge(key, '{broken')).rejects.toMatchObject({
+    code: 'invalid',
+  });
+  expect(await store.read(key)).toBe(restored);
+  const withoutRemove: SnapshotStore = {
+    keys: () => store.keys(),
+    read: (id) => store.read(id),
+    write: (...args) => store.write(...args),
+  };
+  const retrash = await repo.setDeleted(key, restored, true);
+  await expect(
+    new ProjectRepository(withoutRemove).purge(key, retrash),
+  ).rejects.toMatchObject({ code: 'storage' });
+  expect(await store.read(key)).toBe(retrash);
+});
+it('native purge uses only the fixed project command and guards active records before IPC', async () => {
+  const calls: {
+    command: string;
+    args: Record<string, unknown> | undefined;
+  }[] = [];
+  const native = new NativeStore(
+    async <T>(command: string, args?: Record<string, unknown>) => {
+      calls.push({ command, args });
+      return undefined as T;
+    },
+  );
+  const project = setup().project;
+  const expected = JSON.stringify({
+    current: 'archive',
+    previous: 'backup',
+    deleted: true,
+  });
+  await native.remove(project.manifest.projectId, expected);
+  expect(calls).toEqual([
+    {
+      command: 'project_remove',
+      args: { id: project.manifest.projectId, expected },
+    },
+  ]);
+  await expect(
+    native.remove(
+      project.manifest.projectId,
+      JSON.stringify({ current: 'archive', previous: null }),
+    ),
+  ).rejects.toMatchObject({ code: 'conflict' });
+  await expect(native.remove('../outside', expected)).rejects.toMatchObject({
+    code: 'invalid',
+  });
+  expect(calls).toHaveLength(1);
+  await expect(
+    new NativeStore(async () => {
+      throw 'conflict';
+    }).remove(project.manifest.projectId, expected),
+  ).rejects.toMatchObject({ code: 'conflict' });
+});
+it('browser purge rejects unsafe IDs and non-trashed envelopes before opening IndexedDB', async () => {
+  let opened = 0;
+  const browser = new IndexedDbStore(() => {
+    opened++;
+    throw new Error('unavailable');
+  });
+  const project = setup().project;
+  const active = JSON.stringify({ current: 'archive', previous: null });
+  await expect(
+    browser.remove(project.manifest.projectId, active),
+  ).rejects.toMatchObject({ code: 'conflict' });
+  await expect(
+    browser.remove(
+      '../outside',
+      JSON.stringify({ ...JSON.parse(active), deleted: true }),
+    ),
+  ).rejects.toMatchObject({ code: 'invalid' });
+  expect(opened).toBe(0);
+});
+
+it('prepares coherent trashed details and token for confirmation and rejects active projects', async () => {
+  const { repo, project, store } = setup();
+  const key = project.manifest.projectId;
+  const active = await repo.save(project, null);
+  await expect(repo.preparePurge(key)).rejects.toMatchObject({
+    code: 'conflict',
+  });
+  expect(await store.read(key)).toBe(active);
+  await expect(repo.preparePurge('../outside')).rejects.toMatchObject({
+    code: 'invalid',
+  });
+  const trashed = await repo.setDeleted(key, active, true);
+  const prepared = await repo.preparePurge(key);
+  expect(prepared.project.manifest).toMatchObject({
+    projectId: key,
+    title: 'First',
+  });
+  expect(prepared.token).toBe(trashed);
+  expect(prepared.recovered).toBe(false);
+  // A confirmation must not reread/rebind to a newer snapshot on submission.
+  const restored = await repo.setDeleted(key, trashed, false);
+  project.manifest.title = 'Changed after confirmation opened';
+  const changed = await repo.save(project, restored);
+  await repo.setDeleted(key, changed, true);
+  await expect(repo.purge(key, prepared.token)).rejects.toMatchObject({
+    code: 'conflict',
+  });
+  expect((await repo.preparePurge(key)).project.manifest.title).toBe(
+    'Changed after confirmation opened',
+  );
 });

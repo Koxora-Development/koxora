@@ -535,5 +535,20 @@
   "office.menu.help": "Help",
   "office.recent": "Recent projects",
   "office.fileTools": "File and editing tools",
-  "office.selectAll": "Select all"
+  "office.selectAll": "Select all",
+  "office.workbenchTools": "Workspace controls",
+  "start.blank": "New blank project",
+  "start.openFile": "Open file…",
+  "start.library": "Project library",
+  "start.libraryDescription": "Projects saved on this device. Open a project to continue editing.",
+  "start.updated": "Last saved",
+  "start.templates": "Templates",
+  "start.templatesPlanned": "Templates are planned",
+  "start.templatesDescription": "Start with a blank project today. Reusable templates will appear here in a future version.",
+  "start.localNote": "Local projects · No account required",
+  "tree.purge": "Permanently delete",
+  "tree.purgeProject": "Permanently delete project",
+  "tree.purgeProjectWarning": "Permanently delete “{name}”? This cannot be undone. The project and its saved recovery data will be removed.",
+  "tree.purgeProjectAction": "Permanently delete {name}",
+  "tabs.addSheet": "Add page"
 }

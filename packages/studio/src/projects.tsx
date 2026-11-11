@@ -1,3 +1,6 @@
+import { StartPage } from './start-page';
+import { WorkbenchControls } from './workbench-controls';
+import { WorkbookTabs } from './workbook-tabs';
 import { StorageSettings } from './storage-settings';
 import { OfficeMenubar, type OfficeMenuItem } from './office-menu';
 import { OfficeSettings } from './office-settings';
@@ -15,7 +18,7 @@ import {
 } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog, Icon } from '@koxora/ui';
-import { ProjectTitle, ProjectNameField } from './project-title';
+import { ProjectNameField } from './project-title';
 import {
   Canvas,
   type CanvasHandle,
@@ -276,8 +279,8 @@ export function Projects({
     }
   }
   function switchPage(documentId: string, id: string) {
-    if (canvasRef.current && !canvasRef.current.prepare()) return;
-    if (navigationLock.current) return;
+    if (canvasRef.current && !canvasRef.current.prepare()) return false;
+    if (navigationLock.current) return false;
     setFocusTarget(null);
     setView('workspace');
     setNavigatorOpen(false);
@@ -285,6 +288,7 @@ export function Projects({
     if (current) setProject(selectPage(current, documentId, id));
     setPageId(id);
     setPendingNavigation(false);
+    return true;
   }
   function workbook(command: WorkbookCommand): boolean {
     if (canvasRef.current && !canvasRef.current.prepare()) return false;
@@ -645,13 +649,32 @@ export function Projects({
       setNavigatorOpen(false);
     });
   }
+  async function prepareProjectPurge(id: string) {
+    if (
+      busy ||
+      navigationLock.current ||
+      projectRef.current?.manifest.projectId === id ||
+      (canvasRef.current && !canvasRef.current.prepare())
+    )
+      throw new ProjectError('conflict');
+    const removed = await repository.preparePurge(id);
+    return { token: removed.token, title: removed.project.manifest.title };
+  }
   async function projectAction(
     action: ProjectAction,
     id: string,
     title?: string,
+    expected?: string,
   ): Promise<boolean> {
     if (action === 'rename') return renameStored(id, title ?? '');
     return preserveAndRun(async () => {
+      if (action === 'purge') {
+        if (projectRef.current?.manifest.projectId === id)
+          throw new ProjectError('conflict');
+        if (!expected) throw new ProjectError('conflict');
+        await repository.purge(id, expected);
+        return;
+      }
       const opened = await repository.open(id, false, action === 'restore');
       if (action === 'duplicate') {
         // Identities inside a project are project-scoped. A new project UUID copies its complete archive without guessing opaque references.
@@ -892,31 +915,6 @@ export function Projects({
       </button>
     </details>
   );
-  const actions = (
-    <>
-      <button
-        className="button primary"
-        disabled={busy}
-        onClick={() => replace(create)}
-      >
-        <Icon name="plus" />
-        {t('project.create')}
-      </button>
-      <button
-        className="button"
-        disabled={busy}
-        onClick={() =>
-          replace(() => {
-            setError(null);
-            setImporting(true);
-          })
-        }
-      >
-        <Icon name="import" />
-        {t('project.import')}
-      </button>
-    </>
-  );
   function storageChanged() {
     setQueuedFollow(null);
     setQueuedExport(null);
@@ -969,6 +967,7 @@ export function Projects({
       onSelect={switchPage}
       onCommand={workbook}
       onProjectAction={projectAction}
+      onPreparePurge={prepareProjectPurge}
       onHistory={travel}
     />
   );
@@ -1327,50 +1326,20 @@ export function Projects({
           <Icon name="redo" />
         </button>
         <span className="office-toolbar-divider" />
-        <button
-          className="office-tool-button"
-          aria-label={t('tree.heading')}
-          title={t('tree.heading')}
-          aria-pressed={navigatorVisible}
-          onClick={() =>
-            expanded
-              ? setNavigatorOpen(true)
-              : setNavigatorVisible((value) => !value)
-          }
-        >
-          <Icon name="layers" />
-        </button>
-        <button
-          className="office-tool-button"
-          aria-label={t('office.properties')}
-          title={t('office.properties')}
-          aria-pressed={commandState.propertiesVisible}
+        <WorkbenchControls
+          locale={locale}
+          expanded={false}
+          navigator={navigatorVisible}
+          properties={commandState.propertiesVisible}
+          objects={commandState.objectsVisible}
           disabled={!project}
-          onClick={() => canvasRef.current?.toggleProperties()}
-        >
-          <Icon name="panel" />
-        </button>
-        <button
-          className="office-tool-button"
-          aria-label={t('format.objects')}
-          title={t('format.objects')}
-          aria-pressed={commandState.objectsVisible}
-          disabled={!project}
-          onClick={() => canvasRef.current?.toggleObjects()}
-        >
-          <Icon name="grid" />
-        </button>
-        <button
-          className="office-tool-button"
-          aria-label={t('canvas.expand')}
-          title={t('canvas.expand')}
-          disabled={!project}
-          onClick={() => {
+          onNavigator={() => setNavigatorVisible((value) => !value)}
+          onProperties={() => canvasRef.current?.toggleProperties()}
+          onObjects={() => canvasRef.current?.toggleObjects()}
+          onExpand={() => {
             if (canvasRef.current?.prepare()) setExpanded(true);
           }}
-        >
-          <Icon name="expand" />
-        </button>
+        />
         {project && (
           <div className="office-document-name">
             <h1 className="sr-only">{project.manifest.title}</h1>
@@ -1640,138 +1609,31 @@ export function Projects({
           </div>
         )}
         {view === 'dashboard' || !project ? (
-          <>
-            <div className="dashboard-heading">
-              <div>
-                <p className="eyebrow">{t('dashboard.eyebrow')}</p>
-                <h1 ref={titleRef} tabIndex={-1}>
-                  {t('dashboard.title')}
-                </h1>
-                <p className="subtitle">{t('dashboard.description')}</p>
-              </div>
-              <div className="action-row">{actions}</div>
-            </div>
-            <section
-              className="projects-section"
-              aria-labelledby="projects-title"
-            >
-              <div className="section-heading">
-                <h2 id="projects-title">
-                  {t('project.recent')} <span>{items.length}</span>
-                </h2>
-                <button
-                  className="button subtle"
-                  disabled={busy}
-                  onClick={() => {
-                    setOperation('loading');
-                    void refresh()
-                      .catch(report)
-                      .finally(() => setOperation(null));
-                  }}
-                >
-                  <Icon name="refresh" />
-                  {t('project.refresh')}
-                </button>
-              </div>
-              {operation && (
-                <p className="loading-line" role="status">
-                  <span className="spinner" />
-                  {t(`operation.${operation}`)}
-                </p>
-              )}
-              {!items.length && !busy ? (
-                <div className="dashboard-empty">
-                  <div className="empty-symbol">
-                    <Icon name="layers" />
-                  </div>
-                  <h2>{t('dashboard.emptyTitle')}</h2>
-                  <p>{t('dashboard.emptyDescription')}</p>
-                  <span className="local-hint">
-                    <Icon name="shield" />
-                    {t('workspace.note')}
-                  </span>
-                </div>
-              ) : (
-                <ul className="project-grid">
-                  {items.map((item) => (
-                    <li
-                      key={item.id}
-                      className={`project-card ${project?.manifest.projectId === item.id ? 'active' : ''}`}
-                    >
-                      <div className="project-cover" aria-hidden="true">
-                        <Icon name="layers" />
-                        <span className="cover-line one" />
-                        <span className="cover-line two" />
-                      </div>
-                      <div className="card-body">
-                        <div className="card-title">
-                          <ProjectTitle
-                            title={
-                              project?.manifest.projectId === item.id
-                                ? project.manifest.title
-                                : (item.title ?? t('project.unreadable'))
-                            }
-                            locale={locale}
-                            disabled={busy || item.title === null}
-                            onRename={(name) => renameStored(item.id, name)}
-                          />
-                          {project?.manifest.projectId === item.id && (
-                            <span className="badge">
-                              {t('workspace.activeBadge')}
-                            </span>
-                          )}
-                        </div>
-                        <p className="card-meta">
-                          {item.title !== null
-                            ? t('project.structure', {
-                                documents: item.documents ?? 0,
-                                pages: item.pages ?? 0,
-                              })
-                            : t('project.recoveryAvailable')}
-                        </p>
-                        {item.updatedAt && (
-                          <p className="card-date">
-                            <Icon name="clock" />
-                            {date(item.updatedAt)}
-                          </p>
-                        )}
-                        <div className="card-actions">
-                          <button
-                            className="button open-button"
-                            disabled={busy}
-                            onClick={() => replace(() => void open(item.id))}
-                          >
-                            {t('project.open')}
-                            <Icon name="arrow" />
-                          </button>
-                          <button
-                            className="icon-button"
-                            aria-label={t('project.recover')}
-                            title={t('project.recover')}
-                            disabled={busy}
-                            onClick={() =>
-                              setConfirmation({
-                                message: 'project.recoverConfirm',
-                                action: () =>
-                                  replace(() => void open(item.id, true)),
-                              })
-                            }
-                          >
-                            <Icon name="refresh" />
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-            {!native && <p className="field-help">{t('opening.drop')}</p>}
-            <div className="dashboard-footnote">
-              <Icon name="shield" />
-              <p>{t('project.backup')}</p>
-            </div>
-          </>
+          <StartPage
+            project={project}
+            items={items}
+            busy={busy}
+            operation={operation}
+            locale={locale}
+            native={!!native}
+            titleRef={titleRef}
+            onCreate={() => replace(create)}
+            onImport={openImport}
+            onRefresh={() => {
+              setOperation('loading');
+              void refresh()
+                .catch(report)
+                .finally(() => setOperation(null));
+            }}
+            onOpen={(id) => replace(() => void open(id))}
+            onRecover={(id) =>
+              setConfirmation({
+                message: 'project.recoverConfirm',
+                action: () => replace(() => void open(id, true)),
+              })
+            }
+            onRename={renameStored}
+          />
         ) : (
           <>
             <div className="workspace-layout">
@@ -1798,6 +1660,7 @@ export function Projects({
                   >
                     <Canvas
                       expanded={expanded}
+                      navigatorOpen={navigatorOpen}
                       onNavigate={() => setNavigatorOpen(true)}
                       onExpanded={setExpanded}
                       key={`${loadVersion}:${project.manifest.projectId}:${activePage.id}`}
@@ -1846,8 +1709,30 @@ export function Projects({
                       onPending={setPendingNavigation}
                     />
                   </NavigationContext.Provider>
+                  <WorkbookTabs
+                    documents={project.documents}
+                    document={activeDocument}
+                    pageId={activePage.id}
+                    locale={locale}
+                    locked={
+                      propertyDraft ||
+                      navigationBusy ||
+                      (busy && operation !== 'saving')
+                    }
+                    onSelect={switchPage}
+                    onCreate={() =>
+                      workbook({
+                        type: 'newPage',
+                        documentId: activeDocument.id,
+                        title: t('tabs.newPageName', {
+                          number: activeDocument.pages.length + 1,
+                        }),
+                      })
+                    }
+                  />
                   {expanded && navigatorOpen && (
                     <Dialog
+                      className="office-navigator-dialog"
                       title={t('tree.heading')}
                       onCancel={() => setNavigatorOpen(false)}
                     >

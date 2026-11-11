@@ -535,5 +535,20 @@
   "office.menu.help": "Hilfe",
   "office.recent": "Zuletzt verwendet",
   "office.fileTools": "Datei- und Bearbeitungswerkzeuge",
-  "office.selectAll": "Alles auswählen"
+  "office.selectAll": "Alles auswählen",
+  "office.workbenchTools": "Arbeitsflächen-Steuerung",
+  "start.blank": "Neues leeres Projekt",
+  "start.openFile": "Datei öffnen …",
+  "start.library": "Projektbibliothek",
+  "start.libraryDescription": "Auf diesem Gerät gespeicherte Projekte. Öffne ein Projekt zum Weiterarbeiten.",
+  "start.updated": "Zuletzt gespeichert",
+  "start.templates": "Vorlagen",
+  "start.templatesPlanned": "Vorlagen sind geplant",
+  "start.templatesDescription": "Starte heute mit einem leeren Projekt. Wiederverwendbare Vorlagen werden hier in einer späteren Version erscheinen.",
+  "start.localNote": "Lokale Projekte · Kein Konto erforderlich",
+  "tree.purge": "Endgültig löschen",
+  "tree.purgeProject": "Projekt endgültig löschen",
+  "tree.purgeProjectWarning": "„{name}“ endgültig löschen? Dies kann nicht rückgängig gemacht werden. Das Projekt und seine gespeicherten Wiederherstellungsdaten werden entfernt.",
+  "tree.purgeProjectAction": "{name} endgültig löschen",
+  "tabs.addSheet": "Seite hinzufügen"
 }

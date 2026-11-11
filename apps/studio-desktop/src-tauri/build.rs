@@ -13,6 +13,7 @@ fn main() {
             "project_read",
             "project_read_previous",
             "project_write",
+            "project_remove",
             "project_export",
             "open_external_url",
         ]),

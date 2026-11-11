@@ -25,6 +25,13 @@ pub struct Location {
     default: PathBuf,
     _lock: File,
 }
+impl Drop for Location {
+    fn drop(&mut self) {
+        // A concurrent subprocess fork can briefly inherit the file description.
+        // Release our ownership explicitly instead of waiting for every copy to close.
+        let _ = self._lock.unlock();
+    }
+}
 /// Every repository operation takes the same per-user lock, then rereads config.
 impl Location {
     pub fn acquire(config: &Path, default: &Path) -> Result<Self, String> {

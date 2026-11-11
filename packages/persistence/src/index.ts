@@ -9,6 +9,8 @@ export interface SnapshotStore {
   keys(): Promise<string[]>;
   read(id: string): Promise<string | null>;
   readPrevious?(id: string): Promise<string | null>;
+  /** Atomically remove a matching trashed record and all of its recovery data. */
+  remove?(id: string, expected: string): Promise<void>;
   /** Atomic compare-and-swap. A rejected write must retain the last committed value. */
   write(id: string, expected: string | null, value: string): Promise<void>;
 }
@@ -46,6 +48,10 @@ function envelope(raw: string): RecordData {
   } catch {
     throw new ProjectError('invalid');
   }
+}
+function purgeable(id: string, expected: string): void {
+  if (!isId(id)) throw new ProjectError('invalid');
+  if (envelope(expected).deleted !== true) throw new ProjectError('conflict');
 }
 export class ProjectRepository {
   constructor(private readonly store: SnapshotStore) {}
@@ -143,6 +149,19 @@ export class ProjectRepository {
     await this.store.write(project.manifest.projectId, expected, next);
     return next;
   }
+  /** Bind a destructive confirmation's project details to one exact trashed snapshot. */
+  async preparePurge(id: string): Promise<OpenProject> {
+    if (!isId(id)) throw new ProjectError('invalid');
+    const opened = await this.open(id, false, true);
+    purgeable(id, opened.token);
+    return opened;
+  }
+  /** Irreversibly remove only an already-trashed, unchanged local record. */
+  async purge(id: string, expected: string): Promise<void> {
+    purgeable(id, expected);
+    if (!this.store.remove) throw new ProjectError('storage');
+    await this.store.remove(id, expected);
+  }
   /** Reversible local deletion retains both snapshots and assets. CAS prevents erasing another session's changes. */
   async setDeleted(
     id: string,
@@ -236,6 +255,24 @@ export class IndexedDbStore implements SnapshotStore {
         done(request.result === undefined ? null : request.result);
     });
   }
+  async remove(id: string, expected: string): Promise<void> {
+    purgeable(id, expected);
+    await this.transaction<void>('readwrite', (store, done, conflict) => {
+      const request = store.get(id);
+      request.onsuccess = () => {
+        if (request.result !== expected) {
+          conflict();
+          return;
+        }
+        try {
+          store.delete(id);
+          done(undefined);
+        } catch {
+          store.transaction.abort();
+        }
+      };
+    });
+  }
   write(id: string, expected: string | null, value: string) {
     if (!isId(id)) return Promise.reject(new ProjectError('invalid'));
     return this.transaction<void>('readwrite', (store, done, conflict) => {
@@ -282,5 +319,9 @@ export class NativeStore implements SnapshotStore {
   }
   write(id: string, expected: string | null, value: string) {
     return this.call<void>('project_write', { id, expected, value });
+  }
+  async remove(id: string, expected: string): Promise<void> {
+    purgeable(id, expected);
+    await this.call<void>('project_remove', { id, expected });
   }
 }

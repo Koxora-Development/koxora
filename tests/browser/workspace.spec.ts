@@ -30,7 +30,7 @@ test('opening a project visibly enters its workspace, focuses its name and survi
       .click();
   await page.getByRole('button', { name: /Local projects/ }).click();
   await expect(page.locator('.dashboard-heading h1')).toHaveText(
-    'Ideas start here.',
+    'Project library',
   );
   await expect(page.locator('.project-card.active')).toContainText(name!);
   await expect(page.locator('.card-meta')).toContainText('Documents:');
@@ -104,6 +104,6 @@ test('import dialog traps keyboard focus and Escape restores its trigger', async
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Ideas start here.',
+    'Project library',
   );
 });
