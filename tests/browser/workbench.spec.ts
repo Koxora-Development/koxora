@@ -178,6 +178,12 @@ test('start library uses compact project rows and reserves an honest template se
   await expect(
     page.getByText('Templates are planned', { exact: true }),
   ).toBeVisible();
+  await openWorkbook(page);
+  await page.getByRole('button', { name: /^Local projects/ }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Project library', level: 1 }),
+  ).toBeFocused();
+  await expect(page.locator('.office-document-name')).toHaveCount(0);
   await page
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');

@@ -1340,7 +1340,7 @@ export function Projects({
             if (canvasRef.current?.prepare()) setExpanded(true);
           }}
         />
-        {project && (
+        {project && view === 'workspace' && (
           <div className="office-document-name">
             <h1 className="sr-only">{project.manifest.title}</h1>
             <ProjectNameField
