@@ -1,0 +1,24 @@
+.workbook-sheetbar .sheet-menu-trigger {
+  flex: 0 0 auto;
+  min-width: calc(26px * var(--ui-scale, 1));
+  font-size: calc(19px * var(--ui-scale, 1));
+  line-height: 1;
+}
+.workbook-sheetbar .sheet-menu-trigger[aria-expanded='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.sheet-rename-dialog {
+  max-width: min(
+    calc(420px * var(--ui-scale, 1)),
+    calc(100vw - calc(32px * var(--ui-scale, 1)))
+  );
+}
+.sheet-rename-dialog form,
+.sheet-rename-dialog label {
+  min-width: 0;
+}
+.sheet-rename-dialog input {
+  width: 100%;
+  min-width: 0;
+}

@@ -21,8 +21,14 @@ export type IconName =
   | 'redo'
   | 'panel'
   | 'settings'
-  | 'expand';
+  | 'expand'
+  | 'trash'
+  | 'info'
+  | 'more';
 const paths: Record<IconName, string> = {
+  more: 'M5 12h.01M12 12h.01M19 12h.01',
+  trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
+  info: 'M12 11v6m0-10v1m9 4a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
   expand: 'M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6',
   save: 'M4 3h13l4 4v14H3V3zM7 3v6h10V3M7 21v-8h10v8',
   undo: 'M8 5 3 10l5 5M3 10h10a7 7 0 0 1 7 7',
@@ -46,6 +52,7 @@ export function Icon({ name }: { name: IconName }) {
   return (
     <svg
       className="icon"
+      data-icon={name}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

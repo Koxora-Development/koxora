@@ -1,3 +1,4 @@
+import { InfoDisclosure } from './info-disclosure';
 import { useContext, useEffect, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { safeExternalUrl, type Project } from '@koxora/project';
@@ -256,8 +257,10 @@ export function LinkFields({
               {t('links.remove')}
             </button>
           )}
-          <details className="field-help compact-help">
-            <summary>{t('controls.help')}</summary>
+          <InfoDisclosure
+            className="field-help compact-help"
+            title={t('controls.help')}
+          >
             <p>{t('links.help')}</p>
             {value?.type === 'url' && <p>{t('links.externalHelp')}</p>}
             {value?.type === 'project' && (
@@ -266,7 +269,7 @@ export function LinkFields({
                 <p>{t('links.locateHelp')}</p>
               </>
             )}
-          </details>
+          </InfoDisclosure>
         </>
       )}
     </fieldset>

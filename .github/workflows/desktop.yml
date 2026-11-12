@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p apps/studio-desktop/src-tauri/target/${{ matrix.target }}/release/bundle/integration
-          cp apps/studio-desktop/src-tauri/integration/appimage-integration.py apps/studio-desktop/src-tauri/integration/koxora.xml apps/studio-desktop/src-tauri/icons/icon.png apps/studio-desktop/src-tauri/target/${{ matrix.target }}/release/bundle/integration/
+          cp apps/studio-desktop/src-tauri/integration/appimage-integration.py apps/studio-desktop/src-tauri/integration/koxora.xml apps/studio-desktop/src-tauri/icons/icon.png apps/studio-desktop/src-tauri/icons/project-file.svg apps/studio-desktop/src-tauri/target/${{ matrix.target }}/release/bundle/integration/
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: unsigned-desktop-${{ matrix.target }}

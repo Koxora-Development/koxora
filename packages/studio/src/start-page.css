@@ -1,38 +1,38 @@
 /* The start screen shares Office chrome and leaves room for future templates. */
 .studio-shell .studio-start {
-  width: min(1180px, 100%);
+  width: min(calc(1180px * var(--ui-scale, 1)), 100%);
   margin-inline: auto;
-  padding: 26px 28px;
+  padding: calc(26px * var(--ui-scale, 1)) calc(28px * var(--ui-scale, 1));
   color: var(--ink);
 }
 .studio-shell .studio-start .start-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
-  padding: 0 0 22px;
+  gap: calc(24px * var(--ui-scale, 1));
+  padding: 0 0 calc(22px * var(--ui-scale, 1));
   margin: 0;
 }
 .studio-shell .studio-start .start-heading h1 {
-  margin: 6px 0;
-  font-size: 22px;
+  margin: calc(6px * var(--ui-scale, 1)) 0;
+  font-size: calc(22px * var(--ui-scale, 1));
   font-weight: 600;
   letter-spacing: -0.025em;
 }
 .start-local-note {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale, 1));
   color: var(--muted);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
 }
 .start-local-note .icon {
-  width: 13px;
-  height: 13px;
+  width: calc(13px * var(--ui-scale, 1));
+  height: calc(13px * var(--ui-scale, 1));
 }
 .start-description {
   color: var(--muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale, 1));
   line-height: 1.5;
   max-width: 58ch;
 }
@@ -40,20 +40,20 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 7px;
-  padding-top: 18px;
+  gap: calc(7px * var(--ui-scale, 1));
+  padding-top: calc(18px * var(--ui-scale, 1));
   flex-shrink: 0;
 }
 .studio-shell .studio-start .start-actions .button {
-  min-height: 30px;
-  padding: 5px 11px;
-  font-size: 12px;
+  min-height: calc(30px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) calc(11px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
 }
 .start-content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) calc(220px * var(--ui-scale, 1));
   align-items: start;
-  gap: 22px;
+  gap: calc(22px * var(--ui-scale, 1));
 }
 .start-library {
   min-width: 0;
@@ -63,47 +63,47 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
-  padding-block: 10px;
-  border-block: 1px solid var(--line);
+  gap: calc(10px * var(--ui-scale, 1));
+  padding-block: calc(10px * var(--ui-scale, 1));
+  border-block: calc(1px * var(--ui-scale, 1)) solid var(--line);
 }
 .start-section-heading h2,
 .start-templates h2 {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: calc(8px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
   font-weight: 600;
 }
 .start-count {
   display: inline-flex;
-  min-width: 20px;
+  min-width: calc(20px * var(--ui-scale, 1));
   justify-content: center;
-  padding: 2px 5px;
-  border-radius: 3px;
+  padding: calc(2px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+  border-radius: calc(3px * var(--ui-scale, 1));
   color: var(--muted);
   background: var(--surface-muted);
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-scale, 1));
   font-weight: 500;
 }
 .studio-shell .studio-start .start-section-heading .button {
-  min-height: 26px;
-  font-size: 11px;
+  min-height: calc(26px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
 }
 .start-list-columns,
 .studio-shell .studio-start .start-project-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 126px auto;
+  grid-template-columns: minmax(0, 1fr) calc(126px * var(--ui-scale, 1)) auto;
   align-items: center;
-  gap: 14px;
+  gap: calc(14px * var(--ui-scale, 1));
 }
 .start-list-columns {
-  padding: 9px 10px;
+  padding: calc(9px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
   color: var(--muted);
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-scale, 1));
 }
 .start-list-columns > :last-child {
-  width: 132px;
+  width: calc(132px * var(--ui-scale, 1));
 }
 .start-project-list {
   list-style: none;
@@ -111,11 +111,11 @@
   margin: 0;
 }
 .studio-shell .studio-start .start-project-row {
-  border: 1px solid transparent;
+  border: calc(1px * var(--ui-scale, 1)) solid transparent;
   border-block-end-color: var(--line);
   border-radius: 0;
   box-shadow: none;
-  padding: 11px 9px;
+  padding: calc(11px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1));
   background: transparent;
   margin: 0;
   min-width: 0;
@@ -131,90 +131,90 @@
 .start-project-main {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
+  gap: calc(9px * var(--ui-scale, 1));
   min-width: 0;
 }
 .start-project-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 29px;
-  height: 33px;
+  width: calc(29px * var(--ui-scale, 1));
+  height: calc(33px * var(--ui-scale, 1));
   flex-shrink: 0;
   color: var(--muted);
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 3px;
+  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: calc(3px * var(--ui-scale, 1));
 }
 .start-project-icon .icon {
-  width: 16px;
-  height: 16px;
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
 }
 .start-project-copy,
 .start-project-copy .project-title-editor {
   min-width: 0;
 }
 .studio-shell .studio-start .project-title-editor h3 {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale, 1));
   font-weight: 550;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
 .studio-shell .studio-start .title-rename {
-  min-height: 23px;
-  font-size: 10px;
-  padding: 2px 5px;
+  min-height: calc(23px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
 }
 .studio-shell .studio-start .card-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin: 3px 0 0;
+  gap: calc(6px * var(--ui-scale, 1));
+  margin: calc(3px * var(--ui-scale, 1)) 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-scale, 1));
   line-height: 1.4;
 }
 .studio-shell .studio-start .badge {
-  font-size: 9px;
-  padding: 1px 4px;
+  font-size: calc(9px * var(--ui-scale, 1));
+  padding: calc(1px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1));
 }
 .start-project-date {
   color: var(--muted);
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-scale, 1));
   line-height: 1.5;
 }
 .start-row-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5px * var(--ui-scale, 1));
 }
 .studio-shell .studio-start .start-row-actions .button,
 .studio-shell .studio-start .start-row-actions .icon-button {
-  min-height: 27px;
-  font-size: 10px;
-  padding: 4px 7px;
+  min-height: calc(27px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
 }
 .studio-shell .studio-start .start-row-actions .icon-button {
-  width: 27px;
-  padding: 5px;
+  width: calc(27px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1));
 }
 .start-empty {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 28px 10px;
-  border-bottom: 1px solid var(--line);
+  gap: calc(14px * var(--ui-scale, 1));
+  padding: calc(28px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
 }
 .start-empty > .icon {
-  width: 28px;
-  height: 28px;
+  width: calc(28px * var(--ui-scale, 1));
+  height: calc(28px * var(--ui-scale, 1));
   color: var(--muted);
   flex-shrink: 0;
 }
 .start-empty h3 {
-  margin: 0 0 6px;
-  font-size: 13px;
+  margin: 0 0 calc(6px * var(--ui-scale, 1));
+  font-size: calc(13px * var(--ui-scale, 1));
   font-weight: 550;
 }
 .start-empty p,
@@ -222,72 +222,72 @@
 .start-help p,
 .start-drop-note {
   color: var(--muted);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
   line-height: 1.5;
 }
 .start-drop-note {
-  padding-top: 12px;
+  padding-top: calc(12px * var(--ui-scale, 1));
 }
 .start-loading {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 12px 10px;
+  gap: calc(7px * var(--ui-scale, 1));
+  padding: calc(12px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
   color: var(--muted);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
 }
 .start-help {
-  margin-top: 12px;
+  margin-top: calc(12px * var(--ui-scale, 1));
 }
 .start-help summary {
-  padding-block: 5px;
+  padding-block: calc(5px * var(--ui-scale, 1));
   color: var(--muted);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
   cursor: pointer;
 }
 .start-help p {
-  margin-top: 7px;
+  margin-top: calc(7px * var(--ui-scale, 1));
 }
 .start-templates {
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
+  padding: calc(14px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: calc(3px * var(--ui-scale, 1));
   background: var(--surface-muted);
 }
 .start-templates-heading {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line);
+  gap: calc(7px * var(--ui-scale, 1));
+  padding-bottom: calc(12px * var(--ui-scale, 1));
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
 }
 .start-templates-heading .icon {
-  width: 15px;
-  height: 15px;
+  width: calc(15px * var(--ui-scale, 1));
+  height: calc(15px * var(--ui-scale, 1));
   color: var(--muted);
 }
 .start-templates > .start-planned {
-  margin: 12px 0 5px;
+  margin: calc(12px * var(--ui-scale, 1)) 0 calc(5px * var(--ui-scale, 1));
   color: var(--ink);
   font-weight: 550;
 }
 @media (max-width: 1199px) {
   .start-content {
     grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
+    gap: calc(20px * var(--ui-scale, 1));
   }
   .start-templates {
-    max-width: 560px;
+    max-width: calc(560px * var(--ui-scale, 1));
   }
 }
 @media (max-width: 699px) {
   .studio-shell .studio-start {
-    padding: 18px 14px;
+    padding: calc(18px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
   }
   .studio-shell .studio-start .start-heading {
     flex-direction: column;
-    gap: 12px;
-    padding-bottom: 18px;
+    gap: calc(12px * var(--ui-scale, 1));
+    padding-bottom: calc(18px * var(--ui-scale, 1));
   }
   .start-actions {
     padding: 0;
@@ -298,12 +298,12 @@
   }
   .studio-shell .studio-start .start-project-row {
     grid-template-columns: minmax(0, 1fr);
-    gap: 7px;
-    padding-block: 12px;
+    gap: calc(7px * var(--ui-scale, 1));
+    padding-block: calc(12px * var(--ui-scale, 1));
   }
   .start-project-date,
   .start-row-actions {
-    padding-inline-start: 38px;
+    padding-inline-start: calc(38px * var(--ui-scale, 1));
   }
   .start-row-actions {
     flex-wrap: wrap;
@@ -316,9 +316,9 @@
   .studio-shell .studio-start .start-row-actions .button,
   .studio-shell .studio-start .start-row-actions .icon-button,
   .studio-shell .studio-start summary {
-    min-height: 44px;
+    min-height: calc(44px * var(--ui-scale, 1));
   }
   .studio-shell .studio-start .icon-button {
-    min-width: 44px;
+    min-width: calc(44px * var(--ui-scale, 1));
   }
 }

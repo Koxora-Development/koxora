@@ -219,6 +219,12 @@ test('trash cancellation and restore retain data; confirmed permanent deletion r
   }
   await trashProject();
   const trash = page.locator('.project-trash');
+  await expect(trash.locator('summary [data-icon="trash"]')).toHaveCount(1);
+  expect(
+    await trash
+      .locator('summary')
+      .evaluate((element) => getComputedStyle(element).listStyleType),
+  ).toBe('none');
   await trash.locator('summary').click();
   const purge = trash.getByRole('button', {
     name: 'Permanently delete Workbook review',

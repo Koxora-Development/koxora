@@ -1,10 +1,17 @@
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Dialog } from '@koxora/ui';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
-import type { Theme } from './preferences';
+import {
+  guiScales,
+  resolveGuiScale,
+  type GuiScale,
+  type Theme,
+} from './preferences';
 export function OfficeSettings({
   locale,
   theme,
+  guiScale,
+  onGuiScale,
   onLocale,
   onTheme,
   storage,
@@ -15,6 +22,8 @@ export function OfficeSettings({
 }: {
   locale: string;
   theme: Theme;
+  guiScale: GuiScale;
+  onGuiScale: (scale: GuiScale) => void;
   onLocale: (locale: string) => void;
   onTheme: (theme: Theme) => void;
   storage?: ReactNode;
@@ -25,6 +34,11 @@ export function OfficeSettings({
 }) {
   const t = (key: MessageKey) => translate(locale, key);
   const [category, setCategory] = useState('general');
+  const scaleHelpId = useId();
+  const percentages = new Intl.NumberFormat(locale, {
+    style: 'percent',
+    maximumFractionDigits: 0,
+  });
   const categories = ['general', ...(storage ? ['storage', 'files'] : [])];
   return (
     <Dialog
@@ -82,6 +96,27 @@ export function OfficeSettings({
                 <option value="dark">{t('theme.dark')}</option>
               </select>
             </label>
+            <label>
+              {t('preferences.scale')}
+              <select
+                aria-label={t('preferences.scale')}
+                aria-describedby={scaleHelpId}
+                value={guiScale}
+                onChange={(event) =>
+                  onGuiScale(resolveGuiScale(Number(event.target.value)))
+                }
+              >
+                {guiScales.map((scale) => (
+                  <option key={scale} value={scale}>
+                    {percentages.format(scale / 100)}
+                    {scale === 100 ? ` · ${t('preferences.scaleCompact')}` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p id={scaleHelpId} className="settings-note">
+              {t('preferences.scaleHelp')}
+            </p>
             {blocked && <p role="status">{t('office.applyOrDiscard')}</p>}
           </section>
           <section

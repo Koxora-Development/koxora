@@ -51,6 +51,8 @@ mod linux {
     const RECORD: &str = "applications/app.koxora.studio-appimage.json";
     const MIME: &[u8] = include_bytes!("../integration/koxora.xml");
     const ICON: &[u8] = include_bytes!("../icons/icon.png");
+    const FILE_ICON: &[u8] = include_bytes!("../icons/project-file.svg");
+    const FILE_ICON_PATH: &str = "icons/hicolor/scalable/mimetypes/application-x-koxora.svg";
     static MUTATION: std::sync::Mutex<()> = std::sync::Mutex::new(());
     #[derive(serde::Deserialize)]
     struct Record {
@@ -105,6 +107,8 @@ mod linux {
             )
             .as_deref()
                 == Some(ICON)
+            && read_regular(&data.join(FILE_ICON_PATH), FILE_ICON.len()).as_deref()
+                == Some(FILE_ICON)
     }
     fn data_directory() -> Result<PathBuf, String> {
         let path = env::var_os("XDG_DATA_HOME")
@@ -181,6 +185,8 @@ mod linux {
             .map_err(|_| "integrationFailed")?;
             fs::write(temp.path().join("koxora.xml"), MIME).map_err(|_| "integrationFailed")?;
             fs::write(temp.path().join("icon.png"), ICON).map_err(|_| "integrationFailed")?;
+            fs::write(temp.path().join("project-file.svg"), FILE_ICON)
+                .map_err(|_| "integrationFailed")?;
             let mut command = Command::new("/usr/bin/python3");
             command.arg("-I").arg(script);
             match action {
@@ -210,6 +216,7 @@ mod linux {
                     RECORD,
                     "mime/packages/koxora-appimage.xml",
                     "icons/hicolor/256x256/apps/koxora-appimage.png",
+                    FILE_ICON_PATH,
                 ] {
                     match data.join(name).symlink_metadata() {
                         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
@@ -267,7 +274,13 @@ mod linux {
                 ICON,
             )
             .unwrap();
+            assert!(!registered(data, app));
+            fs::create_dir_all(data.join("icons/hicolor/scalable/mimetypes")).unwrap();
+            fs::write(data.join(FILE_ICON_PATH), FILE_ICON).unwrap();
             assert!(registered(data, app));
+            fs::write(data.join(FILE_ICON_PATH), "stale document icon").unwrap();
+            assert!(!registered(data, app));
+            fs::write(data.join(FILE_ICON_PATH), FILE_ICON).unwrap();
             assert!(!registered(data, Path::new("/tmp/moved.AppImage")));
             fs::write(data.join(DESKTOP), "changed").unwrap();
             assert!(!registered(data, app));

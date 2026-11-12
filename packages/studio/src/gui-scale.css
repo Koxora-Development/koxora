@@ -1,0 +1,245 @@
+/* GUI metrics scale independently from portable diagram geometry and camera zoom. */
+:root {
+  --ui-font-size: calc(0.8125rem * var(--ui-scale, 1));
+}
+.button,
+.icon-button {
+  font-size: calc(0.76rem * var(--ui-scale, 1));
+}
+.studio-dialog {
+  padding: calc(18px * var(--ui-scale, 1));
+  width: min(calc(480px * var(--ui-scale, 1)), calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  scroll-padding-block: calc(16px * var(--ui-scale, 1))
+    calc(76px * var(--ui-scale, 1));
+}
+.studio-dialog h2 {
+  font-size: calc(1rem * var(--ui-scale, 1));
+}
+.studio-dialog p {
+  font-size: calc(0.82rem * var(--ui-scale, 1));
+}
+.office-menubar {
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+.office-menubar > button {
+  flex-shrink: 0;
+}
+.storage-location-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: calc(8px * var(--ui-scale, 1));
+}
+.storage-location-row .storage-path {
+  margin: 0;
+  min-width: 0;
+}
+.storage-location-row .button {
+  white-space: normal;
+}
+.studio-shell .info-disclosure {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  margin-block: calc(6px * var(--ui-scale, 1));
+}
+.studio-shell .info-disclosure > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) 0;
+  border: 0;
+  border-radius: 0;
+  font-size: calc(11px * var(--ui-scale, 1));
+  color: var(--muted);
+  cursor: pointer;
+}
+.info-disclosure > summary::-webkit-details-marker,
+.project-trash > summary::-webkit-details-marker {
+  display: none;
+}
+.info-disclosure > summary::marker,
+.project-trash > summary::marker {
+  content: '';
+}
+.info-disclosure > summary::after {
+  content: '+';
+  margin-inline-start: auto;
+  font-size: calc(15px * var(--ui-scale, 1));
+}
+.info-disclosure[open] > summary::after {
+  content: '−';
+}
+.info-disclosure > summary:hover {
+  color: var(--ink);
+}
+.info-disclosure > summary .icon {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+  flex-shrink: 0;
+}
+.info-disclosure-body {
+  padding-block: calc(6px * var(--ui-scale, 1));
+}
+.studio-navigator .project-trash > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: calc(7px * var(--ui-scale, 1));
+}
+.studio-navigator .project-trash > summary::after {
+  content: '+';
+  margin-inline-start: auto;
+}
+.studio-navigator .project-trash[open] > summary::after {
+  content: '−';
+}
+.studio-shell[data-ui-narrow='true'] .office-application {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.studio-shell[data-ui-narrow='true'] .project-sidebar {
+  position: fixed;
+  top: calc(84px * var(--ui-scale, 1));
+  bottom: calc(23px * var(--ui-scale, 1));
+  left: 0;
+  width: calc(232px * var(--ui-scale, 1));
+  z-index: 25;
+  box-shadow: 2px 0 8px #0002;
+}
+.studio-shell[data-ui-narrow='true'] .office-canvas-layout {
+  grid-template-columns: minmax(0, 1fr);
+  position: relative;
+}
+.studio-shell[data-ui-narrow='true'] .office-properties {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: min(calc(270px * var(--ui-scale, 1)), 85vw);
+  z-index: 24;
+  box-shadow: -2px 0 8px #0002;
+}
+.studio-shell[data-ui-narrow='true'] .expanded-workbench .office-properties {
+  inset-block-start: calc(34px * var(--ui-scale, 1));
+}
+.studio-shell[data-ui-narrow='true'] .office-quickbar .save-status {
+  display: none;
+}
+.studio-shell[data-ui-small='true'] .office-settings-layout {
+  display: block;
+  min-height: 0;
+}
+.studio-shell[data-ui-small='true'] .office-settings-categories {
+  flex-direction: row;
+  flex-wrap: wrap;
+  border-inline-end: 0;
+  border-bottom: 1px solid var(--line);
+}
+.studio-shell[data-ui-small='true'] .office-settings-content > section > label {
+  grid-template-columns: minmax(0, 1fr);
+}
+.studio-shell[data-ui-small='true'] .office-settings-content {
+  max-height: none;
+}
+.studio-shell[data-ui-small='true'] .storage-location-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+.studio-shell[data-ui-small='true'] .storage-location-row .button {
+  justify-self: start;
+}
+.studio-shell[data-ui-small='true'] .expanded-workbench-tools > .button {
+  max-width: 32%;
+  white-space: normal;
+  min-width: 0;
+  padding: calc(3px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.studio-shell[data-ui-small='true'] .studio-start .start-heading {
+  flex-direction: column;
+  gap: calc(12px * var(--ui-scale, 1));
+}
+.studio-shell[data-ui-small='true'] .start-content {
+  grid-template-columns: minmax(0, 1fr);
+}
+.studio-shell[data-ui-small='true'] .start-actions {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+  max-width: 100%;
+}
+.studio-shell[data-ui-small='true'] .start-actions .button {
+  max-width: 100%;
+  white-space: normal;
+}
+@media (pointer: coarse) {
+  .studio-shell[data-ui-narrow='true'] .project-sidebar {
+    top: calc(114px * var(--ui-scale, 1));
+  }
+  .studio-shell[data-ui-narrow='true'] .expanded-workbench .office-properties {
+    inset-block-start: calc(48px * var(--ui-scale, 1));
+  }
+}
+.context-menu {
+  min-width: min(calc(208px * var(--ui-scale, 1)), calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
+}
+.context-menu button {
+  min-width: 0;
+  white-space: normal;
+}
+.studio-shell[data-ui-narrow='true'] .project-sidebar {
+  width: min(calc(232px * var(--ui-scale, 1)), 85vw);
+}
+.studio-shell[data-ui-small='true'] .start-list-columns {
+  display: none;
+}
+.studio-shell[data-ui-small='true'] .studio-start .start-project-row {
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(7px * var(--ui-scale, 1));
+  padding-block: calc(12px * var(--ui-scale, 1));
+}
+.studio-shell[data-ui-small='true'] .start-project-date,
+.studio-shell[data-ui-small='true'] .start-row-actions {
+  padding-inline-start: calc(38px * var(--ui-scale, 1));
+}
+.studio-shell[data-ui-small='true'] .start-row-actions {
+  flex-wrap: wrap;
+}
+.studio-shell .field-help,
+.studio-dialog .field-help {
+  font-size: calc(0.72rem * var(--ui-scale, 1));
+}
+/* Text-formatting controls grow too; editable document text keeps its model font size. */
+.rich-toolbar label {
+  font-size: calc(0.75rem * var(--ui-scale, 1));
+  gap: calc(4px * var(--ui-scale, 1));
+}
+.rich-toolbar input[type='number'] {
+  width: calc(66px * var(--ui-scale, 1));
+}
+.rich-toolbar input[type='color'] {
+  width: calc(34px * var(--ui-scale, 1));
+  height: calc(32px * var(--ui-scale, 1));
+}
+.rich-toolbar select {
+  max-width: calc(100px * var(--ui-scale, 1));
+}
+.font-picker {
+  min-width: calc(135px * var(--ui-scale, 1));
+}
+.font-picker summary {
+  font-size: calc(0.85rem * var(--ui-scale, 1));
+  padding: calc(8px * var(--ui-scale, 1));
+}
+.font-menu {
+  max-width: calc(100vw - 16px);
+}
+.font-menu [role='group'] {
+  max-height: min(calc(220px * var(--ui-scale, 1)), 40dvh);
+}
+.canvas-text-dialog h2 {
+  font-size: calc(0.8rem * var(--ui-scale, 1));
+}

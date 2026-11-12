@@ -18,12 +18,14 @@ Tauri's `fileAssociations` declares `application/x-koxora`, `.koxora` and macOS 
 
 Linux DEB includes the MIME XML in `/usr/share/mime/packages` and a desktop entry with `%F`. Packaging supplies the icon and executable. Package-manager database triggers own MIME cache refresh. The DEB must be tested on Debian; do not install it on CachyOS. No Flatpak bundle is built by this repository: Flatpak association/portal acceptance remains unavailable and is not claimed.
 
-A standalone **AppImage does not install itself in Open With**. The Linux review artifact includes `integration/appimage-integration.py`, MIME XML and icon. Users may explicitly register a stable AppImage path, without sudo:
+A standalone **AppImage does not install itself in Open With**. The Linux review artifact includes `integration/appimage-integration.py`, MIME XML, application icon and project-file SVG icon. Users may explicitly register a stable AppImage path, without sudo:
 
 ```sh
 chmod +x /absolute/path/Koxora.AppImage
 python3 ./integration/appimage-integration.py /absolute/path/Koxora.AppImage
 ```
+
+The MIME XML explicitly names `application-x-koxora`; the helper installs its owned document SVG under `icons/hicolor/scalable/mimetypes/application-x-koxora.svg`. DEB installs the same icon under `/usr/share/icons/hicolor/scalable/mimetypes`. Existing AppImage setups must be refreshed once through Settings → File opening → Set up Open With to install this additional MIME icon and refresh caches. The ordinary application/menu icon remains separate. The standalone helper expects `project-file.svg`, `icon.png` and `koxora.xml` alongside it; optional explicit resource flags are supported. Native registration evidence checks the document SVG too, so an old four-file setup is reported as needing setup rather than falsely current.
 
 The helper writes only the current user's XDG data directory (defaults to `~/.local/share`), updates MIME/desktop caches when tools are installed, and never calls `xdg-mime default`. It uses Desktop Entry escaping and a fixed `/usr/bin/env --` launcher so GLib also handles percent signs in executable paths correctly. No shell interprets document arguments. Choose Koxora in Dolphin/GNOME **Open With** and optionally set it as the default yourself. Moving/deleting the AppImage requires rerunning integration with the new path. Remove the helper-created files with:
 

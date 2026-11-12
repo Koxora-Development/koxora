@@ -1,3 +1,4 @@
+import { InfoDisclosure } from './info-disclosure';
 import { StartPage } from './start-page';
 import { WorkbenchControls } from './workbench-controls';
 import { WorkbookTabs } from './workbook-tabs';
@@ -5,7 +6,7 @@ import { StorageSettings } from './storage-settings';
 import { OfficeMenubar, type OfficeMenuItem } from './office-menu';
 import { OfficeSettings } from './office-settings';
 import { AppImageIntegration } from './appimage-integration';
-import type { Theme } from './preferences';
+import type { GuiScale, Theme } from './preferences';
 import { NativeOpen } from './native-open';
 import { NavigationContext } from './navigation-context';
 import { ProjectTree, type ProjectAction } from './project-tree';
@@ -63,11 +64,15 @@ type Operation = 'loading' | 'opening' | 'saving' | 'importing' | 'exporting';
 export function Projects({
   locale,
   theme,
+  guiScale,
+  onGuiScale,
   onLocale,
   onTheme,
 }: {
   locale: string;
   theme: Theme;
+  guiScale: GuiScale;
+  onGuiScale: (scale: GuiScale) => void;
   onLocale: (locale: string) => void;
   onTheme: (theme: Theme) => void;
 }) {
@@ -865,9 +870,10 @@ export function Projects({
     return () => window.clearTimeout(timer);
   }, [queuedExport, busy, navigationBusy, dialogOpen, propertyDraft]);
   const projectDetails = project && (
-    <details className="office-project-details">
-      {' '}
-      <summary>{t('workspace.details')}</summary>
+    <InfoDisclosure
+      className="office-project-details"
+      title={t('workspace.details')}
+    >
       <dl className="project-properties">
         <div>
           <dt>{t('workspace.documents')}</dt>
@@ -913,7 +919,7 @@ export function Projects({
         <Icon name="refresh" />
         {t('project.recover')}
       </button>
-    </details>
+    </InfoDisclosure>
   );
   function storageChanged() {
     setQueuedFollow(null);
@@ -1720,6 +1726,9 @@ export function Projects({
                       (busy && operation !== 'saving')
                     }
                     onSelect={switchPage}
+                    onRename={(pageId, title) =>
+                      workbook({ type: 'renamePage', pageId, title })
+                    }
                     onCreate={() =>
                       workbook({
                         type: 'newPage',
@@ -1749,6 +1758,8 @@ export function Projects({
         <OfficeSettings
           locale={locale}
           theme={theme}
+          guiScale={guiScale}
+          onGuiScale={onGuiScale}
           onLocale={onLocale}
           onTheme={onTheme}
           blocked={propertyDraft}

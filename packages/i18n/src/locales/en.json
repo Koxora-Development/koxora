@@ -550,5 +550,8 @@
   "tree.purgeProject": "Permanently delete project",
   "tree.purgeProjectWarning": "Permanently delete “{name}”? This cannot be undone. The project and its saved recovery data will be removed.",
   "tree.purgeProjectAction": "Permanently delete {name}",
-  "tabs.addSheet": "Add page"
+  "tabs.addSheet": "Add page",
+  "preferences.scale": "Interface scale",
+  "preferences.scaleHelp": "Size of menus, panels and controls. Diagram zoom is unchanged.",
+  "preferences.scaleCompact": "Compact"
 }

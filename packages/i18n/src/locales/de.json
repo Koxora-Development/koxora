@@ -550,5 +550,8 @@
   "tree.purgeProject": "Projekt endgültig löschen",
   "tree.purgeProjectWarning": "„{name}“ endgültig löschen? Dies kann nicht rückgängig gemacht werden. Das Projekt und seine gespeicherten Wiederherstellungsdaten werden entfernt.",
   "tree.purgeProjectAction": "{name} endgültig löschen",
-  "tabs.addSheet": "Seite hinzufügen"
+  "tabs.addSheet": "Seite hinzufügen",
+  "preferences.scale": "Oberflächenskalierung",
+  "preferences.scaleHelp": "Größe von Menüs, Seitenleisten und Bedienelementen. Der Diagramm-Zoom bleibt unverändert.",
+  "preferences.scaleCompact": "Kompakt"
 }

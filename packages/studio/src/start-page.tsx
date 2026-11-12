@@ -1,3 +1,4 @@
+import { InfoDisclosure } from './info-disclosure';
 import { useId, type Ref } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Icon } from '@koxora/ui';
@@ -189,11 +190,10 @@ export function StartPage({
             </>
           )}
           {!native && <p className="start-drop-note">{t('opening.drop')}</p>}
-          <details className="start-help">
-            <summary>{t('controls.help')}</summary>
+          <InfoDisclosure className="start-help" title={t('controls.help')}>
             <p>{t('project.backup')}</p>
             <p>{t('workspace.note')}</p>
-          </details>
+          </InfoDisclosure>
         </section>
         <aside className="start-templates" aria-labelledby={templatesId}>
           <div className="start-templates-heading">

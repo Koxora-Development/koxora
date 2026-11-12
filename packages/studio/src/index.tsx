@@ -2,8 +2,9 @@ import { StorageGate } from './storage-settings';
 import './phase25.css';
 import './compact.css';
 import './office.css';
+import './gui-scale.css';
 import { Projects } from './projects';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
 import { Mark, Icon } from '@koxora/ui';
 import { readPreferences, writePreferences, type Theme } from './preferences';
@@ -12,9 +13,15 @@ export function Studio() {
     readPreferences({ getItem: (key) => localStorage.getItem(key) }),
   );
   const [storageFailed, setStorageFailed] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const [online, setOnline] = useState(navigator.onLine);
   const t = (key: MessageKey) => translate(preferences.locale, key);
-  useEffect(() => {
+  useLayoutEffect(() => {
+    document.documentElement.style.setProperty(
+      '--ui-scale',
+      String(preferences.guiScale / 100),
+    );
+    document.documentElement.dataset.uiScale = String(preferences.guiScale);
     document.documentElement.lang = preferences.locale;
     document.documentElement.dir = locales[preferences.locale].direction;
     document.documentElement.dataset.theme = preferences.theme;
@@ -22,9 +29,12 @@ export function Studio() {
   }, [preferences]);
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
+    const resize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', resize);
     window.addEventListener('online', update);
     window.addEventListener('offline', update);
     return () => {
+      window.removeEventListener('resize', resize);
       window.removeEventListener('online', update);
       window.removeEventListener('offline', update);
     };
@@ -39,7 +49,11 @@ export function Studio() {
     );
   }
   return (
-    <div className="studio-shell">
+    <div
+      className="studio-shell"
+      data-ui-narrow={viewportWidth < (1000 * preferences.guiScale) / 100}
+      data-ui-small={viewportWidth < (650 * preferences.guiScale) / 100}
+    >
       <a className="skip-link" href="#workspace">
         {t('app.skip')}
       </a>
@@ -64,6 +78,10 @@ export function Studio() {
         <Projects
           locale={preferences.locale}
           theme={preferences.theme}
+          guiScale={preferences.guiScale}
+          onGuiScale={(guiScale) =>
+            updatePreferences({ ...preferences, guiScale })
+          }
           onLocale={(locale) => updatePreferences({ ...preferences, locale })}
           onTheme={(theme) => updatePreferences({ ...preferences, theme })}
         />

@@ -1,3 +1,4 @@
+import { InfoDisclosure } from './info-disclosure';
 import { useEffect, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import type { Invoke } from '@koxora/persistence';
@@ -119,11 +120,13 @@ export function AppImageIntegration({
         </button>
       )}
       {status?.refreshNeeded && <p role="status">{t('integration.refresh')}</p>}
-      <details className="settings-help">
-        <summary>{t('integration.details')}</summary>
+      <InfoDisclosure
+        className="settings-help"
+        title={t('integration.details')}
+      >
         <p>{status?.path}</p>
         <p>{t('integration.help')}</p>
-      </details>
+      </InfoDisclosure>
     </section>
   );
 }

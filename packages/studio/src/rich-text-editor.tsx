@@ -1,3 +1,4 @@
+import { InfoDisclosure } from './info-disclosure';
 import { useEffect, useRef, useState } from 'react';
 import { DOMParser } from 'prosemirror-model';
 import { EditorState, Plugin } from 'prosemirror-state';
@@ -438,12 +439,14 @@ export function RichTextEditor({
             base.textColor === 'none' ? '0 0 0 var(--ink)' : undefined,
         }}
       />
-      <details className="field-help compact-help">
-        <summary>{t('controls.help')}</summary>
+      <InfoDisclosure
+        className="field-help compact-help"
+        title={t('controls.help')}
+      >
         <p>
           {t('rich.help')} {t('text.editContrast')}
         </p>
-      </details>
+      </InfoDisclosure>
       {notice && (
         <p role="status" className="field-help">
           {t(notice)}

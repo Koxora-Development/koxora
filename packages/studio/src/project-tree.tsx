@@ -627,13 +627,17 @@ export function ProjectTree({
       )}
       {!!trash.length && (
         <details className="project-trash">
-          <summary ref={trashSummary}>
+          <summary
+            ref={trashSummary}
+            aria-label={t('tree.trash', { count: trash.length })}
+          >
+            <Icon name="trash" />
             {t('tree.trash', { count: trash.length })}
           </summary>
           {trash.map((item) => (
             <div key={item.id} className="navigator-trash-entry">
               <span aria-hidden="true" className="navigator-trash-icon">
-                <Icon name="layers" />
+                <Icon name="file" />
               </span>
               <span
                 dir="auto"
@@ -662,18 +666,7 @@ export function ProjectTree({
                   })}
                   onClick={() => void preparePurge(item)}
                 >
-                  <svg
-                    className="icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.65"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7" />
-                  </svg>
+                  <Icon name="trash" />
                 </button>
               )}
             </div>

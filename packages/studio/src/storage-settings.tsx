@@ -1,3 +1,4 @@
+import { InfoDisclosure } from './info-disclosure';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
 import { PropertySurface } from './property-surface';
@@ -128,9 +129,18 @@ export function StorageSettings({
           )}
           <section className="settings-section">
             <h3>{t('storage.path')}</h3>
-            <p className="storage-path">
-              {status?.directory ?? t('storage.unavailable')}
-            </p>
+            <div className="storage-location-row">
+              <p className="storage-path">
+                {status?.directory ?? t('storage.unavailable')}
+              </p>
+              <button
+                className="button primary"
+                disabled={busy}
+                onClick={() => void change()}
+              >
+                {t(restoring ? 'storage.restoreAction' : 'storage.change')}
+              </button>
+            </div>
             <p className="settings-note">
               {typeof status?.availableBytes === 'number'
                 ? t('storage.available', {
@@ -168,50 +178,47 @@ export function StorageSettings({
             <p className="settings-note">
               {t(restoring ? 'storage.restoreMode' : 'storage.retainedShort')}
             </p>
-            <details className="settings-help">
-              <summary>{t('storage.details')}</summary>
+            <InfoDisclosure
+              className="settings-help"
+              title={t('storage.details')}
+            >
               <p>{t('storage.description')}</p>
               <p>{t('storage.support')}</p>
               <p>{t('storage.retained')}</p>
-            </details>
+            </InfoDisclosure>
           </section>
           {!initial && !embedded && (
             <AppImageIntegration locale={locale} invoke={nativeCore.invoke} />
           )}
           {error && <p role="alert">{t('storage.failure')}</p>}
           {busy && <p role="status">{t('storage.progress')}</p>}
-          <div className="dialog-actions">
-            <button
-              className={initial ? 'button' : 'button primary'}
-              disabled={busy}
-              onClick={() => void change()}
-            >
-              {t(restoring ? 'storage.restoreAction' : 'storage.change')}
-            </button>
-            {!embedded && (
-              <button
-                className={initial ? 'button primary' : 'button'}
-                disabled={busy || (initial && !status)}
-                onClick={() => {
-                  if (!initial) {
-                    setOpened(false);
-                    return;
-                  }
-                  setBusy(true);
-                  void nativeCore!
-                    .invoke('storage_keep')
-                    .then(() => {
+          {!embedded && (
+            <div className="dialog-actions">
+              {!embedded && (
+                <button
+                  className={initial ? 'button primary' : 'button'}
+                  disabled={busy || (initial && !status)}
+                  onClick={() => {
+                    if (!initial) {
                       setOpened(false);
-                      onReady?.();
-                    })
-                    .catch(() => setError(true))
-                    .finally(() => setBusy(false));
-                }}
-              >
-                {t(initial ? 'storage.keep' : 'project.cancel')}
-              </button>
-            )}
-          </div>
+                      return;
+                    }
+                    setBusy(true);
+                    void nativeCore!
+                      .invoke('storage_keep')
+                      .then(() => {
+                        setOpened(false);
+                        onReady?.();
+                      })
+                      .catch(() => setError(true))
+                      .finally(() => setBusy(false));
+                  }}
+                >
+                  {t(initial ? 'storage.keep' : 'project.cancel')}
+                </button>
+              )}
+            </div>
+          )}
         </PropertySurface>
       )}
     </>
