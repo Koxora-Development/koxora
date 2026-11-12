@@ -1487,6 +1487,8 @@ export function Projects({
             if (canvasRef.current && !canvasRef.current.prepare()) return;
             snapshot();
             setView('dashboard');
+            if (window.innerWidth < 1000 * (guiScale / 100))
+              setNavigatorVisible(false);
             setFocusVersion((n) => n + 1);
           }}
         >

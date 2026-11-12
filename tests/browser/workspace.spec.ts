@@ -29,6 +29,8 @@ test('opening a project visibly enters its workspace, focuses its name and survi
       .getByRole('button', { name: 'Project navigator', exact: true })
       .click();
   await page.getByRole('button', { name: /Local projects/ }).click();
+  if (await page.evaluate(() => innerWidth < 1000))
+    await expect(navigator).toBeHidden();
   await expect(page.locator('.dashboard-heading h1')).toHaveText(
     'Project library',
   );
