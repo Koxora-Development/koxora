@@ -229,6 +229,10 @@ test('page changes flush a pending wheel gesture and restore independent viewpor
   await page.getByRole('button', { name: 'Open project', exact: true }).click();
   await expect(pages.last()).toHaveAttribute('aria-selected', 'true');
   expect(await camera(page)).toEqual(last);
+  if (!(await page.locator('.project-sidebar').isVisible()))
+    await page
+      .getByRole('button', { name: 'Project navigator', exact: true })
+      .click();
   await pages.first().click();
   await expect
     .poll(async () => (await camera(page)).y)

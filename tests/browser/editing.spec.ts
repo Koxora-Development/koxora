@@ -403,6 +403,10 @@ test('workspace name field and dashboard inline rename commit, cancel, validate 
     'Name with spaces',
   );
   const input = page.locator('.inline-title-field input');
+  if (!(await page.locator('.project-sidebar').isVisible()))
+    await page
+      .getByRole('button', { name: 'Project navigator', exact: true })
+      .click();
   await page.getByRole('button', { name: /Local projects/ }).click();
   await expect(
     page

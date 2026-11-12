@@ -61,6 +61,10 @@ test('create, rename, reopen offline, export, import and recover', async ({
   await page.getByLabel('Import as a new project').check();
   await (await importInput(page)).setInputFiles(path!);
   await saved(page);
+  if (!(await page.locator('.project-sidebar').isVisible()))
+    await page
+      .getByRole('button', { name: 'Project navigator', exact: true })
+      .click();
   await page
     .getByRole('button', { name: 'Local projects', exact: false })
     .click();
