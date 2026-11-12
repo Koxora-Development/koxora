@@ -50,3 +50,5 @@ Repeat first launch, migration, restore, offline restart and Save As on Windows 
 The first CI run built Linux AppImage/DEB and both macOS DMGs successfully and passed their native tests and Rust supply-chain gate. Windows exposed copying a held coordination lock; this is corrected with a reserved-path exclusion and a save/recovery regression. The native link browser mock now acknowledges storage bootstrap. Full local Linux Tauri testing passed 27 tests before this regression addition. Final rerun outcomes are recorded in the PR.
 
 Available-space diagnostics use the already locked libc dependency directly on Unix, with bounded CString/statvfs handling, checked arithmetic and a nonfatal unavailable fallback. They do not change write/migration behavior.
+
+Free space uses binary units (B through PiB), automatically selected for readability and formatted with the explicit interface locale: for example, `353.2 GiB` in English and `353,2 GiB` in German. Missing, negative or non-finite values use the unavailable message. The filesystem/non-reservation explanation is in storage details rather than the primary value line.

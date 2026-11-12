@@ -225,7 +225,7 @@ test('storage change belongs to its path row and information controls have no na
               return {
                 directory: '/home/review/Koxora/projects-v1',
                 firstRun: false,
-                availableBytes: 2147483648,
+                availableBytes: 361678 * 1024 ** 2,
               };
             if (command === 'project_list') return [];
             if (command === 'project_open_next') return null;
@@ -248,6 +248,9 @@ test('storage change belongs to its path row and information controls have no na
   await preferences
     .getByRole('button', { name: 'Project storage', exact: true })
     .click();
+  await expect(
+    preferences.getByText('Available space: 353.2 GiB', { exact: true }),
+  ).toBeVisible();
   const path = preferences.locator('.storage-path'),
     change = preferences.getByRole('button', {
       name: 'Change location…',
@@ -279,4 +282,17 @@ test('storage change belongs to its path row and information controls have no na
   await expect(preferences.locator('.storage-path')).toHaveText(
     '/home/review/Koxora/projects-v1',
   );
+  await preferences
+    .getByRole('button', { name: 'General', exact: true })
+    .click();
+  await preferences
+    .getByRole('combobox', { name: 'Language', exact: true })
+    .selectOption('de');
+  const germanSettings = page.getByRole('dialog');
+  await germanSettings
+    .getByRole('button', { name: 'Projektspeicher', exact: true })
+    .click();
+  await expect(
+    germanSettings.getByText('Freier Speicher: 353,2 GiB', { exact: true }),
+  ).toBeVisible();
 });

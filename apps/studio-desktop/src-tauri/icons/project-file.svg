@@ -1,17 +1,9 @@
-<!-- Koxora-owned source.svg mark with a document silhouette for native project files. -->
+<!-- Original Koxora project-file artwork: connected diagram nodes on a folded document. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <linearGradient id="koxora-mark" x1="5" y1="4" x2="63" y2="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#BBA4FF"/>
-      <stop offset=".55" stop-color="#967FFF"/>
-      <stop offset="1" stop-color="#59DEEC"/>
-    </linearGradient>
-  </defs>
-  <path d="M13 3h26l14 14v41a3 3 0 0 1-3 3H13a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" fill="#F4F1FF" stroke="#70649D" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M39 3v11a3 3 0 0 0 3 3h11" fill="#D9D0FF" stroke="#70649D" stroke-width="2" stroke-linejoin="round"/>
-  <g transform="translate(16 22) scale(.5)">
-    <rect width="64" height="64" rx="17" fill="#1B1B35"/>
-    <path d="M17 14v36M47 14 17 44m15-17 15 23" stroke="url(#koxora-mark)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="47" cy="14" r="4" fill="#65E5EE"/>
-  </g>
+  <path d="M12 3h26l15 15v40a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" fill="#F6F3FF" stroke="#66558F" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M38 3v12a3 3 0 0 0 3 3h12" fill="#DDD2FF" stroke="#66558F" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M25 32v8m0 0h18m-18 0v8m18-8v8" stroke="#66558F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="16" y="23" width="18" height="10" rx="3" fill="#8055DC" stroke="#543298" stroke-width="1.5"/>
+  <path d="m25 44 9 6-9 6-9-6 9-6Z" fill="#55D5DE" stroke="#217D92" stroke-width="1.5" stroke-linejoin="round"/>
+  <rect x="37" y="46" width="12" height="9" rx="2.5" fill="#B79AF6" stroke="#66558F" stroke-width="1.5"/>
 </svg>

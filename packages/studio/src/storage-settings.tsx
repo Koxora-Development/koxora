@@ -1,3 +1,4 @@
+import { formatStorageSpace } from './storage-space';
 import { InfoDisclosure } from './info-disclosure';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
@@ -36,6 +37,7 @@ export function StorageSettings({
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
     translate(locale, key, values);
   const [status, setStatus] = useState<Status | null>(null);
+  const availableSpace = formatStorageSpace(status?.availableBytes, locale);
   const [opened, setOpened] = useState(embedded);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
@@ -142,12 +144,8 @@ export function StorageSettings({
               </button>
             </div>
             <p className="settings-note">
-              {typeof status?.availableBytes === 'number'
-                ? t('storage.available', {
-                    mib: new Intl.NumberFormat(locale, {
-                      maximumFractionDigits: 0,
-                    }).format(status.availableBytes / 1048576),
-                  })
+              {availableSpace
+                ? t('storage.available', { space: availableSpace })
                 : t('storage.space')}
             </p>
             <div className="settings-actions">
@@ -183,6 +181,7 @@ export function StorageSettings({
               title={t('storage.details')}
             >
               <p>{t('storage.description')}</p>
+              <p>{t('storage.availableNote')}</p>
               <p>{t('storage.support')}</p>
               <p>{t('storage.retained')}</p>
             </InfoDisclosure>
