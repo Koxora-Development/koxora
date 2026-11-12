@@ -174,6 +174,8 @@ test('authors and undoes page links, retaining stable destinations after rename 
     .click();
   await noLink(page, node.id);
   await button(page, 'Undo').click();
+  if (!(await page.locator('.project-sidebar').isVisible()))
+    await button(page, 'Project navigator').click();
   const doc = page.locator(`[data-tree-id="${project.documents[1].id}"]`);
   await doc.focus();
   await doc.press('ArrowRight');

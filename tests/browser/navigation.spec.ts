@@ -154,6 +154,7 @@ test('authors foreign project and element targets, saves drafts and highlights l
 test('local element navigation centers/selects, survives history, and clears after ordinary page changes', async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1440, height: 1100 });
   await page.goto('/');
   let project = fixture('Local elements');
   const doc = project.documents[0],

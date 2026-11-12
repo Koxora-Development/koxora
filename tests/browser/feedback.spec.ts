@@ -42,8 +42,8 @@ async function setTheme(p: Page, value: string) {
   await settings.getByRole('button', { name: 'Close', exact: true }).click();
 }
 async function open(p: Page, project?: Project) {
-  await p.goto('/');
   await p.setViewportSize({ width: 1440, height: 1100 });
+  await p.goto('/');
   if (project) {
     await button(p, 'Import .koxora').click();
     await p

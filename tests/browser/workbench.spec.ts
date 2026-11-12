@@ -179,6 +179,10 @@ test('start library uses compact project rows and reserves an honest template se
     page.getByText('Templates are planned', { exact: true }),
   ).toBeVisible();
   await openWorkbook(page);
+  if (!(await page.locator('.project-sidebar').isVisible()))
+    await page
+      .getByRole('button', { name: 'Project navigator', exact: true })
+      .click();
   await page.getByRole('button', { name: /^Local projects/ }).click();
   await expect(
     page.getByRole('heading', { name: 'Project library', level: 1 }),

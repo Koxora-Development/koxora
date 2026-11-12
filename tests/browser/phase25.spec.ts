@@ -70,8 +70,8 @@ async function setup(page: Page, load = true) {
   return project;
 }
 async function open(page: Page, project: Project) {
-  await page.goto('/');
   await page.setViewportSize({ width: 1440, height: 1100 });
+  await page.goto('/');
   await button(page, 'Import .koxora').click();
   await page
     .getByRole('dialog')

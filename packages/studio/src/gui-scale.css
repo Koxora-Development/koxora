@@ -127,7 +127,9 @@
   inset-block-start: calc(34px * var(--ui-scale, 1));
 }
 .studio-shell[data-ui-narrow='true'] .office-quickbar .save-status {
-  display: none;
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
 }
 .studio-shell[data-ui-small='true'] .office-settings-layout {
   display: block;
