@@ -15,8 +15,26 @@ export type IconName =
   | 'layers'
   | 'close'
   | 'refresh'
-  | 'shield';
+  | 'shield'
+  | 'save'
+  | 'undo'
+  | 'redo'
+  | 'panel'
+  | 'settings'
+  | 'expand'
+  | 'trash'
+  | 'info'
+  | 'more';
 const paths: Record<IconName, string> = {
+  more: 'M5 12h.01M12 12h.01M19 12h.01',
+  trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
+  info: 'M12 11v6m0-10v1m9 4a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
+  expand: 'M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6',
+  save: 'M4 3h13l4 4v14H3V3zM7 3v6h10V3M7 21v-8h10v8',
+  undo: 'M8 5 3 10l5 5M3 10h10a7 7 0 0 1 7 7',
+  redo: 'm16 5 5 5-5 5m5-5H11a7 7 0 0 0-7 7',
+  panel: 'M3 4h18v16H3zM15 4v16M17 8h2M17 12h2M17 16h2',
+  settings: 'M4 7h16M4 17h16M8 4v6m8 4v6',
   plus: 'M12 5v14M5 12h14',
   import: 'M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4',
   export: 'M12 15V3m-5 5 5-5 5 5M4 16v4h16v-4',
@@ -34,6 +52,7 @@ export function Icon({ name }: { name: IconName }) {
   return (
     <svg
       className="icon"
+      data-icon={name}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -50,10 +69,12 @@ export function Dialog({
   title,
   children,
   onCancel,
+  className = '',
 }: {
   title: string;
   children: ReactNode;
   onCancel: () => void;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -68,6 +89,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
+      className={`studio-dialog ${className}`}
       aria-label={title}
       tabIndex={-1}
       onKeyDown={(event) => {
@@ -80,7 +102,7 @@ export function Dialog({
         if (event.key !== 'Tab') return;
         const elements = [
           ...event.currentTarget.querySelectorAll<HTMLElement>(
-            'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+            'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, a[href], [tabindex]:not([tabindex="-1"])',
           ),
         ].filter((element) => element.getClientRects().length > 0);
         const first = elements[0],

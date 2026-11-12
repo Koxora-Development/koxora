@@ -122,11 +122,13 @@ export function ProjectTitle({
 }
 
 export function ProjectNameField({
+  inputRef,
   title,
   locale,
   disabled,
   onRename,
 }: {
+  inputRef?: Ref<HTMLInputElement>;
   title: string;
   locale: string;
   disabled: boolean;
@@ -142,6 +144,7 @@ export function ProjectNameField({
     <label className="field-label">
       {translate(locale, 'project.name')}
       <input
+        ref={inputRef}
         value={draft.value}
         maxLength={1024}
         disabled={disabled}

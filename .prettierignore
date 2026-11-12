@@ -28,3 +28,5 @@ SECURITY.md
 packages/project/fixtures/legacy-json-v1.json
 # Composer's installed tree is not ours to format.
 apps/contact-php/vendor/
+# This is an XDG key/value file, not HTML/Handlebars markup.
+apps/studio-desktop/src-tauri/integration/koxora.desktop.hbs

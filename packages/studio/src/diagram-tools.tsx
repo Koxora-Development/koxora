@@ -1,16 +1,12 @@
-import { useState } from 'react';
-import {
-  safeExternalUrl,
-  type Page,
-  type Style,
-  type Project,
-} from '@koxora/project';
+import { useEffect, useId, useState } from 'react';
+import { type Page, type Style, type Project } from '@koxora/project';
 import { LinkFields } from './element-links';
-import { Dialog } from '@koxora/ui';
+import { PropertySurface } from './property-surface';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
   elementLink,
   type LinkTarget,
+  validLinkTarget,
   isDrawing,
   isShapeKind,
   LINE_KEY,
@@ -266,7 +262,11 @@ export function ElementDialog({
   locale,
   onCancel,
   onApply,
+  panel = false,
+  onDraftChange,
 }: {
+  panel?: boolean;
+  onDraftChange?: (dirty: boolean) => void;
   project: Project;
   page: Page;
   styles: Style[];
@@ -278,18 +278,15 @@ export function ElementDialog({
   const t = (key: MessageKey) => translate(locale, key);
   const node = page.nodes.find((n) => n.id === id),
     edge = page.connections.find((e) => e.id === id);
+  const [tab, setTab] = useState('format');
+  const tabId = useId();
+  useEffect(() => () => onDraftChange?.(false), [onDraftChange]);
   const initialLink = elementLink(project, id);
   const [link, setLink] = useState<LinkTarget | null>(() =>
     initialLink.state === 'ready' ? initialLink.target : null,
   );
   const [linkChanged, setLinkChanged] = useState(false);
-  const validLink =
-    !link ||
-    (link.type === 'url'
-      ? !!safeExternalUrl(link.url)
-      : project.documents.some((d) =>
-          d.pages.some((p) => p.id === link.pageId),
-        ));
+  const validLink = validLinkTarget(project, link);
   const linkChange = linkChanged
     ? { link: { target: link, actionId: crypto.randomUUID() } }
     : {};
@@ -358,9 +355,27 @@ export function ElementDialog({
     </label>
   );
   return (
-    <Dialog title={t('diagram.properties')} onCancel={onCancel}>
+    <PropertySurface
+      panel={panel}
+      title={t('diagram.properties')}
+      onCancel={onCancel}
+    >
       <form
-        className="element-form"
+        className={`element-form ${panel ? 'office-property-form' : ''}`}
+        onChangeCapture={() => onDraftChange?.(true)}
+        onInvalidCapture={(event) => {
+          if (panel) {
+            event.preventDefault();
+            setTab(
+              (event.target as HTMLElement).closest<HTMLElement>(
+                '[data-property-tab]',
+              )?.dataset.propertyTab ?? 'format',
+            );
+            setFailed(true);
+            const target = event.target as HTMLElement;
+            requestAnimationFrame(() => target.focus());
+          }
+        }}
         onKeyDown={(event) => {
           if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
             event.preventDefault();
@@ -397,132 +412,211 @@ export function ElementDialog({
           else setFailed(true);
         }}
       >
-        {node?.kind !== 'freehand' && (
-          <fieldset className="label-editor">
-            <legend>{t('text.heading')}</legend>
-            <RichTextEditor
-              value={richText}
-              base={appearance}
-              locale={locale}
-              onChange={setRichText}
-            />
-          </fieldset>
-        )}
-        <LinkFields
-          project={project}
-          value={link}
-          initial={initialLink}
-          locale={locale}
-          onChange={(value) => {
-            setLink(value);
-            setLinkChanged(true);
-          }}
-        />
-        {failed && <p role="alert">{t('diagram.error.invalid')}</p>}
-        <details
-          className="element-advanced"
-          open={node?.kind === 'freehand' ? true : undefined}
-        >
-          <summary>{t('text.advanced')}</summary>
-          <div className="element-fields">
-            {geometry &&
-              (['x', 'y', 'width', 'height'] as const).map((key) => (
-                <label key={key}>
-                  {t(`editing.${key}`)}
-                  <input
-                    type="number"
-                    required
-                    min={
-                      key === 'width'
-                        ? 8
-                        : key === 'height'
-                          ? line
-                            ? 1
-                            : 8
-                          : -1e12
-                    }
-                    max={1e12}
-                    step="any"
-                    value={geometry[key]}
-                    onChange={(e) =>
-                      setGeometry({
-                        ...geometry,
-                        [key]: e.currentTarget.valueAsNumber,
-                      })
-                    }
-                  />
-                </label>
-              ))}
-            {line && (
-              <>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={startArrow}
-                    onChange={(e) => setStartArrow(e.target.checked)}
-                  />
-                  {t('editing.startArrow')}
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={endArrow}
-                    onChange={(e) => setEndArrow(e.target.checked)}
-                  />
-                  {t('editing.endArrow')}
-                </label>
-              </>
-            )}
-
-            {node &&
-              !['freehand', 'text', 'line', 'arrow'].includes(node.kind) &&
-              color('fill')}
-            {color('stroke')}
-            {number('strokeWidth', 0, 32)}
-            {number('opacity', 0, 1, 0.05)}
-            {node &&
-              !['freehand', 'text', 'line', 'arrow'].includes(node.kind) &&
-              number('cornerRadius', 0, 128)}
-            {edge && (
-              <>
-                <RoutingSelect
-                  locale={locale}
-                  value={options.routing}
-                  onChange={(routing) => setOptions({ ...options, routing })}
-                />
-                <AnchorSelect
-                  locale={locale}
-                  label="ports.source"
-                  value={options.sourceAnchor}
-                  onChange={(sourceAnchor) =>
-                    setOptions({ ...options, sourceAnchor })
-                  }
-                />
-                <AnchorSelect
-                  locale={locale}
-                  label="ports.target"
-                  value={options.targetAnchor}
-                  onChange={(targetAnchor) =>
-                    setOptions({ ...options, targetAnchor })
-                  }
-                />
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={options.arrow}
-                    onChange={(e) =>
-                      setOptions({ ...options, arrow: e.target.checked })
-                    }
-                  />
-                  {t('diagram.arrow')}
-                </label>
-              </>
-            )}
+        {panel && (
+          <div
+            className="office-property-tabs"
+            role="tablist"
+            aria-label={t('office.properties')}
+            onKeyDown={(event) => {
+              if (
+                !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
+              )
+                return;
+              event.preventDefault();
+              const tabs = ['format', 'text', 'links'];
+              const buttons = [
+                ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                  'button',
+                ),
+              ];
+              const focused = buttons.indexOf(
+                document.activeElement as HTMLButtonElement,
+              );
+              const next =
+                event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? 2
+                    : ((focused < 0 ? tabs.indexOf(tab) : focused) +
+                        (event.key === 'ArrowRight' ? 1 : 2)) %
+                      3;
+              setTab(tabs[next]);
+              event.currentTarget
+                .querySelectorAll<HTMLButtonElement>('button')
+                .item(next)
+                ?.focus();
+            }}
+          >
+            {['format', 'text', 'links'].map((value) => (
+              <button
+                type="button"
+                role="tab"
+                key={value}
+                id={`${tabId}-${value}`}
+                aria-selected={tab === value}
+                aria-controls={`${tabId}-${value}-panel`}
+                tabIndex={tab === value ? 0 : -1}
+                onClick={() => setTab(value)}
+              >
+                {t(`office.property.${value}` as MessageKey)}
+              </button>
+            ))}
           </div>
-        </details>
+        )}
+        <div
+          data-property-tab="text"
+          id={`${tabId}-text-panel`}
+          role={panel ? 'tabpanel' : undefined}
+          aria-labelledby={panel ? `${tabId}-text` : undefined}
+          hidden={panel && tab !== 'text'}
+        >
+          {node?.kind !== 'freehand' && (
+            <fieldset className="label-editor">
+              <legend>{t('text.heading')}</legend>
+              <RichTextEditor
+                value={richText}
+                base={appearance}
+                locale={locale}
+                onChange={(value) => {
+                  onDraftChange?.(true);
+                  setRichText(value);
+                }}
+              />
+            </fieldset>
+          )}
+        </div>
+        <div
+          data-property-tab="links"
+          id={`${tabId}-links-panel`}
+          role={panel ? 'tabpanel' : undefined}
+          aria-labelledby={panel ? `${tabId}-links` : undefined}
+          hidden={panel && tab !== 'links'}
+        >
+          <LinkFields
+            project={project}
+            value={link}
+            initial={initialLink}
+            locale={locale}
+            onChange={(value) => {
+              onDraftChange?.(true);
+              setLink(value);
+              setLinkChanged(true);
+            }}
+          />
+        </div>
+        {failed && <p role="alert">{t('diagram.error.invalid')}</p>}
+        <div
+          data-property-tab="format"
+          id={`${tabId}-format-panel`}
+          role={panel ? 'tabpanel' : undefined}
+          aria-labelledby={panel ? `${tabId}-format` : undefined}
+          hidden={panel && tab !== 'format'}
+        >
+          <details
+            className="element-advanced"
+            open={panel || node?.kind === 'freehand' ? true : undefined}
+          >
+            <summary>{t('text.advanced')}</summary>
+            <div className="element-fields">
+              {geometry &&
+                (['x', 'y', 'width', 'height'] as const).map((key) => (
+                  <label key={key}>
+                    {t(`editing.${key}`)}
+                    <input
+                      type="number"
+                      required
+                      min={
+                        key === 'width'
+                          ? 8
+                          : key === 'height'
+                            ? line
+                              ? 1
+                              : 8
+                            : -1e12
+                      }
+                      max={1e12}
+                      step="any"
+                      value={geometry[key]}
+                      onChange={(e) =>
+                        setGeometry({
+                          ...geometry,
+                          [key]: e.currentTarget.valueAsNumber,
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+              {line && (
+                <>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={startArrow}
+                      onChange={(e) => setStartArrow(e.target.checked)}
+                    />
+                    {t('editing.startArrow')}
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={endArrow}
+                      onChange={(e) => setEndArrow(e.target.checked)}
+                    />
+                    {t('editing.endArrow')}
+                  </label>
+                </>
+              )}
+
+              {node &&
+                !['freehand', 'text', 'line', 'arrow'].includes(node.kind) &&
+                color('fill')}
+              {color('stroke')}
+              {number('strokeWidth', 0, 32)}
+              {number('opacity', 0, 1, 0.05)}
+              {node &&
+                !['freehand', 'text', 'line', 'arrow'].includes(node.kind) &&
+                number('cornerRadius', 0, 128)}
+              {edge && (
+                <>
+                  <RoutingSelect
+                    locale={locale}
+                    value={options.routing}
+                    onChange={(routing) => setOptions({ ...options, routing })}
+                  />
+                  <AnchorSelect
+                    locale={locale}
+                    label="ports.source"
+                    value={options.sourceAnchor}
+                    onChange={(sourceAnchor) =>
+                      setOptions({ ...options, sourceAnchor })
+                    }
+                  />
+                  <AnchorSelect
+                    locale={locale}
+                    label="ports.target"
+                    value={options.targetAnchor}
+                    onChange={(targetAnchor) =>
+                      setOptions({ ...options, targetAnchor })
+                    }
+                  />
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={options.arrow}
+                      onChange={(e) =>
+                        setOptions({ ...options, arrow: e.target.checked })
+                      }
+                    />
+                    {t('diagram.arrow')}
+                  </label>
+                </>
+              )}
+            </div>
+          </details>
+        </div>
         <div className="dialog-actions">
           <button type="button" className="button" onClick={onCancel}>
-            {t('project.cancel')}
+            {t(panel ? 'office.discardProperties' : 'project.cancel')}
           </button>
           <button
             type="submit"
@@ -533,6 +627,6 @@ export function ElementDialog({
           </button>
         </div>
       </form>
-    </Dialog>
+    </PropertySurface>
   );
 }

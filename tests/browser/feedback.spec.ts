@@ -19,9 +19,31 @@ const button = (p: Page, name: string) =>
   p.getByRole('button', { name, exact: true });
 const canvas = (p: Page) => p.locator('.interactive-canvas');
 const treePages = (p: Page) => p.locator('[role=treeitem][data-page-id]');
+async function openMenu(p: Page, name: string) {
+  await p
+    .getByRole('menubar')
+    .getByRole('menuitem', { name, exact: true })
+    .click();
+  return p.getByRole('menu', { name, exact: true });
+}
+async function menuAction(p: Page, menu: string, action: string) {
+  await (
+    await openMenu(p, menu)
+  )
+    .getByRole('menuitem', { name: action, exact: true })
+    .click();
+}
+async function setTheme(p: Page, value: string) {
+  await button(p, 'Settings…').click();
+  const settings = p.getByRole('dialog', { name: 'Settings…', exact: true });
+  await settings
+    .getByRole('combobox', { name: 'Appearance', exact: true })
+    .selectOption(value);
+  await settings.getByRole('button', { name: 'Close', exact: true }).click();
+}
 async function open(p: Page, project?: Project) {
-  await p.goto('/');
   await p.setViewportSize({ width: 1440, height: 1100 });
+  await p.goto('/');
   if (project) {
     await button(p, 'Import .koxora').click();
     await p
@@ -101,7 +123,14 @@ test('navigator menus stay interactive inside expanded canvas and preserve keybo
   await second.press('ControlOrMeta+Shift+z');
   await expect(second).toHaveAttribute('aria-label', 'Details');
   await button(page, 'Expand canvas').click();
-  await button(page, 'Project navigator').click();
+  await expect(page.locator('.office-quickbar')).toHaveJSProperty(
+    'inert',
+    true,
+  );
+  await page
+    .locator('.expanded-workbench-tools')
+    .getByRole('button', { name: 'Project navigator', exact: true })
+    .click();
   const nav = page.getByRole('dialog', {
     name: 'Project navigator',
     exact: true,
@@ -173,7 +202,14 @@ test('sidebar saves before project switching, duplicates complete projects and r
   );
   const copy = await exported(page);
   await button(page, 'Expand canvas').click();
-  await button(page, 'Project navigator').click();
+  await expect(page.locator('.office-quickbar')).toHaveJSProperty(
+    'inert',
+    true,
+  );
+  await page
+    .locator('.expanded-workbench-tools')
+    .getByRole('button', { name: 'Project navigator', exact: true })
+    .click();
   const root = page.getByRole('treeitem', {
     name: 'Second project (copy)',
     exact: true,
@@ -188,7 +224,7 @@ test('sidebar saves before project switching, duplicates complete projects and r
     .click();
   await expect(page.getByRole('tree')).toBeVisible();
   await page.locator('.project-trash summary').click();
-  await button(page, 'Restore project').click();
+  await button(page, 'Restore project: Second project (copy)').click();
   await page
     .getByRole('treeitem', { name: 'Second project (copy)', exact: true })
     .click();
@@ -368,7 +404,9 @@ test('stacking paints and hits connectors above shapes, restores via keyboard an
   await open(page, p);
   const target = await point(page, -100, 0);
   await page.mouse.click(target.x, target.y, { button: 'right' });
+  await page.getByRole('menuitem', { name: 'Stacking', exact: true }).click();
   await page
+    .getByRole('menu', { name: 'Stacking', exact: true })
     .getByRole('menuitem', { name: 'Bring to front', exact: true })
     .click();
   const middle = await point(page, 0, 0);
@@ -395,7 +433,11 @@ test('stacking paints and hits connectors above shapes, restores via keyboard an
   const result = await exported(page),
     out = result.documents[0].pages[0];
   expect(readStackOrder(out)?.at(-1)).toBe(out.connections[1].id);
-  await page.locator('.selection-stack summary').click();
+  await (
+    await openMenu(page, 'Format')
+  )
+    .getByRole('menuitem', { name: 'Stacking', exact: true })
+    .click();
   await capture(page, 'stacking');
 });
 
@@ -406,17 +448,24 @@ test('arrangement preview cancels without edits and non-overlap layout is one re
   await open(page, project);
   await canvas(page).focus();
   await page.keyboard.press('ControlOrMeta+a');
-  await page.locator('.selection-align summary').click();
-  await button(page, 'Align left').focus();
+  await (
+    await openMenu(page, 'Format')
+  )
+    .getByRole('menuitem', { name: 'Align / Distribute', exact: true })
+    .click();
+  await page
+    .getByRole('menu', { name: 'Align / Distribute', exact: true })
+    .getByRole('menuitem', { name: 'Align left', exact: true })
+    .focus();
   await expect(
     page.getByText('Arrangement preview — click to apply, Escape to cancel.', {
       exact: true,
     }),
   ).toBeVisible();
   await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
   expect((await exported(page)).documents).toEqual(project.documents);
-  await page.locator('.selection-align summary').click();
-  await button(page, 'Arrange without overlap').click();
+  await menuAction(page, 'Format', 'Arrange without overlap');
   const result = await exported(page),
     nodes = result.documents[0].pages[0].nodes;
   for (let i = 0; i < nodes.length; i++)
@@ -430,7 +479,7 @@ test('arrangement preview cancels without edits and non-overlap layout is one re
           b.y + b.height <= a.y,
       ).toBe(true);
     }
-  await button(page, 'Undo').click();
+  await menuAction(page, 'Edit', 'Undo');
   expect((await exported(page)).documents).toEqual(project.documents);
 });
 
@@ -477,9 +526,7 @@ for (const theme of ['light', 'dark'])
       now,
     );
     await open(page, p);
-    await page
-      .getByRole('combobox', { name: 'Appearance', exact: true })
-      .selectOption(theme);
+    await setTheme(page, theme);
     const rendered = page.locator(`[data-node-id="${node}"]`);
     await expect(rendered.locator('.scene-rich-label span').nth(2)).toHaveCSS(
       'color',
@@ -527,9 +574,7 @@ for (const theme of ['light', 'dark'])
       readRichText(saved.documents[0].pages[0].nodes[0])?.paragraphs[0].runs[0]
         .style.textColor,
     ).toBe('auto');
-    await page
-      .getByRole('combobox', { name: 'Appearance', exact: true })
-      .selectOption(theme === 'light' ? 'dark' : 'light');
+    await setTheme(page, theme === 'light' ? 'dark' : 'light');
     expect((await exported(page)).documents).toEqual(saved.documents);
   });
 
@@ -624,9 +669,7 @@ test('automatic defaults remain legible on shape, standalone text, arrow and con
   );
   await open(page, p);
   for (const theme of ['light', 'dark']) {
-    await page
-      .getByRole('combobox', { name: 'Appearance', exact: true })
-      .selectOption(theme);
+    await setTheme(page, theme);
     const ink = await canvas(page).evaluate((el) =>
       getComputedStyle(el).getPropertyValue('--ink').trim(),
     );
@@ -695,22 +738,26 @@ test('keyboard menu navigation reveals actions in short windows', async ({
   await canvas(page).focus();
   await page.keyboard.press('ControlOrMeta+a');
   await page.setViewportSize({ width: 800, height: 320 });
-  const trigger = button(page, 'Selection actions');
+  const trigger = page
+    .getByRole('menubar')
+    .getByRole('menuitem', { name: 'Edit', exact: true });
   await trigger.click();
-  const menu = page.getByRole('menu');
+  const menu = page.getByRole('menu', { name: 'Edit', exact: true });
   await expect(menu).toBeVisible();
   await page.keyboard.press('End');
-  const cancel = menu.getByRole('menuitem', { name: 'Cancel', exact: true });
-  await expect(cancel).toBeFocused();
+  const last = menu.getByRole('menuitem', { name: 'Select all', exact: true });
+  await expect(last).toBeFocused();
   expect(
-    await cancel.evaluate((el) => {
+    await last.evaluate((el) => {
       const b = el.getBoundingClientRect(),
         m = el.closest('[role=menu]')!.getBoundingClientRect();
       return b.top >= m.top && b.bottom <= m.bottom;
     }),
   ).toBe(true);
   await page.keyboard.press('Home');
-  await expect(menu.getByRole('menuitem').first()).toBeFocused();
+  await expect(
+    menu.locator('[role=menuitem]:not(:disabled)').first(),
+  ).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(trigger).toBeFocused();
 });

@@ -6,8 +6,17 @@
     "allow-project-list",
     "allow-project-read",
     "allow-project-write",
+    "allow-project-remove",
     "allow-project-export",
     "allow-project-read-previous",
-    "allow-open-external-url"
+    "allow-open-external-url",
+    "allow-appimage-integration",
+    "allow-storage-status",
+    "allow-storage-keep",
+    "allow-storage-open",
+    "allow-storage-change",
+    "allow-project-open-next",
+    "allow-project-open-ack",
+    "allow-project-open-choose"
   ]
 }

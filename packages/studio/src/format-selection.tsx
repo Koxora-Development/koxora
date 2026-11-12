@@ -1,4 +1,4 @@
-import { Dialog } from '@koxora/ui';
+import { PropertySurface } from './property-surface';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { useState } from 'react';
 import {
@@ -18,7 +18,9 @@ export function FormatSelection({
   locale,
   onApply,
   onClose,
+  panel = false,
 }: {
+  panel?: boolean;
   ids: string[];
   page: Page;
   styles: Style[];
@@ -74,7 +76,11 @@ export function FormatSelection({
     setFailed(!onApply({ type: 'format', ids, patch: { [key]: value } }));
   }
   return (
-    <Dialog title={t('format.heading')} onCancel={onClose}>
+    <PropertySurface
+      panel={panel}
+      title={t('format.heading')}
+      onCancel={onClose}
+    >
       <p className="field-help">{t('format.help')}</p>
       <div className="element-fields batch-fields">
         {(['fill', 'stroke', 'textColor'] as const)
@@ -206,6 +212,6 @@ export function FormatSelection({
           {t('format.close')}
         </button>
       </div>
-    </Dialog>
+    </PropertySurface>
   );
 }

@@ -9,11 +9,15 @@ export function ContextMenu({
   label,
   onClose,
   children,
+  onTraverse,
+  keepTrigger = false,
 }: {
   anchor: MenuAnchor;
   label: string;
   onClose: () => void;
   children: ReactNode;
+  onTraverse?: (direction: number) => void;
+  keepTrigger?: boolean;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -28,11 +32,17 @@ export function ContextMenu({
       left: Math.max(8, Math.min(anchor.x, window.innerWidth - box.width - 8)),
       top: Math.max(8, Math.min(anchor.y, window.innerHeight - box.height - 8)),
     });
-    element
-      .querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')
-      ?.focus({ preventScroll: true });
+    (
+      element.querySelector<HTMLElement>(
+        '[role="menuitem"]:not(:disabled), [role="menuitemcheckbox"]:not(:disabled)',
+      ) ?? element
+    ).focus({ preventScroll: true });
     const outside = (e: Event) => {
-      if (!element.contains(e.target as Node)) close.current();
+      if (
+        !element.contains(e.target as Node) &&
+        !(keepTrigger && anchor.trigger.contains(e.target as Node))
+      )
+        close.current();
     };
     const resize = () => close.current();
     document.addEventListener('pointerdown', outside, true);
@@ -61,19 +71,34 @@ export function ContextMenu({
             anchor.trigger.focus({ preventScroll: true });
         });
     };
-  }, [anchor]);
+  }, [anchor, keepTrigger]);
   return createPortal(
     <div
       ref={root}
       className="context-menu"
       role="menu"
+      tabIndex={-1}
       aria-label={label}
       style={position}
       onBlur={(e) => {
-        if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget))
+        if (
+          e.relatedTarget &&
+          !e.currentTarget.contains(e.relatedTarget) &&
+          !(keepTrigger && anchor.trigger.contains(e.relatedTarget))
+        )
           onClose();
       }}
       onKeyDown={(e) => {
+        if (e.key === 'Tab') {
+          anchor.trigger.focus();
+          onClose();
+          return;
+        }
+        if (onTraverse && ['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+          e.preventDefault();
+          onTraverse(e.key === 'ArrowRight' ? 1 : -1);
+          return;
+        }
         if (e.key === 'Escape') {
           e.preventDefault();
           e.stopPropagation();
@@ -83,9 +108,13 @@ export function ContextMenu({
           e.preventDefault();
           const items = [
             ...e.currentTarget.querySelectorAll<HTMLButtonElement>(
-              '[role="menuitem"]:not(:disabled)',
+              '[role="menuitem"]:not(:disabled), [role="menuitemcheckbox"]:not(:disabled)',
             ),
-          ];
+          ].filter(
+            (item) =>
+              item.closest('[role="menu"]') === e.currentTarget &&
+              item.getClientRects().length,
+          );
           const index = items.indexOf(
             document.activeElement as HTMLButtonElement,
           );

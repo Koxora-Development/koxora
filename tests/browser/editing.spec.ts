@@ -14,6 +14,37 @@ const button = (p: Page, name: string) =>
   p.getByRole('button', { name, exact: true });
 const canvas = (p: Page) =>
   p.getByRole('region', { name: 'Interactive canvas', exact: true });
+async function menu(page: Page, name: string) {
+  await page
+    .getByRole('menubar')
+    .getByRole('menuitem', { name, exact: true })
+    .click();
+}
+async function properties(page: Page, tab = 'Text') {
+  await menu(page, 'Format');
+  await page
+    .getByRole('menuitem', { name: 'Element properties', exact: true })
+    .click();
+  const dock = page.getByRole('region', {
+    name: 'Element properties',
+    exact: true,
+  });
+  await dock.getByRole('tab', { name: tab, exact: true }).click();
+  return dock;
+}
+async function preference(page: Page, label: string, value: string) {
+  await button(page, 'Settings…').click();
+  const dialog = page.getByRole('dialog');
+  await dialog
+    .getByRole('combobox', { name: label, exact: true })
+    .selectOption(value);
+  await dialog
+    .getByRole('button', {
+      name: value === 'de' ? 'Schließen' : 'Close',
+      exact: true,
+    })
+    .click();
+}
 async function create(p: Page) {
   await p.goto('/');
   await button(p, 'New project').click();
@@ -175,7 +206,8 @@ test('shift and marquee selection move together, duplicate linked nodes, delete 
     'd',
     path!,
   );
-  await button(page, 'Duplicate').click();
+  await menu(page, 'Edit');
+  await page.getByRole('menuitem', { name: 'Duplicate', exact: true }).click();
   await expect(page.locator('[data-node-id]')).toHaveCount(4);
   await expect(page.locator('[data-connection-id]')).toHaveCount(2);
   let model = (await exported(page)).project.documents[0].pages[0];
@@ -188,7 +220,10 @@ test('shift and marquee selection move together, duplicate linked nodes, delete 
   await expect(page.locator('[data-node-id]')).toHaveCount(4);
   await page.keyboard.press('Control+Shift+z');
   await expect(page.locator('[data-node-id]')).toHaveCount(2);
-  await button(page, 'Expand canvas').click();
+  await menu(page, 'View');
+  await page
+    .getByRole('menuitemcheckbox', { name: 'Expand canvas', exact: true })
+    .click();
   await worldDrag(page, -285, -120, 250, 100);
   await expect.poll(() => selection(page).then((s) => s.length)).toBe(3);
   await canvas(page).focus();
@@ -216,11 +251,14 @@ test('standalone arrows have editable endpoints, labels and heads and survive po
   const end = await handleCenter(page.locator('[data-handle="end"]'));
   await drag(page, end, { x: end.x + 75, y: end.y - 20 });
   await expect(arrowPath).not.toHaveAttribute('d', originalPath!);
-  await button(page, 'Element properties').click();
+  await properties(page);
   await page
     .getByLabel('Label / text', { exact: true })
     .fill('Standalone 世界');
-  await page.getByText('Geometry and appearance', { exact: true }).click();
+  await page
+    .getByRole('region', { name: 'Element properties', exact: true })
+    .getByRole('tab', { name: 'Format', exact: true })
+    .click();
   await page.getByLabel('Arrowhead at start', { exact: true }).check();
   await button(page, 'Apply changes').click();
   await expect(page.locator('.scene-arrow')).toHaveCount(2);
@@ -308,7 +346,7 @@ test('burst keyboard nudges retain every command and ordinary text editing does 
   await expect(node).toHaveAttribute('transform', original!);
   await expect(page.getByRole('alert')).toHaveCount(0);
   await click(page, 0, 0);
-  await button(page, 'Element properties').click();
+  await properties(page);
   await page.getByLabel('Label / text', { exact: true }).fill('keep');
   await page.keyboard.press('Control+a');
   await page.keyboard.press('Backspace');
@@ -321,7 +359,8 @@ test('burst keyboard nudges retain every command and ordinary text editing does 
 test('history shortcuts work with toolbar focus', async ({ page }) => {
   await create(page);
   await shape(page, 'Rectangle', 0, 0);
-  await button(page, 'Duplicate').click();
+  await menu(page, 'Edit');
+  await page.getByRole('menuitem', { name: 'Duplicate', exact: true }).click();
   await expect(page.locator('[data-node-id]')).toHaveCount(2);
   await button(page, 'Grid').focus();
   await page.keyboard.press('Control+z');
@@ -331,41 +370,43 @@ test('history shortcuts work with toolbar focus', async ({ page }) => {
   await expect(page.locator('[data-node-id]')).toHaveCount(2);
 });
 
-test('workspace and dashboard inline rename commit, cancel, validate and retain project identity', async ({
+test('workspace name field and dashboard inline rename commit, cancel, validate and retain project identity', async ({
   page,
 }) => {
   await create(page);
   await shape(page, 'Rectangle', 0, 0);
   await save(page);
   const before = (await exported(page)).project;
-  await page.locator('.workspace-header h1').dblclick();
-  const input = page.locator('.inline-title-field input');
-  await input.fill('Renamed project 世界');
-  await input.press('Enter');
+  const name = page.getByRole('textbox', { name: 'Project name', exact: true });
+  await name.fill('Renamed project 世界');
+  await name.press('Enter');
   await expect(page.locator('.workspace-header h1')).toHaveText(
     'Renamed project 世界',
   );
   await save(page);
-  await page.locator('.workspace-header h1').dblclick();
-  await input.fill('Discard');
-  await input.press('Escape');
+  await name.fill('Discard');
+  await name.press('Escape');
+  await expect(name).toHaveValue('Renamed project 世界');
+  await name.fill('   ');
+  await name.press('Enter');
+  await expect(page.locator('.notification.error[role="alert"]')).toContainText(
+    'Enter a name with 1–1024 characters and no control characters.',
+  );
   await expect(page.locator('.workspace-header h1')).toHaveText(
     'Renamed project 世界',
   );
-  await page.locator('.workspace-header h1').dblclick();
-  await input.fill('   ');
-  await input.press('Enter');
-  await expect(
-    page.locator('.inline-title-field [role="alert"]'),
-  ).toBeVisible();
-  await input.press('Escape');
-  await page
-    .getByLabel('Project name', { exact: true })
-    .fill('Name with spaces');
+  await name.press('Escape');
+  await expect(name).toHaveValue('Renamed project 世界');
+  await name.fill('Name with spaces');
   await button(page, 'Save project').click();
   await expect(page.locator('.workspace-header h1')).toHaveText(
     'Name with spaces',
   );
+  const input = page.locator('.inline-title-field input');
+  if (!(await page.locator('.project-sidebar').isVisible()))
+    await page
+      .getByRole('button', { name: 'Project navigator', exact: true })
+      .click();
   await page.getByRole('button', { name: /Local projects/ }).click();
   await expect(
     page
@@ -513,8 +554,11 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
   await canvas(page).focus();
   await page.keyboard.press('Escape');
   await page.keyboard.press('Control+a');
-  await page.getByText('Align / Distribute', { exact: true }).click();
-  await button(page, 'Align top').click();
+  await menu(page, 'Format');
+  await page
+    .getByRole('menuitem', { name: 'Align / Distribute', exact: true })
+    .press('ArrowRight');
+  await page.getByRole('menuitem', { name: 'Align top', exact: true }).click();
   const model = (await exported(page)).project.documents[0].pages[0];
   expect(new Set(model.nodes.map((n) => n.geometry.y)).size).toBe(1);
   await button(page, 'Select').focus();
@@ -527,7 +571,12 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
       .getByRole('button', { name: 'Freehand pen', exact: true }),
   ).toBeFocused();
   if (process.env.KOXORA_CAPTURE && test.info().project.name === 'chromium') {
-    await page.getByText('Align / Distribute', { exact: true }).click();
+    await menu(page, 'Format');
+    await page
+      .getByRole('menuitem', { name: 'Align / Distribute', exact: true })
+      .press('ArrowRight');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
     await page
       .getByLabel('Project name', { exact: true })
       .fill('Release readiness');
@@ -538,7 +587,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
     }));
     for (let i = 0; i < centers.length; i++) {
       await click(page, centers[i].x, centers[i].y);
-      await button(page, 'Element properties').click();
+      await properties(page);
       await page
         .getByLabel('Label / text', { exact: true })
         .fill(['Draft & review', 'Validate', 'Ready to ship'][i]);
@@ -561,18 +610,14 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
     if (await dismiss.isVisible()) await dismiss.click();
     mkdirSync('docs/design/screenshots/phase-2.4', { recursive: true });
     for (const theme of ['dark', 'light']) {
-      await page
-        .getByRole('combobox', { name: 'Appearance', exact: true })
-        .selectOption(theme);
+      await preference(page, 'Appearance', theme);
       await page.screenshot({
         path: `docs/design/screenshots/phase-2.4/editor-${theme}.png`,
         fullPage: true,
       });
     }
   }
-  await page
-    .getByRole('combobox', { name: 'Language', exact: true })
-    .selectOption('de');
+  await preference(page, 'Language', 'de');
   for (const width of [360, 800, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     expect(
@@ -582,7 +627,9 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
     ).toBe(true);
   }
   await expect(button(page, 'Pfeil')).toBeVisible();
-  await expect(button(page, 'Umbenennen')).toBeVisible();
+  await expect(
+    page.getByRole('textbox', { name: 'Projektname', exact: true }),
+  ).toBeVisible();
   if (process.env.KOXORA_CAPTURE && test.info().project.name === 'chromium') {
     await page.setViewportSize({ width: 390, height: 1000 });
     await page.screenshot({

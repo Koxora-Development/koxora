@@ -1,6 +1,6 @@
 #[cfg(target_os = "linux")]
 #[path = "link_launcher.rs"]
-mod linux;
+pub(crate) mod linux;
 
 pub fn open_external_url(value: &str) -> Result<(), String> {
     let safe = safe_external_url(value)?;
@@ -9,6 +9,15 @@ pub fn open_external_url(value: &str) -> Result<(), String> {
     #[cfg(not(target_os = "linux"))]
     let result = open::that_detached(safe);
     result.map_err(|_| "openUrl".to_owned())
+}
+
+/// Only the native, configured repository supplies this path; no general path IPC exists.
+pub fn open_folder(path: &std::path::Path) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    let result = linux::open(path.to_str().ok_or("storage")?);
+    #[cfg(not(target_os = "linux"))]
+    let result = open::that_detached(path);
+    result.map_err(|_| "storage".to_owned())
 }
 
 /// Match Studio's URL allowlist at the IPC boundary before invoking the OS.

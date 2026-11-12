@@ -4,6 +4,7 @@ import {
   createProject,
   exportProject,
   importProject,
+  serializeProject,
   type Project,
 } from '../../packages/project/src/index';
 import {
@@ -87,11 +88,39 @@ async function properties(page: Page, elementId: string) {
   const picker = page.getByLabel('Diagram element', { exact: true });
   if (!(await picker.isVisible())) await button(page, 'Objects').click();
   await picker.selectOption(elementId);
-  return page.getByRole('dialog', { name: 'Element properties' });
+  const dock = page.getByRole('region', {
+    name: 'Element properties',
+    exact: true,
+  });
+  await dock.getByRole('tab', { name: 'Links', exact: true }).click();
+  return dock;
 }
 async function select(page: Page, elementId: string) {
   const dialog = await properties(page, elementId);
-  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Discard', exact: true }).click();
+}
+async function linkAction(page: Page, name = 'Open link') {
+  const canvas = page.locator('.interactive-canvas');
+  await canvas.focus();
+  await canvas.press('Shift+F10');
+  return page.getByRole('menuitem', { name, exact: true });
+}
+async function noLink(page: Page, elementId: string) {
+  const dock = await properties(page, elementId);
+  await expect(dock.getByLabel('Link type', { exact: true })).toHaveValue(
+    'none',
+  );
+  await dock.getByRole('button', { name: 'Discard', exact: true }).click();
+}
+async function german(page: Page) {
+  await button(page, 'Settings…').click();
+  const settings = page.getByRole('dialog');
+  await settings
+    .getByRole('combobox', { name: 'Language', exact: true })
+    .selectOption('de');
+  await settings
+    .getByRole('button', { name: 'Schließen', exact: true })
+    .click();
 }
 async function exported(page: Page) {
   const download = page.waitForEvent('download');
@@ -125,12 +154,13 @@ test('authors and undoes page links, retaining stable destinations after rename 
   await dialog
     .getByRole('button', { name: 'Apply changes', exact: true })
     .click();
-  await expect(button(page, 'Open link')).toBeVisible();
+  await expect(await linkAction(page)).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(page.locator(`[data-node-id="${node.id}"] title`)).toContainText(
     'Reference / Details page',
   );
   await button(page, 'Undo').click();
-  await expect(button(page, 'Open link')).toHaveCount(0);
+  await noLink(page, node.id);
   await button(page, 'Redo').click();
   dialog = await properties(page, node.id);
   await expect(
@@ -142,8 +172,10 @@ test('authors and undoes page links, retaining stable destinations after rename 
   await dialog
     .getByRole('button', { name: 'Apply changes', exact: true })
     .click();
-  await expect(button(page, 'Open link')).toHaveCount(0);
+  await noLink(page, node.id);
   await button(page, 'Undo').click();
+  if (!(await page.locator('.project-sidebar').isVisible()))
+    await button(page, 'Project navigator').click();
   const doc = page.locator(`[data-tree-id="${project.documents[1].id}"]`);
   await doc.focus();
   await doc.press('ArrowRight');
@@ -219,15 +251,20 @@ test('opens external URLs only deliberately, without opener access or referrer',
     .click();
   await page.locator(`[data-node-id="${node.id}"]`).click();
   await page.locator('.interactive-canvas').press('ArrowRight');
-  await button(page, 'Edit text').click();
+  await page
+    .getByRole('menubar')
+    .getByRole('menuitem', { name: 'Format', exact: true })
+    .click();
+  await page.getByRole('menuitem', { name: 'Edit text', exact: true }).click();
   await page.keyboard.press('Escape');
   expect(context.pages()).toHaveLength(1);
-  await expect(button(page, 'Open link')).toHaveAttribute(
+  const openLink = await linkAction(page);
+  await expect(openLink).toHaveAttribute(
     'title',
     'External destination: https://example.com/help',
   );
   const popup = page.waitForEvent('popup');
-  await button(page, 'Open link').click();
+  await openLink.click();
   const target = await popup;
   await expect(target).toHaveTitle('Destination');
   expect(
@@ -252,12 +289,14 @@ test('repairs missing connector destinations and follows links using German cont
   edge.extensions[LINK_KEY] = { version: 1, type: 'page', pageId: id() };
   await open(page, project);
   await select(page, edge.id);
-  await button(page, 'Open link').click();
+  await (await linkAction(page)).click();
   await expect(
-    page.getByText(
-      'The destination page is unavailable. Choose another page in Element properties.',
-      { exact: true },
-    ),
+    page
+      .locator('.diagram-guidance')
+      .getByText(
+        'The destination page is unavailable. Choose another page in Element properties.',
+        { exact: true },
+      ),
   ).toBeVisible();
   const dialog = await properties(page, edge.id);
   await dialog
@@ -270,10 +309,8 @@ test('repairs missing connector destinations and follows links using German cont
     state: 'ready',
     target: { type: 'page', pageId: dest.id },
   });
-  await page
-    .getByRole('combobox', { name: 'Language', exact: true })
-    .selectOption('de');
-  await button(page, 'Link öffnen').click();
+  await german(page);
+  await (await linkAction(page, 'Link öffnen')).click();
   await expect(
     page
       .locator('.notification')
@@ -283,38 +320,50 @@ test('repairs missing connector destinations and follows links using German cont
 test('native IPC receives only an explicitly followed URL and reports opener failure', async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    const records = new Map<string, string>();
-    Object.assign(window, {
-      nativeLinks: [],
-      __TAURI__: {
-        core: {
-          invoke: async (
-            command: string,
-            args: Record<string, unknown> = {},
-          ) => {
-            if (command === 'project_list') return [...records.keys()];
-            if (command === 'project_read')
-              return records.get(args.id as string) ?? null;
-            if (command === 'project_write') {
-              records.set(args.id as string, args.value as string);
-              return;
-            }
-            if (command === 'open_external_url') {
-              (
-                window as unknown as { nativeLinks: unknown[] }
-              ).nativeLinks.push(args.url);
-              throw new Error('openUrl');
-            }
-            throw new Error(command);
-          },
-        },
-      },
-    });
-  });
   const project = fixture(),
     node = project.documents[0].pages[0].nodes[0];
-  await open(page, project);
+  const raw = await serializeProject(project);
+  await page.addInitScript(
+    ({ id, raw }) => {
+      const records = new Map<string, string>([
+        [id, JSON.stringify({ current: raw, previous: null })],
+      ]);
+      Object.assign(window, {
+        nativeLinks: [],
+        __TAURI__: {
+          core: {
+            invoke: async (
+              command: string,
+              args: Record<string, unknown> = {},
+            ) => {
+              if (command === 'appimage_integration')
+                return { available: false };
+              if (command === 'storage_status')
+                return { directory: '/test/projects-v1', firstRun: false };
+              if (command === 'project_open_next') return null;
+              if (command === 'project_list') return [...records.keys()];
+              if (command === 'project_read')
+                return records.get(args.id as string) ?? null;
+              if (command === 'project_write') {
+                records.set(args.id as string, args.value as string);
+                return;
+              }
+              if (command === 'open_external_url') {
+                (
+                  window as unknown as { nativeLinks: unknown[] }
+                ).nativeLinks.push(args.url);
+                throw new Error('openUrl');
+              }
+              throw new Error(command);
+            },
+          },
+        },
+      });
+    },
+    { id: project.manifest.projectId, raw },
+  );
+  await page.goto('/');
+  await button(page, 'Open project').click();
   const dialog = await properties(page, node.id);
   await dialog.getByLabel('Link type', { exact: true }).selectOption('url');
   await dialog
@@ -328,7 +377,7 @@ test('native IPC receives only an explicitly followed URL and reports opener fai
       () => (window as unknown as { nativeLinks: string[] }).nativeLinks,
     ),
   ).toEqual([]);
-  await button(page, 'Open link').click();
+  await (await linkAction(page)).click();
   await expect(
     page.getByText(
       'The link could not be opened. Check the address and your browser or mail application.',
@@ -363,7 +412,8 @@ test('keeps future link configurations inert while allowing unrelated edits', as
   await dialog
     .getByRole('button', { name: 'Apply changes', exact: true })
     .click();
-  await expect(button(page, 'Open link')).toBeDisabled();
+  await expect(await linkAction(page)).toBeDisabled();
+  await page.keyboard.press('Escape');
   expect(
     (await exported(page)).documents[0].pages[0].connections[0].extensions[
       LINK_KEY

@@ -13,6 +13,33 @@ import {
 const button = (p: Page, name: string) =>
   p.getByRole('button', { name, exact: true });
 const canvas = (p: Page) => p.locator('.interactive-canvas');
+async function menuAction(p: Page, menu: string, action: string) {
+  await p
+    .getByRole('menubar')
+    .getByRole('menuitem', { name: menu, exact: true })
+    .click();
+  await p
+    .getByRole('menu', { name: menu, exact: true })
+    .getByRole('menuitem', { name: action, exact: true })
+    .click();
+}
+async function editAction(p: Page, action: string) {
+  const expanded = await button(p, 'Restore workspace').isVisible();
+  if (expanded) await button(p, 'Restore workspace').click();
+  await menuAction(p, 'Edit', action);
+  if (expanded) await button(p, 'Expand canvas').click();
+}
+async function german(p: Page) {
+  await button(p, 'Settings…').click();
+  await p
+    .getByRole('dialog', { name: 'Settings…', exact: true })
+    .getByRole('combobox', { name: 'Language', exact: true })
+    .selectOption('de');
+  await p
+    .getByRole('dialog', { name: 'Einstellungen …', exact: true })
+    .getByRole('button', { name: 'Schließen', exact: true })
+    .click();
+}
 const port = (p: Page, id: string, anchor: string) =>
   p.locator(`[data-port-node="${id}"][data-port-anchor="${anchor}"]`);
 async function fixture(p: Page) {
@@ -87,7 +114,7 @@ async function exported(p: Page) {
   if (await button(p, 'Restore workspace').isVisible())
     await button(p, 'Restore workspace').click();
   // Expanded-view cleanup restores the background's focusability asynchronously.
-  await expect(p.locator('.inspector')).toHaveJSProperty('inert', false);
+  await expect(p.locator('.office-quickbar')).toHaveJSProperty('inert', false);
   // Stabilize autosave before checking native keyboard activation of Export.
   await button(p, 'Save project').click();
   await expect(
@@ -104,14 +131,20 @@ async function exported(p: Page) {
   );
 }
 async function properties(p: Page, id: string) {
+  if (await button(p, 'Restore workspace').isVisible())
+    await button(p, 'Restore workspace').click();
   if (!(await p.locator('.objects-panel').isVisible()))
     await button(p, 'Objects').click();
   await p
     .getByRole('combobox', { name: 'Diagram element', exact: true })
     .selectOption(id);
-  await expect(
-    p.getByRole('dialog', { name: 'Element properties', exact: true }),
-  ).toBeVisible();
+  const panel = p.getByRole('region', {
+    name: 'Element properties',
+    exact: true,
+  });
+  await expect(panel).toBeVisible();
+  await panel.getByRole('tab', { name: 'Text', exact: true }).click();
+  return panel;
 }
 async function capture(p: Page, name: string) {
   if (process.env.KOXORA_CAPTURE && test.info().project.name === 'chromium') {
@@ -146,9 +179,9 @@ test('visible explicit ports attach through move, resize, undo, save and offline
   await expect(page.locator('[data-connection-id]')).toHaveCount(1);
   await expect(page.locator('.scene-arrow')).toHaveCount(0);
   await expect(page.locator('.connection-port')).toHaveCount(0);
-  await button(page, 'Undo').click();
+  await editAction(page, 'Undo');
   await expect(page.locator('[data-connection-id]')).toHaveCount(0);
-  await button(page, 'Redo').click();
+  await editAction(page, 'Redo');
   await expect(page.locator('[data-connection-id]')).toHaveCount(1);
   const before = await page.locator('.scene-connection').getAttribute('d');
   await drag(page, await point(page, -210, -100), await point(page, -170, -50));
@@ -266,9 +299,7 @@ test('ports keep screen-sized targets, keyboard focus and localized touch or pen
   await expect(page.locator('[data-connection-id]')).toHaveCount(1);
   await expect(canvas(page)).toBeFocused();
   await button(page, 'Restore workspace').click();
-  await page
-    .getByRole('combobox', { name: 'Language', exact: true })
-    .selectOption('de');
+  await german(page);
   await button(page, 'Zeichenfläche erweitern').click();
   await button(page, 'Inhalt einpassen').click();
   await button(page, 'Pfeil').click();
@@ -364,6 +395,7 @@ test('name and point pickers provide connection access without canvas pointing',
 test('whole-label typography renders on shapes, text, free lines and connectors and the shortcut reference stays usable', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   const ids = await fixture(page);
   await button(page, 'Line').click();
   await click(page, -210, -100);
@@ -387,27 +419,28 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
     .last()
     .getAttribute('data-node-id'))!;
   for (const id of [ids[0], free, text, edge]) {
-    await properties(page, id);
-    const editor = page.getByRole('textbox', {
+    const panel = await properties(page, id);
+    const editor = panel.getByRole('textbox', {
       name: 'Label / text',
       exact: true,
     });
     await editor.fill('Release\nGrüße 世界');
     await editor.press('ControlOrMeta+a');
-    await page.locator('.font-picker summary').click();
-    await page
+    await panel.locator('.font-picker summary').click();
+    await panel
       .locator('.font-menu')
       .getByRole('button', { name: 'Serif', exact: true })
       .click();
-    await page.getByLabel('Text size', { exact: true }).fill('28');
+    await panel.getByLabel('Text size', { exact: true }).fill('28');
     for (const style of ['Bold', 'Italic', 'Underline'])
-      await button(page, style).click();
-    await page
+      await panel.getByRole('button', { name: style, exact: true }).click();
+    await panel
       .getByRole('combobox', { name: 'Text alignment', exact: true })
       .selectOption('right');
-    await page.getByLabel('Text color', { exact: true }).fill('#8b2459');
+    await panel.getByLabel('Text color', { exact: true }).fill('#8b2459');
     if (id === edge) await capture(page, 'text-formatting');
-    await page.keyboard.press('Control+Enter');
+    await editor.press('Control+Enter');
+    await expect(panel).toBeVisible();
     const label = page
       .locator(
         `[data-node-id="${id}"] .scene-rich-label span, [data-connection-id="${id}"] .scene-rich-label span`,
@@ -423,11 +456,11 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
     await expect(label).toHaveCSS('text-decoration-line', 'underline');
     await expect(label.locator('..')).toHaveCSS('text-align', 'right');
   }
-  await button(page, 'Undo').click();
+  await editAction(page, 'Undo');
   await expect(
     page.locator('[data-connection-id] .scene-edge-label'),
   ).toHaveCount(0);
-  await button(page, 'Redo').click();
+  await editAction(page, 'Redo');
   await expect(
     page.locator('[data-connection-id] .scene-edge-label'),
   ).toBeVisible();
@@ -456,11 +489,9 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
   await page.reload();
   await button(page, 'Open project').click();
   expect((await exported(page)).documents).toEqual(exportedProject.documents);
-  await page
-    .getByRole('combobox', { name: 'Language', exact: true })
-    .selectOption('de');
+  await german(page);
   await page.setViewportSize({ width: 390, height: 900 });
-  await button(page, 'Tastenkürzel').click();
+  await menuAction(page, 'Hilfe', 'Tastenkürzel');
   await expect(page.getByRole('dialog')).toContainText(/(?:Strg|⌘ Cmd) \+ Z/);
   await page
     .getByRole('searchbox', { name: 'Tastenkürzel suchen' })
@@ -468,13 +499,22 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
   await expect(page.getByRole('dialog')).toContainText('Ports');
   await capture(page, 'shortcuts-small-de');
   await page.keyboard.press('Escape');
-  await expect(button(page, 'Tastenkürzel')).toBeFocused();
+  await expect(
+    page
+      .getByRole('menubar')
+      .getByRole('menuitem', { name: 'Hilfe', exact: true }),
+  ).toBeFocused();
   await page.getByRole('button', { name: 'Objekte', exact: true }).click();
   await page
     .getByRole('combobox', { name: 'Diagrammelement', exact: true })
     .selectOption(text);
+  const panel = page.getByRole('region', {
+    name: 'Elementeigenschaften',
+    exact: true,
+  });
+  await panel.getByRole('tab', { name: 'Text', exact: true }).click();
   await expect(
-    page.getByRole('group', { name: 'Textformatierung', exact: true }),
+    panel.getByRole('group', { name: 'Textformatierung', exact: true }),
   ).toBeVisible();
   await page
     .getByRole('textbox', { name: 'Beschriftung / Text', exact: true })

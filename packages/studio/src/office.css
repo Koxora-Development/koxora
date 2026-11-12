@@ -1,0 +1,1115 @@
+/* Office workbench: chrome has fixed rows; the document receives remaining space. */
+.studio-shell {
+  --control-height: calc(24px * var(--ui-scale, 1));
+  --control-radius: calc(2px * var(--ui-scale, 1));
+  --radius: calc(3px * var(--ui-scale, 1));
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  font-size: calc(12px * var(--ui-scale, 1));
+}
+.studio-shell [hidden],
+.office-submenu-panel[hidden] {
+  display: none !important;
+}
+.studio-shell .app-header {
+  flex: 0 0 calc(26px * var(--ui-scale, 1));
+  min-height: calc(26px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1));
+  gap: calc(6px * var(--ui-scale, 1));
+  background: var(--surface-muted);
+}
+.studio-shell .brand {
+  gap: calc(6px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
+  letter-spacing: -0.02em;
+}
+.studio-shell .brand-mark {
+  width: calc(17px * var(--ui-scale, 1));
+  height: calc(17px * var(--ui-scale, 1));
+}
+.studio-shell .brand-divider,
+.studio-shell .brand small {
+  display: none;
+}
+.office-window-caption {
+  font-size: calc(11px * var(--ui-scale, 1));
+  color: var(--muted);
+}
+.studio-shell .office-application {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: calc(186px * var(--ui-scale, 1)) minmax(0, 1fr);
+  grid-template-rows:
+    calc(26px * var(--ui-scale, 1)) calc(32px * var(--ui-scale, 1))
+    minmax(0, 1fr);
+  grid-template-areas: 'menu menu' 'tools tools' 'navigator workspace';
+}
+.studio-shell .office-application.navigator-hidden {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.office-menubar {
+  grid-area: menu;
+  display: flex;
+  align-items: stretch;
+  padding-inline: calc(5px * var(--ui-scale, 1));
+  gap: 0;
+  background: var(--surface);
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.office-menubar > button {
+  border: 0;
+  border-radius: 0;
+  padding: calc(3px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  background: transparent;
+  color: var(--ink);
+  font-size: calc(12px * var(--ui-scale, 1));
+  min-height: calc(24px * var(--ui-scale, 1));
+}
+.office-menubar > button:hover,
+.office-menubar > button[aria-expanded='true'] {
+  background: var(--accent-soft);
+}
+.studio-shell .office-quickbar {
+  grid-area: tools;
+  display: flex;
+  align-items: center;
+  gap: calc(3px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+  min-height: calc(32px * var(--ui-scale, 1));
+  margin: 0;
+  background: var(--surface-muted);
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.office-tool-button {
+  flex-shrink: 0;
+  width: calc(26px * var(--ui-scale, 1));
+  height: calc(26px * var(--ui-scale, 1));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: calc(1px * var(--ui-scale, 1)) solid transparent;
+  border-radius: calc(2px * var(--ui-scale, 1));
+  background: transparent;
+  color: var(--ink);
+  padding: calc(4px * var(--ui-scale, 1));
+}
+.office-tool-button .icon {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
+}
+.office-tool-button:hover:not(:disabled),
+.office-tool-button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--line);
+}
+.office-toolbar-divider {
+  height: calc(19px * var(--ui-scale, 1));
+  border-inline-start: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  margin-inline: calc(3px * var(--ui-scale, 1));
+}
+.office-document-name {
+  min-width: calc(60px * var(--ui-scale, 1));
+  max-width: calc(340px * var(--ui-scale, 1));
+  flex: 1;
+  margin-inline: calc(10px * var(--ui-scale, 1));
+}
+.office-document-name .field-label {
+  display: block;
+  margin: 0;
+  font-size: 0;
+}
+.office-document-name input {
+  width: 100%;
+  font-size: calc(12px * var(--ui-scale, 1));
+  min-height: calc(22px * var(--ui-scale, 1));
+  height: calc(22px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid transparent;
+  background: transparent;
+  color: var(--ink);
+}
+.office-document-name input:hover,
+.office-document-name input:focus {
+  border-color: var(--line);
+  background: var(--surface);
+}
+.studio-shell .office-quickbar .save-status {
+  font-size: calc(10px * var(--ui-scale, 1));
+  margin: 0 calc(6px * var(--ui-scale, 1)) 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studio-shell .project-sidebar {
+  grid-area: navigator;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-inline-end: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  overflow: auto;
+  background: var(--surface);
+}
+.studio-shell .sidebar-label,
+.studio-shell .sidebar-bottom {
+  display: none;
+}
+.studio-shell .project-sidebar > .nav-item {
+  padding: calc(4px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+  min-height: calc(27px * var(--ui-scale, 1));
+  border-radius: 0;
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.studio-shell .tree-heading {
+  padding: calc(5px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+  min-height: calc(27px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+  border-block: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.studio-shell .tree-item,
+.studio-shell .tree-actions {
+  min-height: calc(25px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+  border-radius: 0;
+}
+.studio-shell .tree-item {
+  padding-block: calc(3px * var(--ui-scale, 1));
+}
+.studio-shell .tree-actions {
+  width: calc(23px * var(--ui-scale, 1));
+}
+.studio-shell .tree-create {
+  gap: calc(4px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1));
+  margin: 0;
+  border-top: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.studio-shell .tree-create .button {
+  font-size: calc(10px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+}
+.studio-shell .project-tree {
+  max-height: none;
+}
+.studio-shell #workspace {
+  grid-area: workspace;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: auto;
+  background: var(--canvas);
+  display: flex;
+  flex-direction: column;
+}
+.studio-shell .workspace-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  gap: 0;
+}
+.studio-shell .canvas-workbook {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+.office-canvas-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(254px * var(--ui-scale, 1));
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.office-canvas-layout.properties-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+.studio-shell .canvas-stage {
+  margin: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+.studio-shell .canvas-toolbar {
+  min-height: calc(25px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.studio-shell .canvas-toolbar .canvas-header-actions {
+  display: none;
+}
+.studio-shell .canvas-toolbar > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studio-shell .shape-palette {
+  display: flex;
+  flex-wrap: nowrap;
+  padding: calc(2px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+  gap: calc(1px * var(--ui-scale, 1));
+  min-height: calc(31px * var(--ui-scale, 1));
+  overflow-x: auto;
+  border-block-end: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: 0;
+  background: var(--surface-muted);
+}
+.studio-shell .palette-tool {
+  flex: 0 0 calc(27px * var(--ui-scale, 1));
+  width: calc(27px * var(--ui-scale, 1));
+  height: calc(26px * var(--ui-scale, 1));
+  min-height: calc(26px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1));
+  border-radius: calc(2px * var(--ui-scale, 1));
+}
+.studio-shell .palette-tool svg {
+  width: calc(19px * var(--ui-scale, 1));
+  height: calc(19px * var(--ui-scale, 1));
+}
+.studio-shell .palette-tool > span {
+  display: none;
+}
+.studio-shell .interactive-stage .editing-toolbar {
+  display: none;
+}
+.studio-shell .tool-context {
+  padding: calc(2px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+  gap: calc(6px * var(--ui-scale, 1));
+  min-height: calc(26px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+.studio-shell .tool-context label {
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.studio-shell .tool-context input,
+.studio-shell .tool-context select {
+  padding: calc(2px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1));
+  min-height: calc(23px * var(--ui-scale, 1));
+}
+.studio-shell .interactive-canvas {
+  height: 0;
+  min-height: calc(150px * var(--ui-scale, 1));
+  flex: 1 1 0;
+  border-radius: 0;
+}
+.studio-shell .canvas-navigation {
+  flex: 0 0 auto;
+  padding: calc(2px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  min-height: calc(27px * var(--ui-scale, 1));
+  gap: calc(4px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.studio-shell .canvas-navigation .button {
+  font-size: calc(10px * var(--ui-scale, 1));
+  min-height: calc(21px * var(--ui-scale, 1));
+  height: calc(21px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+}
+.studio-shell .canvas-navigation label {
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.studio-shell .canvas-navigation input {
+  width: calc(48px * var(--ui-scale, 1));
+  padding: calc(1px * var(--ui-scale, 1)) calc(3px * var(--ui-scale, 1));
+  height: calc(21px * var(--ui-scale, 1));
+  min-height: calc(21px * var(--ui-scale, 1));
+}
+.studio-shell .canvas-status {
+  min-height: calc(19px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.studio-shell .canvas-disclosure,
+.studio-shell .canvas-hint,
+.studio-shell .diagram-guidance {
+  font-size: calc(10px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+  margin: 0;
+}
+.studio-shell .objects-panel {
+  padding: calc(3px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.studio-shell .objects-panel select {
+  padding: calc(2px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.office-properties {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  border-inline-start: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  background: var(--surface);
+}
+.office-properties > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: calc(27px * var(--ui-scale, 1));
+  height: calc(27px * var(--ui-scale, 1));
+  flex-shrink: 0;
+  padding: calc(3px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1))
+    calc(3px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1));
+  background: var(--surface-muted);
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.office-properties h2 {
+  font-size: calc(11px * var(--ui-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.office-close {
+  width: calc(21px * var(--ui-scale, 1));
+  height: calc(21px * var(--ui-scale, 1));
+  padding: 0;
+  border: calc(1px * var(--ui-scale, 1)) solid transparent;
+  background: none;
+  color: var(--muted);
+  font-size: calc(17px * var(--ui-scale, 1));
+  line-height: 1;
+}
+.office-close:hover {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+.office-property-scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding: calc(7px * var(--ui-scale, 1));
+  scrollbar-width: thin;
+}
+.office-property-surface {
+  font-size: calc(11px * var(--ui-scale, 1));
+  min-width: 0;
+}
+.office-property-surface > h3 {
+  font-size: calc(11px * var(--ui-scale, 1));
+  margin: 0 0 calc(7px * var(--ui-scale, 1));
+  font-weight: 600;
+}
+.office-property-form {
+  gap: calc(6px * var(--ui-scale, 1));
+}
+.office-property-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  margin-bottom: calc(5px * var(--ui-scale, 1));
+}
+.office-property-tabs > button {
+  flex: 1;
+  border: 0;
+  border-bottom: calc(2px * var(--ui-scale, 1)) solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: calc(11px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) calc(3px * var(--ui-scale, 1));
+}
+.office-property-tabs > button[aria-selected='true'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--accent-soft);
+}
+.office-property-form .element-fields,
+.office-property-scroll .batch-fields {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--ui-scale, 1));
+  padding: 0;
+}
+.office-property-form .element-fields > label,
+.office-property-scroll .batch-fields > label {
+  display: grid;
+  grid-template-columns: calc(86px * var(--ui-scale, 1)) minmax(0, 1fr);
+  align-items: center;
+  gap: calc(5px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+  color: var(--ink);
+}
+.office-property-form input:not([type='checkbox']),
+.office-property-form select,
+.office-property-scroll .batch-fields input:not([type='checkbox']),
+.office-property-scroll .batch-fields select {
+  height: calc(23px * var(--ui-scale, 1));
+  min-height: calc(23px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: calc(1px * var(--ui-scale, 1));
+  color: var(--ink);
+  background: var(--surface);
+  font-size: calc(11px * var(--ui-scale, 1));
+  min-width: 0;
+  width: 100%;
+}
+.office-property-form input[type='color'],
+.office-property-scroll .batch-fields input[type='color'] {
+  height: calc(23px * var(--ui-scale, 1));
+  padding: calc(1px * var(--ui-scale, 1));
+}
+.office-property-form .element-advanced {
+  border: 0;
+}
+.office-property-form .element-advanced > summary {
+  display: none;
+}
+.office-property-form .element-links {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  gap: calc(8px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.office-property-form .element-links label {
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.office-property-form .label-editor {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.office-property-form .label-editor > legend {
+  display: none;
+}
+.office-property-form .rich-toolbar {
+  padding: calc(3px * var(--ui-scale, 1));
+  gap: calc(3px * var(--ui-scale, 1));
+  border-radius: calc(1px * var(--ui-scale, 1));
+  background: var(--surface-muted);
+}
+.office-property-form .rich-toolbar label {
+  font-size: calc(10px * var(--ui-scale, 1));
+  gap: calc(2px * var(--ui-scale, 1));
+}
+.office-property-form .font-picker {
+  min-width: calc(110px * var(--ui-scale, 1));
+}
+.office-property-form .font-picker summary {
+  font-size: calc(11px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1));
+}
+.office-property-form .rich-toolbar .button {
+  min-height: calc(23px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.office-property-form .rich-toolbar input[type='number'] {
+  width: calc(43px * var(--ui-scale, 1));
+}
+.office-property-form .rich-toolbar input[type='color'] {
+  width: calc(28px * var(--ui-scale, 1));
+}
+.office-property-form .ProseMirror {
+  min-height: calc(90px * var(--ui-scale, 1));
+  padding: calc(7px * var(--ui-scale, 1));
+}
+.office-property-form .field-help,
+.office-property-hint,
+.office-project-details p {
+  font-size: calc(10px * var(--ui-scale, 1));
+  line-height: 1.45;
+  color: var(--muted);
+}
+.office-property-form .compact-help summary {
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.office-property-surface .dialog-actions {
+  position: static;
+  gap: calc(5px * var(--ui-scale, 1));
+  margin: calc(6px * var(--ui-scale, 1)) 0 0;
+  padding: calc(7px * var(--ui-scale, 1)) 0 0;
+  border-top: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.office-property-surface .button {
+  min-height: calc(24px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+}
+.office-property-hint {
+  margin: calc(2px * var(--ui-scale, 1)) 0 calc(12px * var(--ui-scale, 1));
+}
+.office-draft-note {
+  margin: 0;
+  padding: calc(5px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.office-project-details > summary {
+  font-size: calc(11px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1)) 0;
+  cursor: pointer;
+}
+.office-project-details .project-properties {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: calc(4px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.office-project-details .inspector-section,
+.office-project-details .storage-note {
+  margin: calc(7px * var(--ui-scale, 1)) 0;
+  padding: calc(7px * var(--ui-scale, 1)) 0;
+  border: 0;
+  background: none;
+}
+.office-project-details .field-label {
+  font-size: calc(11px * var(--ui-scale, 1));
+  margin-top: calc(6px * var(--ui-scale, 1));
+}
+.office-statusbar {
+  display: flex;
+  flex: 0 0 calc(23px * var(--ui-scale, 1));
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+  border-top: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  background: var(--surface-muted);
+}
+.office-statusbar .connection {
+  margin: 0;
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.office-statusbar .connection .icon {
+  width: calc(12px * var(--ui-scale, 1));
+  height: calc(12px * var(--ui-scale, 1));
+}
+.office-statusbar .preference-controls {
+  gap: calc(7px * var(--ui-scale, 1));
+}
+.office-statusbar .preference-controls label > span {
+  position: absolute;
+  width: calc(1px * var(--ui-scale, 1));
+  height: calc(1px * var(--ui-scale, 1));
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.office-statusbar .preference-controls select {
+  padding: calc(1px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1));
+  height: calc(19px * var(--ui-scale, 1));
+  min-height: calc(19px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: calc(1px * var(--ui-scale, 1));
+}
+.context-menu {
+  min-width: calc(184px * var(--ui-scale, 1));
+  border-radius: calc(2px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1));
+  box-shadow: calc(2px * var(--ui-scale, 1)) calc(3px * var(--ui-scale, 1))
+    calc(9px * var(--ui-scale, 1)) #0003;
+}
+.context-menu button {
+  min-height: calc(25px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+  border-radius: calc(1px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(16px * var(--ui-scale, 1));
+}
+.context-menu kbd {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: calc(10px * var(--ui-scale, 1));
+  white-space: nowrap;
+}
+.office-submenu {
+  position: relative;
+}
+.office-submenu > button {
+  width: 100%;
+}
+.office-submenu-panel {
+  z-index: 101;
+}
+.studio-dialog.office-settings-dialog {
+  width: min(
+    calc(660px * var(--ui-scale, 1)),
+    calc(100vw - calc(20px * var(--ui-scale, 1)))
+  );
+  padding: calc(12px * var(--ui-scale, 1));
+  border-radius: calc(3px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
+}
+.office-settings-dialog > h2 {
+  margin-bottom: calc(10px * var(--ui-scale, 1));
+  font-size: calc(13px * var(--ui-scale, 1));
+}
+.office-settings-layout {
+  display: grid;
+  grid-template-columns: calc(142px * var(--ui-scale, 1)) minmax(0, 1fr);
+  min-height: calc(320px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.office-settings-categories {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-muted);
+  padding: calc(5px * var(--ui-scale, 1));
+  gap: calc(2px * var(--ui-scale, 1));
+  border-inline-end: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.office-settings-categories button {
+  border: 0;
+  background: transparent;
+  text-align: start;
+  font-size: calc(12px * var(--ui-scale, 1));
+  color: var(--ink);
+  padding: calc(7px * var(--ui-scale, 1));
+  border-radius: calc(1px * var(--ui-scale, 1));
+}
+.office-settings-categories button[aria-current='page'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.office-settings-content {
+  padding: calc(12px * var(--ui-scale, 1));
+  max-height: min(65dvh, calc(550px * var(--ui-scale, 1)));
+  overflow: auto;
+  scroll-padding-block: calc(8px * var(--ui-scale, 1));
+}
+.office-settings-content > section > h3 {
+  font-size: calc(12px * var(--ui-scale, 1));
+  margin-bottom: calc(12px * var(--ui-scale, 1));
+}
+.office-settings-content > section > label {
+  display: grid;
+  grid-template-columns: calc(110px * var(--ui-scale, 1)) minmax(0, 1fr);
+  align-items: center;
+  gap: calc(8px * var(--ui-scale, 1));
+  margin-bottom: calc(9px * var(--ui-scale, 1));
+}
+.office-settings-content input:not([type='checkbox']),
+.office-settings-content select {
+  min-height: calc(26px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+}
+.office-settings-content .settings-section {
+  padding-block: calc(8px * var(--ui-scale, 1));
+  gap: calc(6px * var(--ui-scale, 1));
+}
+.office-settings-content .settings-section h3 {
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.office-settings-content .settings-section p {
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.office-settings-content .dialog-actions {
+  position: static;
+  margin: 0;
+  padding: calc(8px * var(--ui-scale, 1)) 0 0;
+  background: none;
+}
+.office-settings-dialog > .dialog-actions {
+  position: static;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+.studio-shell .dashboard-heading {
+  padding: calc(18px * var(--ui-scale, 1)) calc(20px * var(--ui-scale, 1))
+    calc(8px * var(--ui-scale, 1));
+  margin: 0;
+}
+.studio-shell .dashboard-heading h1 {
+  font-size: calc(18px * var(--ui-scale, 1));
+  letter-spacing: -0.02em;
+}
+.studio-shell .eyebrow,
+.studio-shell .dashboard-heading .action-row,
+.studio-shell .dashboard-footnote {
+  display: none;
+}
+.studio-shell .dashboard-description {
+  font-size: calc(12px * var(--ui-scale, 1));
+  margin-top: calc(6px * var(--ui-scale, 1));
+}
+.studio-shell .project-section {
+  padding: calc(8px * var(--ui-scale, 1)) calc(20px * var(--ui-scale, 1));
+}
+.studio-shell .project-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.studio-shell .project-card {
+  border: 0;
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(12px * var(--ui-scale, 1));
+  padding: calc(8px * var(--ui-scale, 1));
+}
+.studio-shell .project-card .project-card-preview {
+  display: none;
+}
+.studio-shell .project-card h3 {
+  font-size: calc(12px * var(--ui-scale, 1));
+}
+.studio-shell .project-card-footer {
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+}
+.studio-shell .project-card p {
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.studio-shell .project-card .button {
+  min-height: calc(24px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.studio-shell .project-sidebar .tree-create .button {
+  min-height: calc(24px * var(--ui-scale, 1));
+}
+.studio-shell .button {
+  border-radius: calc(2px * var(--ui-scale, 1));
+}
+.studio-shell .canvas-workbook-expanded {
+  display: flex;
+}
+.studio-shell .canvas-workbook-expanded > .office-canvas-layout {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+.studio-shell .office-canvas-layout > .canvas-expanded {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+}
+.studio-shell .canvas-expanded .canvas-toolbar .canvas-header-actions {
+  display: flex;
+}
+.studio-shell .canvas-expanded .canvas-toolbar .button {
+  min-height: calc(23px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.studio-shell .canvas-welcome {
+  max-width: calc(300px * var(--ui-scale, 1));
+  padding: calc(12px * var(--ui-scale, 1));
+}
+.studio-shell .canvas-welcome h2 {
+  font-size: calc(13px * var(--ui-scale, 1));
+}
+.studio-shell .canvas-welcome p {
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+@media (max-width: 999px) {
+  .studio-shell .office-application {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+  .studio-shell .project-sidebar {
+    position: fixed;
+    top: calc(84px * var(--ui-scale, 1));
+    bottom: calc(23px * var(--ui-scale, 1));
+    left: 0;
+    width: calc(186px * var(--ui-scale, 1));
+    z-index: 25;
+    box-shadow: calc(2px * var(--ui-scale, 1)) 0 calc(8px * var(--ui-scale, 1))
+      #0002;
+  }
+  .office-canvas-layout {
+    grid-template-columns: minmax(0, 1fr);
+    position: relative;
+  }
+  .office-properties {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: min(calc(270px * var(--ui-scale, 1)), 85vw);
+    z-index: 24;
+    box-shadow: calc(-2px * var(--ui-scale, 1)) 0 calc(8px * var(--ui-scale, 1))
+      #0002;
+  }
+  .office-document-name {
+    max-width: calc(200px * var(--ui-scale, 1));
+    margin-inline: calc(3px * var(--ui-scale, 1));
+  }
+  .studio-shell .office-quickbar .save-status {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .office-settings-layout {
+    grid-template-columns: calc(104px * var(--ui-scale, 1)) minmax(0, 1fr);
+  }
+  .office-settings-content {
+    padding: calc(8px * var(--ui-scale, 1));
+  }
+  .office-settings-content > section > label {
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(4px * var(--ui-scale, 1));
+  }
+  .studio-shell .office-quickbar {
+    overflow-x: auto;
+  }
+  .office-document-name {
+    min-width: calc(140px * var(--ui-scale, 1));
+  }
+  .office-menubar > button {
+    padding-inline: calc(7px * var(--ui-scale, 1));
+    font-size: calc(11px * var(--ui-scale, 1));
+  }
+  .office-statusbar .connection {
+    max-width: 45%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+@media (pointer: coarse) {
+  .studio-shell .office-application {
+    grid-template-rows:
+      calc(44px * var(--ui-scale, 1)) calc(44px * var(--ui-scale, 1))
+      minmax(0, 1fr);
+  }
+  .office-menubar > button,
+  .office-tool-button,
+  .studio-shell .palette-tool,
+  .context-menu button,
+  .office-property-tabs > button {
+    min-height: calc(44px * var(--ui-scale, 1));
+    min-width: calc(44px * var(--ui-scale, 1));
+  }
+  .studio-shell .shape-palette {
+    min-height: calc(48px * var(--ui-scale, 1));
+  }
+  .office-close {
+    min-width: calc(44px * var(--ui-scale, 1));
+    min-height: calc(44px * var(--ui-scale, 1));
+  }
+  .office-properties > header {
+    min-height: calc(46px * var(--ui-scale, 1));
+  }
+  .office-property-form input:not([type='checkbox']),
+  .office-property-form select,
+  .office-property-surface .button {
+    min-height: calc(44px * var(--ui-scale, 1));
+  }
+}
+
+.studio-shell .sr-only {
+  position: absolute;
+  width: calc(1px * var(--ui-scale, 1));
+  height: calc(1px * var(--ui-scale, 1));
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Workbook sheets stay with the document in both workspace modes. */
+.studio-shell .canvas-workbook {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.studio-shell .canvas-workbook > .office-canvas-layout {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+.workbench-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(2px * var(--ui-scale, 1));
+  flex: 0 0 auto;
+}
+.office-canvas-layout.expanded-workbench {
+  grid-template-rows: calc(34px * var(--ui-scale, 1)) minmax(0, 1fr);
+}
+.expanded-workbench-tools {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+  background: var(--surface-muted);
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  min-width: 0;
+}
+.expanded-workbench-title {
+  flex: 1;
+  font-size: calc(11px * var(--ui-scale, 1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.expanded-workbench .canvas-toolbar {
+  display: none;
+}
+.workbook-sheetbar {
+  display: flex;
+  align-items: center;
+  flex: 0 0 calc(32px * var(--ui-scale, 1));
+  min-width: 0;
+  padding: 0 calc(5px * var(--ui-scale, 1));
+  gap: calc(4px * var(--ui-scale, 1));
+  border-top: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  background: var(--surface-muted);
+}
+.sheet-scroll-controls {
+  display: flex;
+  flex: 0 0 auto;
+}
+.sheet-scroll-controls .office-tool-button {
+  width: calc(22px * var(--ui-scale, 1));
+  font-size: calc(20px * var(--ui-scale, 1));
+}
+.sheet-document {
+  max-width: calc(145px * var(--ui-scale, 1));
+  min-width: calc(65px * var(--ui-scale, 1));
+  height: calc(24px * var(--ui-scale, 1));
+  min-height: calc(24px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: calc(2px * var(--ui-scale, 1));
+  padding: calc(1px * var(--ui-scale, 1)) calc(20px * var(--ui-scale, 1))
+    calc(1px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+  background: var(--surface);
+  color: var(--ink);
+}
+.workbook-sheet-tabs {
+  flex: 1;
+  display: flex;
+  align-self: stretch;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  scrollbar-width: none;
+}
+.workbook-sheet-tabs > button {
+  flex: 0 0 auto;
+  max-width: calc(220px * var(--ui-scale, 1));
+  min-width: calc(70px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1)) calc(15px * var(--ui-scale, 1));
+  border: 0;
+  border-inline-end: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-bottom: calc(3px * var(--ui-scale, 1)) solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: calc(11px * var(--ui-scale, 1));
+  border-radius: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.workbook-sheet-tabs > button:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.workbook-sheet-tabs > button[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 650;
+}
+.workbook-sheet-tabs > button[aria-disabled='true'] {
+  opacity: 0.65;
+  cursor: default;
+}
+.sheet-add {
+  flex-shrink: 0;
+}
+@media (max-width: 999px) {
+  .expanded-workbench .office-properties {
+    inset-block-start: calc(34px * var(--ui-scale, 1));
+  }
+}
+@media (pointer: coarse) {
+  .workbook-sheetbar {
+    flex-basis: calc(46px * var(--ui-scale, 1));
+  }
+  .sheet-document {
+    min-height: calc(44px * var(--ui-scale, 1));
+  }
+  .office-canvas-layout.expanded-workbench {
+    grid-template-rows: calc(48px * var(--ui-scale, 1)) minmax(0, 1fr);
+  }
+  .expanded-workbench .office-properties {
+    inset-block-start: calc(48px * var(--ui-scale, 1));
+  }
+}
+.office-navigator-dialog {
+  width: min(
+    calc(460px * var(--ui-scale, 1)),
+    calc(100vw - calc(24px * var(--ui-scale, 1)))
+  );
+}
+.office-navigator-dialog .studio-navigator .project-tree {
+  max-height: 55dvh;
+  overflow-y: auto;
+}
+/* Keep the navigator footer and trash reachable when a workbook has many sheets. */
+.studio-shell .office-application {
+  grid-template-columns: calc(232px * var(--ui-scale, 1)) minmax(0, 1fr);
+}
+.studio-shell .office-application.navigator-hidden {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.studio-shell .project-sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.studio-shell .project-sidebar > .nav-item {
+  flex: 0 0 auto;
+}
+.studio-shell .project-sidebar > .studio-navigator {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.studio-shell .project-sidebar .studio-navigator .project-tree {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+.studio-shell .project-sidebar .studio-navigator .tree-heading,
+.studio-shell .project-sidebar .studio-navigator .tree-create {
+  flex: 0 0 auto;
+}
+.studio-shell .project-sidebar .studio-navigator .project-trash {
+  flex: 0 1 auto;
+  max-height: 35%;
+  overflow-y: auto;
+}
+@media (max-width: 999px) {
+  .studio-shell .office-application {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+  .studio-shell .project-sidebar {
+    width: calc(232px * var(--ui-scale, 1));
+  }
+}

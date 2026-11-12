@@ -1,0 +1,324 @@
+/* The start screen shares Office chrome and leaves room for future templates. */
+.studio-shell .studio-start {
+  width: min(calc(1180px * var(--ui-scale, 1)), 100%);
+  margin-inline: auto;
+  padding: calc(26px * var(--ui-scale, 1)) calc(28px * var(--ui-scale, 1));
+  color: var(--ink);
+}
+.studio-shell .studio-start .start-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: calc(24px * var(--ui-scale, 1));
+  padding: 0 0 calc(22px * var(--ui-scale, 1));
+  margin: 0;
+}
+.studio-shell .studio-start .start-heading h1 {
+  margin: calc(6px * var(--ui-scale, 1)) 0;
+  font-size: calc(22px * var(--ui-scale, 1));
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.start-local-note {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale, 1));
+  color: var(--muted);
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.start-local-note .icon {
+  width: calc(13px * var(--ui-scale, 1));
+  height: calc(13px * var(--ui-scale, 1));
+}
+.start-description {
+  color: var(--muted);
+  font-size: calc(12px * var(--ui-scale, 1));
+  line-height: 1.5;
+  max-width: 58ch;
+}
+.start-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(7px * var(--ui-scale, 1));
+  padding-top: calc(18px * var(--ui-scale, 1));
+  flex-shrink: 0;
+}
+.studio-shell .studio-start .start-actions .button {
+  min-height: calc(30px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) calc(11px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
+}
+.start-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(220px * var(--ui-scale, 1));
+  align-items: start;
+  gap: calc(22px * var(--ui-scale, 1));
+}
+.start-library {
+  min-width: 0;
+}
+.start-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(10px * var(--ui-scale, 1));
+  padding-block: calc(10px * var(--ui-scale, 1));
+  border-block: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.start-section-heading h2,
+.start-templates h2 {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
+  font-weight: 600;
+}
+.start-count {
+  display: inline-flex;
+  min-width: calc(20px * var(--ui-scale, 1));
+  justify-content: center;
+  padding: calc(2px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+  border-radius: calc(3px * var(--ui-scale, 1));
+  color: var(--muted);
+  background: var(--surface-muted);
+  font-size: calc(10px * var(--ui-scale, 1));
+  font-weight: 500;
+}
+.studio-shell .studio-start .start-section-heading .button {
+  min-height: calc(26px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.start-list-columns,
+.studio-shell .studio-start .start-project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(126px * var(--ui-scale, 1)) auto;
+  align-items: center;
+  gap: calc(14px * var(--ui-scale, 1));
+}
+.start-list-columns {
+  padding: calc(9px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  color: var(--muted);
+  font-size: calc(10px * var(--ui-scale, 1));
+}
+.start-list-columns > :last-child {
+  width: calc(132px * var(--ui-scale, 1));
+}
+.start-project-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.studio-shell .studio-start .start-project-row {
+  border: calc(1px * var(--ui-scale, 1)) solid transparent;
+  border-block-end-color: var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: calc(11px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1));
+  background: transparent;
+  margin: 0;
+  min-width: 0;
+}
+.studio-shell .studio-start .start-project-row:hover,
+.studio-shell .studio-start .start-project-row:focus-within {
+  background: var(--surface-muted);
+}
+.studio-shell .studio-start .start-project-row.active {
+  border-inline-start-color: var(--accent);
+  background: var(--accent-soft);
+}
+.start-project-main {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(9px * var(--ui-scale, 1));
+  min-width: 0;
+}
+.start-project-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(29px * var(--ui-scale, 1));
+  height: calc(33px * var(--ui-scale, 1));
+  flex-shrink: 0;
+  color: var(--muted);
+  background: var(--surface);
+  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: calc(3px * var(--ui-scale, 1));
+}
+.start-project-icon .icon {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
+}
+.start-project-copy,
+.start-project-copy .project-title-editor {
+  min-width: 0;
+}
+.studio-shell .studio-start .project-title-editor h3 {
+  font-size: calc(12px * var(--ui-scale, 1));
+  font-weight: 550;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.studio-shell .studio-start .title-rename {
+  min-height: calc(23px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+}
+.studio-shell .studio-start .card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale, 1));
+  margin: calc(3px * var(--ui-scale, 1)) 0 0;
+  color: var(--muted);
+  font-size: calc(10px * var(--ui-scale, 1));
+  line-height: 1.4;
+}
+.studio-shell .studio-start .badge {
+  font-size: calc(9px * var(--ui-scale, 1));
+  padding: calc(1px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1));
+}
+.start-project-date {
+  color: var(--muted);
+  font-size: calc(10px * var(--ui-scale, 1));
+  line-height: 1.5;
+}
+.start-row-actions {
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale, 1));
+}
+.studio-shell .studio-start .start-row-actions .button,
+.studio-shell .studio-start .start-row-actions .icon-button {
+  min-height: calc(27px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+}
+.studio-shell .studio-start .start-row-actions .icon-button {
+  width: calc(27px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1));
+}
+.start-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(14px * var(--ui-scale, 1));
+  padding: calc(28px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.start-empty > .icon {
+  width: calc(28px * var(--ui-scale, 1));
+  height: calc(28px * var(--ui-scale, 1));
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.start-empty h3 {
+  margin: 0 0 calc(6px * var(--ui-scale, 1));
+  font-size: calc(13px * var(--ui-scale, 1));
+  font-weight: 550;
+}
+.start-empty p,
+.start-templates > p,
+.start-help p,
+.start-drop-note {
+  color: var(--muted);
+  font-size: calc(11px * var(--ui-scale, 1));
+  line-height: 1.5;
+}
+.start-drop-note {
+  padding-top: calc(12px * var(--ui-scale, 1));
+}
+.start-loading {
+  display: flex;
+  align-items: center;
+  gap: calc(7px * var(--ui-scale, 1));
+  padding: calc(12px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  color: var(--muted);
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.start-help {
+  margin-top: calc(12px * var(--ui-scale, 1));
+}
+.start-help summary {
+  padding-block: calc(5px * var(--ui-scale, 1));
+  color: var(--muted);
+  font-size: calc(11px * var(--ui-scale, 1));
+  cursor: pointer;
+}
+.start-help p {
+  margin-top: calc(7px * var(--ui-scale, 1));
+}
+.start-templates {
+  padding: calc(14px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: calc(3px * var(--ui-scale, 1));
+  background: var(--surface-muted);
+}
+.start-templates-heading {
+  display: flex;
+  align-items: center;
+  gap: calc(7px * var(--ui-scale, 1));
+  padding-bottom: calc(12px * var(--ui-scale, 1));
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.start-templates-heading .icon {
+  width: calc(15px * var(--ui-scale, 1));
+  height: calc(15px * var(--ui-scale, 1));
+  color: var(--muted);
+}
+.start-templates > .start-planned {
+  margin: calc(12px * var(--ui-scale, 1)) 0 calc(5px * var(--ui-scale, 1));
+  color: var(--ink);
+  font-weight: 550;
+}
+@media (max-width: 1199px) {
+  .start-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(20px * var(--ui-scale, 1));
+  }
+  .start-templates {
+    max-width: calc(560px * var(--ui-scale, 1));
+  }
+}
+@media (max-width: 699px) {
+  .studio-shell .studio-start {
+    padding: calc(18px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
+  }
+  .studio-shell .studio-start .start-heading {
+    flex-direction: column;
+    gap: calc(12px * var(--ui-scale, 1));
+    padding-bottom: calc(18px * var(--ui-scale, 1));
+  }
+  .start-actions {
+    padding: 0;
+    flex-shrink: 1;
+  }
+  .start-list-columns {
+    display: none;
+  }
+  .studio-shell .studio-start .start-project-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(7px * var(--ui-scale, 1));
+    padding-block: calc(12px * var(--ui-scale, 1));
+  }
+  .start-project-date,
+  .start-row-actions {
+    padding-inline-start: calc(38px * var(--ui-scale, 1));
+  }
+  .start-row-actions {
+    flex-wrap: wrap;
+  }
+}
+@media (pointer: coarse) {
+  .studio-shell .studio-start .start-actions .button,
+  .studio-shell .studio-start .start-section-heading .button,
+  .studio-shell .studio-start .project-title-editor .button,
+  .studio-shell .studio-start .start-row-actions .button,
+  .studio-shell .studio-start .start-row-actions .icon-button,
+  .studio-shell .studio-start summary {
+    min-height: calc(44px * var(--ui-scale, 1));
+  }
+  .studio-shell .studio-start .icon-button {
+    min-width: calc(44px * var(--ui-scale, 1));
+  }
+}

@@ -1,0 +1,257 @@
+/* Shared by the docked navigator and its expanded view. */
+.project-tree-panel.studio-navigator {
+  min-width: 0;
+  color: var(--ink);
+  background: var(--surface);
+}
+.studio-navigator.project-tree-panel .tree-heading {
+  min-height: calc(38px * var(--ui-scale, 1));
+  padding: calc(6px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  border: 0;
+  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  font-size: calc(11px * var(--ui-scale, 1));
+  letter-spacing: 0.015em;
+}
+.studio-navigator .tree-heading strong {
+  display: flex;
+  align-items: center;
+  gap: calc(7px * var(--ui-scale, 1));
+  min-width: 0;
+  font-weight: 650;
+}
+.studio-navigator .icon {
+  width: calc(15px * var(--ui-scale, 1));
+  height: calc(15px * var(--ui-scale, 1));
+  flex-shrink: 0;
+}
+.studio-navigator .tree-heading strong > .icon {
+  color: var(--accent);
+}
+.studio-navigator.project-tree-panel .navigator-add-project {
+  display: grid;
+  place-items: center;
+  width: calc(26px * var(--ui-scale, 1));
+  min-height: calc(26px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid transparent;
+  border-radius: calc(4px * var(--ui-scale, 1));
+  background: transparent;
+  color: var(--muted);
+}
+.studio-navigator .navigator-add-project:hover:not(:disabled) {
+  border-color: var(--line);
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+.studio-navigator.project-tree-panel .project-tree {
+  padding: calc(6px * var(--ui-scale, 1));
+  scrollbar-gutter: stable;
+}
+.studio-navigator.project-tree-panel .tree-row {
+  position: relative;
+  gap: 0;
+  margin-block: calc(1px * var(--ui-scale, 1));
+  border-radius: calc(4px * var(--ui-scale, 1));
+}
+.studio-navigator .tree-row[data-kind='project'] {
+  margin-block-start: calc(5px * var(--ui-scale, 1));
+}
+.studio-navigator .tree-row[data-kind='project']:first-child {
+  margin-block-start: 0;
+}
+.studio-navigator .tree-row:hover,
+.studio-navigator .tree-row:focus-within {
+  background: var(--surface-muted);
+}
+.studio-navigator .tree-row[data-kind='page'][data-current='true'] {
+  background: var(--accent-soft);
+  box-shadow: inset calc(2px * var(--ui-scale, 1)) 0 var(--accent);
+}
+.studio-navigator.project-tree-panel .tree-item {
+  min-height: calc(30px * var(--ui-scale, 1));
+  gap: calc(6px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1));
+  border-radius: calc(4px * var(--ui-scale, 1));
+  background: transparent;
+  box-shadow: none;
+  font-size: calc(11px * var(--ui-scale, 1));
+  line-height: calc(18px * var(--ui-scale, 1));
+}
+.studio-navigator .tree-row[data-kind='project'] > .tree-item {
+  font-weight: 650;
+}
+.studio-navigator .tree-row[data-kind='document'] > .tree-item {
+  font-weight: 550;
+}
+.studio-navigator
+  .tree-row[data-kind='project'][data-current='true']
+  .navigator-kind {
+  color: var(--accent);
+}
+.studio-navigator .tree-item.active {
+  color: var(--accent);
+  font-weight: 650;
+}
+.studio-navigator .tree-name {
+  flex: 1;
+  min-width: 0;
+}
+.studio-navigator .tree-disclosure {
+  display: grid;
+  place-items: center;
+  width: calc(9px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
+}
+.studio-navigator .navigator-chevron {
+  width: calc(5px * var(--ui-scale, 1));
+  height: calc(5px * var(--ui-scale, 1));
+  border-block-start: calc(1.5px * var(--ui-scale, 1)) solid currentColor;
+  border-inline-end: calc(1.5px * var(--ui-scale, 1)) solid currentColor;
+  color: var(--muted);
+  transform: rotate(45deg);
+}
+.studio-navigator .navigator-chevron.expanded {
+  transform: translateY(calc(-2px * var(--ui-scale, 1))) rotate(135deg);
+}
+.studio-navigator .navigator-kind {
+  display: flex;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.studio-navigator .tree-item.active .navigator-kind {
+  color: inherit;
+}
+.studio-navigator .tree-dirty {
+  font-size: calc(13px * var(--ui-scale, 1));
+  line-height: 1;
+  margin-inline: calc(2px * var(--ui-scale, 1));
+}
+.studio-navigator.project-tree-panel .tree-actions {
+  display: grid;
+  place-items: center;
+  width: calc(26px * var(--ui-scale, 1));
+  min-height: calc(28px * var(--ui-scale, 1));
+  border-radius: calc(4px * var(--ui-scale, 1));
+  color: var(--muted);
+  opacity: 0.65;
+}
+.studio-navigator .tree-row:hover .tree-actions,
+.studio-navigator .tree-row:focus-within .tree-actions {
+  opacity: 1;
+}
+.studio-navigator .navigator-more {
+  display: flex;
+  gap: calc(2px * var(--ui-scale, 1));
+}
+.studio-navigator .navigator-more i {
+  width: calc(3px * var(--ui-scale, 1));
+  height: calc(3px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background: currentColor;
+}
+.studio-navigator.project-tree-panel .tree-create {
+  display: flex;
+  gap: calc(5px * var(--ui-scale, 1));
+  padding: calc(8px * var(--ui-scale, 1));
+  margin: 0;
+  border-top: calc(1px * var(--ui-scale, 1)) solid var(--line);
+}
+.studio-navigator.project-tree-panel .tree-create .button,
+.studio-navigator.project-tree-panel .project-trash .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(4px * var(--ui-scale, 1));
+  min-height: calc(27px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+  border-radius: calc(4px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  line-height: calc(16px * var(--ui-scale, 1));
+}
+.studio-navigator .tree-create .button {
+  flex: 1 1 auto;
+}
+.studio-navigator .tree-create .icon,
+.studio-navigator .project-trash .icon {
+  width: calc(13px * var(--ui-scale, 1));
+  height: calc(13px * var(--ui-scale, 1));
+}
+.studio-navigator.project-tree-panel .project-trash {
+  padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  border-top: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  color: var(--muted);
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.studio-navigator .project-trash summary {
+  cursor: pointer;
+  padding-block: calc(3px * var(--ui-scale, 1));
+}
+.studio-navigator .project-trash > div {
+  align-items: center;
+  gap: calc(8px * var(--ui-scale, 1));
+}
+.studio-navigator .project-trash > div > span {
+  min-width: 0;
+  flex: 1;
+  color: var(--ink);
+}
+.studio-navigator .tree-item:focus-visible,
+.studio-navigator .tree-actions:focus-visible {
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--accent);
+  outline-offset: calc(-2px * var(--ui-scale, 1));
+}
+.studio-navigator .tree-actions[aria-disabled='true'] {
+  opacity: 0.4;
+}
+@media (pointer: coarse) {
+  .studio-navigator.project-tree-panel .tree-item,
+  .studio-navigator.project-tree-panel .tree-actions,
+  .studio-navigator.project-tree-panel .navigator-add-project,
+  .studio-navigator.project-tree-panel .tree-create .button,
+  .studio-navigator.project-tree-panel .project-trash .button {
+    min-height: calc(40px * var(--ui-scale, 1));
+  }
+  .studio-navigator.project-tree-panel .tree-actions,
+  .studio-navigator.project-tree-panel .navigator-add-project {
+    width: calc(40px * var(--ui-scale, 1));
+  }
+}
+.studio-navigator .project-trash .navigator-trash-entry {
+  display: flex;
+  gap: calc(5px * var(--ui-scale, 1));
+  margin-block-start: calc(5px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
+  border-radius: calc(5px * var(--ui-scale, 1));
+  background: var(--surface-muted);
+}
+.studio-navigator .navigator-trash-icon {
+  display: flex;
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+.studio-navigator .project-trash .navigator-trash-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.studio-navigator .project-trash .navigator-trash-entry .button {
+  flex: 0 0 auto;
+  padding: calc(4px * var(--ui-scale, 1));
+  width: calc(27px * var(--ui-scale, 1));
+  background: var(--surface);
+}
+.studio-navigator .navigator-trash-purge:hover:not(:disabled),
+.studio-navigator .navigator-trash-purge:focus-visible {
+  color: var(--error);
+  border-color: currentColor;
+}
+.studio-navigator .navigator-purge-dialog .navigator-confirm-purge {
+  color: var(--error);
+  border: calc(1px * var(--ui-scale, 1)) solid currentColor;
+  font-weight: 650;
+}
+.studio-navigator .navigator-purge-dialog p {
+  overflow-wrap: anywhere;
+}

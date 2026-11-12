@@ -1,11 +1,12 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
-import { Dialog } from '@koxora/ui';
+import { Dialog, Icon } from '@koxora/ui';
 import { translate, type MessageKey } from '@koxora/i18n';
 import type { Project } from '@koxora/project';
 import type { ProjectSummary } from '@koxora/persistence';
 import type { WorkbookCommand } from '@koxora/editor-core';
 import { ContextMenu } from './context-menu';
 import { menuAnchor, type MenuAnchor } from './menu-anchor';
+import './navigator.css';
 
 type Row = {
   kind: 'project' | 'document' | 'page';
@@ -23,7 +24,8 @@ type Action =
   | 'deleteDocument'
   | 'deleteProject'
   | 'newDocument';
-export type ProjectAction = 'rename' | 'duplicate' | 'delete' | 'restore';
+export type ProjectAction =
+  'rename' | 'duplicate' | 'delete' | 'restore' | 'purge';
 export function ProjectTree({
   project,
   saved,
@@ -39,6 +41,7 @@ export function ProjectTree({
   onSelect,
   onCommand,
   onProjectAction,
+  onPreparePurge,
   onHistory,
 }: {
   project: Project | null;
@@ -59,7 +62,9 @@ export function ProjectTree({
     action: ProjectAction,
     id: string,
     name?: string,
+    expected?: string,
   ) => Promise<boolean>;
+  onPreparePurge: (id: string) => Promise<{ token: string; title: string }>;
 }) {
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
     translate(locale, key, values);
@@ -78,6 +83,82 @@ export function ProjectTree({
   const [failed, setFailed] = useState(false),
     [submitting, setSubmitting] = useState(false);
   const dragged = useRef<Row | null>(null);
+  const trashSummary = useRef<HTMLElement>(null);
+  const purgePending = useRef(false);
+  const [purgeProject, setPurgeProject] = useState<{
+    id: string;
+    token: string;
+    title: string;
+  } | null>(null);
+  const [purging, setPurging] = useState(false);
+  const [purgeFailed, setPurgeFailed] = useState(false);
+  async function preparePurge(item: ProjectSummary) {
+    if (
+      purgePending.current ||
+      busy ||
+      locked ||
+      item.id === project?.manifest.projectId ||
+      !trash.some((entry) => entry.id === item.id)
+    )
+      return;
+    purgePending.current = true;
+    setPurging(true);
+    setPurgeFailed(false);
+    try {
+      const snapshot = await onPreparePurge(item.id);
+      if (!snapshot.token) {
+        setPurgeFailed(true);
+        return;
+      }
+      setPurgeProject({
+        id: item.id,
+        token: snapshot.token,
+        title: snapshot.title,
+      });
+    } catch {
+      setPurgeFailed(true);
+    } finally {
+      purgePending.current = false;
+      setPurging(false);
+    }
+  }
+  async function purge() {
+    if (
+      !purgeProject ||
+      purgePending.current ||
+      busy ||
+      locked ||
+      purgeProject.id === project?.manifest.projectId ||
+      !trash.some((item) => item.id === purgeProject.id)
+    )
+      return;
+    purgePending.current = true;
+    setPurging(true);
+    setPurgeFailed(false);
+    try {
+      if (
+        await onProjectAction(
+          'purge',
+          purgeProject.id,
+          undefined,
+          purgeProject.token,
+        )
+      ) {
+        setPurgeProject(null);
+        requestAnimationFrame(() => {
+          const fallback = root.current?.querySelector<HTMLElement>(
+            '[role="treeitem"][tabindex="0"], .navigator-add-project',
+          );
+          (trashSummary.current ?? fallback)?.focus();
+        });
+      } else setPurgeFailed(true);
+    } catch {
+      setPurgeFailed(true);
+    } finally {
+      purgePending.current = false;
+      setPurging(false);
+    }
+  }
   const branch = `${project?.manifest.projectId ?? ''}:${pageId ?? ''}`;
   const [observedBranch, setObservedBranch] = useState('');
   if (project && branch !== observedBranch) {
@@ -337,16 +418,20 @@ export function ProjectTree({
     }
   }
   return (
-    <div className="project-tree-panel" ref={root}>
+    <div className="project-tree-panel studio-navigator" ref={root}>
       <div className="tree-heading">
-        <strong>{t('tree.heading')}</strong>
+        <strong>
+          <Icon name="layers" />
+          {t('tree.heading')}
+        </strong>
         <button
-          className="button compact"
+          className="button compact navigator-add-project"
+          title={t('tree.newProject')}
           disabled={busy}
           onClick={onCreate}
           aria-label={t('tree.newProject')}
         >
-          {'＋'}
+          <Icon name="plus" />
         </button>
       </div>
       <div
@@ -360,6 +445,13 @@ export function ProjectTree({
             key={row.id}
             role="none"
             className="tree-row"
+            data-kind={row.kind}
+            data-current={
+              row.id === pageId ||
+              (row.kind === 'project' && row.id === project?.manifest.projectId)
+                ? 'true'
+                : undefined
+            }
             style={{ paddingInlineStart: (row.level - 1) * 14 }}
             onDragOver={(e) => {
               if (dragged.current && row.kind !== 'project') {
@@ -450,7 +542,26 @@ export function ProjectTree({
               }}
             >
               <span aria-hidden="true" className="tree-disclosure">
-                {row.kind === 'page' ? '▫' : row.expanded ? '▾' : '▸'}
+                {row.kind !== 'page' && (
+                  <span
+                    className={
+                      row.expanded
+                        ? 'navigator-chevron expanded'
+                        : 'navigator-chevron'
+                    }
+                  />
+                )}
+              </span>
+              <span aria-hidden="true" className="navigator-kind">
+                <Icon
+                  name={
+                    row.kind === 'project'
+                      ? 'layers'
+                      : row.kind === 'document'
+                        ? 'grid'
+                        : 'file'
+                  }
+                />
               </span>
               <span dir="auto" className="tree-name">
                 {row.title}
@@ -469,7 +580,11 @@ export function ProjectTree({
                 if (!locked) context(row, menuAnchor(e.currentTarget));
               }}
             >
-              {'⋯'}
+              <span aria-hidden="true" className="navigator-more">
+                <i />
+                <i />
+                <i />
+              </span>
             </button>
           </div>
         ))}
@@ -491,6 +606,7 @@ export function ProjectTree({
               );
             }}
           >
+            <Icon name="plus" />
             {t('tabs.newDocument')}
           </button>
           <button
@@ -504,26 +620,107 @@ export function ProjectTree({
               )
             }
           >
+            <Icon name="plus" />
             {t('tabs.newPage')}
           </button>
         </div>
       )}
       {!!trash.length && (
         <details className="project-trash">
-          <summary>{t('tree.trash', { count: trash.length })}</summary>
+          <summary
+            ref={trashSummary}
+            aria-label={t('tree.trash', { count: trash.length })}
+          >
+            <Icon name="trash" />
+            {t('tree.trash', { count: trash.length })}
+          </summary>
           {trash.map((item) => (
-            <div key={item.id}>
-              <span dir="auto">{item.title}</span>
+            <div key={item.id} className="navigator-trash-entry">
+              <span aria-hidden="true" className="navigator-trash-icon">
+                <Icon name="file" />
+              </span>
+              <span
+                dir="auto"
+                className="navigator-trash-name"
+                title={item.title ?? t('project.unreadable')}
+              >
+                {item.title}
+              </span>
               <button
                 className="button compact"
-                disabled={busy}
+                disabled={busy || purging}
+                title={t('tree.restore')}
+                aria-label={`${t('tree.restore')}: ${item.title ?? t('project.unreadable')}`}
                 onClick={() => void onProjectAction('restore', item.id)}
               >
-                {t('tree.restore')}
+                <Icon name="refresh" />
               </button>
+              {item.id !== project?.manifest.projectId && (
+                <button
+                  type="button"
+                  className="button compact navigator-trash-purge"
+                  disabled={busy || locked || purging}
+                  title={t('tree.purge')}
+                  aria-label={t('tree.purgeProjectAction', {
+                    name: item.title ?? t('project.unreadable'),
+                  })}
+                  onClick={() => void preparePurge(item)}
+                >
+                  <Icon name="trash" />
+                </button>
+              )}
             </div>
           ))}
         </details>
+      )}
+      {purgeFailed && !purgeProject && (
+        <p role="alert">{t(error ?? 'tabs.error.invalid')}</p>
+      )}
+      {purgeProject && (
+        <Dialog
+          title={t('tree.purgeProject')}
+          className="navigator-purge-dialog"
+          onCancel={() => {
+            if (!purgePending.current) setPurgeProject(null);
+          }}
+        >
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void purge();
+            }}
+            aria-busy={purging}
+          >
+            <p>
+              {t('tree.purgeProjectWarning', {
+                name: purgeProject.title ?? t('project.unreadable'),
+              })}
+            </p>
+            {purgeFailed && (
+              <p role="alert">{t(error ?? 'tabs.error.invalid')}</p>
+            )}
+            <div className="dialog-actions">
+              <button
+                type="button"
+                className="button"
+                autoFocus
+                disabled={purging}
+                onClick={() => {
+                  if (!purgePending.current) setPurgeProject(null);
+                }}
+              >
+                {t('project.cancel')}
+              </button>
+              <button
+                type="submit"
+                className="button navigator-confirm-purge"
+                disabled={busy || locked || purging}
+              >
+                {t('tree.purge')}
+              </button>
+            </div>
+          </form>
+        </Dialog>
       )}
       {menu && (
         <ContextMenu

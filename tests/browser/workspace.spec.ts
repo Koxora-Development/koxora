@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('opening a project visibly enters its workspace, focuses its title and survives window resizing', async ({
+test('opening a project visibly enters its workspace, focuses its name and survives window resizing', async ({
   page,
 }) => {
   await page.goto('/');
@@ -14,19 +14,45 @@ test('opening a project visibly enters its workspace, focuses its title and surv
   await expect(
     page.getByText('Saved on this device', { exact: true }),
   ).toBeVisible();
-  const title = page.getByRole('heading', { level: 1 });
+  const title = page.locator('.office-document-name h1');
+  const projectName = page.getByRole('textbox', {
+    name: 'Project name',
+    exact: true,
+  });
   const name = await title.textContent();
+  const navigator = page.getByRole('complementary', {
+    name: 'Project navigator',
+    exact: true,
+  });
+  if (!(await navigator.isVisible()))
+    await page
+      .getByRole('button', { name: 'Project navigator', exact: true })
+      .click();
   await page.getByRole('button', { name: /Local projects/ }).click();
-  await expect(title).toHaveText('Ideas start here.');
+  if (await page.evaluate(() => innerWidth < 1000))
+    await expect(navigator).toBeHidden();
+  await expect(page.locator('.dashboard-heading h1')).toHaveText(
+    'Project library',
+  );
   await expect(page.locator('.project-card.active')).toContainText(name!);
   await expect(page.locator('.card-meta')).toContainText('Documents:');
   await page.getByRole('button', { name: 'Open project', exact: true }).focus();
   await page.keyboard.press('Enter');
   await expect(title).toHaveText(name!);
-  await expect(title).toBeFocused();
-  await expect(
-    page.getByRole('complementary', { name: 'Project details' }),
-  ).toBeVisible();
+  await expect(projectName).toBeFocused();
+  const properties = page.getByRole('complementary', {
+    name: 'Properties',
+    exact: true,
+  });
+  if (!(await properties.isVisible()))
+    await page.getByRole('button', { name: 'Properties', exact: true }).click();
+  await expect(properties).toBeVisible();
+  await properties.getByText('Project details', { exact: true }).click();
+  await expect(properties.locator('.project-properties')).toBeVisible();
+  if (!(await navigator.isVisible()))
+    await page
+      .getByRole('button', { name: 'Project navigator', exact: true })
+      .click();
   const pages = page.locator('[role=treeitem][data-page-id]');
   await pages.last().click();
   await expect(pages.last()).toHaveAttribute('aria-selected', 'true');
@@ -40,12 +66,14 @@ test('opening a project visibly enters its workspace, focuses its title and surv
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    await expect(
-      page.getByRole('button', { name: 'Export .koxora', exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('textbox', { name: 'Project name' }),
-    ).toBeVisible();
+    const exportAction = page.getByRole('button', {
+      name: 'Export .koxora',
+      exact: true,
+    });
+    await exportAction.scrollIntoViewIfNeeded();
+    await expect(exportAction).toBeInViewport();
+    await projectName.scrollIntoViewIfNeeded();
+    await expect(projectName).toBeInViewport();
   }
 });
 
@@ -78,6 +106,6 @@ test('import dialog traps keyboard focus and Escape restores its trigger', async
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Ideas start here.',
+    'Project library',
   );
 });

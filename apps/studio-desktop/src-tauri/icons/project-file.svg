@@ -1,0 +1,9 @@
+<!-- Original Koxora project-file artwork: connected diagram nodes on a folded document. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <path d="M12 3h26l15 15v40a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" fill="#F6F3FF" stroke="#66558F" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M38 3v12a3 3 0 0 0 3 3h12" fill="#DDD2FF" stroke="#66558F" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M25 32v8m0 0h18m-18 0v8m18-8v8" stroke="#66558F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="16" y="23" width="18" height="10" rx="3" fill="#8055DC" stroke="#543298" stroke-width="1.5"/>
+  <path d="m25 44 9 6-9 6-9-6 9-6Z" fill="#55D5DE" stroke="#217D92" stroke-width="1.5" stroke-linejoin="round"/>
+  <rect x="37" y="46" width="12" height="9" rx="2.5" fill="#B79AF6" stroke="#66558F" stroke-width="1.5"/>
+</svg>

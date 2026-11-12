@@ -29,6 +29,34 @@
   "bundle": {
     "active": true,
     "targets": ["deb", "appimage", "nsis", "dmg"],
-    "icon": ["icons/icon.png", "icons/icon.ico", "icons/icon.icns"]
+    "icon": ["icons/icon.png", "icons/icon.ico", "icons/icon.icns"],
+    "fileAssociations": [
+      {
+        "ext": ["koxora"],
+        "name": "Koxora project",
+        "description": "Koxora project",
+        "mimeType": "application/x-koxora",
+        "role": "Editor",
+        "rank": "Alternate",
+        "exportedType": {
+          "identifier": "app.koxora.project",
+          "conformsTo": ["public.zip-archive"]
+        }
+      }
+    ],
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/mime/packages/koxora.xml": "integration/koxora.xml",
+          "/usr/share/icons/hicolor/scalable/mimetypes/application-x-koxora.svg": "icons/project-file.svg"
+        },
+        "desktopTemplate": "integration/koxora.desktop.hbs"
+      }
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "integration/windows-associations.nsh"
+      }
+    }
   }
 }

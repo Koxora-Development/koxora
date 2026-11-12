@@ -1,9 +1,14 @@
+import { WorkbenchControls } from './workbench-controls';
+import { NavigationContext } from './navigation-context';
 import { openExternalLink } from './external-links';
 import { ContextMenu } from './context-menu';
+import { Submenu } from './office-menu';
 import { menuAnchor, type MenuAnchor } from './menu-anchor';
 import { InlineText } from './inline-text';
 import { FormatSelection } from './format-selection';
 import {
+  useContext,
+  useCallback,
   useEffect,
   useMemo,
   useId,
@@ -11,6 +16,7 @@ import {
   useRef,
   useState,
   type Ref,
+  type ReactNode,
 } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import type { Page, Style, Node, Project } from '@koxora/project';
@@ -72,13 +78,47 @@ import {
   ZOOM_KEYS,
 } from './shortcuts';
 import { DiagramTools, ElementDialog, type DiagramTool } from './diagram-tools';
+export type CanvasCommand =
+  | 'selectAll'
+  | 'followLink'
+  | 'delete'
+  | 'duplicate'
+  | 'copy'
+  | 'paste'
+  | 'undo'
+  | 'redo'
+  | 'properties'
+  | 'text'
+  | 'tidy'
+  | 'forward'
+  | 'backward'
+  | 'front'
+  | 'back'
+  | Alignment;
+export type CanvasCommandState = {
+  selected: number;
+  canPaste: boolean;
+  propertiesVisible: boolean;
+  objectsVisible: boolean;
+};
 export interface CanvasHandle {
+  prepare: () => boolean;
+  run: (action: CanvasCommand) => void;
+  tool: (tool: DiagramTool) => void;
+  zoom: (action: 'in' | 'out' | 'reset' | 'fit') => void;
+  toggleProperties: () => void;
+  showHelp: () => void;
+  toggleObjects: () => void;
   snapshot: () => CanvasState;
+  preview: (action: Alignment | 'tidy' | null) => void;
 }
 interface Props {
   project: Project;
+  focusTarget?: { id: string; nonce: number } | null;
+  onTargetApplied: () => void;
   onFollowPage: (pageId: string) => boolean;
   onNavigate: () => void;
+  navigatorOpen: boolean;
   expanded: boolean;
   onExpanded: (value: boolean) => void;
   page: Page;
@@ -88,32 +128,44 @@ interface Props {
   onHistory: (direction: 'undo' | 'redo') => boolean;
   documentTitle: string;
   locale: string;
+  projectDetails?: ReactNode;
+  onPropertyDraft: (dirty: boolean) => void;
+  onCommandState: (state: CanvasCommandState) => void;
   onCommit: (state: CanvasState) => void;
   onPending: (pending: boolean) => void;
   ref?: Ref<CanvasHandle>;
 }
 export function Canvas({
   project,
+  focusTarget,
+  onTargetApplied,
   onFollowPage,
   onNavigate,
+  navigatorOpen,
   expanded,
   onExpanded: setExpanded,
   page,
   styles,
-  onEdit,
+  onEdit: commitEdit,
   history,
   onHistory,
   documentTitle,
   locale,
   onCommit,
   onPending,
+  projectDetails,
+  onPropertyDraft,
+  onCommandState,
   ref,
 }: Props) {
+  const navigation = useContext(NavigationContext);
+  const highlighted = useRef<string | null>(null);
   const t = (key: MessageKey) => translate(locale, key);
   const [initial] = useState(() => readCanvas(page));
   const state = useRef<CanvasState>(initial);
   const [grid, setGrid] = useState(initial.grid);
   const controls = useRef<{
+    target: (id: string) => boolean;
     camera: (action: 'in' | 'out' | 'reset' | 'fit') => void;
     settings: () => void;
     refresh: () => void;
@@ -129,9 +181,32 @@ export function Canvas({
   const [hasClipboard, setHasClipboard] = useState(false);
   const [feedback, setFeedback] = useState<MessageKey | null>(null);
   const [contextMenu, setContextMenu] = useState<MenuAnchor | null>(null);
-  const [formatting, setFormatting] = useState<string[] | null>(null);
+  const [, setFormatting] = useState<string[] | null>(null);
   const [objects, setObjects] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(
+    () => window.innerWidth >= 1000,
+  );
+  const propertyDraft = useRef(false);
+  const propertyRoot = useRef<HTMLElement>(null);
+  const [propertyDirty, setPropertyDirty] = useState(false);
+  const [propertyReset, setPropertyReset] = useState(0);
+  const reportPropertyDraft = useCallback(
+    (dirty: boolean) => {
+      propertyDraft.current = dirty;
+      setPropertyDirty(dirty);
+      onPropertyDraft(dirty);
+    },
+    [onPropertyDraft],
+  );
   function select(ids: string[]) {
+    if (
+      propertyDraft.current &&
+      ids.join(',') !== selection.current.join(',')
+    ) {
+      prepare();
+      return;
+    }
+    if (!ids.includes(highlighted.current ?? '')) highlighted.current = null;
     selection.current = ids;
     setSelectedState(ids);
     controls.current?.refresh();
@@ -158,6 +233,32 @@ export function Canvas({
     setTextPreview(null);
   }
 
+  function prepare() {
+    if (!propertyDraft.current) return true;
+    setInspectorOpen(true);
+    setFeedback('office.applyOrDiscard');
+    requestAnimationFrame(() => {
+      const root = propertyRoot.current;
+      const action =
+        root?.querySelector<HTMLButtonElement>(
+          '.dialog-actions .primary:not(:disabled)',
+        ) ??
+        root?.querySelector<HTMLButtonElement>(
+          '.dialog-actions button:not(:disabled)',
+        );
+      action?.focus();
+    });
+    return false;
+  }
+  function onEdit(command: EditCommand) {
+    return prepare() && commitEdit(command);
+  }
+  function resetProperties() {
+    reportPropertyDraft(false);
+    setPropertyReset((n) => n + 1);
+    closeEditing();
+    requestAnimationFrame(() => controls.current?.focus());
+  }
   const [options, setOptions] = useState(DEFAULT_CONNECTION);
   const [layerId, setLayerId] = useState(
     () =>
@@ -207,6 +308,10 @@ export function Canvas({
     [baseScene, textPreview, editing],
   );
   function activate(next: DiagramTool) {
+    if (propertyDraft.current && next !== 'pan') {
+      prepare();
+      return;
+    }
     cancelInput.current();
     setTool(next);
     setSource(null);
@@ -214,6 +319,8 @@ export function Canvas({
     setContextMenu(null);
   }
   function pick(id: string, direct = false) {
+    if (!prepare()) return;
+    setInspectorOpen(true);
     const item =
       page.nodes.find((n) => n.id === id) ??
       page.connections.find((e) => e.id === id);
@@ -361,6 +468,41 @@ export function Canvas({
       (n) => n.id === id && n.editable,
     ),
   );
+  const propertyId =
+    !inline && editableSelection.length === 1 ? editableSelection[0] : null;
+  const propertyItem = [...page.nodes, ...page.connections].find(
+    (item) => item.id === propertyId,
+  );
+  const propertyLink = propertyId
+    ? JSON.stringify(elementLink(project, propertyId))
+    : '';
+  const propertyModel = useMemo(
+    () => ({ item: propertyItem, link: propertyLink, styles }),
+    [propertyItem, propertyLink, styles],
+  );
+  const [observedProperty, setObservedProperty] = useState({
+    model: propertyModel,
+    version: 0,
+  });
+  if (!propertyDirty && observedProperty.model !== propertyModel)
+    setObservedProperty({
+      model: propertyModel,
+      version: observedProperty.version + 1,
+    });
+  useEffect(() => {
+    onCommandState({
+      selected: editableSelection.length,
+      canPaste: hasClipboard,
+      propertiesVisible: inspectorOpen,
+      objectsVisible: objects,
+    });
+  }, [
+    onCommandState,
+    editableSelection.length,
+    hasClipboard,
+    inspectorOpen,
+    objects,
+  ]);
   const links = useMemo(() => pageLinks(project, page), [project, page]);
   const selectedLink =
     selected.length === 1
@@ -384,6 +526,15 @@ export function Canvas({
             description = translate(locale, 'links.externalTarget', {
               url: link.target.url,
             });
+          else if (link.target.type === 'project')
+            description = translate(locale, 'links.projectTarget', {
+              project:
+                navigation?.projects.find(
+                  (p) =>
+                    link.target.type === 'project' &&
+                    p.id === link.target.projectId,
+                )?.title ?? link.target.projectId,
+            });
           else {
             const name = names.get(link.target.pageId);
             description = name
@@ -394,9 +545,10 @@ export function Canvas({
         return [id, description];
       }),
     );
-  }, [links, project.documents, locale]);
+  }, [links, project.documents, locale, navigation?.projects]);
   const linkDescription = (id: string) => descriptions.get(id) ?? '';
   function followLink(id: string) {
+    if (navigation?.busy) return;
     if (
       ![...scene.nodes, ...scene.connections].some(
         (item) => item.id === id && item.editable,
@@ -410,11 +562,11 @@ export function Canvas({
     }
     if (link.target.type === 'page') {
       if (!onFollowPage(link.target.pageId)) setFeedback('links.missing');
-    } else {
+    } else if (link.target.type === 'url') {
       void openExternalLink(link.target.url)
         .then(() => setFeedback('links.opened'))
         .catch(() => setFeedback('links.failed'));
-    }
+    } else navigation?.follow(link.target);
   }
   const linkTitles = useRef<ReadonlyMap<string, string>>(new Map());
   useEffect(() => {
@@ -438,24 +590,11 @@ export function Canvas({
     controls.current?.preview(geometries);
     setFeedback(action ? 'editing.preview' : null);
   }
-  function command(
-    action:
-      | 'followLink'
-      | 'delete'
-      | 'duplicate'
-      | 'copy'
-      | 'paste'
-      | 'undo'
-      | 'redo'
-      | 'properties'
-      | 'text'
-      | 'tidy'
-      | 'forward'
-      | 'backward'
-      | 'front'
-      | 'back'
-      | Alignment,
-  ) {
+  function command(action: CanvasCommand) {
+    if (propertyDraft.current && action !== 'properties') {
+      prepare();
+      return;
+    }
     previewArrangement(null);
     cancelInput.current();
     if (action !== 'properties') controls.current?.focus();
@@ -468,7 +607,13 @@ export function Canvas({
       ),
     );
     try {
-      if (action === 'followLink') {
+      if (action === 'selectAll') {
+        select(
+          [...scene.nodes, ...scene.connections]
+            .filter((item) => item.editable)
+            .map((item) => item.id),
+        );
+      } else if (action === 'followLink') {
         if (selection.current.length === 1) followLink(selection.current[0]);
       } else if (action === 'undo' || action === 'redo') {
         if (onHistory(action)) select([]);
@@ -480,7 +625,10 @@ export function Canvas({
           onEdit({ type: 'stack', ids, action: action as StackAction });
       } else if (action === 'properties') {
         if (ids.length === 1) pick(ids[0]);
-        else if (ids.length > 1) setFormatting(ids);
+        else if (ids.length > 1) {
+          setInspectorOpen(true);
+          setFormatting(ids);
+        }
       } else if (action === 'delete') {
         if (ids.length && onEdit({ type: 'delete', ids })) select([]);
       } else if (action === 'copy') {
@@ -568,7 +716,19 @@ export function Canvas({
   useEffect(() => {
     callbacks.current = { onCommit, onPending };
   }, [onCommit, onPending]);
-  useImperativeHandle(ref, () => ({ snapshot: () => state.current }), []);
+  useImperativeHandle(ref, () => ({
+    preview: previewArrangement,
+    snapshot: () => state.current,
+    prepare,
+    run: command,
+    tool: activate,
+    zoom: (action) => controls.current?.camera(action),
+    toggleProperties: () => {
+      if (prepare()) setInspectorOpen((open) => !open);
+    },
+    showHelp: () => setHelp(true),
+    toggleObjects: () => setObjects((value) => !value),
+  }));
   const patternId = useId().replace(/:/g, '');
   useEffect(() => {
     const element = host.current!,
@@ -647,6 +807,7 @@ export function Canvas({
         sourceRef.current ? active.candidates : [],
         linkPreview,
         linkTitles.current,
+        highlighted.current,
       );
       if (nextLimited !== lastLimited) {
         lastLimited = nextLimited;
@@ -690,6 +851,31 @@ export function Canvas({
         ),
       );
     controls.current = {
+      target(id) {
+        const item = [...scene.nodes, ...scene.connections].find(
+          (item) => item.id === id,
+        );
+        if (!item) return false;
+        interaction.current.select(item.editable ? [id] : []);
+        highlighted.current = id;
+        const b = item.bounds;
+        change(
+          fitBounds(
+            {
+              x: b.x - 60,
+              y: b.y - 60,
+              width: Math.max(1, b.width) + 120,
+              height: Math.max(1, b.height) + 120,
+            },
+            size,
+          ),
+        );
+        commit();
+        element.setAttribute('data-navigation-target', id);
+        element.focus({ preventScroll: true });
+        schedule();
+        return true;
+      },
       refresh: schedule,
       preview(geometries) {
         preview = geometries
@@ -1154,6 +1340,20 @@ export function Canvas({
       }
     };
     const key = (event: KeyboardEvent) => {
+      if (propertyDraft.current && event.key === 'Tab') return;
+      if (
+        propertyDraft.current &&
+        !ZOOM_KEYS.includes(event.key) &&
+        event.key !== ' ' &&
+        !(
+          (interaction.current.tool === 'pan' || spaceHeld.current) &&
+          event.key in PAN_KEYS
+        )
+      ) {
+        event.preventDefault();
+        prepare();
+        return;
+      }
       const active = interaction.current;
       if (ports.key(event)) return;
       if (
@@ -1398,6 +1598,11 @@ export function Canvas({
     // Content transactions replace the scene; navigation retains the current scene.
   }, [content, scene, locale, layerId, styles]);
   useEffect(() => {
+    if (!focusTarget) return;
+    if (!controls.current?.target(focusTarget.id)) setFeedback('links.missing');
+    onTargetApplied();
+  }, [focusTarget, onTargetApplied]);
+  useEffect(() => {
     if (!expanded) return;
     const root =
       stage.current!.closest<HTMLElement>('.canvas-workbook') ?? stage.current!;
@@ -1412,6 +1617,12 @@ export function Canvas({
         }
       branch = branch.parentElement;
     }
+    if (!root.contains(document.activeElement))
+      root
+        .querySelector<HTMLElement>(
+          '.expanded-workbench-tools button:not(:disabled)',
+        )
+        ?.focus({ preventScroll: true });
     const keydown = (event: KeyboardEvent) => {
       if (
         event.target instanceof Element &&
@@ -1434,9 +1645,16 @@ export function Canvas({
       if (event.key !== 'Tab') return;
       const focusable = [
         ...root.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]',
+          'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, a[href], [contenteditable="true"], [tabindex="0"]',
         ),
-      ];
+      ].filter(
+        (element) =>
+          (element.tabIndex >= 0 ||
+            (element.isContentEditable && !element.hasAttribute('tabindex'))) &&
+          element.getClientRects().length &&
+          element.checkVisibility() &&
+          !element.closest('[inert]'),
+      );
       const first = focusable[0],
         last = focusable.at(-1);
       if (event.shiftKey && document.activeElement === first) {
@@ -1451,7 +1669,13 @@ export function Canvas({
     return () => {
       root.removeEventListener('keydown', keydown);
       for (const item of hidden) item.element.inert = item.inert;
-      if (previous?.isConnected) previous.focus();
+      if (!root.classList.contains('canvas-workbook-expanded')) {
+        const trigger = document.querySelector<HTMLElement>(
+          '.office-quickbar [data-workbench-control="expand"]:not(:disabled)',
+        );
+        if (trigger) trigger.focus({ preventScroll: true });
+        else if (previous?.isConnected) previous.focus();
+      }
     };
   }, [expanded, setExpanded]);
   useEffect(() => {
@@ -1463,8 +1687,11 @@ export function Canvas({
     controls.current?.settings();
   }
   return (
-    <section
-      ref={stage}
+    <div
+      id={`sheet-page-${page.id}`}
+      role="tabpanel"
+      aria-label={page.title}
+      className={`office-canvas-layout ${expanded ? 'expanded-workbench' : ''} ${inspectorOpen ? '' : 'properties-hidden'}`}
       onKeyDown={(event) => {
         if (event.target instanceof Element && event.target.closest('dialog'))
           return;
@@ -1526,572 +1753,675 @@ export function Canvas({
           select([]);
         }
       }}
-      className={`canvas-stage interactive-stage ${expanded ? 'canvas-expanded' : ''}`}
-      aria-label={t('workspace.canvas')}
     >
-      <div className="canvas-toolbar">
-        {expanded && (
-          <button className="button compact" onClick={onNavigate}>
-            {t('tree.heading')}
-          </button>
-        )}
-        <span>
-          <span dir="auto">{documentTitle}</span>
-          <span className="breadcrumb-separator">/</span>
-          <span dir="auto">{page.title}</span>
-        </span>
-        <div className="canvas-header-actions">
+      {expanded && (
+        <div
+          className="expanded-workbench-tools"
+          role="toolbar"
+          aria-label={t('office.workbenchTools')}
+        >
+          <WorkbenchControls
+            locale={locale}
+            expanded
+            navigator={navigatorOpen}
+            properties={inspectorOpen}
+            objects={objects}
+            onNavigator={onNavigate}
+            onProperties={() => {
+              if (prepare()) setInspectorOpen((value) => !value);
+            }}
+            onObjects={() => setObjects((value) => !value)}
+            onExpand={() => {
+              if (prepare()) setExpanded(false);
+            }}
+          />
+          <span className="expanded-workbench-title" dir="auto">
+            {documentTitle} / {page.title}
+          </span>
           <button className="button compact" onClick={() => setHelp(true)}>
             {t('canvas.help')}
           </button>
-          <button
-            className="button compact"
-            aria-pressed={expanded}
-            onClick={() => setExpanded(!expanded)}
-          >
-            {t(expanded ? 'canvas.restore' : 'canvas.expand')}
-          </button>
         </div>
-      </div>
-      <DiagramTools
-        page={page}
-        locale={locale}
-        tool={tool}
-        source={source}
-        candidates={candidates}
-        layerId={layerId}
-        setLayer={(id) => {
-          cancelInput.current();
-          setSource(null);
-          setLayerId(id);
-        }}
-        activate={activate}
-        link={link}
-        options={options}
-        setOptions={setOptions}
-        repeat={repeat}
-        setRepeat={setRepeat}
-        ink={ink}
-        setInk={setInk}
-      />
-      <div
-        className="editing-toolbar"
-        role="group"
-        aria-label={t('editing.actions')}
+      )}
+      <section
+        ref={stage}
+        className={`canvas-stage interactive-stage ${expanded ? 'canvas-expanded' : ''}`}
+        aria-label={t('workspace.canvas')}
       >
-        <button
-          className="button compact"
-          disabled={!history.undo}
-          title={t('editing.undoHelp')}
-          onClick={() => command('undo')}
+        <div className="canvas-toolbar">
+          {expanded && (
+            <button className="button compact" onClick={onNavigate}>
+              {t('tree.heading')}
+            </button>
+          )}
+          <span>
+            <span dir="auto">{documentTitle}</span>
+            <span className="breadcrumb-separator">/</span>
+            <span dir="auto">{page.title}</span>
+          </span>
+          <div className="canvas-header-actions">
+            <button className="button compact" onClick={() => setHelp(true)}>
+              {t('canvas.help')}
+            </button>
+            <button
+              className="button compact"
+              aria-pressed={expanded}
+              onClick={() => setExpanded(!expanded)}
+            >
+              {t(expanded ? 'canvas.restore' : 'canvas.expand')}
+            </button>
+          </div>
+        </div>
+        <DiagramTools
+          page={page}
+          locale={locale}
+          tool={tool}
+          source={source}
+          candidates={candidates}
+          layerId={layerId}
+          setLayer={(id) => {
+            cancelInput.current();
+            setSource(null);
+            setLayerId(id);
+          }}
+          activate={activate}
+          link={link}
+          options={options}
+          setOptions={setOptions}
+          repeat={repeat}
+          setRepeat={setRepeat}
+          ink={ink}
+          setInk={setInk}
+        />
+        <div
+          className="editing-toolbar"
+          role="group"
+          aria-label={t('editing.actions')}
         >
-          {t('editing.undo')}
-        </button>
-        <button
-          className="button compact"
-          disabled={!history.redo}
-          title={t('editing.redoHelp')}
-          onClick={() => command('redo')}
-        >
-          {t('editing.redo')}
-        </button>
-        <span className="selection-count" role="status">
-          {translate(locale, 'editing.selected', {
-            count: editableSelection.length,
-          })}
-        </span>
-        {selectedLink.state !== 'none' && (
           <button
             className="button compact"
-            title={linkDescription(selected[0])}
-            disabled={
-              selectedLink.state !== 'ready' || editableSelection.length !== 1
-            }
-            onClick={() => command('followLink')}
+            disabled={!history.undo}
+            title={t('editing.undoHelp')}
+            onClick={() => command('undo')}
           >
-            {t('links.open')}
+            {t('editing.undo')}
           </button>
-        )}
-        {!!editableSelection.length && (
-          <>
-            <button
-              className="button compact"
-              onClick={() => command('properties')}
-            >
-              {t('diagram.properties')}
-            </button>
-            {editableSelection.length === 1 &&
-              !page.nodes.some(
-                (n) => n.id === editableSelection[0] && n.kind === 'freehand',
-              ) && (
-                <button
-                  className="button compact"
-                  onClick={() => pick(editableSelection[0], true)}
-                >
-                  {t('rich.edit')}
-                </button>
-              )}
-            <button
-              className="button compact"
-              disabled={!editableSelection.length}
-              onClick={() => command('duplicate')}
-            >
-              {t('editing.duplicate')}
-            </button>
-            <button
-              className="button compact"
-              disabled={!editableSelection.length}
-              onClick={() => command('delete')}
-            >
-              {t('editing.delete')}
-            </button>
-          </>
-        )}
-        <button
-          className="button compact"
-          onClick={() => setObjects(!objects)}
-          aria-expanded={objects}
-        >
-          {t('format.objects')}
-        </button>
-        <button
-          className="button compact"
-          disabled={!hasClipboard}
-          onClick={() => command('paste')}
-        >
-          {t('editing.paste')}
-        </button>
-        {editableSelection.filter((id) => scene.nodes.some((n) => n.id === id))
-          .length >= 2 && (
-          <details
-            className="selection-align"
-            onToggle={(e) => {
-              if (!e.currentTarget.open) previewArrangement(null);
-            }}
+          <button
+            className="button compact"
+            disabled={!history.redo}
+            title={t('editing.redoHelp')}
+            onClick={() => command('redo')}
           >
-            <summary>{t('format.align')}</summary>
-            <div>
-              <p className="arrange-help">{t('arrange.alignHelp')}</p>
-              <fieldset>
-                <legend>{t('arrange.align')}</legend>
-                {(
-                  [
-                    'left',
-                    'center',
-                    'right',
-                    'top',
-                    'middle',
-                    'bottom',
-                  ] as const
-                ).map((mode) => (
-                  <button
-                    key={mode}
-                    className="button compact"
-                    onMouseEnter={() => previewArrangement(mode)}
-                    onMouseLeave={() => previewArrangement(null)}
-                    onFocus={() => previewArrangement(mode)}
-                    onBlur={() => previewArrangement(null)}
-                    onClick={() => command(mode)}
-                  >
-                    {t(`editing.align.${mode}`)}
-                  </button>
-                ))}
-              </fieldset>
-              <fieldset>
-                <legend>{t('arrange.distribute')}</legend>
-                <p className="arrange-help">{t('arrange.distributeHelp')}</p>
-                {(['horizontal', 'vertical'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    className="button compact"
-                    disabled={
-                      editableSelection.filter((id) =>
-                        scene.nodes.some((n) => n.id === id),
-                      ).length < 3
-                    }
-                    onMouseEnter={() => previewArrangement(mode)}
-                    onMouseLeave={() => previewArrangement(null)}
-                    onFocus={() => previewArrangement(mode)}
-                    onBlur={() => previewArrangement(null)}
-                    onClick={() => command(mode)}
-                  >
-                    {t(`editing.align.${mode}`)}
-                  </button>
-                ))}
-              </fieldset>
-              <fieldset>
-                <legend>{t('arrange.tidy')}</legend>
-                <p className="arrange-help">{t('arrange.tidyHelp')}</p>
-                <button
-                  className="button compact"
-                  onMouseEnter={() => previewArrangement('tidy')}
-                  onMouseLeave={() => previewArrangement(null)}
-                  onFocus={() => previewArrangement('tidy')}
-                  onBlur={() => previewArrangement(null)}
-                  onClick={() => command('tidy')}
-                >
-                  {t('arrange.tidy')}
-                </button>
-              </fieldset>
-            </div>
-          </details>
-        )}
-        {editableSelection.length > 0 && (
-          <details className="selection-stack">
-            <summary>{t('stack.heading')}</summary>
-            <div>
-              <p className="field-help">{t('stack.help')}</p>
-              {(['forward', 'backward', 'front', 'back'] as const).map(
-                (action) => (
-                  <button
-                    key={action}
-                    className="button compact"
-                    onClick={() => {
-                      command(action);
-                    }}
-                  >
-                    {t(`stack.${action}`)}
-                  </button>
-                ),
-              )}
-            </div>
-          </details>
-        )}
-        <button
-          className="button compact"
-          aria-label={t('editing.more')}
-          onClick={(e) => setContextMenu(menuAnchor(e.currentTarget))}
-        >
-          {'⋯'}
-        </button>
-      </div>
-      {objects && (
-        <aside className="objects-panel" aria-label={t('format.objects')}>
-          <label className="element-picker">
-            {t('diagram.target')}
-            <select
-              aria-label={t('diagram.target')}
-              defaultValue=""
-              onChange={(event) => {
-                const id = event.target.value;
-                if (id) pick(id);
-                event.target.value = '';
-              }}
-            >
-              <option value="">{t('diagram.choose')}</option>
-              {[
-                ...page.nodes.map((item) => ({
-                  id: item.id,
-                  text:
-                    typeof item.content.text === 'string' && item.content.text
-                      ? item.content.text
-                      : item.kind,
-                })),
-                ...page.connections.map((item) => ({
-                  id: item.id,
-                  text:
-                    readConnection(item).label || t('diagram.connectionName'),
-                })),
-              ].map((item, i) => (
-                <option key={item.id} value={item.id}>
-                  {translate(locale, 'diagram.nodeName', {
-                    index: i + 1,
-                    text: item.text.slice(0, 80),
-                  })}
-                </option>
-              ))}
-            </select>
-          </label>{' '}
-        </aside>
-      )}
-      {formatting && (
-        <FormatSelection
-          ids={formatting}
-          page={page}
-          styles={styles}
-          locale={locale}
-          onApply={onEdit}
-          onClose={() => {
-            setFormatting(null);
-            requestAnimationFrame(() => controls.current?.focus());
-          }}
-        />
-      )}
-      {feedback && (
-        <p className="diagram-guidance" role="status">
-          {t(feedback)}
-        </p>
-      )}
-      {editError && (
-        <p className="canvas-disclosure" role="alert">
-          {t(editError)}
-        </p>
-      )}
-      {editing && inline && (
-        <InlineText
-          key={editing}
-          item={
-            (page.nodes.find((n) => n.id === editing) ??
-              page.connections.find((e) => e.id === editing))!
-          }
-          styles={styles}
-          locale={locale}
-          anchor={textAnchor}
-          onApply={onEdit}
-          onPreview={setTextPreview}
-          onCancel={closeEditing}
-        />
-      )}
-      {editing && !inline && (
-        <ElementDialog
-          project={project}
-          key={editing}
-          page={page}
-          styles={styles}
-          id={editing}
-          locale={locale}
-          onApply={onEdit}
-          onCancel={closeEditing}
-        />
-      )}
-      <div
-        ref={host}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          const id =
-            (event.target as Element)
-              .closest('[data-node-id],[data-connection-id]')
-              ?.getAttribute('data-node-id') ??
-            (event.target as Element)
-              .closest('[data-connection-id]')
-              ?.getAttribute('data-connection-id');
-          cancelInput.current();
-          if (id && !selection.current.includes(id)) select([id]);
-          else if (!id) select([]);
-          setContextMenu(menuAnchor(event.currentTarget, event));
-        }}
-        onKeyDown={(event) => {
-          if (
-            event.key === 'ContextMenu' ||
-            (event.shiftKey && event.key === 'F10')
-          ) {
-            event.preventDefault();
-            setContextMenu(menuAnchor(event.currentTarget));
-          }
-        }}
-        className={`interactive-canvas ${tool === 'select' ? 'select-active' : tool !== 'pan' ? 'tool-active' : ''}`}
-        tabIndex={0}
-        role="region"
-        aria-label={t('canvas.navigation')}
-        aria-describedby={`${patternId}-hint`}
-      >
-        <svg className="canvas-svg" aria-hidden="true">
-          <defs>
-            <pattern
-              ref={pattern}
-              id={patternId}
-              patternUnits="userSpaceOnUse"
-              width={24}
-              height={24}
-            >
-              <circle cx={1} cy={1} r={1} className="grid-dot" />
-            </pattern>
-          </defs>
-          <rect
-            ref={gridRect}
-            width="100%"
-            height="100%"
-            fill={`url(#${patternId})`}
-          />
-          <g ref={drawing} />
-        </svg>
-        <div
-          ref={portRoot}
-          className="connection-ports"
-          role="group"
-          aria-label={t('ports.heading')}
-        />
-        {!page.nodes.length && !page.connections.length && (
-          <div className="canvas-welcome">
-            <h2>{t('canvas.emptyTitle')}</h2>
-            <p>{t('canvas.emptyDescription')}</p>
-          </div>
-        )}
-        <p
-          className={`canvas-hint ${page.nodes.length ? 'with-content' : ''}`}
-          id={`${patternId}-hint`}
-        >
-          {t('canvas.hint')}
-        </p>
-      </div>
-      {contextMenu && (
-        <ContextMenu
-          anchor={contextMenu}
-          label={t('editing.actions')}
-          onClose={() => setContextMenu(null)}
-        >
+            {t('editing.redo')}
+          </button>
+          <span className="selection-count" role="status">
+            {translate(locale, 'editing.selected', {
+              count: editableSelection.length,
+            })}
+          </span>
           {selectedLink.state !== 'none' && (
             <button
-              role="menuitem"
-              disabled={
-                selectedLink.state !== 'ready' || editableSelection.length !== 1
-              }
+              className="button compact"
               title={linkDescription(selected[0])}
+              disabled={
+                navigation?.busy ||
+                selectedLink.state !== 'ready' ||
+                editableSelection.length !== 1
+              }
+              onMouseDown={(event) => event.preventDefault()}
               onClick={() => command('followLink')}
             >
               {t('links.open')}
             </button>
           )}
-          {editableSelection.length === 1 &&
-            !page.nodes.some(
-              (n) => n.id === editableSelection[0] && n.kind === 'freehand',
-            ) && (
-              <button role="menuitem" onClick={() => command('text')}>
-                {t('rich.edit')}
-              </button>
-            )}
-          {(['properties', 'duplicate', 'delete', 'copy', 'paste'] as const)
-            .filter((action) =>
-              action === 'paste' ? hasClipboard : editableSelection.length > 0,
-            )
-            .map((action) => (
+          {!!editableSelection.length && (
+            <>
               <button
-                key={action}
-                role="menuitem"
-                onClick={() => {
-                  command(action);
-                }}
+                className="button compact"
+                onClick={() => command('properties')}
               >
-                {t(
-                  action === 'properties'
-                    ? 'diagram.properties'
-                    : `editing.${action}`,
-                )}
+                {t('diagram.properties')}
               </button>
-            ))}
-          {editableSelection.length > 0 &&
-            (['forward', 'backward', 'front', 'back'] as const).map(
-              (action) => (
-                <button
-                  key={action}
-                  role="menuitem"
-                  data-stack={action}
-                  onClick={handleStack}
-                >
-                  {t(`stack.${action}`)}
-                </button>
-              ),
-            )}
+              {editableSelection.length === 1 &&
+                !page.nodes.some(
+                  (n) => n.id === editableSelection[0] && n.kind === 'freehand',
+                ) && (
+                  <button
+                    className="button compact"
+                    onClick={() => pick(editableSelection[0], true)}
+                  >
+                    {t('rich.edit')}
+                  </button>
+                )}
+              <button
+                className="button compact"
+                disabled={!editableSelection.length}
+                onClick={() => command('duplicate')}
+              >
+                {t('editing.duplicate')}
+              </button>
+              <button
+                className="button compact"
+                disabled={!editableSelection.length}
+                onClick={() => command('delete')}
+              >
+                {t('editing.delete')}
+              </button>
+            </>
+          )}
+          <button
+            className="button compact"
+            onClick={() => setObjects(!objects)}
+            aria-expanded={objects}
+          >
+            {t('format.objects')}
+          </button>
+          <button
+            className="button compact"
+            disabled={!hasClipboard}
+            onClick={() => command('paste')}
+          >
+            {t('editing.paste')}
+          </button>
           {editableSelection.filter((id) =>
             scene.nodes.some((n) => n.id === id),
           ).length >= 2 && (
-            <button role="menuitem" onClick={() => command('tidy')}>
-              {t('arrange.tidy')}
-            </button>
+            <details
+              className="selection-align"
+              onToggle={(e) => {
+                if (!e.currentTarget.open) previewArrangement(null);
+              }}
+            >
+              <summary>{t('format.align')}</summary>
+              <div>
+                <p className="arrange-help">{t('arrange.alignHelp')}</p>
+                <fieldset>
+                  <legend>{t('arrange.align')}</legend>
+                  {(
+                    [
+                      'left',
+                      'center',
+                      'right',
+                      'top',
+                      'middle',
+                      'bottom',
+                    ] as const
+                  ).map((mode) => (
+                    <button
+                      key={mode}
+                      className="button compact"
+                      onMouseEnter={() => previewArrangement(mode)}
+                      onMouseLeave={() => previewArrangement(null)}
+                      onFocus={() => previewArrangement(mode)}
+                      onBlur={() => previewArrangement(null)}
+                      onClick={() => command(mode)}
+                    >
+                      {t(`editing.align.${mode}`)}
+                    </button>
+                  ))}
+                </fieldset>
+                <fieldset>
+                  <legend>{t('arrange.distribute')}</legend>
+                  <p className="arrange-help">{t('arrange.distributeHelp')}</p>
+                  {(['horizontal', 'vertical'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      className="button compact"
+                      disabled={
+                        editableSelection.filter((id) =>
+                          scene.nodes.some((n) => n.id === id),
+                        ).length < 3
+                      }
+                      onMouseEnter={() => previewArrangement(mode)}
+                      onMouseLeave={() => previewArrangement(null)}
+                      onFocus={() => previewArrangement(mode)}
+                      onBlur={() => previewArrangement(null)}
+                      onClick={() => command(mode)}
+                    >
+                      {t(`editing.align.${mode}`)}
+                    </button>
+                  ))}
+                </fieldset>
+                <fieldset>
+                  <legend>{t('arrange.tidy')}</legend>
+                  <p className="arrange-help">{t('arrange.tidyHelp')}</p>
+                  <button
+                    className="button compact"
+                    onMouseEnter={() => previewArrangement('tidy')}
+                    onMouseLeave={() => previewArrangement(null)}
+                    onFocus={() => previewArrangement('tidy')}
+                    onBlur={() => previewArrangement(null)}
+                    onClick={() => command('tidy')}
+                  >
+                    {t('arrange.tidy')}
+                  </button>
+                </fieldset>
+              </div>
+            </details>
           )}
-          {layerStates(page.layers).get(layerId)?.editable && (
-            <button role="menuitem" onClick={() => activate('freehand')}>
-              {t('shape.freehand')}
-            </button>
+          {editableSelection.length > 0 && (
+            <details className="selection-stack">
+              <summary>{t('stack.heading')}</summary>
+              <div>
+                <p className="field-help">{t('stack.help')}</p>
+                {(['forward', 'backward', 'front', 'back'] as const).map(
+                  (action) => (
+                    <button
+                      key={action}
+                      className="button compact"
+                      onClick={() => {
+                        command(action);
+                      }}
+                    >
+                      {t(`stack.${action}`)}
+                    </button>
+                  ),
+                )}
+              </div>
+            </details>
           )}
           <button
-            role="menuitem"
-            onClick={() => {
-              setContextMenu(null);
-              controls.current?.focus();
-            }}
+            className="button compact"
+            aria-label={t('editing.more')}
+            onClick={(e) => setContextMenu(menuAnchor(e.currentTarget))}
           >
-            {t('project.cancel')}
+            {'⋯'}
           </button>
-        </ContextMenu>
-      )}
-      <div className="canvas-navigation canvas-options">
-        <button
-          className="button compact"
-          aria-label={t('canvas.zoomOut')}
-          onClick={() => controls.current?.camera('out')}
-        >
-          {t('canvas.minus')}
-        </button>
-        <output aria-live="off" ref={percent} aria-label={t('canvas.zoom')} />
-        <button
-          className="button compact"
-          aria-label={t('canvas.zoomIn')}
-          onClick={() => controls.current?.camera('in')}
-        >
-          {t('canvas.plus')}
-        </button>
-        <button
-          className="button compact"
-          onClick={() => controls.current?.camera('reset')}
-        >
-          {t('canvas.reset')}
-        </button>
-        <button
-          className="button compact"
-          onClick={() => controls.current?.camera('fit')}
-        >
-          {t('canvas.fit')}
-        </button>
-        <button
-          className="button compact"
-          aria-pressed={grid.visible}
-          disabled={!initial.writable}
-          onClick={() => updateGrid({ ...grid, visible: !grid.visible })}
-        >
-          {t('canvas.grid')}
-        </button>
-        <button
-          className="button compact"
-          aria-pressed={grid.snap}
-          title={t('canvas.snapHelp')}
-          disabled={!initial.writable}
-          onClick={() => updateGrid({ ...grid, snap: !grid.snap })}
-        >
-          {t('canvas.snap')}
-        </button>
-        <label>
-          {t('canvas.spacing')}
-          <input
-            type="number"
-            min={1}
-            max={1024}
-            step={1}
-            value={grid.spacing}
-            disabled={!initial.writable}
-            onChange={(event) => {
-              const spacing = event.currentTarget.valueAsNumber;
-              if (spacing >= 1 && spacing <= 1024)
-                updateGrid({ ...grid, spacing });
-            }}
+        </div>
+        {objects && (
+          <aside className="objects-panel" aria-label={t('format.objects')}>
+            <label className="element-picker">
+              {t('diagram.target')}
+              <select
+                aria-label={t('diagram.target')}
+                defaultValue=""
+                onChange={(event) => {
+                  const id = event.target.value;
+                  if (id) pick(id);
+                  event.target.value = '';
+                }}
+              >
+                <option value="">{t('diagram.choose')}</option>
+                {[
+                  ...page.nodes.map((item) => ({
+                    id: item.id,
+                    text:
+                      typeof item.content.text === 'string' && item.content.text
+                        ? item.content.text
+                        : item.kind,
+                  })),
+                  ...page.connections.map((item) => ({
+                    id: item.id,
+                    text:
+                      readConnection(item).label || t('diagram.connectionName'),
+                  })),
+                ].map((item, i) => (
+                  <option key={item.id} value={item.id}>
+                    {translate(locale, 'diagram.nodeName', {
+                      index: i + 1,
+                      text: item.text.slice(0, 80),
+                    })}
+                  </option>
+                ))}
+              </select>
+            </label>{' '}
+          </aside>
+        )}
+        {feedback && (
+          <p className="diagram-guidance" role="status">
+            {t(feedback)}
+          </p>
+        )}
+        {editError && (
+          <p className="canvas-disclosure" role="alert">
+            {t(editError)}
+          </p>
+        )}
+        {editing && inline && (
+          <InlineText
+            key={editing}
+            item={
+              (page.nodes.find((n) => n.id === editing) ??
+                page.connections.find((e) => e.id === editing))!
+            }
+            styles={styles}
+            locale={locale}
+            anchor={textAnchor}
+            onApply={onEdit}
+            onPreview={setTextPreview}
+            onCancel={closeEditing}
           />
-        </label>
-      </div>
-      <div className="canvas-status">
-        <span>
-          {translate(locale, 'workspace.pageContent', {
-            nodes: page.nodes.length,
-            connections: page.connections.length,
-          })}
-        </span>
-        <span>{t('status.local')}</span>
-      </div>
-      {(page.nodes.length > 0 || page.connections.length > 0) && (
-        <p className="canvas-disclosure">{t('canvas.preview')}</p>
+        )}
+        <div
+          ref={host}
+          onPointerDownCapture={(event) => {
+            if (propertyDraft.current && tool !== 'pan' && !spaceHeld.current) {
+              event.preventDefault();
+              event.stopPropagation();
+              prepare();
+            }
+          }}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            if (!prepare()) return;
+            const id =
+              (event.target as Element)
+                .closest('[data-node-id],[data-connection-id]')
+                ?.getAttribute('data-node-id') ??
+              (event.target as Element)
+                .closest('[data-connection-id]')
+                ?.getAttribute('data-connection-id');
+            cancelInput.current();
+            if (id && !selection.current.includes(id)) select([id]);
+            else if (!id) select([]);
+            setContextMenu(menuAnchor(event.currentTarget, event));
+          }}
+          onKeyDown={(event) => {
+            if (
+              event.key === 'ContextMenu' ||
+              (event.shiftKey && event.key === 'F10')
+            ) {
+              event.preventDefault();
+              setContextMenu(menuAnchor(event.currentTarget));
+            }
+          }}
+          className={`interactive-canvas ${tool === 'select' ? 'select-active' : tool !== 'pan' ? 'tool-active' : ''}`}
+          tabIndex={0}
+          role="region"
+          aria-label={t('canvas.navigation')}
+          aria-describedby={`${patternId}-hint`}
+        >
+          <svg className="canvas-svg" aria-hidden="true">
+            <defs>
+              <pattern
+                ref={pattern}
+                id={patternId}
+                patternUnits="userSpaceOnUse"
+                width={24}
+                height={24}
+              >
+                <circle cx={1} cy={1} r={1} className="grid-dot" />
+              </pattern>
+            </defs>
+            <rect
+              ref={gridRect}
+              width="100%"
+              height="100%"
+              fill={`url(#${patternId})`}
+            />
+            <g ref={drawing} />
+          </svg>
+          <div
+            ref={portRoot}
+            className="connection-ports"
+            role="group"
+            aria-label={t('ports.heading')}
+          />
+          {!page.nodes.length && !page.connections.length && (
+            <div className="canvas-welcome">
+              <h2>{t('canvas.emptyTitle')}</h2>
+              <p>{t('canvas.emptyDescription')}</p>
+            </div>
+          )}
+          <p
+            className={`canvas-hint ${page.nodes.length ? 'with-content' : ''}`}
+            id={`${patternId}-hint`}
+          >
+            {t('canvas.hint')}
+          </p>
+        </div>
+        {contextMenu && (
+          <ContextMenu
+            anchor={contextMenu}
+            label={t('editing.actions')}
+            onClose={() => setContextMenu(null)}
+          >
+            {!editableSelection.length && (
+              <button
+                role="menuitem"
+                disabled={
+                  !scene.nodes.some((item) => item.editable) &&
+                  !scene.connections.some((item) => item.editable)
+                }
+                onClick={() => command('selectAll')}
+              >
+                {t('office.selectAll')}
+              </button>
+            )}
+            {selectedLink.state !== 'none' && (
+              <button
+                role="menuitem"
+                disabled={
+                  navigation?.busy ||
+                  selectedLink.state !== 'ready' ||
+                  editableSelection.length !== 1
+                }
+                title={linkDescription(selected[0])}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => command('followLink')}
+              >
+                {t('links.open')}
+              </button>
+            )}
+            {editableSelection.length === 1 &&
+              !page.nodes.some(
+                (n) => n.id === editableSelection[0] && n.kind === 'freehand',
+              ) && (
+                <button role="menuitem" onClick={() => command('text')}>
+                  {t('rich.edit')}
+                </button>
+              )}
+            {(['properties', 'duplicate', 'delete', 'copy', 'paste'] as const)
+              .filter((action) =>
+                action === 'paste'
+                  ? hasClipboard
+                  : editableSelection.length > 0,
+              )
+              .map((action) => (
+                <button
+                  key={action}
+                  role="menuitem"
+                  onClick={() => {
+                    command(action);
+                  }}
+                >
+                  {t(
+                    action === 'properties'
+                      ? 'diagram.properties'
+                      : `editing.${action}`,
+                  )}
+                </button>
+              ))}
+            {editableSelection.length > 0 && <div role="separator" />}
+            {editableSelection.length > 0 && (
+              <Submenu label={t('stack.heading')}>
+                {(['forward', 'backward', 'front', 'back'] as const).map(
+                  (action) => (
+                    <button
+                      key={action}
+                      role="menuitem"
+                      data-stack={action}
+                      onClick={handleStack}
+                    >
+                      {t(`stack.${action}`)}
+                    </button>
+                  ),
+                )}
+              </Submenu>
+            )}
+            {editableSelection.filter((id) =>
+              scene.nodes.some((n) => n.id === id),
+            ).length >= 2 && (
+              <button role="menuitem" onClick={() => command('tidy')}>
+                {t('arrange.tidy')}
+              </button>
+            )}
+          </ContextMenu>
+        )}
+        <div className="canvas-navigation canvas-options">
+          <button
+            className="button compact"
+            aria-label={t('canvas.zoomOut')}
+            onClick={() => controls.current?.camera('out')}
+          >
+            {t('canvas.minus')}
+          </button>
+          <output aria-live="off" ref={percent} aria-label={t('canvas.zoom')} />
+          <button
+            className="button compact"
+            aria-label={t('canvas.zoomIn')}
+            onClick={() => controls.current?.camera('in')}
+          >
+            {t('canvas.plus')}
+          </button>
+          <button
+            className="button compact"
+            onClick={() => controls.current?.camera('reset')}
+          >
+            {t('canvas.reset')}
+          </button>
+          <button
+            className="button compact"
+            onClick={() => controls.current?.camera('fit')}
+          >
+            {t('canvas.fit')}
+          </button>
+          <button
+            className="button compact"
+            aria-pressed={grid.visible}
+            disabled={!initial.writable}
+            onClick={() => updateGrid({ ...grid, visible: !grid.visible })}
+          >
+            {t('canvas.grid')}
+          </button>
+          <button
+            className="button compact"
+            aria-pressed={grid.snap}
+            title={t('canvas.snapHelp')}
+            disabled={!initial.writable}
+            onClick={() => updateGrid({ ...grid, snap: !grid.snap })}
+          >
+            {t('canvas.snap')}
+          </button>
+          <label>
+            {t('canvas.spacing')}
+            <input
+              type="number"
+              min={1}
+              max={1024}
+              step={1}
+              value={grid.spacing}
+              disabled={!initial.writable}
+              onChange={(event) => {
+                const spacing = event.currentTarget.valueAsNumber;
+                if (spacing >= 1 && spacing <= 1024)
+                  updateGrid({ ...grid, spacing });
+              }}
+            />
+          </label>
+        </div>
+        <div className="canvas-status">
+          <span>
+            {translate(locale, 'workspace.pageContent', {
+              nodes: page.nodes.length,
+              connections: page.connections.length,
+            })}
+          </span>
+          <span>{t('status.local')}</span>
+        </div>
+        {(page.nodes.length > 0 || page.connections.length > 0) && (
+          <p className="canvas-disclosure">{t('canvas.preview')}</p>
+        )}
+        {limited && (
+          <p className="canvas-disclosure" role="status">
+            {t('canvas.limited')}
+          </p>
+        )}
+        {(!initial.writable || initial.adjusted) && (
+          <p className="canvas-disclosure" role="status">
+            {t(initial.writable ? 'canvas.adjusted' : 'canvas.future')}
+          </p>
+        )}
+        {help && (
+          <KeyboardShortcuts locale={locale} onClose={() => setHelp(false)} />
+        )}
+      </section>
+      {inspectorOpen && (
+        <aside
+          ref={propertyRoot}
+          className="office-properties"
+          aria-label={t('office.properties')}
+        >
+          <header>
+            <h2>{t('office.properties')}</h2>
+            <button
+              className="office-close"
+              aria-label={t('office.hideProperties')}
+              onClick={() => {
+                if (prepare()) setInspectorOpen(false);
+              }}
+            >
+              ×
+            </button>
+          </header>
+          {propertyDirty && (
+            <p className="office-draft-note" role="status">
+              {t('office.unapplied')}
+            </p>
+          )}
+          <div className="office-property-scroll">
+            {selectedLink.state !== 'none' && (
+              <button
+                className="button compact"
+                title={linkDescription(selected[0])}
+                disabled={
+                  propertyDirty ||
+                  navigation?.busy ||
+                  selectedLink.state !== 'ready' ||
+                  editableSelection.length !== 1
+                }
+                onClick={() => command('followLink')}
+              >
+                {t('links.open')}
+              </button>
+            )}
+            {propertyId && propertyItem ? (
+              <ElementDialog
+                panel
+                project={project}
+                key={`${propertyId}:${observedProperty.version}:${propertyReset}`}
+                page={page}
+                styles={styles}
+                id={propertyId}
+                locale={locale}
+                onApply={commitEdit}
+                onCancel={resetProperties}
+                onDraftChange={reportPropertyDraft}
+              />
+            ) : !inline && editableSelection.length > 1 ? (
+              <FormatSelection
+                panel
+                ids={editableSelection}
+                page={page}
+                styles={styles}
+                locale={locale}
+                onApply={onEdit}
+                onClose={() => {
+                  setFormatting(null);
+                  setInspectorOpen(false);
+                }}
+              />
+            ) : (
+              <>
+                <p className="office-property-hint">
+                  {t(inline ? 'office.inlineEditing' : 'office.selectElement')}
+                </p>
+                {projectDetails}
+              </>
+            )}
+          </div>
+        </aside>
       )}
-      {limited && (
-        <p className="canvas-disclosure" role="status">
-          {t('canvas.limited')}
-        </p>
-      )}
-      {(!initial.writable || initial.adjusted) && (
-        <p className="canvas-disclosure" role="status">
-          {t(initial.writable ? 'canvas.adjusted' : 'canvas.future')}
-        </p>
-      )}
-      {help && (
-        <KeyboardShortcuts locale={locale} onClose={() => setHelp(false)} />
-      )}
-    </section>
+    </div>
   );
 }

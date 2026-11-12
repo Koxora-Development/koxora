@@ -1,3 +1,4 @@
+import { InfoDisclosure } from './info-disclosure';
 import { useEffect, useRef, useState } from 'react';
 import { DOMParser } from 'prosemirror-model';
 import { EditorState, Plugin } from 'prosemirror-state';
@@ -214,6 +215,12 @@ export function RichTextEditor({
       view.current = null;
     };
   }, [initial]);
+  useEffect(() => {
+    view.current?.dom.setAttribute(
+      'aria-label',
+      translate(locale, 'diagram.label'),
+    );
+  }, [locale]);
   function align(value: Appearance['align']) {
     const editor = view.current;
     if (!editor) return;
@@ -432,9 +439,14 @@ export function RichTextEditor({
             base.textColor === 'none' ? '0 0 0 var(--ink)' : undefined,
         }}
       />
-      <p className="field-help">
-        {t('rich.help')} {t('text.editContrast')}
-      </p>
+      <InfoDisclosure
+        className="field-help compact-help"
+        title={t('controls.help')}
+      >
+        <p>
+          {t('rich.help')} {t('text.editContrast')}
+        </p>
+      </InfoDisclosure>
       {notice && (
         <p role="status" className="field-help">
           {t(notice)}

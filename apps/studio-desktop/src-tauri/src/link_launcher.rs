@@ -25,7 +25,11 @@ pub fn open(url: &str) -> io::Result<()> {
 }
 
 /// Remove only AppImage-owned paths, on the child. Keep host handler and session settings.
-fn host_environment(command: &mut Command, app_dir: &Path, environment: &[(OsString, OsString)]) {
+pub(crate) fn host_environment(
+    command: &mut Command,
+    app_dir: &Path,
+    environment: &[(OsString, OsString)],
+) {
     const LISTS: &[&str] = &[
         "PATH",
         "LD_LIBRARY_PATH",

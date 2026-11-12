@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-koxora">
+    <comment>Koxora project</comment>
+    <comment xml:lang="de">Koxora-Projekt</comment>
+    <icon name="application-x-koxora"/>
+    <sub-class-of type="application/zip"/>
+    <glob pattern="*.koxora"/>
+  </mime-type>
+</mime-info>

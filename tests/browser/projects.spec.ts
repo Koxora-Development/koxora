@@ -61,6 +61,10 @@ test('create, rename, reopen offline, export, import and recover', async ({
   await page.getByLabel('Import as a new project').check();
   await (await importInput(page)).setInputFiles(path!);
   await saved(page);
+  if (!(await page.locator('.project-sidebar').isVisible()))
+    await page
+      .getByRole('button', { name: 'Project navigator', exact: true })
+      .click();
   await page
     .getByRole('button', { name: 'Local projects', exact: false })
     .click();
@@ -76,6 +80,13 @@ test('create, rename, reopen offline, export, import and recover', async ({
     .fill('Renamed copy');
   await page.getByRole('textbox', { name: 'Project name' }).press('Enter');
   await saved(page);
+  if (
+    !(await page
+      .getByRole('complementary', { name: 'Properties', exact: true })
+      .isVisible())
+  )
+    await page.getByRole('button', { name: 'Properties', exact: true }).click();
+  await page.getByText('Project details', { exact: true }).click();
   await page.getByRole('button', { name: 'Recover previous save' }).click();
   await page
     .getByRole('dialog')
@@ -119,7 +130,7 @@ test('invalid files, versions and duplicate keys leave the active project unchan
       buffer: Buffer.from(bytes),
     });
     await expect(page.getByRole('alert')).toBeVisible();
-    await expect(page.locator('.inspector input')).toHaveValue(
+    await expect(page.locator('.office-document-name input')).toHaveValue(
       'Überblick 世界 مرحبا',
     );
   }
