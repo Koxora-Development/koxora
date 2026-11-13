@@ -25,6 +25,7 @@ import {
 } from './validation';
 import { safePath } from './zip';
 export const FEATURES = [
+  'node-reflection-v1',
   'documents',
   'pages',
   'nodes',
@@ -345,6 +346,16 @@ export function validateProject(
           number(node.geometry[key], `${np}.geometry.${key}`);
         for (const key of ['width', 'height'] as const)
           number(node.geometry[key], `${np}.geometry.${key}`, 0);
+        for (const key of ['flipX', 'flipY'] as const) {
+          if (node.geometry[key] !== undefined) {
+            boolean(node.geometry[key], `${np}.geometry.${key}`);
+            check(
+              manifest.requiredFeatures.includes('node-reflection-v1'),
+              `${np}.geometry.${key}`,
+              'feature',
+            );
+          }
+        }
         record(node.content, `${np}.content`);
         record(node.metadata, `${np}.metadata`);
         if (node.styleId !== undefined)

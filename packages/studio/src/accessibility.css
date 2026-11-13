@@ -1,0 +1,102 @@
+/* Optional UI accommodations; diagram geometry, paint and camera remain unchanged. */
+:root[data-accessibility='true'] {
+  --muted: #454b63;
+  --line: #777e96;
+}
+:root[data-accessibility='true'][data-theme='dark'] {
+  --muted: #c3c8dd;
+  --line: #848ca8;
+}
+.studio-shell[data-accessibility='true'] {
+  --control-height: max(44px, calc(30px * var(--ui-scale, 1)));
+  --header-height: max(48px, calc(30px * var(--ui-scale, 1)));
+  --menu-height: calc(var(--control-height) + 16px);
+  --tools-height: calc(var(--control-height) + 8px * var(--ui-scale, 1) + 16px);
+}
+/* These minima also override the compact contextual controls and scaled start-page rules. */
+.studio-shell[data-accessibility='true']
+  :is(
+    button,
+    select,
+    summary,
+    input:not([type='checkbox'], [type='radio'], [type='file'])
+  ),
+:root[data-accessibility='true'] .context-menu button {
+  min-height: max(44px, calc(30px * var(--ui-scale, 1))) !important;
+  min-width: 44px !important;
+}
+.studio-shell[data-accessibility='true']
+  :is(input[type='checkbox'], input[type='radio']) {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+.studio-shell[data-accessibility='true']
+  :is(.brand, label:has(input[type='checkbox'], input[type='radio'])) {
+  min-height: 44px;
+}
+.studio-shell[data-accessibility='true']
+  :is(
+    .office-menubar,
+    .office-quickbar,
+    .workbook-sheet-tabs,
+    .office-property-scroll
+  ) {
+  scrollbar-width: auto;
+}
+.studio-shell[data-accessibility='true'] .office-menubar > button {
+  align-self: flex-start;
+}
+.studio-shell[data-accessibility='true'] .office-properties > header {
+  height: auto;
+  min-height: calc(var(--control-height) + 8px * var(--ui-scale, 1));
+}
+.studio-shell[data-accessibility='true'] .workbook-sheetbar {
+  flex-basis: auto;
+  min-height: calc(var(--control-height) + 16px);
+}
+.studio-shell[data-accessibility='true']
+  .office-canvas-layout.expanded-workbench {
+  grid-template-rows:
+    calc(var(--control-height) + 10px * var(--ui-scale, 1))
+    minmax(0, 1fr);
+}
+.studio-shell[data-accessibility='true'][data-ui-narrow='true']
+  .expanded-workbench
+  .office-properties {
+  inset-block-start: calc(var(--control-height) + 10px * var(--ui-scale, 1));
+}
+.studio-shell[data-accessibility='true'] .palette-tool {
+  flex-shrink: 0;
+}
+.studio-shell[data-accessibility='true'] :focus-visible,
+:root[data-accessibility='true'] .context-menu :focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+.studio-shell[data-accessibility='true'] *,
+.studio-shell[data-accessibility='true'] *::before,
+.studio-shell[data-accessibility='true'] *::after,
+:root[data-accessibility='true'] .context-menu * {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+.studio-shell .office-settings-content .accessibility-setting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.studio-shell .accessibility-setting input {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+@media (forced-colors: active) {
+  .studio-shell[data-accessibility='true'] :focus-visible,
+  :root[data-accessibility='true'] .context-menu :focus-visible {
+    outline-color: Highlight;
+  }
+}

@@ -130,16 +130,28 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
   await save(page);
   if (process.env.KOXORA_CAPTURE) {
     mkdirSync('docs/design/screenshots/phase-2.3', { recursive: true });
+    await button(page, 'Settings…').click();
     await page
+      .getByRole('dialog')
       .getByRole('combobox', { name: 'Appearance', exact: true })
       .selectOption('dark');
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Close', exact: true })
+      .click();
     await page.screenshot({
       path: 'docs/design/screenshots/phase-2.3/diagram-dark.png',
       fullPage: true,
     });
+    await button(page, 'Settings…').click();
     await page
+      .getByRole('dialog')
       .getByRole('combobox', { name: 'Appearance', exact: true })
       .selectOption('light');
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Close', exact: true })
+      .click();
     await page.screenshot({
       path: 'docs/design/screenshots/phase-2.3/diagram-light.png',
       fullPage: true,
@@ -257,9 +269,15 @@ test('German tools and docked properties stay usable after resize', async ({
   page,
 }) => {
   await create(page);
+  await page.getByRole('button', { name: 'Settings…', exact: true }).click();
   await page
+    .getByRole('dialog')
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Schließen', exact: true })
+    .click();
   await button(page, 'Rechteck').click();
   await page
     .getByRole('region', { name: 'Interaktive Zeichenfläche', exact: true })

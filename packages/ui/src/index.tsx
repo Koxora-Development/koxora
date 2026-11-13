@@ -4,6 +4,7 @@ export function Mark() {
   return <img className="brand-mark" src={logo} alt="" aria-hidden="true" />;
 }
 export type IconName =
+  | 'edit'
   | 'plus'
   | 'import'
   | 'export'
@@ -26,6 +27,7 @@ export type IconName =
   | 'info'
   | 'more';
 const paths: Record<IconName, string> = {
+  edit: 'm15 4 5 5M4 20l5-1L21 7l-5-5L4 14z',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
   info: 'M12 11v6m0-10v1m9 4a9 9 0 1 1-18 0 9 9 0 0 1 18 0',

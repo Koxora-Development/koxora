@@ -63,15 +63,21 @@ const native = (
 type Operation = 'loading' | 'opening' | 'saving' | 'importing' | 'exporting';
 export function Projects({
   locale,
+  localePreference,
   theme,
   guiScale,
+  accessibility,
+  onAccessibility,
   onGuiScale,
   onLocale,
   onTheme,
 }: {
   locale: string;
+  localePreference: string;
   theme: Theme;
   guiScale: GuiScale;
+  accessibility: boolean;
+  onAccessibility: (enabled: boolean) => void;
   onGuiScale: (scale: GuiScale) => void;
   onLocale: (locale: string) => void;
   onTheme: (theme: Theme) => void;
@@ -1175,6 +1181,21 @@ export function Projects({
           disabled: unavailable || selected !== 1 || propertyDraft,
         },
         {
+          label: t('transform.heading'),
+          disabled: unavailable || !selected || propertyDraft,
+          children: (
+            [
+              'rotateLeft',
+              'rotateRight',
+              'flipHorizontal',
+              'flipVertical',
+            ] as const
+          ).map((action) => ({
+            label: t(`transform.${action}`),
+            action: command(action),
+          })),
+        },
+        {
           label: t('stack.heading'),
           disabled: unavailable || !selected || propertyDraft,
           children: (['forward', 'backward', 'front', 'back'] as const).map(
@@ -1228,7 +1249,7 @@ export function Projects({
   ];
   return (
     <div
-      className={`application-body office-application ${navigatorVisible ? '' : 'navigator-hidden'}`}
+      className={`application-body office-application ${view === 'dashboard' || !project ? 'office-dashboard' : ''} ${navigatorVisible ? '' : 'navigator-hidden'}`}
       onKeyDown={(event) => {
         if (
           (event.ctrlKey || event.metaKey) &&
@@ -1758,9 +1779,12 @@ export function Projects({
       </main>
       {settingsOpen && (
         <OfficeSettings
+          localePreference={localePreference}
           locale={locale}
           theme={theme}
           guiScale={guiScale}
+          accessibility={accessibility}
+          onAccessibility={onAccessibility}
           onGuiScale={onGuiScale}
           onLocale={onLocale}
           onTheme={onTheme}

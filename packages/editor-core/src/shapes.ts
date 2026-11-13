@@ -389,13 +389,21 @@ export const shapeRegistry: Readonly<Record<ShapeKind, ShapeDefinition>> = {
   text: { width: 200, height: 88, ...box },
   container: { width: 320, height: 240, container: true, ...rounded },
 };
+/** Reflect in element-local axes, before rotation. Reflection is its own inverse. */
+export function reflectPoint(p: Point, g: Geometry): Point {
+  const c = shapeCenter(g);
+  return {
+    x: g.flipX === true ? 2 * c.x - p.x : p.x,
+    y: g.flipY === true ? 2 * c.y - p.y : p.y,
+  };
+}
 export function containsShape(
   kind: string,
   g: Geometry,
   p: Point,
   radius = 16,
 ): boolean {
-  const local = rotatePoint(p, shapeCenter(g), -g.rotation);
+  const local = reflectPoint(rotatePoint(p, shapeCenter(g), -g.rotation), g);
   return (
     isShapeKind(kind) ? shapeRegistry[kind] : shapeRegistry.rectangle
   ).contains({ x: local.x - g.x, y: local.y - g.y }, g.width, g.height, radius);
@@ -441,7 +449,11 @@ export function anchorPoint(
     node.kind,
     node.geometry,
     d
-      ? rotatePoint({ x: c.x + d.x, y: c.y + d.y }, c, node.geometry.rotation)
+      ? rotatePoint(
+          reflectPoint({ x: c.x + d.x, y: c.y + d.y }, node.geometry),
+          c,
+          node.geometry.rotation,
+        )
       : toward,
     radius,
   );

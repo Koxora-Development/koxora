@@ -1,7 +1,9 @@
-/* The start screen shares Office chrome and leaves room for future templates. */
+/* The local library fills its workspace; queries follow available space at each UI scale. */
 .studio-shell .studio-start {
-  width: min(calc(1180px * var(--ui-scale, 1)), 100%);
-  margin-inline: auto;
+  width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+  margin: 0;
   padding: calc(26px * var(--ui-scale, 1)) calc(28px * var(--ui-scale, 1));
   color: var(--ink);
 }
@@ -51,7 +53,7 @@
 }
 .start-content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) calc(220px * var(--ui-scale, 1));
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: calc(22px * var(--ui-scale, 1));
 }
@@ -67,8 +69,7 @@
   padding-block: calc(10px * var(--ui-scale, 1));
   border-block: calc(1px * var(--ui-scale, 1)) solid var(--line);
 }
-.start-section-heading h2,
-.start-templates h2 {
+.start-section-heading h2 {
   display: flex;
   align-items: center;
   gap: calc(8px * var(--ui-scale, 1));
@@ -218,7 +219,6 @@
   font-weight: 550;
 }
 .start-empty p,
-.start-templates > p,
 .start-help p,
 .start-drop-note {
   color: var(--muted);
@@ -248,39 +248,7 @@
 .start-help p {
   margin-top: calc(7px * var(--ui-scale, 1));
 }
-.start-templates {
-  padding: calc(14px * var(--ui-scale, 1));
-  border: calc(1px * var(--ui-scale, 1)) solid var(--line);
-  border-radius: calc(3px * var(--ui-scale, 1));
-  background: var(--surface-muted);
-}
-.start-templates-heading {
-  display: flex;
-  align-items: center;
-  gap: calc(7px * var(--ui-scale, 1));
-  padding-bottom: calc(12px * var(--ui-scale, 1));
-  border-bottom: calc(1px * var(--ui-scale, 1)) solid var(--line);
-}
-.start-templates-heading .icon {
-  width: calc(15px * var(--ui-scale, 1));
-  height: calc(15px * var(--ui-scale, 1));
-  color: var(--muted);
-}
-.start-templates > .start-planned {
-  margin: calc(12px * var(--ui-scale, 1)) 0 calc(5px * var(--ui-scale, 1));
-  color: var(--ink);
-  font-weight: 550;
-}
-@media (max-width: 1199px) {
-  .start-content {
-    grid-template-columns: minmax(0, 1fr);
-    gap: calc(20px * var(--ui-scale, 1));
-  }
-  .start-templates {
-    max-width: calc(560px * var(--ui-scale, 1));
-  }
-}
-@media (max-width: 699px) {
+@container library (max-width: 50em) {
   .studio-shell .studio-start {
     padding: calc(18px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
   }
@@ -303,7 +271,7 @@
   }
   .start-project-date,
   .start-row-actions {
-    padding-inline-start: calc(38px * var(--ui-scale, 1));
+    padding-inline-start: 0;
   }
   .start-row-actions {
     flex-wrap: wrap;
@@ -321,4 +289,21 @@
   .studio-shell .studio-start .icon-button {
     min-width: calc(44px * var(--ui-scale, 1));
   }
+}
+
+.studio-shell
+  .studio-start
+  :is(.start-heading > div, .start-actions, .start-row-actions) {
+  min-width: 0;
+  max-width: 100%;
+}
+.studio-shell .studio-start :is(p, .start-project-date) {
+  overflow-wrap: anywhere;
+}
+.studio-shell .studio-start .start-row-actions {
+  flex-wrap: wrap;
+}
+.studio-shell .studio-start .button {
+  max-width: 100%;
+  white-space: normal;
 }

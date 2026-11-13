@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type Ref } from 'react';
+import { Icon } from '@koxora/ui';
 import { translate } from '@koxora/i18n';
 
 export function ProjectTitle({
@@ -115,7 +116,7 @@ export function ProjectTitle({
         aria-label={t('editing.rename')}
         title={t('editing.renameHelp')}
       >
-        {t('editing.rename')}
+        <Icon name="edit" />
       </button>
     </div>
   );

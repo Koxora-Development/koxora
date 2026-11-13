@@ -277,9 +277,13 @@ test('German controls, focus help and grid styling work in both themes', async (
   await page.keyboard.press('Escape');
   await expect(help).toBeFocused();
   await page
-    .locator('.office-statusbar')
+    .getByRole('button', { name: /^(Settings…|Einstellungen …)$/ })
+    .click();
+  await page
+    .getByRole('dialog')
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
+  await page.keyboard.press('Escape');
   await expect(
     page.getByRole('region', {
       name: 'Interaktive Zeichenfläche',
@@ -290,9 +294,13 @@ test('German controls, focus help and grid styling work in both themes', async (
     page.getByRole('button', { name: 'Einrasten', exact: true }),
   ).toBeVisible();
   await page
-    .locator('.office-statusbar')
+    .getByRole('button', { name: /^(Settings…|Einstellungen …)$/ })
+    .click();
+  await page
+    .getByRole('dialog')
     .getByRole('combobox', { name: 'Darstellung', exact: true })
     .selectOption('dark');
+  await page.keyboard.press('Escape');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.getByRole('button', { name: 'Vergrößern', exact: true }).click();
   await expect(page.getByLabel('Zoomstufe', { exact: true })).toHaveText(

@@ -160,6 +160,13 @@ export function assertEditableElement(item: Node | Connection): void {
   if ('kind' in item) {
     const n = item as Node;
     if (
+      ['flipX', 'flipY'].some(
+        (key) =>
+          n.geometry[key] !== undefined && typeof n.geometry[key] !== 'boolean',
+      )
+    )
+      throw new EditError('unsupported');
+    if (
       (!isShapeKind(n.kind) && n.kind !== 'freehand') ||
       (n.kind === 'freehand' && !readFreehand(n)) ||
       !editableExtension(n.extensions[ELEMENT_KEY]) ||
@@ -768,6 +775,28 @@ export function applyEdit(
       throw new EditError('unsupported');
     }
   }
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.nodes.some(
+          (n) =>
+            n.geometry.flipX !== undefined || n.geometry.flipY !== undefined,
+        ),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes('node-reflection-v1')
+  ) {
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          'node-reflection-v1',
+        ],
+      },
+    };
+  }
   validateProject(next);
   return next;
 }
@@ -778,6 +807,9 @@ export function assertGeometry(
   minimum = true,
 ): void {
   if (
+    ['flipX', 'flipY'].some(
+      (key) => g[key] !== undefined && typeof g[key] !== 'boolean',
+    ) ||
     ![g.x, g.y, g.width, g.height, g.rotation].every(
       (v) => Number.isFinite(v) && Math.abs(v) <= 1e12,
     ) ||

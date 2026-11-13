@@ -1,5 +1,8 @@
 /* Office workbench: chrome has fixed rows; the document receives remaining space. */
 .studio-shell {
+  --header-height: calc(26px * var(--ui-scale, 1));
+  --menu-height: calc(26px * var(--ui-scale, 1));
+  --tools-height: calc(32px * var(--ui-scale, 1));
   --control-height: calc(24px * var(--ui-scale, 1));
   --control-radius: calc(2px * var(--ui-scale, 1));
   --radius: calc(3px * var(--ui-scale, 1));
@@ -15,8 +18,8 @@
   display: none !important;
 }
 .studio-shell .app-header {
-  flex: 0 0 calc(26px * var(--ui-scale, 1));
-  min-height: calc(26px * var(--ui-scale, 1));
+  flex: 0 0 var(--header-height);
+  min-height: var(--header-height);
   padding: calc(2px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1));
   gap: calc(6px * var(--ui-scale, 1));
   background: var(--surface-muted);
@@ -44,7 +47,7 @@
   display: grid;
   grid-template-columns: calc(186px * var(--ui-scale, 1)) minmax(0, 1fr);
   grid-template-rows:
-    calc(26px * var(--ui-scale, 1)) calc(32px * var(--ui-scale, 1))
+    var(--menu-height) var(--tools-height)
     minmax(0, 1fr);
   grid-template-areas: 'menu menu' 'tools tools' 'navigator workspace';
 }
@@ -827,8 +830,8 @@
   }
   .studio-shell .project-sidebar {
     position: fixed;
-    top: calc(84px * var(--ui-scale, 1));
-    bottom: calc(23px * var(--ui-scale, 1));
+    top: calc(var(--header-height) + var(--menu-height) + var(--tools-height));
+    bottom: 0;
     left: 0;
     width: calc(186px * var(--ui-scale, 1));
     z-index: 25;
@@ -885,10 +888,9 @@
   }
 }
 @media (pointer: coarse) {
-  .studio-shell .office-application {
-    grid-template-rows:
-      calc(44px * var(--ui-scale, 1)) calc(44px * var(--ui-scale, 1))
-      minmax(0, 1fr);
+  .studio-shell {
+    --menu-height: calc(44px * var(--ui-scale, 1));
+    --tools-height: calc(50px * var(--ui-scale, 1));
   }
   .office-menubar > button,
   .office-tool-button,

@@ -1,6 +1,11 @@
 import type { Node, Page } from '@koxora/project';
 import { type Bounds, type Point, snapPoint, intersects } from './viewport';
-import { rotatePoint, shapeCenter, type Geometry } from './shapes';
+import {
+  reflectPoint,
+  rotatePoint,
+  shapeCenter,
+  type Geometry,
+} from './shapes';
 import { type Scene, unionBounds } from './scene';
 
 export const MIN_SIZE = 8;
@@ -87,8 +92,8 @@ export function lineGeometry(
 export function lineEndpoints(g: Geometry): [Point, Point] {
   const c = shapeCenter(g);
   return [
-    rotatePoint({ x: g.x, y: c.y }, c, g.rotation),
-    rotatePoint({ x: g.x + g.width, y: c.y }, c, g.rotation),
+    rotatePoint(reflectPoint({ x: g.x, y: c.y }, g), c, g.rotation),
+    rotatePoint(reflectPoint({ x: g.x + g.width, y: c.y }, g), c, g.rotation),
   ];
 }
 export function segmentDistance(p: Point, a: Point, b: Point): number {

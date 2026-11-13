@@ -9,9 +9,12 @@ import {
 } from './preferences';
 export function OfficeSettings({
   locale,
+  localePreference,
   theme,
   guiScale,
+  accessibility,
   onGuiScale,
+  onAccessibility,
   onLocale,
   onTheme,
   storage,
@@ -21,9 +24,12 @@ export function OfficeSettings({
   onClose,
 }: {
   locale: string;
+  localePreference: string;
   theme: Theme;
   guiScale: GuiScale;
+  accessibility: boolean;
   onGuiScale: (scale: GuiScale) => void;
+  onAccessibility: (enabled: boolean) => void;
   onLocale: (locale: string) => void;
   onTheme: (theme: Theme) => void;
   storage?: ReactNode;
@@ -35,6 +41,7 @@ export function OfficeSettings({
   const t = (key: MessageKey) => translate(locale, key);
   const [category, setCategory] = useState('general');
   const scaleHelpId = useId();
+  const accessibilityHelpId = useId();
   const percentages = new Intl.NumberFormat(locale, {
     style: 'percent',
     maximumFractionDigits: 0,
@@ -75,9 +82,10 @@ export function OfficeSettings({
               {t('preferences.language')}
               <select
                 aria-label={t('preferences.language')}
-                value={locale}
+                value={localePreference}
                 onChange={(event) => onLocale(event.target.value)}
               >
+                <option value="system">{t('preferences.system')}</option>
                 {Object.entries(locales).map(([key, value]) => (
                   <option key={key} value={key}>
                     {value.label}
@@ -92,6 +100,7 @@ export function OfficeSettings({
                 value={theme}
                 onChange={(event) => onTheme(event.target.value as Theme)}
               >
+                <option value="system">{t('preferences.system')}</option>
                 <option value="light">{t('theme.light')}</option>
                 <option value="dark">{t('theme.dark')}</option>
               </select>
@@ -116,6 +125,18 @@ export function OfficeSettings({
             </label>
             <p id={scaleHelpId} className="settings-note">
               {t('preferences.scaleHelp')}
+            </p>
+            <label className="accessibility-setting">
+              <input
+                type="checkbox"
+                checked={accessibility}
+                aria-describedby={accessibilityHelpId}
+                onChange={(event) => onAccessibility(event.target.checked)}
+              />
+              {t('preferences.accessibility')}
+            </label>
+            <p id={accessibilityHelpId} className="settings-note">
+              {t('preferences.accessibilityHelp')}
             </p>
             {blocked && <p role="status">{t('office.applyOrDiscard')}</p>}
           </section>

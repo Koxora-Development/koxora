@@ -1,3 +1,8 @@
+import {
+  transformActions,
+  transformedGeometry,
+  normalizedRotation,
+} from '@koxora/editor-core';
 import { useEffect, useId, useState } from 'react';
 import { type Page, type Style, type Project } from '@koxora/project';
 import { LinkFields } from './element-links';
@@ -395,7 +400,13 @@ export function ElementDialog({
                     text: plainText(richText),
                     ...(node.kind !== 'freehand' ? { richText } : {}),
                     style: appearance,
-                    geometry: geometry === node.geometry ? undefined : geometry,
+                    geometry:
+                      geometry === node.geometry || !geometry
+                        ? undefined
+                        : {
+                            ...geometry,
+                            rotation: normalizedRotation(geometry.rotation),
+                          },
                     ...(line ? { startArrow, endArrow } : {}),
                   }
                 : {
@@ -519,33 +530,59 @@ export function ElementDialog({
             <summary>{t('text.advanced')}</summary>
             <div className="element-fields">
               {geometry &&
-                (['x', 'y', 'width', 'height'] as const).map((key) => (
-                  <label key={key}>
-                    {t(`editing.${key}`)}
-                    <input
-                      type="number"
-                      required
-                      min={
-                        key === 'width'
-                          ? 8
-                          : key === 'height'
-                            ? line
-                              ? 1
-                              : 8
-                            : -1e12
-                      }
-                      max={1e12}
-                      step="any"
-                      value={geometry[key]}
-                      onChange={(e) =>
-                        setGeometry({
-                          ...geometry,
-                          [key]: e.currentTarget.valueAsNumber,
-                        })
-                      }
-                    />
-                  </label>
-                ))}
+                (['x', 'y', 'width', 'height', 'rotation'] as const).map(
+                  (key) => (
+                    <label key={key}>
+                      {t(`editing.${key}`)}
+                      <input
+                        type="number"
+                        required
+                        min={
+                          key === 'width'
+                            ? 8
+                            : key === 'height'
+                              ? line
+                                ? 1
+                                : 8
+                              : -1e12
+                        }
+                        max={1e12}
+                        step="any"
+                        value={geometry[key]}
+                        onChange={(e) =>
+                          setGeometry({
+                            ...geometry,
+                            [key]: e.currentTarget.valueAsNumber,
+                          })
+                        }
+                      />
+                    </label>
+                  ),
+                )}
+              {geometry && (
+                <fieldset className="transform-controls">
+                  <legend>{t('transform.heading')}</legend>
+                  <p className="field-help">{t('transform.help')}</p>
+                  {transformActions.map((action) => (
+                    <button
+                      type="button"
+                      className="button compact"
+                      key={action}
+                      onClick={() => {
+                        if (
+                          !Number.isFinite(geometry.rotation) ||
+                          Math.abs(geometry.rotation) > 1e12
+                        )
+                          return;
+                        onDraftChange?.(true);
+                        setGeometry(transformedGeometry(geometry, action));
+                      }}
+                    >
+                      {t(`transform.${action}`)}
+                    </button>
+                  ))}
+                </fieldset>
+              )}
               {line && (
                 <>
                   <label>

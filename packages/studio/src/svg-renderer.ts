@@ -1,5 +1,7 @@
 import {
   gridStep,
+  rotatePoint,
+  shapeCenter,
   freehandPath,
   textColor,
   type RichText,
@@ -192,6 +194,32 @@ export class SvgRenderer {
             'stroke-width': 1.5 / camera.zoom,
           }),
         );
+      if (n.editable) {
+        const c = shapeCenter(g);
+        const p = rotatePoint(
+          { x: c.x, y: g.y - 28 / camera.zoom },
+          c,
+          g.rotation,
+        );
+        const top = rotatePoint({ x: c.x, y: g.y }, c, g.rotation);
+        this.overlay.append(
+          svg('path', {
+            d: `M ${top.x} ${top.y} L ${p.x} ${p.y}`,
+            class: 'selection-outline',
+            'stroke-width': 1 / camera.zoom,
+          }),
+        );
+        this.overlay.append(
+          svg('circle', {
+            cx: p.x,
+            cy: p.y,
+            r: 7 / camera.zoom,
+            class: 'rotation-handle',
+            'stroke-width': 1.5 / camera.zoom,
+            'data-rotate-id': n.id,
+          }),
+        );
+      }
       if (selected.length === 1) {
         const handles = isDrawing(n.kind)
           ? lineEndpoints(g).map((p, i) => ({ p, handle: i ? 'end' : 'start' }))
@@ -270,7 +298,7 @@ function textLines(label: string, width: number, fontSize: number): string[] {
 function renderNode(node: SceneNode): SVGElement {
   if (isDrawing(node.kind)) {
     const [a, b] = lineEndpoints(node.geometry);
-    const angle = node.geometry.rotation;
+    const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
     const group = renderEdge({
       ...node,
       path: `M ${a.x} ${a.y} L ${b.x} ${b.y}`,
@@ -319,6 +347,7 @@ function renderNode(node: SceneNode): SVGElement {
       : definition.path(g.width, g.height, s.cornerRadius),
     'stroke-linecap': 'round',
     'stroke-linejoin': 'round',
+    transform: `translate(${g.flipX === true ? g.width : 0} ${g.flipY === true ? g.height : 0}) scale(${g.flipX === true ? -1 : 1} ${g.flipY === true ? -1 : 1})`,
     class: 'scene-node',
     fill: node.kind === 'text' || node.kind === 'freehand' ? 'none' : s.fill,
     stroke: node.kind === 'text' ? 'none' : s.stroke,
@@ -340,6 +369,8 @@ function renderNode(node: SceneNode): SVGElement {
     width: Math.max(1, g.width - 20),
     height: Math.max(1, g.height - 12),
   };
+  if (g.flipX === true) labelBox.x = g.width - labelBox.x - labelBox.width;
+  if (g.flipY === true) labelBox.y = g.height - labelBox.y - labelBox.height;
   if (node.richText) {
     group.append(
       renderRich(

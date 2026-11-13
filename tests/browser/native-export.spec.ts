@@ -97,9 +97,15 @@ test('Save As carries complete project bytes and localized labels and reports th
   await expect(
     page.getByText('Saved on this device', { exact: true }),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Settings…', exact: true }).click();
   await page
+    .getByRole('dialog')
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Schließen', exact: true })
+    .click();
   await page
     .getByRole('button', { name: 'Speichern unter…', exact: true })
     .click();

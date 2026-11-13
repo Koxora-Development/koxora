@@ -360,9 +360,10 @@ test('native settings separate storage and file integration and support EN/DE wi
     )
     .toEqual(['status']);
   await dialog
-    .getByRole('button', { name: 'Set up Open With', exact: true })
+    .getByRole('button', { name: 'Register AppImage', exact: true })
     .click();
   await expect(dialog).toContainText('Registration matches this AppImage');
+  await expect(dialog).toContainText('application menu or search');
   await dialog
     .getByRole('button', { name: 'Remove integration', exact: true })
     .click();
@@ -374,9 +375,10 @@ test('native settings separate storage and file integration and support EN/DE wi
     .getByRole('button', { name: 'Dateien öffnen', exact: true })
     .click();
   await expect(
-    dialog.getByRole('button', { name: 'Öffnen mit einrichten', exact: true }),
+    dialog.getByRole('button', { name: 'AppImage registrieren', exact: true }),
   ).toBeVisible();
   await expect(dialog).toContainText('Deine Standard-App bleibt unverändert');
+  await expect(dialog).toContainText('Anwendungsmenü, in der Anwendungssuche');
   await dialog.getByRole('button', { name: 'Schließen', exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });
@@ -434,7 +436,7 @@ test('integration status failures stay visible and a moved AppImage can still be
     .click();
   await expect(dialog).toContainText('This AppImage was moved');
   await expect(
-    dialog.getByRole('button', { name: 'Set up Open With', exact: true }),
+    dialog.getByRole('button', { name: 'Register AppImage', exact: true }),
   ).toBeDisabled();
   await dialog
     .getByRole('button', { name: 'Remove integration', exact: true })

@@ -240,9 +240,15 @@ test('German project controls preserve content and recover an invalid head', asy
       exact: true,
     }),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Settings…', exact: true }).click();
   await page
+    .getByRole('dialog')
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Schließen', exact: true })
+    .click();
   await page
     .getByRole('button', { name: 'Vorherigen Speicherstand wiederherstellen' })
     .click();
