@@ -1,5 +1,5 @@
 .studio-shell .interactive-stage > .mindmap-panel {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   max-height: 40%;
   min-height: 0;
   overflow: auto;
@@ -17,6 +17,25 @@
 .studio-shell .interactive-stage:has(.mindmap-panel) .interactive-canvas {
   min-height: 160px;
   flex-shrink: 0;
+}
+.studio-shell .interactive-stage:has(.mindmap-panel) .canvas-navigation {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.studio-shell
+  .interactive-stage:has(.mindmap-panel)
+  .canvas-navigation
+  .button {
+  flex-shrink: 0;
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+}
+.studio-shell .interactive-stage:has(.mindmap-panel) .canvas-navigation label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 .mindmap-tools {
   display: flex;

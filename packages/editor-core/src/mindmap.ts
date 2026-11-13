@@ -108,7 +108,10 @@ export function mindMapGeometries(
 ): Record<string, Geometry> {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const children = new Map<string, string[]>();
-  for (const id of Object.keys(map.parents)) {
+  // JSON object keys are canonicalized by export; node-array order survives round trips.
+  for (const node of nodes) {
+    const id = node.id;
+    if (!Object.hasOwn(map.parents, id)) continue;
     const parent = map.parents[id];
     if (parent !== null) {
       const siblings = children.get(parent) ?? [];

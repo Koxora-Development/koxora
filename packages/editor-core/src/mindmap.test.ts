@@ -145,6 +145,32 @@ describe('structured mind maps', () => {
     expect(f.page.nodes.map((n) => n.geometry)).toEqual(firstLayout);
   });
 
+  it('keeps sibling layout order stable after canonical archive export/import', async () => {
+    const f = setup();
+    const root = f.add('Root');
+    for (let n = 8; n >= 1; n--)
+      f.run({
+        type: 'mindmapAdd',
+        id: `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+        connectionId: id(),
+        parentId: root,
+        layerId: f.layerId,
+        text: `Topic ${n}`,
+      });
+    f.run({ type: 'mindmapLayout' });
+    const reopened = await importProject(await exportProject(f.project));
+    const laidOut = applyEdit(
+      reopened,
+      f.documentId,
+      f.pageId,
+      {
+        type: 'mindmapLayout',
+      },
+      now,
+    );
+    expect(laidOut.documents).toEqual(f.project.documents);
+  });
+
   it('records adding, layout and subtree deletion as atomic undo/redo entries', () => {
     const f = setup();
     const root = f.add('Root');
@@ -289,6 +315,68 @@ describe('structured mind maps', () => {
       ),
     ).toThrow('references');
     expect(f.project).toEqual(before);
+  });
+
+  it('protects imported semantic pages even when the optional reference list is empty', async () => {
+    const f = setup();
+    const root = f.add('Root');
+    f.add('Child', root);
+    f.project.documents[0].domainModels[0].references = [];
+    let project = await importProject(await exportProject(f.project));
+    project = applyWorkbook(
+      project,
+      {
+        type: 'newPage',
+        documentId: f.documentId,
+        title: 'Other page',
+      },
+      id,
+      now,
+    );
+    project = applyWorkbook(
+      project,
+      { type: 'newDocument', title: 'Other document' },
+      id,
+      now,
+    );
+    const before = structuredClone(project);
+    expect(readMindMap(project.documents[0], f.pageId)?.roots).toEqual([root]);
+    for (const command of [
+      { type: 'duplicatePage' as const, pageId: f.pageId, title: 'Copy' },
+      { type: 'deletePage' as const, pageId: f.pageId },
+      {
+        type: 'movePage' as const,
+        pageId: f.pageId,
+        documentId: project.documents[1].id,
+        index: 1,
+      },
+    ]) {
+      expect(() => applyWorkbook(project, command, id, now)).toThrow(
+        'references',
+      );
+      expect(project).toEqual(before);
+    }
+    expect(() =>
+      copyElements(project.documents[0].pages[0], [root], project),
+    ).toThrow('unsupported');
+    const reordered = applyWorkbook(
+      project,
+      {
+        type: 'movePage',
+        pageId: f.pageId,
+        documentId: f.documentId,
+        index: 1,
+      },
+      id,
+      now,
+    );
+    expect(readMindMap(reordered.documents[0], f.pageId)?.roots).toEqual([
+      root,
+    ]);
+    expect(reordered.documents[0].domainModels).toEqual(
+      project.documents[0].domainModels,
+    );
+    validateProject(reordered);
   });
 
   it('keeps malformed, cyclic, ambiguous, future and cross-page models inert', () => {

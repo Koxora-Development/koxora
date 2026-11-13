@@ -387,81 +387,83 @@ test('phone-sized mind maps retain usable canvas space while tools scroll', asyn
 });
 
 for (const locale of ['en', 'de']) {
-  test(`mind-map authoring remains reachable at 200% in a small ${locale} window`, async ({
-    page,
-  }) => {
-    const messages: Record<string, string> = JSON.parse(
-      readFileSync(`packages/i18n/src/locales/${locale}.json`, 'utf8'),
-    );
-    await page.addInitScript((language) => {
-      localStorage.setItem(
-        'koxora.preferences.v1',
-        JSON.stringify({
-          locale: language,
-          theme: 'dark',
-          guiScale: 200,
-          accessibility: true,
-        }),
+  for (const width of [800, 390]) {
+    test(`mind-map authoring remains reachable at 200% in a ${width}px ${locale} window`, async ({
+      page,
+    }) => {
+      const messages: Record<string, string> = JSON.parse(
+        readFileSync(`packages/i18n/src/locales/${locale}.json`, 'utf8'),
       );
-    }, locale);
-    await page.setViewportSize({ width: 800, height: 600 });
-    await page.goto('/');
-    const create = page.getByRole('button', {
-      name: messages['mindmap.create'],
-      exact: true,
-    });
-    await reachable(create);
-    await create.click();
-    const panel = page.locator('details.mindmap-panel');
-    await expect(panel).not.toHaveAttribute('open');
-    await usableCanvas(page);
-    await canvasControls(page, messages);
-    await expandTools(page);
-    const group = page.getByRole('group', {
-      name: messages['mindmap.tools'],
-      exact: true,
-    });
-    await expect(group).toBeVisible();
-    await usableCanvas(page);
-    const select = group.getByRole('combobox', {
-      name: messages['mindmap.selected'],
-      exact: true,
-    });
-    await reachable(select);
-    await select.selectOption({ index: 1 });
-    for (const key of [
-      'mindmap.root',
-      'mindmap.child',
-      'mindmap.sibling',
-      'mindmap.delete',
-      'mindmap.layout',
-    ])
-      await reachable(
-        group.getByRole('button', { name: messages[key], exact: true }),
+      await page.addInitScript((language) => {
+        localStorage.setItem(
+          'koxora.preferences.v1',
+          JSON.stringify({
+            locale: language,
+            theme: 'dark',
+            guiScale: 200,
+            accessibility: true,
+          }),
+        );
+      }, locale);
+      await page.setViewportSize({ width, height: 600 });
+      await page.goto('/');
+      const create = page.getByRole('button', {
+        name: messages['mindmap.create'],
+        exact: true,
+      });
+      await reachable(create);
+      await create.click();
+      const panel = page.locator('details.mindmap-panel');
+      await expect(panel).not.toHaveAttribute('open');
+      await usableCanvas(page);
+      await canvasControls(page, messages);
+      await expandTools(page);
+      const group = page.getByRole('group', {
+        name: messages['mindmap.tools'],
+        exact: true,
+      });
+      await expect(group).toBeVisible();
+      await usableCanvas(page);
+      const select = group.getByRole('combobox', {
+        name: messages['mindmap.selected'],
+        exact: true,
+      });
+      await reachable(select);
+      await select.selectOption({ index: 1 });
+      for (const key of [
+        'mindmap.root',
+        'mindmap.child',
+        'mindmap.sibling',
+        'mindmap.delete',
+        'mindmap.layout',
+      ])
+        await reachable(
+          group.getByRole('button', { name: messages[key], exact: true }),
+        );
+      const addRoot = group.getByRole('button', {
+        name: messages['mindmap.root'],
+        exact: true,
+      });
+      await addRoot.focus();
+      await page.keyboard.press('Enter');
+      const dialog = page.getByRole('dialog', {
+        name: messages['mindmap.root'],
+        exact: true,
+      });
+      const text = dialog.getByRole('textbox', {
+        name: messages['mindmap.text'],
+        exact: true,
+      });
+      await reachable(text);
+      await text.fill('Accessible topic Ω');
+      await text.press('Enter');
+      await expect(dialog).toHaveCount(0);
+      await expect(select.locator('option:checked')).toHaveText(
+        'Accessible topic Ω',
       );
-    const addRoot = group.getByRole('button', {
-      name: messages['mindmap.root'],
-      exact: true,
+      await expect(page.getByRole('alert')).toHaveCount(0);
+      await canvasControls(page, messages);
+      await usableCanvas(page);
     });
-    await addRoot.focus();
-    await page.keyboard.press('Enter');
-    const dialog = page.getByRole('dialog', {
-      name: messages['mindmap.root'],
-      exact: true,
-    });
-    const text = dialog.getByRole('textbox', {
-      name: messages['mindmap.text'],
-      exact: true,
-    });
-    await reachable(text);
-    await text.fill('Accessible topic Ω');
-    await text.press('Enter');
-    await expect(dialog).toHaveCount(0);
-    await expect(select.locator('option:checked')).toHaveText(
-      'Accessible topic Ω',
-    );
-    await expect(page.getByRole('alert')).toHaveCount(0);
-    await canvasControls(page, messages);
-    await usableCanvas(page);
-  });
+  }
 }

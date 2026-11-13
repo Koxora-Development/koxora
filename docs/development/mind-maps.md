@@ -34,7 +34,15 @@ Stable topic identities and hierarchy must survive project/page navigation, offl
 
 ## Validation status
 
-Implementation tests, the complete repository checks, production build, browser journeys and independent review are pending for this slice. Record their actual commands and results in the PR before handover; do not treat this acceptance checklist as passed evidence. Native packaging and manual platform tests require their own recorded results.
+Local validation on 2026-11-13:
+
+- `pnpm check` passed TypeScript, lint, formatting, all **542 unit/integration tests**, documentation and dependency-license checks. The new core cases include atomic history, protected/unknown content, sparse imported references, stable sibling order after canonical export/import, and a validated 5,000-topic chain.
+- The production web build passed through Playwright's server setup; the existing bundle-size warning remains.
+- **53 Chromium regression cases** passed across editing, project storage, workbook/rich text, links, library layout and the shell. A subsequent **18 mind-map cases** passed in Chromium desktop/mobile, including offline reopening and reachable authoring/canvas/navigation controls in EN/DE at 390/800 pixels and 200% scale. These runs overlap; they are not 71 distinct scenarios.
+- The native helper suite passed eight tests with one platform-specific skip. Rust and native packaging prerequisites are unavailable locally; GitHub CI packaging and target-native manual acceptance remain separate evidence.
+- Independent review examined the actual diff and resolved writable-layer selection, sparse-reference page copying, canonical sibling order and small-window control reachability. No remaining actionable findings were reported.
+
+The local environment required the pinned pnpm version, its matching temporary package store and readable modes on checked-out public website screenshots. These setup corrections do not change repository dependencies or website source. Product Owner manual acceptance, merge and release remain pending; the checklist above is not a claim of completed native acceptance.
 
 ## Remaining phase work
 
