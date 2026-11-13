@@ -554,5 +554,13 @@
   "tabs.addSheet": "Add page",
   "preferences.scale": "Interface scale",
   "preferences.scaleHelp": "Size of menus, panels and controls. Diagram zoom is unchanged.",
-  "preferences.scaleCompact": "Compact"
+  "preferences.scaleCompact": "Compact",
+  "preferences.system": "System default",
+  "editing.rotation": "Rotation (°)",
+  "transform.heading": "Transform",
+  "transform.rotateLeft": "Rotate 90° counterclockwise",
+  "transform.rotateRight": "Rotate 90° clockwise",
+  "transform.flipHorizontal": "Mirror horizontally",
+  "transform.flipVertical": "Mirror vertically",
+  "transform.help": "Each element turns around its own center. Mirrors use local axes and keep text readable. Drag a rotation handle; hold Shift to snap to 15°."
 }

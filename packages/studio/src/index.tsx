@@ -6,37 +6,54 @@ import './gui-scale.css';
 import { Projects } from './projects';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
-import { Mark, Icon } from '@koxora/ui';
-import { readPreferences, writePreferences, type Theme } from './preferences';
+import { Mark } from '@koxora/ui';
+import { readPreferences, writePreferences, systemLocale } from './preferences';
 export function Studio() {
   const [preferences, setPreferences] = useState(() =>
     readPreferences({ getItem: (key) => localStorage.getItem(key) }),
   );
   const [storageFailed, setStorageFailed] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
-  const [online, setOnline] = useState(navigator.onLine);
-  const t = (key: MessageKey) => translate(preferences.locale, key);
+  const [systemLanguage, setSystemLanguage] = useState(() =>
+    systemLocale(navigator.languages),
+  );
+  const [systemDark, setSystemDark] = useState(
+    () => matchMedia('(prefers-color-scheme: dark)').matches,
+  );
+  const locale =
+    preferences.locale === 'system' ? systemLanguage : preferences.locale;
+  const theme =
+    preferences.theme === 'system'
+      ? systemDark
+        ? 'dark'
+        : 'light'
+      : preferences.theme;
+  const t = (key: MessageKey) => translate(locale, key);
   useLayoutEffect(() => {
     document.documentElement.style.setProperty(
       '--ui-scale',
       String(preferences.guiScale / 100),
     );
     document.documentElement.dataset.uiScale = String(preferences.guiScale);
-    document.documentElement.lang = preferences.locale;
-    document.documentElement.dir = locales[preferences.locale].direction;
-    document.documentElement.dataset.theme = preferences.theme;
-    document.title = translate(preferences.locale, 'app.title');
-  }, [preferences]);
+    document.documentElement.lang = locale;
+    document.documentElement.dir = locales[locale].direction;
+    document.documentElement.dataset.theme = theme;
+    document.title = translate(locale, 'app.title');
+  }, [preferences, locale, theme]);
   useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
+    const media = matchMedia('(prefers-color-scheme: dark)');
+    const updateTheme = () => setSystemDark(media.matches);
+    const updateLanguage = () =>
+      setSystemLanguage(systemLocale(navigator.languages));
+    media.addEventListener('change', updateTheme);
+    window.addEventListener('languagechange', updateLanguage);
     const resize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', resize);
-    window.addEventListener('online', update);
-    window.addEventListener('offline', update);
+
     return () => {
       window.removeEventListener('resize', resize);
-      window.removeEventListener('online', update);
-      window.removeEventListener('offline', update);
+      media.removeEventListener('change', updateTheme);
+      window.removeEventListener('languagechange', updateLanguage);
     };
   }, []);
   function updatePreferences(next: typeof preferences) {
@@ -72,11 +89,12 @@ export function Studio() {
         </div>
       )}
       <StorageGate
-        locale={preferences.locale}
+        locale={locale}
         onLocale={(locale) => updatePreferences({ ...preferences, locale })}
       >
         <Projects
-          locale={preferences.locale}
+          locale={locale}
+          localePreference={preferences.locale}
           theme={preferences.theme}
           guiScale={preferences.guiScale}
           onGuiScale={(guiScale) =>
@@ -86,44 +104,6 @@ export function Studio() {
           onTheme={(theme) => updatePreferences({ ...preferences, theme })}
         />
       </StorageGate>
-      <footer className="office-statusbar">
-        <span className="connection">
-          <Icon name="shield" />
-          {t(online ? 'status.online' : 'status.offline')}
-        </span>
-        <div className="preference-controls">
-          <label>
-            <span>{t('preferences.language')}</span>
-            <select
-              value={preferences.locale}
-              onChange={(e) =>
-                updatePreferences({ ...preferences, locale: e.target.value })
-              }
-            >
-              {Object.entries(locales).map(([code, locale]) => (
-                <option key={code} value={code}>
-                  {locale.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>{t('preferences.theme')}</span>
-            <select
-              value={preferences.theme}
-              onChange={(e) =>
-                updatePreferences({
-                  ...preferences,
-                  theme: e.target.value as Theme,
-                })
-              }
-            >
-              <option value="light">{t('theme.light')}</option>
-              <option value="dark">{t('theme.dark')}</option>
-            </select>
-          </label>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -1,5 +1,11 @@
 import type { Json, Node } from '@koxora/project';
-import { jsonObject, rotatePoint, shapeCenter, type Geometry } from './shapes';
+import {
+  jsonObject,
+  reflectPoint,
+  rotatePoint,
+  shapeCenter,
+  type Geometry,
+} from './shapes';
 import { segmentDistance } from './interaction';
 import type { Point } from './viewport';
 
@@ -83,7 +89,10 @@ export function freehandContains(
   point: Point,
   tolerance: number,
 ): boolean {
-  const local = rotatePoint(point, shapeCenter(geometry), -geometry.rotation);
+  const local = reflectPoint(
+    rotatePoint(point, shapeCenter(geometry), -geometry.rotation),
+    geometry,
+  );
   const p = { x: local.x - geometry.x, y: local.y - geometry.y };
   const scaled = (q: Point) => ({
     x: q.x * geometry.width,

@@ -1,3 +1,8 @@
+import {
+  transformActions,
+  transformedGeometry,
+  rotatedGeometries,
+} from '@koxora/editor-core';
 import { PropertySurface } from './property-surface';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { useState } from 'react';
@@ -75,6 +80,12 @@ export function FormatSelection({
   function change(key: keyof Appearance, value: Appearance[keyof Appearance]) {
     setFailed(!onApply({ type: 'format', ids, patch: { [key]: value } }));
   }
+  const rotations = page.nodes
+    .filter((n) => ids.includes(n.id))
+    .map((n) => n.geometry.rotation);
+  const rotation = rotations.every((r) => r === rotations[0])
+    ? rotations[0]
+    : undefined;
   return (
     <PropertySurface
       panel={panel}
@@ -82,6 +93,65 @@ export function FormatSelection({
       onCancel={onClose}
     >
       <p className="field-help">{t('format.help')}</p>
+      {page.nodes.some((n) => ids.includes(n.id)) && (
+        <fieldset className="transform-controls">
+          <legend>{t('transform.heading')}</legend>
+          <p className="field-help">{t('transform.help')}</p>
+          <label>
+            {t('editing.rotation')}
+            <input
+              type="number"
+              step="any"
+              min={-1e12}
+              max={1e12}
+              key={String(rotation ?? 'mixed')}
+              defaultValue={rotation ?? ''}
+              placeholder={t('format.mixed')}
+              onBlur={(e) => {
+                if (
+                  e.target.value === '' ||
+                  !e.target.validity.valid ||
+                  e.target.valueAsNumber === rotation
+                )
+                  return;
+                setFailed(
+                  !onApply({
+                    type: 'transform',
+                    geometries: rotatedGeometries(
+                      page.nodes.filter((n) => ids.includes(n.id)),
+                      e.target.valueAsNumber,
+                    ),
+                  }),
+                );
+              }}
+            />
+          </label>
+          {transformActions.map((action) => (
+            <button
+              type="button"
+              key={action}
+              className="button compact"
+              onClick={() =>
+                setFailed(
+                  !onApply({
+                    type: 'transform',
+                    geometries: Object.fromEntries(
+                      page.nodes
+                        .filter((n) => ids.includes(n.id))
+                        .map((n) => [
+                          n.id,
+                          transformedGeometry(n.geometry, action),
+                        ]),
+                    ),
+                  }),
+                )
+              }
+            >
+              {t(`transform.${action}`)}
+            </button>
+          ))}
+        </fieldset>
+      )}
       <div className="element-fields batch-fields">
         {(['fill', 'stroke', 'textColor'] as const)
           .filter((k) => applicable(k).length)

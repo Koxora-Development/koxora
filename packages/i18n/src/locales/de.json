@@ -554,5 +554,13 @@
   "tabs.addSheet": "Seite hinzufügen",
   "preferences.scale": "Oberflächenskalierung",
   "preferences.scaleHelp": "Größe von Menüs, Seitenleisten und Bedienelementen. Der Diagramm-Zoom bleibt unverändert.",
-  "preferences.scaleCompact": "Kompakt"
+  "preferences.scaleCompact": "Kompakt",
+  "preferences.system": "Systemstandard",
+  "editing.rotation": "Drehung (°)",
+  "transform.heading": "Transformieren",
+  "transform.rotateLeft": "90° gegen den Uhrzeigersinn drehen",
+  "transform.rotateRight": "90° im Uhrzeigersinn drehen",
+  "transform.flipHorizontal": "Horizontal spiegeln",
+  "transform.flipVertical": "Vertikal spiegeln",
+  "transform.help": "Jedes Element dreht sich um seinen Mittelpunkt. Spiegeln wirkt entlang der lokalen Achsen; Text bleibt lesbar. Drehgriff ziehen; Umschalt rastet in 15°-Schritten ein."
 }

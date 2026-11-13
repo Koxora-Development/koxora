@@ -138,3 +138,13 @@ describe('interface scale compatibility', () => {
     }
   });
 });
+
+it('preserves opt-in system preferences and negotiates registered languages in order', async () => {
+  const { systemLocale } = await import('./preferences');
+  expect(
+    readPreferences({ getItem: () => '{"locale":"system","theme":"system"}' }),
+  ).toEqual({ locale: 'system', theme: 'system', guiScale: 100 });
+  expect(systemLocale(['fr-FR', 'de-DE', 'en-US'])).toBe('de');
+  expect(systemLocale(['en-GB', 'de-DE'])).toBe('en');
+  expect(systemLocale(['ja-JP'])).toBe('en');
+});

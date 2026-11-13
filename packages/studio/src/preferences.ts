@@ -1,5 +1,12 @@
-import { resolveLocale } from '@koxora/i18n';
-export type Theme = 'light' | 'dark';
+import { locales, resolveLocale } from '@koxora/i18n';
+export type Theme = 'light' | 'dark' | 'system';
+export function systemLocale(languages: readonly string[]): string {
+  for (const language of languages) {
+    const code = language.toLowerCase().split('-')[0];
+    if (Object.hasOwn(locales, code)) return code;
+  }
+  return 'en';
+}
 export const guiScales = [100, 125, 150, 175, 200] as const;
 export type GuiScale = (typeof guiScales)[number];
 export function resolveGuiScale(value: unknown): GuiScale {
@@ -25,8 +32,14 @@ export function readPreferences(
     if (typeof value === 'object' && value !== null) {
       const data = value as Record<string, unknown>;
       return {
-        locale: resolveLocale(data.locale),
-        theme: data.theme === 'dark' ? 'dark' : 'light',
+        locale:
+          data.locale === 'system' ? 'system' : resolveLocale(data.locale),
+        theme:
+          data.theme === 'system'
+            ? 'system'
+            : data.theme === 'dark'
+              ? 'dark'
+              : 'light',
         guiScale: resolveGuiScale(data.guiScale),
       };
     }

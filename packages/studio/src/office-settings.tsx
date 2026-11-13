@@ -9,6 +9,7 @@ import {
 } from './preferences';
 export function OfficeSettings({
   locale,
+  localePreference,
   theme,
   guiScale,
   onGuiScale,
@@ -21,6 +22,7 @@ export function OfficeSettings({
   onClose,
 }: {
   locale: string;
+  localePreference: string;
   theme: Theme;
   guiScale: GuiScale;
   onGuiScale: (scale: GuiScale) => void;
@@ -75,9 +77,10 @@ export function OfficeSettings({
               {t('preferences.language')}
               <select
                 aria-label={t('preferences.language')}
-                value={locale}
+                value={localePreference}
                 onChange={(event) => onLocale(event.target.value)}
               >
+                <option value="system">{t('preferences.system')}</option>
                 {Object.entries(locales).map(([key, value]) => (
                   <option key={key} value={key}>
                     {value.label}
@@ -92,6 +95,7 @@ export function OfficeSettings({
                 value={theme}
                 onChange={(event) => onTheme(event.target.value as Theme)}
               >
+                <option value="system">{t('preferences.system')}</option>
                 <option value="light">{t('theme.light')}</option>
                 <option value="dark">{t('theme.dark')}</option>
               </select>

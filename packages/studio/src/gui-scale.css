@@ -105,7 +105,7 @@
 .studio-shell[data-ui-narrow='true'] .project-sidebar {
   position: fixed;
   top: calc(84px * var(--ui-scale, 1));
-  bottom: calc(23px * var(--ui-scale, 1));
+  bottom: 0;
   left: 0;
   width: calc(232px * var(--ui-scale, 1));
   z-index: 25;
@@ -244,4 +244,75 @@
 }
 .canvas-text-dialog h2 {
   font-size: calc(0.8rem * var(--ui-scale, 1));
+}
+
+.rotation-handle {
+  fill: var(--surface);
+  stroke: var(--accent);
+  cursor: grab;
+  pointer-events: all;
+}
+.transform-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(5px * var(--ui-scale, 1));
+  min-width: 0;
+}
+.transform-controls .field-help {
+  flex-basis: 100%;
+}
+.transform-controls button {
+  max-width: 100%;
+  white-space: normal;
+}
+.studio-shell .studio-start .start-heading {
+  flex-wrap: wrap;
+}
+.studio-shell .start-actions {
+  max-width: 100%;
+  flex-shrink: 1;
+}
+.studio-shell .start-actions .button {
+  white-space: normal;
+}
+.studio-shell[data-ui-narrow='true'] .start-content {
+  grid-template-columns: minmax(0, 1fr);
+}
+.studio-shell[data-ui-small='true'] .studio-start {
+  padding: calc(12px * var(--ui-scale, 1));
+}
+.studio-shell .start-project-copy {
+  flex: 1;
+}
+.studio-shell .start-project-copy .project-title-editor {
+  flex-wrap: wrap;
+}
+.studio-shell .start-project-copy .inline-title-field {
+  min-width: 0;
+  width: 100%;
+}
+.studio-shell .start-project-copy input {
+  min-width: 0;
+  max-width: 100%;
+}
+.studio-shell .studio-start .title-rename {
+  flex-shrink: 0;
+}
+.studio-shell .studio-start .title-rename .icon {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+}
+.studio-shell[data-ui-small='true'] .start-row-actions {
+  padding-inline-start: 0;
+}
+@media (max-height: 600px) {
+  .studio-shell .studio-start {
+    padding-block: calc(10px * var(--ui-scale, 1));
+  }
+  .studio-shell .studio-start .start-heading {
+    padding-bottom: calc(10px * var(--ui-scale, 1));
+  }
+  .studio-shell .interactive-canvas {
+    min-height: 60px;
+  }
 }

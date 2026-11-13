@@ -63,6 +63,7 @@ const native = (
 type Operation = 'loading' | 'opening' | 'saving' | 'importing' | 'exporting';
 export function Projects({
   locale,
+  localePreference,
   theme,
   guiScale,
   onGuiScale,
@@ -70,6 +71,7 @@ export function Projects({
   onTheme,
 }: {
   locale: string;
+  localePreference: string;
   theme: Theme;
   guiScale: GuiScale;
   onGuiScale: (scale: GuiScale) => void;
@@ -1175,6 +1177,21 @@ export function Projects({
           disabled: unavailable || selected !== 1 || propertyDraft,
         },
         {
+          label: t('transform.heading'),
+          disabled: unavailable || !selected || propertyDraft,
+          children: (
+            [
+              'rotateLeft',
+              'rotateRight',
+              'flipHorizontal',
+              'flipVertical',
+            ] as const
+          ).map((action) => ({
+            label: t(`transform.${action}`),
+            action: command(action),
+          })),
+        },
+        {
           label: t('stack.heading'),
           disabled: unavailable || !selected || propertyDraft,
           children: (['forward', 'backward', 'front', 'back'] as const).map(
@@ -1758,6 +1775,7 @@ export function Projects({
       </main>
       {settingsOpen && (
         <OfficeSettings
+          localePreference={localePreference}
           locale={locale}
           theme={theme}
           guiScale={guiScale}

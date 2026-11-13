@@ -4,7 +4,7 @@ The Product Owner rejected the compact-dialog refinement in PR #56 and requested
 
 ## Structure and behavior
 
-A fixed application menu exposes File, Edit, View, Insert, Format and Help. A narrow quick-access toolbar holds file actions, history, navigation and panel controls. The project tree stays on the left, the drawing occupies the remaining center, and properties dock on the right. Project naming has one location in the toolbar. Theme, language and offline status remain in the bottom status bar.
+A fixed application menu exposes File, Edit, View, Insert, Format and Help. A narrow quick-access toolbar holds file actions, history, navigation and panel controls. The project tree stays on the left, the drawing occupies the remaining center, and properties dock on the right. Project naming has one location in the toolbar. The Issue #57 follow-up removes the bottom status bar; theme and language remain in Settings → General, with selectable System default options. See [element transforms and interface follow-up](element-transforms.md).
 
 Element properties use Format, Text and Links tabs. Applying a single-element form commits one existing edit transaction; Discard resets the form. Switching tabs retains the draft. Selection, project/page navigation, tools, history, file saves/exports and native opening cannot silently discard an unapplied form. Queued native requests resume after Apply or Discard. The draft indicator is distinct from the committed project's saved status. Invalid fields reveal their tab and receive focus. Clean forms refresh after model/history changes. Multi-selection formatting retains its existing immediate-application semantics.
 
@@ -12,9 +12,9 @@ Settings use a category list and one content area. General preferences work in b
 
 Context menus expose short action groups and nested stacking/alignment commands. The menubar has roving keyboard focus, arrow/Home/End navigation and Escape/Tab dismissal. Nested menus retain keyboard focus during pointer movement. Panels can be hidden; narrow windows overlay them rather than squeezing the document. Light/dark and EN/DE share the same structure; no online service is introduced.
 
-## Deferred transformations
+## Transformation follow-up
 
-[Issue #57](https://github.com/Koxora-Development/koxora/issues/57) records authoring rotation and horizontal/vertical mirroring, including single/multiple selection, undo/redo, portable persistence, anchors, text behavior and offline EN/DE acceptance. Imported rotation support does not constitute a completed authoring UI. Rotation/mirroring and interactive exports are not implemented by this layout change.
+[Issue #57](https://github.com/Koxora-Development/koxora/issues/57) adds rotation and horizontal/vertical mirror authoring as a separate editing block after the Office layout. The [transform contract](element-transforms.md) documents single/multiple selection, pivot and text behavior, history, compatibility, anchors and required acceptance. Interactive exports remain deferred. Additional design presets, local templates and interface customization are [future planning](../planning/studio-design-customization.md).
 
 ## Manual acceptance
 

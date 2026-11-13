@@ -21,6 +21,11 @@ import {
 import { translate, type MessageKey } from '@koxora/i18n';
 import type { Page, Style, Node, Project } from '@koxora/project';
 import {
+  transformActions,
+  transformedGeometry,
+  rotatedGeometries,
+  shapeCenter,
+  type TransformAction,
   elementLink,
   pageLinks,
   buildScene,
@@ -79,6 +84,7 @@ import {
 } from './shortcuts';
 import { DiagramTools, ElementDialog, type DiagramTool } from './diagram-tools';
 export type CanvasCommand =
+  | TransformAction
   | 'selectAll'
   | 'followLink'
   | 'delete'
@@ -607,7 +613,19 @@ export function Canvas({
       ),
     );
     try {
-      if (action === 'selectAll') {
+      if (transformActions.includes(action as TransformAction)) {
+        const nodes = page.nodes.filter((n) => ids.includes(n.id));
+        if (nodes.length)
+          onEdit({
+            type: 'transform',
+            geometries: Object.fromEntries(
+              nodes.map((n) => [
+                n.id,
+                transformedGeometry(n.geometry, action as TransformAction),
+              ]),
+            ),
+          });
+      } else if (action === 'selectAll') {
         select(
           [...scene.nodes, ...scene.connections]
             .filter((item) => item.editable)
@@ -927,7 +945,14 @@ export function Canvas({
     };
     type Gesture = {
       id: number;
-      kind: 'move' | 'resize' | 'marquee' | 'insert' | 'link' | 'freehand';
+      kind:
+        | 'move'
+        | 'resize'
+        | 'rotate'
+        | 'marquee'
+        | 'insert'
+        | 'link'
+        | 'freehand';
       points?: Point[];
       start: Point;
       screen: Point;
@@ -936,6 +961,7 @@ export function Canvas({
       originals: Node[];
       base: string[];
       handle?: string;
+      pivot?: Point;
       edgeId?: string;
       linkStart?: Port;
       single?: string;
@@ -982,6 +1008,11 @@ export function Canvas({
       }
       const target = event.target as Element;
       const handle = target.closest('[data-resize-id]');
+      const rotationHandle = target.closest('[data-rotate-id]');
+      const rotationNode = scene.nodes.find(
+        (n) =>
+          n.id === rotationHandle?.getAttribute('data-rotate-id') && n.editable,
+      );
       let node = pickNode(scene, start, 6 / state.current.camera.zoom);
       const edgeId = target
         .closest('[data-connection-id]')
@@ -1005,7 +1036,14 @@ export function Canvas({
                 : 'marquee';
       let originals: Node[] = [];
       if (active.tool === 'select') {
-        if (handle) {
+        if (rotationNode) {
+          kind = 'rotate';
+          originals = content.nodes.filter(
+            (n) =>
+              selection.current.includes(n.id) &&
+              scene.nodes.some((s) => s.id === n.id && s.editable),
+          );
+        } else if (handle) {
           const n = content.nodes.find(
             (n) => n.id === handle.getAttribute('data-resize-id'),
           );
@@ -1041,6 +1079,7 @@ export function Canvas({
         originals,
         base: [...selection.current],
         handle: handle?.getAttribute('data-handle') ?? undefined,
+        pivot: rotationNode ? shapeCenter(rotationNode.geometry) : undefined,
         edgeId: edge?.id,
         linkStart:
           port ??
@@ -1144,7 +1183,20 @@ export function Canvas({
           grid.spacing,
           snap,
         );
-      else if (gesture.kind === 'resize' && gesture.originals[0]) {
+      else if (gesture.kind === 'rotate' && gesture.pivot) {
+        const c = gesture.pivot;
+        let degrees =
+          ((Math.atan2(raw.y - c.y, raw.x - c.x) -
+            Math.atan2(gesture.start.y - c.y, gesture.start.x - c.x)) *
+            180) /
+          Math.PI;
+        if (event.shiftKey) degrees = Math.round(degrees / 15) * 15;
+        gesture.geometries = rotatedGeometries(
+          gesture.originals,
+          degrees,
+          true,
+        );
+      } else if (gesture.kind === 'resize' && gesture.originals[0]) {
         const n = gesture.originals[0];
         if (isDrawing(n.kind)) {
           const [a, b] = lineEndpoints(n.geometry);
@@ -1156,6 +1208,7 @@ export function Canvas({
                 gesture.handle === 'end' ? point : b,
                 gesture.handle === 'start' ? 'end' : 'start',
               ),
+              ...(n.geometry.flipX !== undefined ? { flipX: false } : {}),
             },
           };
         } else
@@ -1287,7 +1340,9 @@ export function Canvas({
         if (done.kind === 'freehand' && done.points)
           interaction.current.drawStroke(done.points);
         else if (
-          (done.kind === 'move' || done.kind === 'resize') &&
+          (done.kind === 'move' ||
+            done.kind === 'resize' ||
+            done.kind === 'rotate') &&
           done.moved &&
           Object.keys(done.geometries).length
         )
@@ -2232,6 +2287,21 @@ export function Canvas({
                   )}
                 </button>
               ))}
+            {editableSelection.some((id) =>
+              scene.nodes.some((n) => n.id === id),
+            ) && (
+              <Submenu label={t('transform.heading')}>
+                {transformActions.map((action) => (
+                  <button
+                    key={action}
+                    role="menuitem"
+                    onClick={() => command(action)}
+                  >
+                    {t(`transform.${action}`)}
+                  </button>
+                ))}
+              </Submenu>
+            )}
             {editableSelection.length > 0 && <div role="separator" />}
             {editableSelection.length > 0 && (
               <Submenu label={t('stack.heading')}>

@@ -188,9 +188,15 @@ test('start library uses compact project rows and reserves an honest template se
     page.getByRole('heading', { name: 'Project library', level: 1 }),
   ).toBeFocused();
   await expect(page.locator('.office-document-name')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Settings…', exact: true }).click();
   await page
+    .getByRole('dialog')
     .getByRole('combobox', { name: 'Language', exact: true })
     .selectOption('de');
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Schließen', exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: 'Projektbibliothek', level: 1 }),
   ).toBeVisible();

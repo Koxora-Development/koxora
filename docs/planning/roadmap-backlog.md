@@ -81,3 +81,7 @@ The source estimates that the full scope could take years for one developer with
 ## 8. First two sprints: proposal only
 
 The source suggests two two-week planning units, not scheduled commitments. Sprint A: trademark/license research, ADR template, repository/CI foundation, schema draft, internationalization foundation, UI prototype, canvas comparison. Sprint B: commands, project ZIP round trip, browser storage, desktop shell, mind map prototype, golden tests. None of this application work is authorized by Phase 0 documentation integration.
+
+## 9. Requested Studio design follow-up
+
+[Studio design presets and customization](studio-design-customization.md) plans curated interface presets, local color/layout controls, more document templates and later portable personal presets. It references CORE-013/014 and EDIT-008/012 without renumbering the catalog or initial engineering items. This is requested future planning; Issue #57 implements transforms and current interface refinements, not a template library or custom-theme editor.
