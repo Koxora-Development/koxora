@@ -104,7 +104,7 @@
 }
 .studio-shell[data-ui-narrow='true'] .project-sidebar {
   position: fixed;
-  top: calc(84px * var(--ui-scale, 1));
+  top: calc(var(--header-height) + var(--menu-height) + var(--tools-height));
   bottom: 0;
   left: 0;
   width: calc(232px * var(--ui-scale, 1));
@@ -177,9 +177,6 @@
   white-space: normal;
 }
 @media (pointer: coarse) {
-  .studio-shell[data-ui-narrow='true'] .project-sidebar {
-    top: calc(114px * var(--ui-scale, 1));
-  }
   .studio-shell[data-ui-narrow='true'] .expanded-workbench .office-properties {
     inset-block-start: calc(48px * var(--ui-scale, 1));
   }
@@ -315,4 +312,50 @@
   .studio-shell .interactive-canvas {
     min-height: 60px;
   }
+}
+
+/* Library navigation must take up real space, including when the editor uses overlay panels. */
+.studio-shell .office-application.office-dashboard {
+  grid-template-columns: calc(232px * var(--ui-scale, 1)) minmax(0, 1fr);
+}
+.studio-shell .office-application.office-dashboard.navigator-hidden {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.studio-shell .office-dashboard .project-sidebar {
+  position: static;
+  inset: auto;
+  width: auto;
+  z-index: auto;
+  box-shadow: none;
+}
+.studio-shell .office-dashboard .dashboard-main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  container: library / inline-size;
+  scrollbar-gutter: stable;
+}
+.studio-shell[data-ui-small='true'] .office-dashboard {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows:
+    var(--menu-height) var(--tools-height) minmax(0, 1fr)
+    minmax(0, 3fr);
+  grid-template-areas: 'menu' 'tools' 'navigator' 'workspace';
+}
+.studio-shell[data-ui-small='true'] .office-dashboard.navigator-hidden {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--menu-height) var(--tools-height) minmax(0, 1fr);
+  grid-template-areas: 'menu' 'tools' 'workspace';
+}
+.studio-shell[data-ui-small='true'] .office-dashboard .project-sidebar {
+  border-inline-end: 0;
+  border-block-end: 1px solid var(--line);
+  overflow: auto;
+}
+.studio-shell[data-ui-small='true']
+  .office-dashboard
+  .project-sidebar
+  > .studio-navigator {
+  flex: 0 0 auto;
+  overflow: visible;
 }

@@ -550,6 +550,8 @@ test('rich labels on connectors retain explicit ports after text editing and pag
   await page.keyboard.press('ControlOrMeta+Enter');
   await page.getByRole('treeitem', { selected: true }).press('Shift+F10');
   await page.getByRole('menuitem', { name: 'Duplicate', exact: true }).click();
+  await expect(page.locator('[role=treeitem][data-page-id]')).toHaveCount(2);
+  await expect(page.locator('.save-status')).toHaveText('Saved on this device');
   const result = await exported(page),
     copy = result.documents[0].pages[1];
   expect(copy.connections[0].extensions['org.koxora.connection']).toMatchObject(

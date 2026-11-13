@@ -104,18 +104,22 @@ test('resizing a mirrored arrow endpoint keeps its fixed endpoint and arrowhead 
   const node = page.locator(`[data-node-id="${id}"]`);
   await menu(page, 'Edit');
   await page.getByRole('menuitem', { name: 'Select all', exact: true }).click();
+  const path = node.locator('.scene-connection');
+  const unreflected = await path.getAttribute('d');
   await menu(page, 'Format');
   await page.getByRole('menuitem', { name: 'Transform', exact: true }).click();
   await page
     .getByRole('menuitem', { name: 'Mirror horizontally', exact: true })
     .click();
-  const path = node.locator('.scene-connection');
+  await expect(path).not.toHaveAttribute('d', unreflected!);
   const before = (await path.getAttribute('d'))!;
   const endpoints = (value: string) =>
     value.match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi)!.map(Number);
   const [startX, startY, endX] = endpoints(before);
   expect(startX).toBeGreaterThan(endX);
   const handle = page.locator(`[data-resize-id="${id}"][data-handle="end"]`);
+  await expect(handle).toBeVisible();
+  await handle.click({ trial: true });
   const rect = (await handle.boundingBox())!;
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
   await page.mouse.down();

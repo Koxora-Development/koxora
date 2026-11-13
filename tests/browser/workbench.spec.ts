@@ -165,7 +165,7 @@ test('expanded workbench keeps all four icon controls and sheet tabs available',
   ).toBeFocused();
 });
 
-test('start library uses compact project rows and reserves an honest template section in EN and DE', async ({
+test('start library uses compact project rows without a reserved template sidebar in EN and DE', async ({
   page,
 }) => {
   await page.goto('/');
@@ -175,9 +175,7 @@ test('start library uses compact project rows and reserves an honest template se
   await expect(
     page.getByRole('button', { name: 'New blank project', exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByText('Templates are planned', { exact: true }),
-  ).toBeVisible();
+  await expect(page.locator('.start-templates')).toHaveCount(0);
   await openWorkbook(page);
   if (!(await page.locator('.project-sidebar').isVisible()))
     await page
@@ -200,9 +198,7 @@ test('start library uses compact project rows and reserves an honest template se
   await expect(
     page.getByRole('heading', { name: 'Projektbibliothek', level: 1 }),
   ).toBeVisible();
-  await expect(
-    page.getByText('Vorlagen sind geplant', { exact: true }),
-  ).toBeVisible();
+  await expect(page.locator('.start-templates')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: 'Vorlagen', exact: true }),
   ).toHaveCount(0);

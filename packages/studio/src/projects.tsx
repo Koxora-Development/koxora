@@ -66,6 +66,8 @@ export function Projects({
   localePreference,
   theme,
   guiScale,
+  accessibility,
+  onAccessibility,
   onGuiScale,
   onLocale,
   onTheme,
@@ -74,6 +76,8 @@ export function Projects({
   localePreference: string;
   theme: Theme;
   guiScale: GuiScale;
+  accessibility: boolean;
+  onAccessibility: (enabled: boolean) => void;
   onGuiScale: (scale: GuiScale) => void;
   onLocale: (locale: string) => void;
   onTheme: (theme: Theme) => void;
@@ -1245,7 +1249,7 @@ export function Projects({
   ];
   return (
     <div
-      className={`application-body office-application ${navigatorVisible ? '' : 'navigator-hidden'}`}
+      className={`application-body office-application ${view === 'dashboard' || !project ? 'office-dashboard' : ''} ${navigatorVisible ? '' : 'navigator-hidden'}`}
       onKeyDown={(event) => {
         if (
           (event.ctrlKey || event.metaKey) &&
@@ -1779,6 +1783,8 @@ export function Projects({
           locale={locale}
           theme={theme}
           guiScale={guiScale}
+          accessibility={accessibility}
+          onAccessibility={onAccessibility}
           onGuiScale={onGuiScale}
           onLocale={onLocale}
           onTheme={onTheme}

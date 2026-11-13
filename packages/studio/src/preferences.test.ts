@@ -20,6 +20,7 @@ describe('local guest preferences', () => {
         locale: 'en',
         theme: 'light',
         guiScale: 100,
+        accessibility: false,
       });
     }
     expect(
@@ -28,7 +29,12 @@ describe('local guest preferences', () => {
           throw new Error('blocked');
         },
       }),
-    ).toEqual({ locale: 'en', theme: 'light', guiScale: 100 });
+    ).toEqual({
+      locale: 'en',
+      theme: 'light',
+      guiScale: 100,
+      accessibility: false,
+    });
   });
   it('round-trips explicit preferences without touching document or unrelated data', () => {
     const storage = new Map([['project', 'User-authored content']]);
@@ -39,12 +45,18 @@ describe('local guest preferences', () => {
       },
     };
     expect(
-      writePreferences(adapter, { locale: 'de', theme: 'dark', guiScale: 175 }),
+      writePreferences(adapter, {
+        locale: 'de',
+        theme: 'dark',
+        guiScale: 175,
+        accessibility: true,
+      }),
     ).toBe(true);
     expect(readPreferences(adapter)).toEqual({
       locale: 'de',
       theme: 'dark',
       guiScale: 175,
+      accessibility: true,
     });
     expect(storage.get('project')).toBe('User-authored content');
     expect(storage.size).toBe(2);
@@ -58,7 +70,7 @@ describe('local guest preferences', () => {
             throw new Error('quota');
           },
         },
-        { locale: 'de', theme: 'dark', guiScale: 175 },
+        { locale: 'de', theme: 'dark', guiScale: 175, accessibility: false },
       ),
     ).toBe(false);
   });
@@ -79,6 +91,7 @@ describe('interface scale compatibility', () => {
       locale: 'de',
       theme: 'dark',
       guiScale: 100,
+      accessibility: false,
     });
     expect(keys).toEqual(['koxora.preferences.v1']);
   });
@@ -110,6 +123,7 @@ describe('interface scale compatibility', () => {
         locale: 'de',
         theme: 'dark',
         guiScale: 100,
+        accessibility: false,
       });
     }
   });
@@ -118,7 +132,12 @@ describe('interface scale compatibility', () => {
       ['project', 'Keep document geometry and viewport unchanged'],
     ]);
     for (const guiScale of guiScales) {
-      const explicit = { locale: 'de', theme: 'dark' as const, guiScale };
+      const explicit = {
+        locale: 'de',
+        theme: 'dark' as const,
+        guiScale,
+        accessibility: false,
+      };
       expect(
         writePreferences(
           { setItem: (key, value) => records.set(key, value) },
@@ -143,8 +162,68 @@ it('preserves opt-in system preferences and negotiates registered languages in o
   const { systemLocale } = await import('./preferences');
   expect(
     readPreferences({ getItem: () => '{"locale":"system","theme":"system"}' }),
-  ).toEqual({ locale: 'system', theme: 'system', guiScale: 100 });
+  ).toEqual({
+    locale: 'system',
+    theme: 'system',
+    guiScale: 100,
+    accessibility: false,
+  });
   expect(systemLocale(['fr-FR', 'de-DE', 'en-US'])).toBe('de');
   expect(systemLocale(['en-GB', 'de-DE'])).toBe('en');
   expect(systemLocale(['ja-JP'])).toBe('en');
+});
+
+describe('optional enhanced accessibility', () => {
+  it('requires an explicit boolean opt-in and preserves existing preferences', () => {
+    for (const accessibility of [
+      undefined,
+      null,
+      false,
+      'true',
+      'false',
+      1,
+      0,
+      [],
+      {},
+    ]) {
+      expect(
+        readPreferences({
+          getItem: () =>
+            JSON.stringify({
+              locale: 'de',
+              theme: 'dark',
+              guiScale: 200,
+              accessibility,
+            }),
+        }),
+      ).toEqual({
+        locale: 'de',
+        theme: 'dark',
+        guiScale: 200,
+        accessibility: false,
+      });
+    }
+  });
+
+  it('remembers enabling and disabling across launches without changing project content', () => {
+    const records = new Map([['project', 'Preserve diagram content']]);
+    const storage = {
+      getItem: (key: string) => records.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        records.set(key, value);
+      },
+    };
+    for (const accessibility of [true, false]) {
+      const preferences = {
+        locale: 'system',
+        theme: 'system' as const,
+        guiScale: 200 as const,
+        accessibility,
+      };
+      expect(writePreferences(storage, preferences)).toBe(true);
+      expect(readPreferences(storage)).toEqual(preferences);
+      expect(records.get('project')).toBe('Preserve diagram content');
+      expect(records.size).toBe(2);
+    }
+  });
 });

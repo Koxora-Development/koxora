@@ -3,6 +3,7 @@ import './phase25.css';
 import './compact.css';
 import './office.css';
 import './gui-scale.css';
+import './accessibility.css';
 import { Projects } from './projects';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { locales, translate, type MessageKey } from '@koxora/i18n';
@@ -35,6 +36,9 @@ export function Studio() {
       String(preferences.guiScale / 100),
     );
     document.documentElement.dataset.uiScale = String(preferences.guiScale);
+    document.documentElement.dataset.accessibility = String(
+      preferences.accessibility,
+    );
     document.documentElement.lang = locale;
     document.documentElement.dir = locales[locale].direction;
     document.documentElement.dataset.theme = theme;
@@ -68,6 +72,7 @@ export function Studio() {
   return (
     <div
       className="studio-shell"
+      data-accessibility={preferences.accessibility}
       data-ui-narrow={viewportWidth < (1000 * preferences.guiScale) / 100}
       data-ui-small={viewportWidth < (650 * preferences.guiScale) / 100}
     >
@@ -97,8 +102,12 @@ export function Studio() {
           localePreference={preferences.locale}
           theme={preferences.theme}
           guiScale={preferences.guiScale}
+          accessibility={preferences.accessibility}
           onGuiScale={(guiScale) =>
             updatePreferences({ ...preferences, guiScale })
+          }
+          onAccessibility={(accessibility) =>
+            updatePreferences({ ...preferences, accessibility })
           }
           onLocale={(locale) => updatePreferences({ ...preferences, locale })}
           onTheme={(theme) => updatePreferences({ ...preferences, theme })}

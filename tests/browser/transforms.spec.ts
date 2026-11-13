@@ -93,6 +93,8 @@ test('rotation, mirror, numeric properties, pointer cancel and offline persisten
     .click();
   await expect(node).toHaveAttribute('transform', /rotate\(270 /);
   const handle = page.locator(`[data-rotate-id="${id}"]`);
+  await expect(handle).toBeVisible();
+  await handle.click({ trial: true });
   const b = await handle.boundingBox();
   expect(b).not.toBeNull();
   await page.mouse.move(b!.x + b!.width / 2, b!.y + b!.height / 2);
@@ -102,6 +104,8 @@ test('rotation, mirror, numeric properties, pointer cancel and offline persisten
   await page.mouse.up();
   await expect(node).toHaveAttribute('transform', /rotate\(270 /);
   await node.click();
+  await expect(handle).toBeVisible();
+  await handle.click({ trial: true });
   const h = (await handle.boundingBox())!;
   await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
   await page.mouse.down();

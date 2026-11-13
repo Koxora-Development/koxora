@@ -14,7 +14,7 @@ Milestones are acceptance-based, not calendar guarantees. Preserve every master 
 | M1 | Foundation | Monorepo, CI, localization, UI, document model/format, browser/desktop shell |
 | M2 | Editor alpha | Canvas/tools, mind map, flowchart, organization chart, storage, round trip |
 | M3 | Data and export | XLSX/CSV/ODS, charts/bindings, HTML/PDF/SVG, GIF/video prototype |
-| M4 | Diagram breadth | UML, BPMN, ER, C4, Gantt, technical/creative families |
+| M4 | Diagram breadth | UML, BPMN, ER, C4, networks/infrastructure, Gantt, technical/creative families |
 | M5 | AI and plugins | User keys, Ollama, SDK/sandbox, templates |
 | M6 | Cloud and live teams | Accounts, sync, roles, comments, CRDT, guests, P2P |
 | M7 | Community and enterprise | Marketplace/moderation, self-hosting, SSO/audit/support |
@@ -85,3 +85,9 @@ The source suggests two two-week planning units, not scheduled commitments. Spri
 ## 9. Requested Studio design follow-up
 
 [Studio design presets and customization](studio-design-customization.md) plans curated interface presets, local color/layout controls, more document templates and later portable personal presets. It references CORE-013/014 and EDIT-008/012 without renumbering the catalog or initial engineering items. This is requested future planning; Issue #57 implements transforms and current interface refinements, not a template library or custom-theme editor.
+
+Templates are planned for a dedicated overview with search, categories and previews. The local project library does not reserve an empty sidebar for them. Interface presets and personal customization must preserve accessibility preferences and must not change diagram content.
+
+## 10. Requested network and IT follow-up
+
+[Network and IT diagrams](network-it-diagrams.md) proposes a vendor-neutral device palette, then named ports and connection labels, optional technical metadata, logical/physical network organization and local starters. Routers, switches, laptops, clients/PCs, access points and servers are initial candidates, alongside firewalls and storage. Later UML, ER, C4, API/data-flow and deployment work remains part of diagram breadth. This elaborates DIAG-015, EDIT-005/012/015 and the related diagram-family requirements; it creates no new catalog IDs, implementation assignment or release commitment. Live network scanning, monitoring and device configuration are outside this plan.

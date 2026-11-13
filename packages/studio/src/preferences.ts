@@ -18,6 +18,7 @@ export interface Preferences {
   locale: string;
   theme: Theme;
   guiScale: GuiScale;
+  accessibility: boolean;
 }
 export const preferenceKey = 'koxora.preferences.v1';
 export interface PreferenceStorage {
@@ -41,12 +42,13 @@ export function readPreferences(
               ? 'dark'
               : 'light',
         guiScale: resolveGuiScale(data.guiScale),
+        accessibility: data.accessibility === true,
       };
     }
   } catch {
     /* Unavailable or corrupt storage must not prevent guest startup. */
   }
-  return { locale: 'en', theme: 'light', guiScale: 100 };
+  return { locale: 'en', theme: 'light', guiScale: 100, accessibility: false };
 }
 export function writePreferences(
   storage: Pick<PreferenceStorage, 'setItem'>,

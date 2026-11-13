@@ -12,7 +12,9 @@ export function OfficeSettings({
   localePreference,
   theme,
   guiScale,
+  accessibility,
   onGuiScale,
+  onAccessibility,
   onLocale,
   onTheme,
   storage,
@@ -25,7 +27,9 @@ export function OfficeSettings({
   localePreference: string;
   theme: Theme;
   guiScale: GuiScale;
+  accessibility: boolean;
   onGuiScale: (scale: GuiScale) => void;
+  onAccessibility: (enabled: boolean) => void;
   onLocale: (locale: string) => void;
   onTheme: (theme: Theme) => void;
   storage?: ReactNode;
@@ -37,6 +41,7 @@ export function OfficeSettings({
   const t = (key: MessageKey) => translate(locale, key);
   const [category, setCategory] = useState('general');
   const scaleHelpId = useId();
+  const accessibilityHelpId = useId();
   const percentages = new Intl.NumberFormat(locale, {
     style: 'percent',
     maximumFractionDigits: 0,
@@ -120,6 +125,18 @@ export function OfficeSettings({
             </label>
             <p id={scaleHelpId} className="settings-note">
               {t('preferences.scaleHelp')}
+            </p>
+            <label className="accessibility-setting">
+              <input
+                type="checkbox"
+                checked={accessibility}
+                aria-describedby={accessibilityHelpId}
+                onChange={(event) => onAccessibility(event.target.checked)}
+              />
+              {t('preferences.accessibility')}
+            </label>
+            <p id={accessibilityHelpId} className="settings-note">
+              {t('preferences.accessibilityHelp')}
             </p>
             {blocked && <p role="status">{t('office.applyOrDiscard')}</p>}
           </section>

@@ -24,7 +24,7 @@ export interface StartPageProps {
   onRename: (id: string, title: string) => boolean | Promise<boolean>;
 }
 
-/** The local library starts projects; templates are an honest future entry point. */
+/** The local library uses the available workspace width independently of disclosure content. */
 export function StartPage({
   project,
   items,
@@ -43,7 +43,6 @@ export function StartPage({
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
     translate(locale, key, values);
   const libraryId = useId();
-  const templatesId = useId();
   const dates = new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -195,14 +194,6 @@ export function StartPage({
             <p>{t('workspace.note')}</p>
           </InfoDisclosure>
         </section>
-        <aside className="start-templates" aria-labelledby={templatesId}>
-          <div className="start-templates-heading">
-            <Icon name="grid" />
-            <h2 id={templatesId}>{t('start.templates')}</h2>
-          </div>
-          <p className="start-planned">{t('start.templatesPlanned')}</p>
-          <p>{t('start.templatesDescription')}</p>
-        </aside>
       </div>
     </div>
   );
