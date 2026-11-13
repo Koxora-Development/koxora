@@ -49,7 +49,9 @@ import {
   type ShapeKind,
 } from './shapes';
 import { type ConnectionOptions, readConnection } from './connections';
+import { applyMindMap, type MindMapCommand } from './mindmap';
 export type EditCommand =
+  | MindMapCommand
   | { type: 'link'; id: string; link: LinkChange }
   | {
       type: 'freehand';
@@ -152,6 +154,18 @@ function options(value: ConnectionOptions) {
     )
   )
     throw new EditError('invalid');
+}
+function mindMapReferences(project: Project, ids: Set<string>): boolean {
+  return project.documents.some((document) =>
+    document.domainModels.some(
+      (model) =>
+        model.namespace === 'org.koxora.mindmap' &&
+        (model.references.some((id) => ids.has(id)) ||
+          Object.keys(jsonObject(model.data.parents)).some((id) =>
+            ids.has(id),
+          )),
+    ),
+  );
 }
 /** Refuse edits when rendering defaults/clipping would discard unsupported stored semantics. */
 export function assertEditableElement(item: Node | Connection): void {
@@ -260,6 +274,12 @@ export function applyEdit(
   command: EditCommand,
   now: string,
 ): Project {
+  if (
+    command.type === 'mindmapAdd' ||
+    command.type === 'mindmapLayout' ||
+    command.type === 'mindmapDeleteBranch'
+  )
+    return applyMindMap(project, documentId, pageId, command, now);
   const document = project.documents.find((d) => d.id === documentId),
     page = document?.pages.find((p) => p.id === pageId);
   if (!page || !document) throw new EditError('invalid');
@@ -559,6 +579,8 @@ export function applyEdit(
     if (![command.offset.x, command.offset.y].every(Number.isFinite))
       throw new EditError('invalid');
     const ids = new Set(clipboard.nodes.map((n) => n.id));
+    if (command.type === 'paste' && mindMapReferences(project, ids))
+      throw new EditError('unsupported');
     const copyId = (id: string) => {
       if (!command.idMap[id]) throw new EditError('invalid');
       return command.idMap[id];
@@ -848,6 +870,8 @@ export function copyElements(
   )
     throw new EditError('endpoint');
   const copied = new Set([...nodes, ...connections].map((item) => item.id));
+  if (project && mindMapReferences(project, copied))
+    throw new EditError('unsupported');
   const actions =
     project?.documents
       .flatMap((d) => d.actions)

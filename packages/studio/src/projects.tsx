@@ -28,6 +28,8 @@ import {
 } from './canvas';
 import {
   activePageId,
+  applyEdit,
+  readCanvas,
   shapeKinds,
   layerStates,
   buildScene,
@@ -500,6 +502,52 @@ export function Projects({
       () => crypto.randomUUID(),
       new Date().toISOString(),
     );
+    enter(next);
+    setSaved(null);
+    setToken(null);
+    setError(null);
+  }
+  function createMindMap() {
+    const id = () => crypto.randomUUID();
+    const now = new Date().toISOString();
+    let next = createProject(t('mindmap.title'), id, now);
+    const doc = next.documents[0];
+    doc.type = 'mindmap';
+    doc.locale = locale;
+    const page = doc.pages[0];
+    const root = id();
+    for (const [topic, parentId, text] of [
+      [root, null, t('mindmap.central')],
+      [id(), root, t('mindmap.first')],
+      [id(), root, t('mindmap.second')],
+    ] as const) {
+      next = applyEdit(
+        next,
+        doc.id,
+        page.id,
+        {
+          type: 'mindmapAdd',
+          id: topic,
+          connectionId: id(),
+          parentId,
+          layerId: page.layers[0].id,
+          text,
+        },
+        now,
+      );
+    }
+    next = applyEdit(next, doc.id, page.id, { type: 'mindmapLayout' }, now);
+    const starterPage = next.documents[0].pages[0];
+    const bounds = buildScene(starterPage).bounds;
+    if (bounds)
+      next = writeCanvas(next, doc.id, page.id, {
+        ...readCanvas(starterPage),
+        camera: {
+          x: bounds.x + bounds.width / 2,
+          y: bounds.y + bounds.height / 2,
+          zoom: 1,
+        },
+      });
     enter(next);
     setSaved(null);
     setToken(null);
@@ -1006,6 +1054,11 @@ export function Projects({
           action: () => replace(create),
           disabled: busy || propertyDraft,
           shortcut: '',
+        },
+        {
+          label: t('mindmap.create'),
+          action: () => replace(createMindMap),
+          disabled: busy || propertyDraft,
         },
         {
           label: t('project.import'),
@@ -1647,6 +1700,7 @@ export function Projects({
             native={!!native}
             titleRef={titleRef}
             onCreate={() => replace(create)}
+            onCreateMindMap={() => replace(createMindMap)}
             onImport={openImport}
             onRefresh={() => {
               setOperation('loading');

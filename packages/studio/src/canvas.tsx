@@ -1,4 +1,5 @@
 import { WorkbenchControls } from './workbench-controls';
+import { MindMapTools } from './mindmap-tools';
 import { NavigationContext } from './navigation-context';
 import { openExternalLink } from './external-links';
 import { ContextMenu } from './context-menu';
@@ -2083,6 +2084,17 @@ export function Canvas({
             {'⋯'}
           </button>
         </div>
+        <MindMapTools
+          document={project.documents.find((d) =>
+            d.pages.some((p) => p.id === page.id),
+          )!}
+          page={page}
+          selected={selected}
+          locale={locale}
+          prepare={prepare}
+          onSelect={select}
+          onEdit={onEdit}
+        />
         {objects && (
           <aside className="objects-panel" aria-label={t('format.objects')}>
             <label className="element-picker">

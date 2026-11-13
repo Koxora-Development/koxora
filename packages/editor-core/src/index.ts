@@ -14,3 +14,4 @@ export * from './stacking';
 export * from './contrast';
 export * from './links';
 export * from './transforms';
+export * from './mindmap';
