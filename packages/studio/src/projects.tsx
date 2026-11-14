@@ -1,5 +1,6 @@
 import { InfoDisclosure } from './info-disclosure';
 import { StartPage } from './start-page';
+import { TemplateBrowser } from './template-browser';
 import { WorkbenchControls } from './workbench-controls';
 import { WorkbookTabs } from './workbook-tabs';
 import { StorageSettings } from './storage-settings';
@@ -28,6 +29,7 @@ import {
 } from './canvas';
 import {
   activePageId,
+  createFromTemplate,
   shapeKinds,
   layerStates,
   buildScene,
@@ -109,7 +111,9 @@ export function Projects({
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [items, setItems] = useState<ProjectSummary[]>([]),
     [operation, setOperation] = useState<Operation | null>('loading');
-  const [view, setView] = useState<'dashboard' | 'workspace'>('dashboard'),
+  const [view, setView] = useState<'dashboard' | 'workspace' | 'templates'>(
+      'dashboard',
+    ),
     [pageId, setPageId] = useState<string | null>(null);
   const [dropped, setDropped] = useState<File[]>([]);
   const dropRunning = useRef(false);
@@ -504,6 +508,31 @@ export function Projects({
     setSaved(null);
     setToken(null);
     setError(null);
+  }
+  function showTemplates() {
+    if (busy || propertyDraft || navigationLock.current) return;
+    if (canvasRef.current && !canvasRef.current.prepare()) return;
+    snapshot();
+    setView('templates');
+    if (window.innerWidth < 1000 * (guiScale / 100)) setNavigatorVisible(false);
+    setFocusVersion((n) => n + 1);
+  }
+  function createTemplate(id: string, title: string) {
+    try {
+      const next = createFromTemplate(
+        id,
+        title,
+        (key) => translate(locale, key as MessageKey),
+        () => crypto.randomUUID(),
+        new Date().toISOString(),
+      );
+      enter(next);
+      setSaved(null);
+      setToken(null);
+      setError(null);
+    } catch (error) {
+      report(error);
+    }
   }
   async function open(id: string, previous = false) {
     setOperation('opening');
@@ -1008,6 +1037,11 @@ export function Projects({
           shortcut: '',
         },
         {
+          label: t('templates.heading'),
+          action: showTemplates,
+          disabled: busy || propertyDraft,
+        },
+        {
           label: t('project.import'),
           action: openImport,
           disabled: busy || propertyDraft,
@@ -1249,7 +1283,7 @@ export function Projects({
   ];
   return (
     <div
-      className={`application-body office-application ${view === 'dashboard' || !project ? 'office-dashboard' : ''} ${navigatorVisible ? '' : 'navigator-hidden'}`}
+      className={`application-body office-application ${view !== 'workspace' || !project ? 'office-dashboard' : ''} ${navigatorVisible ? '' : 'navigator-hidden'}`}
       onKeyDown={(event) => {
         if (
           (event.ctrlKey || event.metaKey) &&
@@ -1517,6 +1551,15 @@ export function Projects({
           {t('project.recent')}
           <span className="count">{items.length}</span>
         </button>
+        <button
+          className={`nav-item ${view === 'templates' ? 'selected' : ''}`}
+          aria-current={view === 'templates' ? 'page' : undefined}
+          disabled={busy || propertyDraft}
+          onClick={showTemplates}
+        >
+          <Icon name="layers" />
+          {t('templates.heading')}
+        </button>
         {!expanded && navigation}
         <div className="sidebar-bottom">
           <Icon name="shield" />
@@ -1637,7 +1680,19 @@ export function Projects({
             </button>
           </div>
         )}
-        {view === 'dashboard' || !project ? (
+        {view === 'templates' ? (
+          <TemplateBrowser
+            locale={locale}
+            busy={busy || propertyDraft}
+            titleRef={titleRef}
+            onBack={() => {
+              setView('dashboard');
+              setFocusVersion((n) => n + 1);
+            }}
+            onBlank={() => replace(create)}
+            onUse={(id, title) => replace(() => createTemplate(id, title))}
+          />
+        ) : view === 'dashboard' || !project ? (
           <StartPage
             project={project}
             items={items}
@@ -1647,6 +1702,7 @@ export function Projects({
             native={!!native}
             titleRef={titleRef}
             onCreate={() => replace(create)}
+            onTemplates={showTemplates}
             onImport={openImport}
             onRefresh={() => {
               setOperation('loading');

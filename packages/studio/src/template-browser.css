@@ -1,0 +1,92 @@
+.template-filters {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: calc(12px * var(--ui-scale, 1));
+  margin-bottom: calc(20px * var(--ui-scale, 1));
+}
+.template-filters label {
+  display: grid;
+  gap: calc(6px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 calc(180px * var(--ui-scale, 1));
+}
+.template-filters :is(input, select) {
+  min-width: 0;
+  width: 100%;
+  font: inherit;
+}
+.template-filters p,
+.template-empty p {
+  font-size: calc(12px * var(--ui-scale, 1));
+  color: var(--muted);
+}
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, calc(260px * var(--ui-scale, 1))), 1fr)
+  );
+  align-items: stretch;
+  gap: calc(16px * var(--ui-scale, 1));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.template-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: calc(12px * var(--ui-scale, 1));
+  border: 1px solid var(--line);
+  border-radius: calc(8px * var(--ui-scale, 1));
+  background: var(--surface);
+}
+.template-card h2 {
+  margin: calc(6px * var(--ui-scale, 1)) 0;
+  font-size: calc(15px * var(--ui-scale, 1));
+  overflow-wrap: anywhere;
+}
+.template-card p {
+  margin: 0 0 calc(12px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
+  line-height: 1.5;
+}
+.template-category {
+  margin-top: calc(12px * var(--ui-scale, 1));
+  font-size: calc(10px * var(--ui-scale, 1));
+  color: var(--muted);
+}
+.template-preview-button {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #f8fafc;
+  padding: 8px;
+}
+.template-preview {
+  display: block;
+  width: 100%;
+  height: calc(160px * var(--ui-scale, 1));
+}
+.template-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(6px * var(--ui-scale, 1));
+  margin-top: auto;
+}
+.template-dialog {
+  width: min(850px, calc(100vw - 24px));
+}
+.template-dialog .template-preview {
+  height: min(45vh, 400px);
+  border-radius: 6px;
+  background: #f8fafc;
+}
+.template-dialog p {
+  overflow-wrap: anywhere;
+}
