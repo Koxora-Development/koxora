@@ -10,12 +10,10 @@ import {
   validateProject,
   type Project,
   type Page,
-  type DomainModel,
 } from '@koxora/project';
 import { EditError } from './editing';
 import { selectPage, activePageId } from './project-view';
 import { STACK_KEY, readStackOrder } from './stacking';
-import { jsonObject } from './shapes';
 
 export type WorkbookCommand =
   | { type: 'newPage'; documentId: string; title: string }
@@ -53,13 +51,6 @@ function pageIds(page: Page) {
     ...page.connections.map((x) => x.id),
     ...page.relationships.map((x) => x.id),
   ];
-}
-function domainReferences(model: DomainModel, ids: Set<string>): boolean {
-  return (
-    model.references.some((id) => ids.has(id)) ||
-    (model.namespace === 'org.koxora.mindmap' &&
-      Object.keys(jsonObject(model.data.parents)).some((id) => ids.has(id)))
-  );
 }
 /** Page operations retain stable IDs. A duplicate remaps known identities, never arbitrary opaque JSON. */
 export function applyWorkbook(
@@ -113,7 +104,7 @@ export function applyWorkbook(
       documents.some(
         (d) =>
           d !== doc &&
-          (d.domainModels.some((m) => domainReferences(m, ids)) ||
+          (d.domainModels.some((m) => m.references.some((id) => ids.has(id))) ||
             d.actions.some(
               (a) =>
                 ids.has(a.targetId) ||
@@ -191,7 +182,7 @@ export function applyWorkbook(
       // Specialized semantic models cannot safely be inferred for a copied page.
       if (
         documents.some((d) =>
-          d.domainModels.some((m) => domainReferences(m, ids)),
+          d.domainModels.some((m) => m.references.some((id) => ids.has(id))),
         )
       )
         throw new WorkbookError('references');
@@ -284,7 +275,9 @@ export function applyWorkbook(
       if (
         documents.some(
           (d) =>
-            d.domainModels.some((m) => domainReferences(m, ids)) ||
+            d.domainModels.some((m) =>
+              m.references.some((id) => ids.has(id)),
+            ) ||
             d.actions.some(
               (a) =>
                 ids.has(a.targetId) ||
@@ -342,7 +335,7 @@ export function applyWorkbook(
       if (
         target !== source &&
         documents.some((d) =>
-          d.domainModels.some((m) => domainReferences(m, ids)),
+          d.domainModels.some((m) => m.references.some((id) => ids.has(id))),
         )
       )
         throw new WorkbookError('references');

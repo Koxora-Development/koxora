@@ -17,7 +17,7 @@ export interface StartPageProps {
   native: boolean;
   titleRef?: Ref<HTMLHeadingElement>;
   onCreate: () => void;
-  onCreateMindMap: () => void;
+  onTemplates: () => void;
   onImport: () => void;
   onRefresh: () => void;
   onOpen: (id: string) => void;
@@ -35,7 +35,7 @@ export function StartPage({
   native,
   titleRef,
   onCreate,
-  onCreateMindMap,
+  onTemplates,
   onImport,
   onRefresh,
   onOpen,
@@ -67,9 +67,9 @@ export function StartPage({
             <Icon name="plus" />
             {t('start.blank')}
           </button>
-          <button className="button" disabled={busy} onClick={onCreateMindMap}>
+          <button className="button" disabled={busy} onClick={onTemplates}>
             <Icon name="layers" />
-            {t('mindmap.create')}
+            {t('templates.heading')}
           </button>
           <button className="button" disabled={busy} onClick={onImport}>
             <Icon name="import" />

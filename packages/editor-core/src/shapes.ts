@@ -16,6 +16,16 @@ export const shapeKinds = [
   'container',
   'line',
   'arrow',
+  'document',
+  'database',
+  'cloud',
+  'note',
+  'predefined-process',
+  'trapezoid',
+  'pentagon',
+  'octagon',
+  'chevron',
+  'cross',
 ] as const;
 export type ShapeKind = (typeof shapeKinds)[number];
 export type Geometry = Node['geometry'];
@@ -255,16 +265,26 @@ function polygon(
     contains(p, w, h) {
       if (!w || !h) return false;
       const q = { x: p.x / w, y: p.y / h };
-      let sign = 0;
+      let inside = false;
       for (let i = 0; i < vertices.length; i++) {
         const a = vertices[i],
           b = vertices[(i + 1) % vertices.length];
         const cross = (b.x - a.x) * (q.y - a.y) - (b.y - a.y) * (q.x - a.x);
-        if (Math.abs(cross) < 1e-9) continue;
-        if (sign && Math.sign(cross) !== sign) return false;
-        sign = Math.sign(cross);
+        if (
+          Math.abs(cross) < 1e-12 &&
+          q.x >= Math.min(a.x, b.x) - 1e-12 &&
+          q.x <= Math.max(a.x, b.x) + 1e-12 &&
+          q.y >= Math.min(a.y, b.y) - 1e-12 &&
+          q.y <= Math.max(a.y, b.y) + 1e-12
+        )
+          return true;
+        if (
+          a.y > q.y !== b.y > q.y &&
+          q.x < ((b.x - a.x) * (q.y - a.y)) / (b.y - a.y) + a.x
+        )
+          inside = !inside;
       }
-      return true;
+      return inside;
     },
   };
 }
@@ -289,6 +309,39 @@ const rounded: Pick<ShapeDefinition, 'path' | 'contains'> = {
     return x >= r || y >= r || Math.sqrt(x / r) + Math.sqrt(y / r) >= 1;
   },
 };
+/** A sampled contour is shared by drawing and picking, including the cloud's concave scallops. */
+function cloudContour(): Point[] {
+  const vertices: Point[] = [{ x: 0.2, y: 0.9 }];
+  const curves = [
+    [0.05, 0.9, 0, 0.78, 0, 0.64],
+    [0, 0.48, 0.1, 0.4, 0.22, 0.4],
+    [0.2, 0.22, 0.34, 0.08, 0.5, 0.08],
+    [0.65, 0.08, 0.76, 0.18, 0.79, 0.31],
+    [0.92, 0.28, 1, 0.4, 1, 0.52],
+    [1, 0.6, 0.97, 0.67, 0.92, 0.71],
+    [0.99, 0.83, 0.9, 0.95, 0.79, 0.95],
+  ];
+  for (const [ax, ay, bx, by, x, y] of curves) {
+    const start = vertices.at(-1)!;
+    for (let step = 1; step <= 12; step++) {
+      const t = step / 12,
+        u = 1 - t;
+      vertices.push({
+        x:
+          u ** 3 * start.x +
+          3 * u ** 2 * t * ax +
+          3 * u * t ** 2 * bx +
+          t ** 3 * x,
+        y:
+          u ** 3 * start.y +
+          3 * u ** 2 * t * ay +
+          3 * u * t ** 2 * by +
+          t ** 3 * y,
+      });
+    }
+  }
+  return vertices;
+}
 /** Trusted built-in registry; imported kind strings never load code. */
 export const shapeRegistry: Readonly<Record<ShapeKind, ShapeDefinition>> = {
   line: {
@@ -388,6 +441,187 @@ export const shapeRegistry: Readonly<Record<ShapeKind, ShapeDefinition>> = {
   },
   text: { width: 200, height: 88, ...box },
   container: { width: 320, height: 240, container: true, ...rounded },
+  document: {
+    width: 176,
+    height: 136,
+    labelBox: (width, height) => ({
+      x: width * 0.1,
+      y: height * 0.1,
+      width: width * 0.8,
+      height: height * 0.55,
+    }),
+    path: (w, h) =>
+      `M 0 0 H ${w} V ${h * 0.88} Q ${w * 0.75} ${h * 0.72} ${w * 0.5} ${h * 0.88} Q ${w * 0.25} ${h * 1.04} 0 ${h * 0.88} Z`,
+    contains(p, w, h) {
+      if (w <= 0 || h <= 0 || p.x < 0 || p.x > w || p.y < 0) return false;
+      const x = p.x / w;
+      const wave =
+        x >= 0.5
+          ? -0.32 * (2 * x - 1) * (2 - 2 * x)
+          : 0.32 * (2 * x) * (1 - 2 * x);
+      return p.y <= h * (0.88 + wave);
+    },
+  },
+  database: {
+    width: 160,
+    height: 136,
+    labelBox: (width, height) => ({
+      x: width * 0.1,
+      y: height * 0.28,
+      width: width * 0.8,
+      height: height * 0.46,
+    }),
+    path(w, h) {
+      const r = h * 0.16;
+      return `M 0 ${r} A ${w / 2} ${r} 0 0 1 ${w} ${r} V ${h - r} A ${w / 2} ${r} 0 0 1 0 ${h - r} Z M 0 ${r} A ${w / 2} ${r} 0 0 0 ${w} ${r} A ${w / 2} ${r} 0 0 1 0 ${r}`;
+    },
+    contains(p, w, h) {
+      if (w <= 0 || h <= 0 || p.x < 0 || p.x > w || p.y < 0 || p.y > h)
+        return false;
+      const r = h * 0.16;
+      if (p.y >= r && p.y <= h - r) return true;
+      const cy = p.y < r ? r : h - r;
+      return ((p.x - w / 2) / (w / 2)) ** 2 + ((p.y - cy) / r) ** 2 <= 1;
+    },
+  },
+  cloud: {
+    width: 200,
+    height: 136,
+    labelBox: (width, height) => ({
+      x: width * 0.18,
+      y: height * 0.4,
+      width: width * 0.64,
+      height: height * 0.3,
+    }),
+    ...polygon(cloudContour()),
+  },
+  note: {
+    width: 160,
+    height: 136,
+    labelBox: (width, height) => ({
+      x: width * 0.1,
+      y: height * 0.28,
+      width: width * 0.8,
+      height: height * 0.6,
+    }),
+    ...polygon([
+      { x: 0, y: 0 },
+      { x: 0.75, y: 0 },
+      { x: 1, y: 0.25 },
+      { x: 1, y: 1 },
+      { x: 0, y: 1 },
+    ]),
+    path: (w, h) =>
+      `M 0 0 H ${w * 0.75} L ${w} ${h * 0.25} V ${h} H 0 Z M ${w * 0.75} 0 V ${h * 0.25} H ${w} H ${w * 0.75} V 0`,
+  },
+  'predefined-process': {
+    width: 192,
+    height: 96,
+    ...box,
+    labelBox: (width, height) => ({
+      x: width * 0.18,
+      y: height * 0.1,
+      width: width * 0.64,
+      height: height * 0.8,
+    }),
+    path: (w, h) =>
+      `M 0 0 H ${w} V ${h} H 0 Z M ${w * 0.12} 0 V ${h} M ${w * 0.88} 0 V ${h}`,
+  },
+  trapezoid: {
+    width: 176,
+    height: 104,
+    labelBox: (width, height) => ({
+      x: width * 0.25,
+      y: height * 0.1,
+      width: width * 0.5,
+      height: height * 0.8,
+    }),
+    ...polygon([
+      { x: 0.25, y: 0 },
+      { x: 0.75, y: 0 },
+      { x: 1, y: 1 },
+      { x: 0, y: 1 },
+    ]),
+  },
+  pentagon: {
+    width: 144,
+    height: 136,
+    labelBox: (width, height) => ({
+      x: width * 0.23,
+      y: height * 0.38,
+      width: width * 0.54,
+      height: height * 0.5,
+    }),
+    ...polygon([
+      { x: 0.5, y: 0 },
+      { x: 1, y: 0.38 },
+      { x: 0.82, y: 1 },
+      { x: 0.18, y: 1 },
+      { x: 0, y: 0.38 },
+    ]),
+  },
+  octagon: {
+    width: 144,
+    height: 144,
+    labelBox: (width, height) => ({
+      x: width * 0.22,
+      y: height * 0.22,
+      width: width * 0.56,
+      height: height * 0.56,
+    }),
+    ...polygon([
+      { x: 0.3, y: 0 },
+      { x: 0.7, y: 0 },
+      { x: 1, y: 0.3 },
+      { x: 1, y: 0.7 },
+      { x: 0.7, y: 1 },
+      { x: 0.3, y: 1 },
+      { x: 0, y: 0.7 },
+      { x: 0, y: 0.3 },
+    ]),
+  },
+  chevron: {
+    width: 192,
+    height: 104,
+    labelBox: (width, height) => ({
+      x: width * 0.32,
+      y: height * 0.18,
+      width: width * 0.4,
+      height: height * 0.64,
+    }),
+    ...polygon([
+      { x: 0, y: 0 },
+      { x: 0.72, y: 0 },
+      { x: 1, y: 0.5 },
+      { x: 0.72, y: 1 },
+      { x: 0, y: 1 },
+      { x: 0.28, y: 0.5 },
+    ]),
+  },
+  cross: {
+    width: 160,
+    height: 160,
+    labelBox: (width, height) => ({
+      x: width * 0.33,
+      y: height * 0.33,
+      width: width * 0.34,
+      height: height * 0.34,
+    }),
+    ...polygon([
+      { x: 0.33, y: 0 },
+      { x: 0.67, y: 0 },
+      { x: 0.67, y: 0.33 },
+      { x: 1, y: 0.33 },
+      { x: 1, y: 0.67 },
+      { x: 0.67, y: 0.67 },
+      { x: 0.67, y: 1 },
+      { x: 0.33, y: 1 },
+      { x: 0.33, y: 0.67 },
+      { x: 0, y: 0.67 },
+      { x: 0, y: 0.33 },
+      { x: 0.33, y: 0.33 },
+    ]),
+  },
 };
 /** Reflect in element-local axes, before rotation. Reflection is its own inverse. */
 export function reflectPoint(p: Point, g: Geometry): Point {
@@ -408,7 +642,7 @@ export function containsShape(
     isShapeKind(kind) ? shapeRegistry[kind] : shapeRegistry.rectangle
   ).contains({ x: local.x - g.x, y: local.y - g.y }, g.width, g.height, radius);
 }
-/** Ray/convex-boundary intersection also works for rotated shapes and future convex registry entries. */
+/** Built-in contours are star-shaped about their center, allowing one ray/boundary search. */
 export function boundaryPoint(
   kind: string,
   g: Geometry,
