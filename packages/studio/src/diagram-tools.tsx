@@ -7,9 +7,13 @@ import { useEffect, useId, useState } from 'react';
 import { type Page, type Style, type Project } from '@koxora/project';
 import { LinkFields } from './element-links';
 import { PropertySurface } from './property-surface';
+import { TextRegionsEditor } from './text-regions-editor';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
   elementLink,
+  elementDisplayText,
+  defaultTextRegions,
+  type TextRegions,
   type LinkTarget,
   validLinkTarget,
   isDrawing,
@@ -162,11 +166,7 @@ export function DiagramTools({
                         <option key={n.id} value={n.id}>
                           {translate(locale, 'diagram.nodeName', {
                             index: i + 1,
-                            text:
-                              typeof n.content.text === 'string' &&
-                              n.content.text
-                                ? n.content.text.slice(0, 80)
-                                : n.kind,
+                            text: elementDisplayText(n).slice(0, 80) || n.kind,
                           })}
                         </option>
                       ))}
@@ -283,7 +283,12 @@ export function ElementDialog({
   const t = (key: MessageKey) => translate(locale, key);
   const node = page.nodes.find((n) => n.id === id),
     edge = page.connections.find((e) => e.id === id);
-  const [tab, setTab] = useState('format');
+  const [tab, setTab] = useState(
+    node && ['container', 'table'].includes(node.kind) ? 'text' : 'format',
+  );
+  const [textRegions, setTextRegions] = useState<TextRegions | null>(() =>
+    node ? defaultTextRegions(node) : null,
+  );
   const tabId = useId();
   useEffect(() => () => onDraftChange?.(false), [onDraftChange]);
   const initialLink = elementLink(project, id);
@@ -397,8 +402,14 @@ export function ElementDialog({
                     type: 'updateNode',
                     ...linkChange,
                     id,
-                    text: plainText(richText),
-                    ...(node.kind !== 'freehand' ? { richText } : {}),
+                    text:
+                      node.kind === 'table'
+                        ? String(node.content.text ?? '')
+                        : plainText(richText),
+                    ...(textRegions ? { textRegions } : {}),
+                    ...(!['freehand', 'table'].includes(node.kind)
+                      ? { richText }
+                      : {}),
                     style: appearance,
                     geometry:
                       geometry === node.geometry || !geometry
@@ -481,9 +492,25 @@ export function ElementDialog({
           aria-labelledby={panel ? `${tabId}-text` : undefined}
           hidden={panel && tab !== 'text'}
         >
-          {node?.kind !== 'freehand' && (
+          {textRegions && (
+            <TextRegionsEditor
+              value={textRegions}
+              locale={locale}
+              onChange={(value) => {
+                onDraftChange?.(true);
+                setTextRegions(value);
+              }}
+            />
+          )}
+          {node?.kind !== 'freehand' && node?.kind !== 'table' && (
             <fieldset className="label-editor">
-              <legend>{t('text.heading')}</legend>
+              <legend>
+                {t(
+                  node?.kind === 'container'
+                    ? 'regions.containerBody'
+                    : 'text.heading',
+                )}
+              </legend>
               <RichTextEditor
                 value={richText}
                 base={appearance}

@@ -24,8 +24,14 @@ import {
   type ResourceLimits,
 } from './validation';
 import { safePath } from './zip';
+import {
+  isTextRegions,
+  TEXT_REGIONS_KEY,
+  TEXT_REGIONS_FEATURE,
+} from './text-regions';
 export const FEATURES = [
   'node-reflection-v1',
+  TEXT_REGIONS_FEATURE,
   'documents',
   'pages',
   'nodes',
@@ -357,6 +363,27 @@ export function validateProject(
           }
         }
         record(node.content, `${np}.content`);
+        const regions = node.extensions[TEXT_REGIONS_KEY];
+        if (regions !== undefined) {
+          check(
+            manifest.requiredFeatures.includes(TEXT_REGIONS_FEATURE),
+            `${np}.extensions.${TEXT_REGIONS_KEY}`,
+            'feature',
+          );
+          record(regions, `${np}.extensions.${TEXT_REGIONS_KEY}`);
+          check(
+            Number.isSafeInteger(regions.version) &&
+              (regions.version as number) >= 1,
+            `${np}.extensions.${TEXT_REGIONS_KEY}.version`,
+            'textRegionsVersion',
+          );
+          if (regions.version === 1)
+            check(
+              isTextRegions(regions, node.kind),
+              `${np}.extensions.${TEXT_REGIONS_KEY}`,
+              'textRegions',
+            );
+        }
         record(node.metadata, `${np}.metadata`);
         if (node.styleId !== undefined)
           ref(node.styleId, styles, `${np}.styleId`);

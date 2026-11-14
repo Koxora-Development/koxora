@@ -49,6 +49,16 @@ import {
   type ShapeKind,
 } from './shapes';
 import { type ConnectionOptions, readConnection } from './connections';
+import {
+  defaultTextRegions,
+  isTextRegions,
+  readTextRegions,
+  tableTextSummary,
+  TEXT_REGIONS_KEY,
+  TEXT_REGIONS_FEATURE,
+  MAX_TABLE_CELL_TEXT,
+  type TextRegions,
+} from './text-regions';
 export type EditCommand =
   | { type: 'link'; id: string; link: LinkChange }
   | {
@@ -115,6 +125,7 @@ export type EditCommand =
       geometry?: Geometry;
       startArrow?: boolean;
       endArrow?: boolean;
+      textRegions?: TextRegions;
     }
   | {
       type: 'updateConnection';
@@ -159,6 +170,12 @@ export function assertEditableElement(item: Node | Connection): void {
     throw new EditError('unsupported');
   if ('kind' in item) {
     const n = item as Node;
+    if (
+      (n.extensions[TEXT_REGIONS_KEY] !== undefined && !readTextRegions(n)) ||
+      (n.kind === 'table' &&
+        (!readTextRegions(n) || n.extensions[RICH_TEXT_KEY] !== undefined))
+    )
+      throw new EditError('unsupported');
     if (
       ['flipX', 'flipY'].some(
         (key) =>
@@ -357,7 +374,10 @@ export function applyEdit(
     if (
       command.type === 'richText' &&
       (!isRichText(command.value) ||
-        items.some((item) => 'kind' in item && item.kind === 'freehand'))
+        items.some(
+          (item) =>
+            'kind' in item && ['freehand', 'table'].includes(String(item.kind)),
+        ))
     )
       throw new EditError('invalid');
     const update = <T extends Node | Connection>(item: T): T => {
@@ -456,6 +476,17 @@ export function applyEdit(
       dataBindings: [],
       extensions: { [ELEMENT_KEY]: { version: 1 } },
     };
+    const regions = defaultTextRegions(created);
+    if (regions) {
+      if (regions.type === 'table' && command.text) {
+        if (command.text.length > MAX_TABLE_CELL_TEXT)
+          throw new EditError('invalid');
+        regions.cells[0][0] = command.text;
+      }
+      created.extensions[TEXT_REGIONS_KEY] = regions;
+      if (regions.type === 'table')
+        created.content.text = tableTextSummary(regions);
+    }
     nodes = [...nodes, created];
   } else if (command.type === 'connect') {
     const error = connectionError(
@@ -631,6 +662,21 @@ export function applyEdit(
   } else if (command.type === 'updateNode') {
     const n = node(command.id);
     text(command.text);
+    if (
+      command.textRegions !== undefined &&
+      !isTextRegions(command.textRegions, n.kind)
+    )
+      throw new EditError('invalid');
+    if (
+      n.kind === 'table' &&
+      (command.richText ||
+        (command.textRegions === undefined && command.text !== n.content.text))
+    )
+      throw new EditError('unsupported');
+    const nextText =
+      command.textRegions?.type === 'table'
+        ? tableTextSummary(command.textRegions)
+        : command.text;
     if (n.kind === 'freehand' && (command.text || command.richText))
       throw new EditError('invalid');
     if (
@@ -668,9 +714,17 @@ export function applyEdit(
             geometry: command.geometry
               ? { ...item.geometry, ...command.geometry }
               : item.geometry,
-            content: { ...item.content, text: command.text },
+            content: { ...item.content, text: nextText },
             extensions: {
               ...item.extensions,
+              ...(command.textRegions
+                ? {
+                    [TEXT_REGIONS_KEY]: {
+                      ...jsonObject(item.extensions[TEXT_REGIONS_KEY]),
+                      ...structuredClone(command.textRegions),
+                    },
+                  }
+                : {}),
               ...(command.richText
                 ? { [RICH_TEXT_KEY]: richTextJson(command.richText) }
                 : {}),
@@ -774,6 +828,25 @@ export function applyEdit(
     } catch {
       throw new EditError('unsupported');
     }
+  }
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.nodes.some((n) => n.extensions[TEXT_REGIONS_KEY] !== undefined),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(TEXT_REGIONS_FEATURE)
+  ) {
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          TEXT_REGIONS_FEATURE,
+        ],
+      },
+    };
   }
   if (
     next.documents.some((d) =>

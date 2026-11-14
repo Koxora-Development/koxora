@@ -27,6 +27,7 @@ import {
   shapeCenter,
   type TransformAction,
   elementLink,
+  elementDisplayText,
   pageLinks,
   buildScene,
   freehandGeometry,
@@ -343,7 +344,11 @@ export function Canvas({
     }
     setEditError(null);
     select([id]);
-    setInline(direct && !('kind' in item && item.kind === 'freehand'));
+    const structured = item.kind === 'container' || item.kind === 'table';
+    if (direct && structured) setPropertyReset((value) => value + 1);
+    setInline(
+      direct && !structured && !('kind' in item && item.kind === 'freehand'),
+    );
     setTextPreview(null);
     const box = host.current?.getBoundingClientRect();
     if (box) {
@@ -2100,10 +2105,7 @@ export function Canvas({
                 {[
                   ...page.nodes.map((item) => ({
                     id: item.id,
-                    text:
-                      typeof item.content.text === 'string' && item.content.text
-                        ? item.content.text
-                        : item.kind,
+                    text: elementDisplayText(item) || item.kind,
                   })),
                   ...page.connections.map((item) => ({
                     id: item.id,

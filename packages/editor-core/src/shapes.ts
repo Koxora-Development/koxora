@@ -26,6 +26,7 @@ export const shapeKinds = [
   'octagon',
   'chevron',
   'cross',
+  'table',
 ] as const;
 export type ShapeKind = (typeof shapeKinds)[number];
 export type Geometry = Node['geometry'];
@@ -254,6 +255,26 @@ export interface ShapeDefinition {
     radius: number,
   ) => boolean;
 }
+export function containerHeaderHeight(height: number): number {
+  return Math.min(40, height * 0.3);
+}
+export function containerTextBoxes(width: number, height: number) {
+  const header = containerHeaderHeight(height);
+  return {
+    title: {
+      x: 10,
+      y: 3,
+      width: Math.max(1, width - 20),
+      height: Math.max(1, header - 6),
+    },
+    body: {
+      x: 10,
+      y: header + 6,
+      width: Math.max(1, width - 20),
+      height: Math.max(1, height - header - 12),
+    },
+  };
+}
 function polygon(
   vertices: Point[],
 ): Pick<ShapeDefinition, 'path' | 'contains'> {
@@ -440,7 +461,26 @@ export const shapeRegistry: Readonly<Record<ShapeKind, ShapeDefinition>> = {
     ]),
   },
   text: { width: 200, height: 88, ...box },
-  container: { width: 320, height: 240, container: true, ...rounded },
+  container: {
+    width: 320,
+    height: 240,
+    container: true,
+    ...rounded,
+    labelBox: (width, height) => containerTextBoxes(width, height).body,
+    path(w, h, radius) {
+      const y = containerHeaderHeight(h);
+      const r = Math.min(radius, w / 2, h / 2);
+      const inset = y < r ? r * (1 - Math.sqrt(y / r)) ** 2 : 0;
+      return `${rounded.path(w, h, radius)} M ${inset} ${y} H ${w - inset}`;
+    },
+  },
+  table: {
+    width: 360,
+    height: 210,
+    ...box,
+    path: (w, h) =>
+      `${box.path(w, h, 0)} M 0 ${h / 3} H ${w} M 0 ${(h * 2) / 3} H ${w} M ${w / 3} 0 V ${h} M ${(w * 2) / 3} 0 V ${h}`,
+  },
   document: {
     width: 176,
     height: 136,

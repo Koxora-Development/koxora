@@ -411,6 +411,9 @@
 .office-property-form {
   gap: calc(6px * var(--ui-scale, 1));
 }
+.office-property-form > [data-property-tab] {
+  min-width: 0;
+}
 .office-property-tabs {
   display: flex;
   gap: 0;

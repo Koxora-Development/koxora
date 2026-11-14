@@ -10,43 +10,20 @@ import type { DiagramTool } from './diagram-tools';
 import { PALETTE_KEYS } from './shortcuts';
 import './shape-palette.css';
 
-type Category = 'all' | 'basic' | 'flowchart' | 'symbols' | 'drawing';
-const categories: Category[] = [
-  'all',
-  'basic',
-  'flowchart',
-  'symbols',
-  'drawing',
-];
-const categoryTools: Record<Exclude<Category, 'all'>, DiagramTool[]> = {
-  basic: [
-    'rectangle',
-    'rounded-rectangle',
-    'ellipse',
-    'triangle',
-    'hexagon',
-    'parallelogram',
-    'trapezoid',
-    'pentagon',
-    'octagon',
-    'text',
-    'container',
-  ],
-  flowchart: [
-    'rectangle',
-    'rounded-rectangle',
-    'diamond',
-    'parallelogram',
-    'document',
-    'database',
-    'predefined-process',
-    'trapezoid',
-    'chevron',
-    'text',
-  ],
-  symbols: ['cloud', 'note', 'cross'],
-  drawing: ['line', 'arrow', 'freehand'],
-};
+import {
+  libraryCategories,
+  libraryElementKinds,
+  readLibrarySelection,
+  writeLibrarySelection,
+  quickElementKinds,
+  type LibraryCategory,
+  type LibraryElement,
+} from './library-preferences';
+import { BrowseElements, ShapeCategories } from './shape-categories';
+
+let sessionSelection: LibraryCategory[] | null = null;
+let sessionRemember = true;
+
 const normalize = (value: string) =>
   value.normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase();
 const toolKey = (item: DiagramTool) =>
@@ -66,14 +43,29 @@ export function ShapePalette({
   activate: (tool: DiagramTool) => void;
   writable: boolean;
 }) {
-  const [category, setCategory] = useState<Category>('all');
+  const [categories, setCategories] = useState<LibraryCategory[]>(() =>
+    sessionSelection
+      ? [...sessionSelection]
+      : readLibrarySelection({
+          getItem: (key) => localStorage.getItem(key),
+        }),
+  );
+  const [remember, setRemember] = useState(sessionRemember);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [browserOpen, setBrowserOpen] = useState(false);
+  const [storageFailed, setStorageFailed] = useState(false);
   const [query, setQuery] = useState('');
   const t = (key: string) => translate(locale, key as MessageKey);
-  const filtered = (nextCategory: Category, nextQuery: string) => {
-    const entries: DiagramTool[] =
-      nextCategory === 'all'
-        ? [...shapeKinds, 'freehand']
-        : categoryTools[nextCategory];
+  const filtered = (
+    selected: readonly LibraryCategory[],
+    nextQuery: string,
+  ) => {
+    const allowed = new Set(
+      selected.flatMap((category) => [...libraryElementKinds[category]]),
+    );
+    const entries = [...shapeKinds, 'freehand' as const].filter((kind) =>
+      allowed.has(kind),
+    );
     const search = normalize(nextQuery.trim());
     return entries.filter(
       (item) =>
@@ -83,21 +75,24 @@ export function ShapePalette({
         ).includes(search),
     );
   };
-  const matches = filtered(category, query);
-  const tools: DiagramTool[] = ['select', 'pan', ...matches];
+  const matches = filtered(categories, query);
+  const tools: DiagramTool[] = ['select', 'pan', ...quickElementKinds(matches)];
   // Menu/shortcut activation can select a tool outside the current category.
   // Keep that explicit choice visible and retain a keyboard entry point.
   if (!tools.includes(tool)) tools.splice(2, 0, tool);
   const focusTool =
     writable || tool === 'select' || tool === 'pan' ? tool : 'select';
-  const updateFilters = (nextCategory: Category, nextQuery: string) => {
-    setCategory(nextCategory);
+  const updateFilters = (
+    nextCategories: LibraryCategory[],
+    nextQuery: string,
+  ) => {
+    setCategories(nextCategories);
     setQuery(nextQuery);
     // A filtered-out insertion tool must never remain armed invisibly.
     if (
       tool !== 'select' &&
       tool !== 'pan' &&
-      !filtered(nextCategory, nextQuery).includes(tool)
+      !filtered(nextCategories, nextQuery).includes(tool)
     )
       activate('select');
   };
@@ -113,27 +108,30 @@ export function ShapePalette({
         role="group"
         aria-label={t('palette.filters')}
       >
-        <label>
-          {t('palette.category')}
-          <select
-            value={category}
-            onChange={(event) =>
-              updateFilters(event.target.value as Category, query)
-            }
-          >
-            {categories.map((item) => (
-              <option key={item} value={item}>
-                {t(`palette.category.${item}`)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <button
+          className="button compact category-picker-button"
+          type="button"
+          aria-label={t('palette.chooseCategories')}
+          onClick={() => setCategoriesOpen(true)}
+        >
+          {t('palette.chooseCategories')}
+          <span className="category-picker-count" aria-hidden="true">
+            {categories.length}/{libraryCategories.length}
+          </span>
+        </button>
+        <button
+          className="button compact"
+          type="button"
+          onClick={() => setBrowserOpen(true)}
+        >
+          {t('palette.browseElements')}
+        </button>
         <label>
           {t('palette.search')}
           <input
             type="search"
             value={query}
-            onChange={(event) => updateFilters(category, event.target.value)}
+            onChange={(event) => updateFilters(categories, event.target.value)}
           />
         </label>
         <span className="element-results" role="status">
@@ -209,7 +207,55 @@ export function ShapePalette({
           );
         })}
       </div>
-      {!matches.length && <p className="element-empty">{t('palette.empty')}</p>}
+      {!matches.length && (
+        <p className="element-empty">
+          {t(categories.length ? 'palette.empty' : 'palette.noCategories')}
+        </p>
+      )}
+      {storageFailed && (
+        <p className="element-empty" role="status">
+          {t('palette.rememberFailed')}
+        </p>
+      )}
+      {browserOpen && (
+        <BrowseElements
+          locale={locale}
+          tools={filtered(categories, '') as LibraryElement[]}
+          initialQuery={query}
+          active={tool}
+          writable={writable}
+          onCancel={() => setBrowserOpen(false)}
+          onChoose={(kind) => {
+            activate(kind);
+            setBrowserOpen(false);
+          }}
+        />
+      )}
+      {categoriesOpen && (
+        <ShapeCategories
+          locale={locale}
+          selected={categories}
+          remember={remember}
+          onCancel={() => setCategoriesOpen(false)}
+          onApply={(selected, keep) => {
+            sessionSelection = [...selected];
+            sessionRemember = keep;
+            setRemember(keep);
+            updateFilters(selected, query);
+            setStorageFailed(
+              !writeLibrarySelection(
+                {
+                  setItem: (key, value) => localStorage.setItem(key, value),
+                  removeItem: (key) => localStorage.removeItem(key),
+                },
+                selected,
+                keep,
+              ),
+            );
+            setCategoriesOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

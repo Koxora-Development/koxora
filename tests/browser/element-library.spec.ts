@@ -49,20 +49,49 @@ async function transform(page: Page, label: string) {
   await page.getByRole('menuitem', { name: label, exact: true }).click();
 }
 
+async function chooseCategories(page: Page, values: string[], locale = 'en') {
+  const messages: Record<string, string> = JSON.parse(
+    readFileSync(`packages/i18n/src/locales/${locale}.json`, 'utf8'),
+  );
+  await page
+    .getByRole('button', {
+      name: messages['palette.chooseCategories'],
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole('dialog', {
+    name: messages['palette.categoriesTitle'],
+    exact: true,
+  });
+  await dialog
+    .getByRole('button', {
+      name: messages['palette.clearCategories'],
+      exact: true,
+    })
+    .click();
+  for (const value of values)
+    await dialog
+      .getByRole('checkbox', {
+        name: messages[`palette.category.${value}`],
+        exact: true,
+      })
+      .check();
+  await dialog
+    .getByRole('button', { name: messages['diagram.apply'], exact: true })
+    .click();
+  await expect(dialog).toHaveCount(0);
+}
+
 test('element categories and search preserve navigation and do not leave hidden insertion tools armed', async ({
   page,
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'New project', exact: true }).click();
-  const category = page.getByRole('combobox', {
-    name: 'Element category',
-    exact: true,
-  });
   const search = page.getByRole('searchbox', {
     name: 'Search elements',
     exact: true,
   });
-  await category.selectOption('symbols');
+  await chooseCategories(page, ['symbols']);
   await expect(
     palette(page).getByRole('button', { name: 'Cloud', exact: true }),
   ).toBeVisible();
@@ -72,7 +101,7 @@ test('element categories and search preserve navigation and do not leave hidden 
   await palette(page)
     .getByRole('button', { name: 'Cloud', exact: true })
     .click();
-  await category.selectOption('flowchart');
+  await chooseCategories(page, ['flowchart']);
   await expect(
     palette(page).getByRole('button', { name: 'Select', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
@@ -98,7 +127,7 @@ test('element categories and search preserve navigation and do not leave hidden 
     palette(page).getByRole('button', { name: 'Navigate', exact: true }),
   ).toBeVisible();
   await search.fill('');
-  await category.selectOption('drawing');
+  await chooseCategories(page, ['drawing']);
   await palette(page)
     .getByRole('button', { name: 'Select', exact: true })
     .focus();
@@ -199,12 +228,12 @@ for (const locale of ['en', 'de'])
       name: messages['palette.search'],
       exact: true,
     });
-    const category = page.getByRole('combobox', {
-      name: messages['palette.category'],
+    const category = page.getByRole('button', {
+      name: messages['palette.chooseCategories'],
       exact: true,
     });
     await reachable(category);
-    await category.selectOption('flowchart');
+    await chooseCategories(page, ['flowchart'], locale);
     await reachable(search);
     await search.fill('database');
     const tools = page.getByRole('toolbar', {
@@ -236,3 +265,68 @@ for (const locale of ['en', 'de'])
       (await page.locator('.interactive-canvas').boundingBox())!.height,
     ).toBeGreaterThanOrEqual(160);
   });
+
+test('category selection is transactional, combines libraries and restores remembered choices', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project', exact: true }).click();
+  await chooseCategories(page, ['basic', 'symbols']);
+  await expect(
+    palette(page).getByRole('button', { name: 'Rectangle', exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    palette(page).getByRole('button', { name: 'Cloud', exact: true }),
+  ).toBeVisible();
+  await expect(
+    palette(page).getByRole('button', { name: 'Document', exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: 'Categories…', exact: true }).click();
+  const dialog = page.getByRole('dialog', {
+    name: 'Element categories',
+    exact: true,
+  });
+  await dialog
+    .getByRole('button', { name: 'Clear selection', exact: true })
+    .click();
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(
+    palette(page).getByRole('button', { name: 'Cloud', exact: true }),
+  ).toBeVisible();
+  await chooseCategories(page, []);
+  await expect(palette(page).getByRole('button')).toHaveCount(2);
+  await page
+    .getByRole('button', { name: 'Browse elements…', exact: true })
+    .click();
+  const empty = page.getByRole('dialog', {
+    name: 'Element library',
+    exact: true,
+  });
+  await expect(empty.locator('[data-library-kind]')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await chooseCategories(page, ['basic', 'symbols']);
+  await page
+    .getByRole('button', { name: 'Browse elements…', exact: true })
+    .click();
+  const browser = page.getByRole('dialog', {
+    name: 'Element library',
+    exact: true,
+  });
+  await browser
+    .getByRole('searchbox', { name: 'Search elements', exact: true })
+    .fill('cloud');
+  await browser.getByRole('button', { name: 'Cloud', exact: true }).click();
+  await expect(browser).toHaveCount(0);
+  await expect(
+    palette(page).getByRole('button', { name: 'Cloud', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await saved(page);
+  await page.reload();
+  await page.getByRole('button', { name: 'Open project', exact: true }).click();
+  await expect(
+    palette(page).getByRole('button', { name: 'Cloud', exact: true }),
+  ).toBeVisible();
+  await expect(
+    palette(page).getByRole('button', { name: 'Document', exact: true }),
+  ).toHaveCount(0);
+});

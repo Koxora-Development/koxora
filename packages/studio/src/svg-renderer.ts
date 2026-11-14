@@ -13,6 +13,8 @@ import {
   handlePoint,
   type Bounds,
   shapeRegistry,
+  containerTextBoxes,
+  sceneDisplayText,
   isShapeKind,
   type SceneNode,
   type SceneConnection,
@@ -88,10 +90,9 @@ export class SvgRenderer {
       const linkTitle = linkTitles.get(model.id);
       element.toggleAttribute('data-linked', !!linkTitle);
       const title = element.querySelector('title');
+      const label = sceneDisplayText(model);
       if (title)
-        title.textContent = linkTitle
-          ? `${model.label} — ${linkTitle}`
-          : model.label;
+        title.textContent = linkTitle ? `${label} — ${linkTitle}` : label;
       this.elements
         .get(key)!
         .classList.toggle('connection-source', key === `node:${sourceId}`);
@@ -336,7 +337,7 @@ function renderNode(node: SceneNode): SVGElement {
     transform: `translate(${g.x} ${g.y}) rotate(${g.rotation} ${g.width / 2} ${g.height / 2})`,
   });
   const title = svg('title');
-  title.textContent = node.label;
+  title.textContent = sceneDisplayText(node);
   group.append(title);
   const definition = isShapeKind(node.kind)
     ? shapeRegistry[node.kind]
@@ -344,7 +345,9 @@ function renderNode(node: SceneNode): SVGElement {
   const path = svg('path', {
     d: node.strokePoints
       ? freehandPath(node.strokePoints, g)
-      : definition.path(g.width, g.height, s.cornerRadius),
+      : node.textRegions?.type === 'table'
+        ? shapeRegistry.rectangle.path(g.width, g.height, 0)
+        : definition.path(g.width, g.height, s.cornerRadius),
     'stroke-linecap': 'round',
     'stroke-linejoin': 'round',
     transform: `translate(${g.flipX === true ? g.width : 0} ${g.flipY === true ? g.height : 0}) scale(${g.flipX === true ? -1 : 1} ${g.flipY === true ? -1 : 1})`,
@@ -362,6 +365,58 @@ function renderNode(node: SceneNode): SVGElement {
     hit.setAttribute('class', 'stroke-hit');
     group.append(hit);
     return group;
+  }
+  if (node.textRegions?.type === 'table') {
+    const { cells, headerRow } = node.textRegions;
+    const rows = cells.length,
+      columns = cells[0].length;
+    const width = g.width / columns,
+      height = g.height / rows;
+    const lines: string[] = [];
+    for (let row = 1; row < rows; row++)
+      lines.push(`M 0 ${row * height} H ${g.width}`);
+    for (let column = 1; column < columns; column++)
+      lines.push(`M ${column * width} 0 V ${g.height}`);
+    group.append(
+      svg('path', {
+        d: lines.join(' '),
+        class: 'scene-table-grid',
+        fill: 'none',
+        stroke: s.stroke,
+        'stroke-width': s.strokeWidth,
+        opacity: s.opacity,
+      }),
+    );
+    cells.forEach((row, r) =>
+      row.forEach((cell, c) => {
+        const paddingX = Math.min(6, width * 0.1),
+          paddingY = Math.min(4, height * 0.1);
+        renderPlainRegion(
+          group,
+          node,
+          {
+            x: c * width + paddingX,
+            y: r * height + paddingY,
+            width: Math.max(0, width - paddingX * 2),
+            height: Math.max(0, height - paddingY * 2),
+          },
+          cell,
+          { ...s, fontWeight: headerRow && r === 0 ? 700 : s.fontWeight },
+          `cell-${r}-${c}`,
+        );
+      }),
+    );
+    return group;
+  }
+  if (node.kind === 'container') {
+    renderPlainRegion(
+      group,
+      node,
+      containerTextBoxes(g.width, g.height).title,
+      node.textRegions?.type === 'container' ? node.textRegions.title : '',
+      { ...s, fontWeight: 700 },
+      'title',
+    );
   }
   const labelBox = definition.labelBox?.(g.width, g.height) ?? {
     x: 10,
@@ -406,7 +461,27 @@ function renderNode(node: SceneNode): SVGElement {
         : labelBox.x + labelBox.width / 2;
   const clipId = `label-${node.id}`;
   const clip = svg('clipPath', { id: clipId });
-  clip.append(svg('rect', { x: 0, y: 0, width: g.width, height: g.height }));
+  clip.append(
+    svg(
+      'rect',
+      node.kind === 'container'
+        ? {
+            x: Math.max(0, labelBox.x),
+            y: Math.max(0, labelBox.y),
+            width: Math.max(
+              0,
+              Math.min(g.width, labelBox.x + labelBox.width) -
+                Math.max(0, labelBox.x),
+            ),
+            height: Math.max(
+              0,
+              Math.min(g.height, labelBox.y + labelBox.height) -
+                Math.max(0, labelBox.y),
+            ),
+          }
+        : { x: 0, y: 0, width: g.width, height: g.height },
+    ),
+  );
   group.append(clip);
   const label = svg('text', {
     'clip-path': `url(#${clipId})`,
@@ -438,6 +513,66 @@ function renderNode(node: SceneNode): SVGElement {
   });
   group.append(label);
   return group;
+}
+function renderPlainRegion(
+  group: SVGElement,
+  node: SceneNode,
+  rawBox: Bounds,
+  label: string,
+  style: Appearance,
+  key: string,
+) {
+  const g = node.geometry;
+  const box = { ...rawBox };
+  if (g.flipX === true) box.x = g.width - box.x - box.width;
+  if (g.flipY === true) box.y = g.height - box.y - box.height;
+  const x0 = Math.max(0, box.x),
+    y0 = Math.max(0, box.y);
+  const width = Math.max(0, Math.min(g.width, box.x + box.width) - x0);
+  const height = Math.max(0, Math.min(g.height, box.y + box.height) - y0);
+  if (!width || !height) return;
+  const lines = textLines(label, width, style.fontSize);
+  const limit = Math.max(1, Math.floor(height / (style.fontSize * 1.25)));
+  const shown = lines.slice(0, limit);
+  if (lines.length > limit) shown[shown.length - 1] += '…';
+  const id = `region-${node.id}-${key}`;
+  const clip = svg('clipPath', { id });
+  clip.append(svg('rect', { x: x0, y: y0, width, height }));
+  group.append(clip);
+  const text = svg('text', {
+    class: 'scene-label scene-region-label',
+    'data-text-region': key,
+    'clip-path': `url(#${id})`,
+    fill: style.textColor,
+    'font-size': style.fontSize,
+    'font-family': FONT_FAMILIES[style.fontFamily],
+    'font-weight': style.fontWeight,
+    'font-style': style.fontStyle,
+    'text-decoration': style.textDecoration,
+    opacity: style.opacity,
+    'text-anchor':
+      style.align === 'left'
+        ? 'start'
+        : style.align === 'right'
+          ? 'end'
+          : 'middle',
+  });
+  const x =
+    style.align === 'left'
+      ? x0
+      : style.align === 'right'
+        ? x0 + width
+        : x0 + width / 2;
+  shown.forEach((line, i) => {
+    const span = svg('tspan', {
+      x,
+      y: y0 + height / 2 + (i - (shown.length - 1) / 2) * style.fontSize * 1.25,
+      'dominant-baseline': 'central',
+    });
+    span.textContent = line;
+    text.append(span);
+  });
+  group.append(text);
 }
 function renderEdge(edge: SceneConnection): SVGElement {
   const s = { ...edge.style, textColor: textColor(edge.style.textColor) },

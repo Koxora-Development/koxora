@@ -3,6 +3,11 @@ import { readFreehand, freehandContains } from './freehand';
 import { orderedElements } from './stacking';
 import { assertEditableElement } from './editing';
 import {
+  readTextRegions,
+  tableTextSummary,
+  type TextRegions,
+} from './text-regions';
+import {
   isDrawing,
   lineEndpoints,
   LINE_KEY,
@@ -33,6 +38,7 @@ export interface SceneNode {
   geometry: Geometry;
   label: string;
   richText?: RichText;
+  textRegions?: TextRegions;
   style: Appearance;
   editable: boolean;
   layerOrder: number;
@@ -55,6 +61,19 @@ export interface Scene {
   nodes: SceneNode[];
   connections: SceneConnection[];
   bounds: Bounds | null;
+}
+/** Accessible names use authoritative regions while the body label stays separate. */
+export function sceneDisplayText(node: SceneNode | SceneConnection): string {
+  if ('textRegions' in node) {
+    if (node.textRegions?.type === 'table')
+      return tableTextSummary(node.textRegions);
+    if (node.textRegions?.type === 'container')
+      return [node.textRegions.title, node.label]
+        .filter((value) => value.trim().length > 0)
+        .join('\n')
+        .slice(0, MAX_TEXT);
+  }
+  return node.label;
 }
 export function unionBounds(bounds: Bounds[]): Bounds | null {
   if (!bounds.length) return null;
@@ -130,6 +149,7 @@ export function buildScene(
             typeof node.content.text === 'string'
               ? node.content.text.slice(0, MAX_TEXT)
               : node.kind.slice(0, 120),
+          textRegions: readTextRegions(node) ?? undefined,
           style,
           editable: layer.editable && supported(node),
           layerOrder: layer.order,

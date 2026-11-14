@@ -1,0 +1,83 @@
+.text-region-title {
+  display: grid;
+  min-width: 0;
+  gap: calc(5px * var(--ui-scale, 1));
+  margin-bottom: calc(12px * var(--ui-scale, 1));
+}
+.text-region-title input {
+  width: 100%;
+  min-width: 0;
+}
+.text-regions-editor,
+.table-structure-fields {
+  min-width: 0;
+  max-width: 100%;
+}
+.table-dimension-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: calc(8px * var(--ui-scale, 1));
+  margin-bottom: calc(8px * var(--ui-scale, 1));
+}
+.table-dimension-fields label {
+  display: grid;
+  gap: calc(4px * var(--ui-scale, 1));
+  flex: 1 1 calc(75px * var(--ui-scale, 1));
+  min-width: 0;
+}
+.table-dimension-fields select {
+  width: 100%;
+  min-width: 0;
+}
+.table-cell-scroll {
+  overflow: auto;
+  max-width: 100%;
+  margin-top: calc(12px * var(--ui-scale, 1));
+  border: 1px solid var(--line);
+  border-radius: calc(4px * var(--ui-scale, 1));
+}
+.table-cell-scroll:focus-visible {
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--accent);
+  outline-offset: -2px;
+}
+.table-cell-editor {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: calc(11px * var(--ui-scale, 1));
+}
+.table-cell-editor caption {
+  text-align: start;
+  padding: calc(8px * var(--ui-scale, 1));
+  color: var(--ink);
+  font-weight: 600;
+}
+.table-cell-editor :is(th, td) {
+  padding: calc(4px * var(--ui-scale, 1));
+  border: 1px solid var(--line);
+  vertical-align: top;
+  color: var(--ink);
+}
+.table-cell-editor th {
+  background: var(--surface-muted);
+  font-weight: 600;
+}
+.table-cell-editor textarea {
+  display: block;
+  box-sizing: border-box;
+  width: calc(120px * var(--ui-scale, 1));
+  min-width: calc(90px * var(--ui-scale, 1));
+  min-height: calc(58px * var(--ui-scale, 1));
+  padding: calc(6px * var(--ui-scale, 1));
+  resize: vertical;
+  font: inherit;
+  line-height: 1.4;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: calc(3px * var(--ui-scale, 1));
+}
+.table-cell-editor .table-header-cell textarea {
+  font-weight: 600;
+}

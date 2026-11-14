@@ -29,7 +29,7 @@ Previews come from the same trusted declarative content as generated projects. T
 
 The follow-up assignment adds ten generic built-in shapes: document, database, cloud, folded-corner note, predefined process, trapezoid, pentagon, octagon, chevron and cross. They extend the existing shape registry and use the normal label, style, transformation and connection behavior. They do not implement a database engine, cloud integration or domain-specific process semantics.
 
-The palette offers All, Basic, Flowchart, Symbols and Drawing categories, plus text search. Search matches the selected language's labels and English labels. Select and Pan remain available regardless of filtering. If a filter hides an armed insertion tool, insertion returns to Select so a hidden tool cannot keep creating unexpected content. Keyboard navigation, accessible names and the normal editing tools remain available.
+The follow-up category selection enables Basic, Flowchart, Symbols and Drawing together through a checkbox dialog, plus text search. Search matches the selected language's labels, English labels and kind aliases. Select and Pan remain available regardless of filtering. If a filter hides an armed insertion tool, insertion returns to Select so a hidden tool cannot keep creating unexpected content. Keyboard navigation, accessible names and the normal editing tools remain available. The quick toolbar is bounded to 24 element entries; the labelled element browser adds matches in 48-item batches. See [text regions and library discovery](element-text-regions.md) for the current category and preference behavior.
 
 The registry additions use ordinary nodes without a new schema or dependency. Older readers retain unknown kinds using their existing read-only fallback; their fallback geometry is not a promise of the new shape's exact appearance. Unknown imported data must remain intact. Current-reader rendering, picking, anchors and transforms require actual tests for the new contours.
 
@@ -57,7 +57,7 @@ User-saved custom templates, template import/export, sharing, public catalogs an
 
 ## Validation status
 
-Local evidence for this template and element implementation:
+Baseline local evidence for the template and element implementation before the text-region and discovery follow-up:
 
 - `pnpm check` passed TypeScript, lint, formatting, all **582 unit/integration tests**, documentation and dependency-license checks. Tests include fresh template identities, archive round trips, unrestricted ordinary editing/history, localized immutable catalog data and new shape geometry/anchors.
 - The production web build passed through Playwright's server setup. The existing bundle-size warning remains.
@@ -67,6 +67,16 @@ Local evidence for this template and element implementation:
 - Independent review of the actual diff found and resolved preview paragraph fidelity and a narrow-angle document-contour anchor case. The final contour agreed with SVG fill sampling, and fine radial scans found no re-entry. No remaining actionable findings were reported.
 
 The restored execution environment required the pinned pnpm version and restoration of its temporary package-store metadata before the dependency-license check. These setup changes do not alter repository dependencies. Product Owner acceptance, merge and release remain pending. Earlier standalone mind-map test artifacts are not evidence for this implementation.
+
+## Assigned text-region and discovery follow-up
+
+The Product Owner's subsequent feedback adds distinct Container title/body regions, an insertable table with independently editable cells, title search in Local projects, and a multi-category selection/browser designed to scale within Koxora's own workbench. The initial rendered audit found Rounded rectangle and Container to be the only exact duplicate pair among the 21 then-registered kinds at three normalized sizes. Container now has a visible header divider; minimally different representations remain available. Container is not an automatic grouping parent.
+
+The table is additional to the initial ten new generic shapes. Its bounded cell payload and container title use the required `element-text-regions-v1` compatibility feature. The [follow-up guide](element-text-regions.md) records the precise format, safe editing behavior, local preferences and search contract.
+
+For the follow-up, `pnpm check` passed **602 unit/integration tests** and the type, lint, format, documentation and dependency-license checks; the production web build passed. The final rendered audit passed for all **22 registered kinds** at all three normalized sizes in Chromium. The native helper suite passed eight tests with one NSIS-specific skip. Independent review completed and its findings were fixed. See the follow-up guide for the precise review and scaling-evidence limits; the earlier 582-test template baseline remains separate. Packaged target-native manual acceptance, Product Owner acceptance, merge and release remain pending.
+
+All **136 selected Chromium desktop/mobile browser cases** passed across the combined run and targeted follow-up. These cover structured elements, rendered duplicates, project search, category transactions, templates, editing/history, workbook/rich text, native archives, transforms and library layout, including EN/DE at 390px and 200%. The final follow-up passed all 28 cases after correcting a stale test locator and anchoring the category dialog for future preview-size changes. Firefox/WebKit and packaged target-native results remain separate CI/manual evidence.
 
 ## Remaining phase work
 
