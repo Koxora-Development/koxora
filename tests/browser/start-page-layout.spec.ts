@@ -216,12 +216,26 @@ for (const locale of ['en', 'de']) {
         exact: true,
       });
       await unobscured(rename);
-      await rename.click();
-      const input = last.getByLabel(translate(locale, 'project.name'), {
-        exact: true,
-      });
+      // Preserve the clicked row's identity when a background save reorders the library.
+      const renameButton = (await rename.elementHandle())!;
+      const renamedRow = await renameButton.evaluateHandle((element) =>
+        element.closest('.start-project-row'),
+      );
+      await renameButton.click();
+      const input = page
+        .locator('.start-project-list')
+        .getByLabel(translate(locale, 'project.name'), { exact: true });
+      await expect(input).toHaveCount(1);
+      expect(
+        await input.evaluate(
+          (element, row) => element.closest('.start-project-row') === row,
+          renamedRow,
+        ),
+      ).toBe(true);
       await input.fill(`Reachable ${width}`);
       await input.press('Enter');
+      await renamedRow.dispose();
+      await renameButton.dispose();
       await expect(
         page
           .locator('.start-project-row')

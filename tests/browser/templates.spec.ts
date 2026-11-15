@@ -111,13 +111,21 @@ test('templates have real previews, category/search filtering and cancellation d
     .filter({ hasText: /^Notes$/ })
     .first();
   const mainBox = await mainLine.evaluate((element) => {
-    const box = (element as SVGGraphicsElement).getBBox();
-    return { y: box.y, height: box.height };
+    const text = element as SVGTextContentElement;
+    return {
+      y: text.getStartPositionOfChar(0).y,
+      height: text.getExtentOfChar(0).height,
+    };
   });
   const notesBox = await notesLine.evaluate((element) => {
-    const box = (element as SVGGraphicsElement).getBBox();
-    return { y: box.y, height: box.height };
+    const text = element as SVGTextContentElement;
+    return {
+      y: text.getStartPositionOfChar(0).y,
+      height: text.getExtentOfChar(0).height,
+    };
   });
+  expect(mainBox.height).toBeGreaterThan(0);
+  expect(notesBox.height).toBeGreaterThan(0);
   expect(notesBox.y - mainBox.y).toBeGreaterThan(mainBox.height * 1.5);
   await page.keyboard.press('Escape');
   await expect(weekly).toHaveCount(0);

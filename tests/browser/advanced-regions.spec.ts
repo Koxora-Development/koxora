@@ -173,8 +173,41 @@ function styledRun(rich: RichText) {
 }
 async function clickRegion(page: Page, region: Locator) {
   await region.scrollIntoViewIfNeeded();
-  const box = (await region.boundingBox())!;
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  const point = await region.evaluate((element) => {
+    if (element instanceof SVGGraphicsElement) {
+      const matrix = element.getScreenCTM();
+      if (!matrix) throw new Error('The text region must be attached');
+      // WebKit reports text bounds at the text origin instead of positioned tspans.
+      const span = element.querySelector('tspan');
+      if (span instanceof SVGTSpanElement) {
+        let x = span.x.baseVal.getItem(0).value;
+        const y = span.y.baseVal.getItem(0).value;
+        const anchor = element.getAttribute('text-anchor');
+        const width = span.getComputedTextLength();
+        if (anchor === 'start') x += width / 2;
+        if (anchor === 'end') x -= width / 2;
+        const point = new DOMPoint(x, y).matrixTransform(matrix);
+        return { x: point.x, y: point.y };
+      }
+      const box =
+        element instanceof SVGForeignObjectElement
+          ? {
+              x: element.x.baseVal.value,
+              y: element.y.baseVal.value,
+              width: element.width.baseVal.value,
+              height: element.height.baseVal.value,
+            }
+          : element.getBBox();
+      const point = new DOMPoint(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      ).matrixTransform(matrix);
+      return { x: point.x, y: point.y };
+    }
+    const box = element.getBoundingClientRect();
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  });
+  await page.mouse.click(point.x, point.y);
 }
 async function properties(page: Page, id: string) {
   await clickRegion(

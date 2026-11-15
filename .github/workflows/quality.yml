@@ -31,7 +31,7 @@ jobs:
       - run: pnpm check:docs
       - run: pnpm check:licenses
       - run: pnpm audit --audit-level high
-      - if: runner.os == 'Linux'
+      - if: ${{ !cancelled() && runner.os == 'Linux' }}
         run: pnpm exec playwright install --with-deps chromium firefox webkit
       - if: runner.os == 'Linux'
         run: pnpm test:e2e
@@ -41,7 +41,9 @@ jobs:
       # the form to the real endpoint rather than to a stand-in.
       # php8.4-xml provides ext-dom, which PHPUnit requires and which the
       # cli package does not pull in on its own.
-      - if: runner.os == 'Linux'
+      # Keep these independent checks provisioned after an earlier Studio
+      # failure, and stop scheduling them when this job is cancelled.
+      - if: ${{ !cancelled() && runner.os == 'Linux' }}
         name: Install PHP 8.4, PHP-FPM and Apache
         run: |
           sudo add-apt-repository -y ppa:ondrej/php
@@ -51,13 +53,13 @@ jobs:
             apache2 nginx-light libnginx-mod-http-js
           sudo update-alternatives --set php /usr/bin/php8.4
           php -v
-      - if: runner.os == 'Linux'
+      - if: ${{ !cancelled() && runner.os == 'Linux' }}
         name: Install the contact endpoint dependencies
         working-directory: apps/contact-php
         run: composer install --no-interaction --no-progress --prefer-dist
       # Syntax first, on the version production runs, then the manifest, then
       # the advisories, then the suite.
-      - if: runner.os == 'Linux'
+      - if: ${{ !cancelled() && runner.os == 'Linux' }}
         name: Check the contact endpoint
         working-directory: apps/contact-php
         run: |
@@ -65,31 +67,31 @@ jobs:
           composer validate --no-check-publish
           composer audit
           vendor/bin/phpunit --no-coverage
-      - if: always() && runner.os == 'Linux'
+      - if: ${{ !cancelled() && runner.os == 'Linux' }}
         run: pnpm test:website
       # The generated container configuration is checked against a real NGINX
       # with the njs module, which is what decides the language in production.
       # Linux only: the check reports what is missing and passes elsewhere.
-      - if: always() && runner.os == 'Linux'
+      - if: ${{ !cancelled() && runner.os == 'Linux' }}
         run: pnpm website:nginx
       # And the generated Apache fragment is checked against a real Apache
       # with PHP-FPM behind it, serving the real endpoint. An Alias after a
       # catch-all never fires and a misplaced <Files> grants too much; neither
       # shows up in a reading of the file.
-      - if: always() && runner.os == 'Linux'
+      - if: ${{ !cancelled() && runner.os == 'Linux' }}
         run: pnpm website:apache
       # And the generated alias redirects are checked against a real Apache
       # too. A RedirectMatch with a negative lookahead reads correctly and
       # behaves otherwise, and nothing in this repository can redirect a
       # request for koxora.de, so proving the rules before an operator
       # installs them is the whole of what the repository can contribute.
-      - if: always() && runner.os == 'Linux'
+      - if: ${{ !cancelled() && runner.os == 'Linux' }}
         run: pnpm website:aliases
       # Resolves the compose file, then builds the image, runs it and asks it
       # for every address the emitted pages reference. A published file the
       # unprivileged worker cannot read is answered with 403 one address at a
       # time, which is invisible in a build log.
-      - if: always() && runner.os == 'Linux'
+      - if: ${{ !cancelled() && runner.os == 'Linux' }}
         run: pnpm website:container
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
