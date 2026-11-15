@@ -65,6 +65,96 @@ function insert(
   );
 }
 describe('shape registry and geometry', () => {
+  it('document connector rays leave the wavy outline without re-entering it', () => {
+    const geometry = { x: 0, y: 0, width: 100, height: 100, rotation: 0 };
+    const center = shapeCenter(geometry);
+    let previous: { x: number; y: number } | undefined;
+    for (let angle = 36.8; angle <= 37.25; angle += 0.01) {
+      const radians = (angle * Math.PI) / 180;
+      const dx = Math.cos(radians),
+        dy = Math.sin(radians);
+      const anchor = boundaryPoint('document', geometry, {
+        x: center.x + dx * 1000,
+        y: center.y + dy * 1000,
+      });
+      for (let distance = 0.01; distance < 60; distance += 0.5)
+        expect(
+          containsShape('document', geometry, {
+            x: anchor.x + dx * distance,
+            y: anchor.y + dy * distance,
+          }),
+        ).toBe(false);
+      if (previous)
+        expect(
+          Math.hypot(anchor.x - previous.x, anchor.y - previous.y),
+        ).toBeLessThan(1);
+      previous = anchor;
+    }
+  });
+  it('picks new contours instead of their bounding rectangles', () => {
+    const geometry = { x: 0, y: 0, width: 100, height: 100, rotation: 0 };
+    const cases: [string, { x: number; y: number }, boolean][] = [
+      ['document', { x: 75, y: 82 }, false],
+      ['document', { x: 25, y: 95 }, true],
+      ['database', { x: 1, y: 1 }, false],
+      ['database', { x: 50, y: 1 }, true],
+      ['cloud', { x: 5, y: 5 }, false],
+      ['cloud', { x: 50, y: 60 }, true],
+      ['note', { x: 95, y: 5 }, false],
+      ['note', { x: 75, y: 5 }, true],
+      ['trapezoid', { x: 5, y: 5 }, false],
+      ['pentagon', { x: 5, y: 5 }, false],
+      ['octagon', { x: 5, y: 5 }, false],
+      ['chevron', { x: 5, y: 50 }, false],
+      ['chevron', { x: 70, y: 50 }, true],
+      ['cross', { x: 5, y: 5 }, false],
+      ['cross', { x: 50, y: 5 }, true],
+      ['cross', { x: 5, y: 50 }, true],
+    ];
+    for (const [kind, point, expected] of cases)
+      expect(
+        containsShape(kind, geometry, point),
+        `${kind} at ${JSON.stringify(point)}`,
+      ).toBe(expected);
+  });
+  it.each([
+    'document',
+    'database',
+    'cloud',
+    'note',
+    'predefined-process',
+    'trapezoid',
+    'pentagon',
+    'octagon',
+    'chevron',
+    'cross',
+  ])('%s maintains contour anchors through reflection and rotation', (kind) => {
+    const n = node(kind, -70, 25, 31);
+    n.geometry.flipX = true;
+    n.geometry.flipY = true;
+    const center = shapeCenter(n.geometry);
+    for (let angle = 0; angle < 360; angle += 15) {
+      const direction = (angle * Math.PI) / 180;
+      const boundary = boundaryPoint(kind, n.geometry, {
+        x: center.x + Math.cos(direction) * 1000,
+        y: center.y + Math.sin(direction) * 1000,
+      });
+      expect(
+        containsShape(kind, n.geometry, {
+          x: center.x + (boundary.x - center.x) * 0.999,
+          y: center.y + (boundary.y - center.y) * 0.999,
+        }),
+        `${kind} inside ray ${angle}`,
+      ).toBe(true);
+      expect(
+        containsShape(kind, n.geometry, {
+          x: center.x + (boundary.x - center.x) * 1.001,
+          y: center.y + (boundary.y - center.y) * 1.001,
+        }),
+        `${kind} outside ray ${angle}`,
+      ).toBe(false);
+    }
+  });
   it.each(shapeKinds)(
     '%s has renderable geometry, rotation-safe boundary and hit detection',
     (kind) => {

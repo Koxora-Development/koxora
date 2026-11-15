@@ -3,13 +3,18 @@ import { readFreehand, freehandContains } from './freehand';
 import { orderedElements } from './stacking';
 import { assertEditableElement } from './editing';
 import {
+  readTextRegions,
+  tableTextSummary,
+  type TextRegions,
+} from './text-regions';
+import {
   isDrawing,
   lineEndpoints,
   LINE_KEY,
   segmentDistance,
 } from './interaction';
 import { jsonObject } from './shapes';
-import type { Page, Style } from '@koxora/project';
+import type { Node, Page, Style } from '@koxora/project';
 import { intersects, type Bounds, type Point } from './viewport';
 import {
   containsShape,
@@ -24,6 +29,7 @@ import {
 import {
   connectionPath,
   readConnection,
+  readConnectionEndpoints,
   type ConnectionPath,
 } from './connections';
 export interface SceneNode {
@@ -33,6 +39,7 @@ export interface SceneNode {
   geometry: Geometry;
   label: string;
   richText?: RichText;
+  textRegions?: TextRegions;
   style: Appearance;
   editable: boolean;
   layerOrder: number;
@@ -47,6 +54,7 @@ export interface SceneConnection extends ConnectionPath {
   richText?: RichText;
   style: Appearance;
   arrow: boolean;
+  startArrow?: boolean;
   editable: boolean;
   layerOrder: number;
   paintOrder: number;
@@ -55,6 +63,19 @@ export interface Scene {
   nodes: SceneNode[];
   connections: SceneConnection[];
   bounds: Bounds | null;
+}
+/** Accessible names use authoritative regions while the body label stays separate. */
+export function sceneDisplayText(node: SceneNode | SceneConnection): string {
+  if ('textRegions' in node) {
+    if (node.textRegions?.type === 'table')
+      return tableTextSummary(node.textRegions);
+    if (node.textRegions?.type === 'container')
+      return [node.textRegions.title, node.label]
+        .filter((value) => value.trim().length > 0)
+        .join('\n')
+        .slice(0, MAX_TEXT);
+  }
+  return node.label;
 }
 export function unionBounds(bounds: Bounds[]): Bounds | null {
   if (!bounds.length) return null;
@@ -130,6 +151,7 @@ export function buildScene(
             typeof node.content.text === 'string'
               ? node.content.text.slice(0, MAX_TEXT)
               : node.kind.slice(0, 120),
+          textRegions: readTextRegions(node) ?? undefined,
           style,
           editable: layer.editable && supported(node),
           layerOrder: layer.order,
@@ -142,21 +164,33 @@ export function buildScene(
   const byId = new Map(page.nodes.map((n) => [n.id, n]));
   const connections: SceneConnection[] = page.connections
     .flatMap((edge) => {
-      const s = visible.get(edge.sourceId),
-        t = visible.get(edge.targetId),
+      const endpoints = readConnectionEndpoints(edge),
         layer = layers.get(edge.layerId);
-      if (!s || !t || !layer?.visible) return [];
+      if (!endpoints || !layer?.visible) return [];
+      const s =
+          'nodeId' in endpoints.source
+            ? visible.get(endpoints.source.nodeId)
+            : undefined,
+        t =
+          'nodeId' in endpoints.target
+            ? visible.get(endpoints.target.nodeId)
+            : undefined;
+      if (
+        ('nodeId' in endpoints.source && !s) ||
+        ('nodeId' in endpoints.target && !t)
+      )
+        return [];
       const style = appearance(edge, CONNECTION_KEY),
         options = readConnection(edge);
       const path = connectionPath(
-        byId.get(s.id)!,
-        byId.get(t.id)!,
+        s ? byId.get(s.id)! : (endpoints.source as { point: Point }).point,
+        t ? byId.get(t.id)! : (endpoints.target as { point: Point }).point,
         options,
         edge.waypoints
           .filter((p) => Math.abs(p.x) <= 1e12 && Math.abs(p.y) <= 1e12)
           .slice(0, 2048),
-        s.style.cornerRadius,
-        t.style.cornerRadius,
+        s?.style.cornerRadius ?? 0,
+        t?.style.cornerRadius ?? 0,
       );
       return [
         {
@@ -165,34 +199,16 @@ export function buildScene(
           richText: readRichText(edge),
           label: options.label,
           arrow: options.arrow,
+          startArrow: options.startArrow === true,
           style,
           editable:
-            layer.editable && s.editable && t.editable && supported(edge),
+            layer.editable &&
+            (s?.editable ?? true) &&
+            (t?.editable ?? true) &&
+            supported(edge),
           layerOrder: layer.order,
           paintOrder: order.get(edge.id)!,
-          bounds: unionBounds([
-            path.bounds,
-            ...(options.label
-              ? [
-                  connectionLabelBounds(
-                    path.labelPoint,
-                    options.label,
-                    style,
-                    readRichText(edge),
-                  ),
-                ]
-              : []),
-            {
-              x:
-                path.points.at(-1)!.x -
-                Math.max(16, style.strokeWidth * 3 * 1.12),
-              y:
-                path.points.at(-1)!.y -
-                Math.max(16, style.strokeWidth * 3 * 1.12),
-              width: Math.max(16, style.strokeWidth * 3 * 1.12) * 2,
-              height: Math.max(16, style.strokeWidth * 3 * 1.12) * 2,
-            },
-          ])!,
+          bounds: edgeBounds(path, options.label, style, readRichText(edge)),
         },
       ];
     })
@@ -233,7 +249,14 @@ export function pickNode(
               n.geometry,
               point,
               tolerance + n.style.strokeWidth / 2,
-            )
+            ) ||
+            (!!n.label &&
+              containsShape(
+                'rectangle',
+                freehandTextGeometry(n.geometry),
+                point,
+                0,
+              ))
           : isDrawing(n.kind)
             ? segmentDistance(point, ...lineEndpoints(n.geometry)) <=
               tolerance + n.style.strokeWidth / 2
@@ -267,41 +290,41 @@ export function transformScene(
   const edges = new Map(page.connections.map((e) => [e.id, e]));
   const connections = scene.connections.map((e) => {
     const edge = edges.get(e.id)!;
-    if (!geometries[edge.sourceId] && !geometries[edge.targetId]) return e;
-    const source = byId.get(edge.sourceId)!,
-      target = byId.get(edge.targetId)!;
+    if (
+      !(edge.sourceId && geometries[edge.sourceId]) &&
+      !(edge.targetId && geometries[edge.targetId])
+    )
+      return e;
+    const endpoints = readConnectionEndpoints(edge);
+    if (!endpoints) return e;
+    const source =
+        'nodeId' in endpoints.source
+          ? byId.get(endpoints.source.nodeId)
+          : undefined,
+      target =
+        'nodeId' in endpoints.target
+          ? byId.get(endpoints.target.nodeId)
+          : undefined;
+    const sourceNode: Node | Point = source
+      ? { ...originals.get(source.id)!, geometry: source.geometry }
+      : (endpoints.source as { point: Point }).point;
+    const targetNode: Node | Point = target
+      ? { ...originals.get(target.id)!, geometry: target.geometry }
+      : (endpoints.target as { point: Point }).point;
     const path = connectionPath(
-      { ...originals.get(source.id)!, geometry: source.geometry },
-      { ...originals.get(target.id)!, geometry: target.geometry },
+      sourceNode,
+      targetNode,
       readConnection(edge),
       edge.waypoints
         .filter((p) => Math.abs(p.x) <= 1e12 && Math.abs(p.y) <= 1e12)
         .slice(0, 2048),
-      source.style.cornerRadius,
-      target.style.cornerRadius,
+      source?.style.cornerRadius ?? 0,
+      target?.style.cornerRadius ?? 0,
     );
     return {
       ...e,
       ...path,
-      bounds: unionBounds([
-        path.bounds,
-        ...(e.label
-          ? [
-              connectionLabelBounds(
-                path.labelPoint,
-                e.label,
-                e.style,
-                e.richText,
-              ),
-            ]
-          : []),
-        {
-          x: path.points.at(-1)!.x - e.style.strokeWidth * 4,
-          y: path.points.at(-1)!.y - e.style.strokeWidth * 4,
-          width: e.style.strokeWidth * 8,
-          height: e.style.strokeWidth * 8,
-        },
-      ])!,
+      bounds: edgeBounds(path, e.label, e.style, e.richText),
     };
   });
   return { nodes, connections, bounds: scene.bounds };
@@ -320,6 +343,8 @@ function nodeBounds(
       ? Math.max(16, style.strokeWidth * 4)
       : style.strokeWidth / 2,
   );
+  if (kind === 'freehand' && label)
+    return unionBounds([bounds, geometryBounds(freehandTextGeometry(g))])!;
   if (!isDrawing(kind) || !label) return bounds;
   return unionBounds([
     bounds,
@@ -329,6 +354,49 @@ function nodeBounds(
       style,
       richText,
     ),
+  ])!;
+}
+
+/** A centered, bounded text field remains legible even on a dot or a narrow stroke. */
+export function freehandTextBox(g: Geometry): Bounds {
+  const width = Math.max(120, Math.min(240, g.width - 20));
+  const height = Math.max(48, Math.min(512, g.height - 12));
+  return {
+    x: (g.width - width) / 2,
+    y: (g.height - height) / 2,
+    width,
+    height,
+  };
+}
+function freehandTextGeometry(g: Geometry): Geometry {
+  const box = freehandTextBox(g);
+  return {
+    ...g,
+    x: g.x + box.x,
+    y: g.y + box.y,
+    width: box.width,
+    height: box.height,
+  };
+}
+
+function edgeBounds(
+  path: ConnectionPath,
+  label: string,
+  style: Appearance,
+  rich?: RichText,
+): Bounds {
+  const padding = Math.max(16, style.strokeWidth * 4);
+  return unionBounds([
+    path.bounds,
+    ...(label
+      ? [connectionLabelBounds(path.labelPoint, label, style, rich)]
+      : []),
+    ...[path.points[0], path.points.at(-1)!].map((point) => ({
+      x: point.x - padding,
+      y: point.y - padding,
+      width: padding * 2,
+      height: padding * 2,
+    })),
   ])!;
 }
 

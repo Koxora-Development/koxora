@@ -60,6 +60,44 @@
 .start-library {
   min-width: 0;
 }
+.start-search-row {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: calc(8px * var(--ui-scale, 1));
+  padding-block: calc(12px * var(--ui-scale, 1));
+  min-width: 0;
+}
+.start-search-row label {
+  display: grid;
+  gap: calc(5px * var(--ui-scale, 1));
+  flex: 1 1 calc(220px * var(--ui-scale, 1));
+  min-width: 0;
+  max-width: 100%;
+  font-size: calc(12px * var(--ui-scale, 1));
+}
+.start-search-row input {
+  min-width: 0;
+  width: 100%;
+  font: inherit;
+}
+.start-search-count,
+.start-search-recovery {
+  margin: 0;
+  color: var(--muted);
+  font-size: calc(11px * var(--ui-scale, 1));
+  line-height: 1.5;
+}
+.start-search-count {
+  padding-bottom: calc(6px * var(--ui-scale, 1));
+}
+.start-search-recovery {
+  padding-bottom: calc(8px * var(--ui-scale, 1));
+}
+.studio-shell .start-search-empty {
+  align-items: center;
+  flex-wrap: wrap;
+}
 .start-section-heading {
   display: flex;
   justify-content: space-between;

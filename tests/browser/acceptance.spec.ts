@@ -413,7 +413,10 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
   await canvas(page).focus();
   await page.keyboard.press('Enter');
   await page.getByLabel('Label / text', { exact: true }).fill('Text sample');
-  await button(page, 'Apply changes').click();
+  await page
+    .getByRole('dialog', { name: 'Edit text on canvas', exact: true })
+    .getByRole('button', { name: 'Close', exact: true })
+    .click();
   const text = (await page
     .locator('[data-node-id]')
     .last()

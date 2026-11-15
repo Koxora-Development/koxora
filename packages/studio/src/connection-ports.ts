@@ -4,6 +4,7 @@ import {
   isDrawing,
   visibleBounds,
   visibleScene,
+  sceneDisplayText,
   type Anchor,
   type CanvasState,
   type Point,
@@ -88,7 +89,7 @@ export class ConnectionPorts {
         button.style.top = `${point.y}px`;
         const label = translate(this.locale, 'ports.label', {
           name:
-            node.label ||
+            sceneDisplayText(node) ||
             translate(this.locale, `shape.${node.kind}` as MessageKey),
           anchor: translate(this.locale, `ports.${anchor}`),
         });

@@ -260,7 +260,7 @@ test('standalone arrows have editable endpoints, labels and heads and survive po
     .getByRole('tab', { name: 'Format', exact: true })
     .click();
   await page.getByLabel('Arrowhead at start', { exact: true }).check();
-  await button(page, 'Apply changes').click();
+  await page.locator('.interactive-canvas').focus();
   await expect(page.locator('.scene-arrow')).toHaveCount(2);
   await save(page);
   const { path, project } = await exported(page);
@@ -350,7 +350,7 @@ test('burst keyboard nudges retain every command and ordinary text editing does 
   await page.getByLabel('Label / text', { exact: true }).fill('keep');
   await page.keyboard.press('Control+a');
   await page.keyboard.press('Backspace');
-  await button(page, 'Apply changes').click();
+  await page.locator('.interactive-canvas').focus();
   model = (await exported(page)).project.documents[0].pages[0];
   expect(model.nodes).toHaveLength(1);
   expect(model.nodes[0].content.text).toBe('');
@@ -591,7 +591,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
       await page
         .getByLabel('Label / text', { exact: true })
         .fill(['Draft & review', 'Validate', 'Ready to ship'][i]);
-      await button(page, 'Apply changes').click();
+      await page.locator('.interactive-canvas').focus();
     }
     await button(page, 'Arrow').click();
     for (let i = 0; i < 2; i++) {

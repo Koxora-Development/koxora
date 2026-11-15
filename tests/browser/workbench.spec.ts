@@ -165,7 +165,7 @@ test('expanded workbench keeps all four icon controls and sheet tabs available',
   ).toBeFocused();
 });
 
-test('start library uses compact project rows without a reserved template sidebar in EN and DE', async ({
+test('start library keeps compact rows and opens a separate template overview in EN and DE', async ({
   page,
 }) => {
   await page.goto('/');
@@ -199,9 +199,19 @@ test('start library uses compact project rows without a reserved template sideba
     page.getByRole('heading', { name: 'Projektbibliothek', level: 1 }),
   ).toBeVisible();
   await expect(page.locator('.start-templates')).toHaveCount(0);
+  await page
+    .locator('.start-actions')
+    .getByRole('button', { name: 'Vorlagen', exact: true })
+    .click();
   await expect(
-    page.getByRole('button', { name: 'Vorlagen', exact: true }),
-  ).toHaveCount(0);
+    page.getByRole('heading', { name: 'Vorlagen', level: 1 }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: 'Zurück zu Projekten', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Projektbibliothek', level: 1 }),
+  ).toBeFocused();
 });
 
 test('trash cancellation and restore retain data; confirmed permanent deletion removes all browser snapshots', async ({
@@ -280,39 +290,41 @@ test('trash cancellation and restore retain data; confirmed permanent deletion r
   await expect(page.locator('.start-project-row')).toHaveCount(0);
 });
 
-test('sheet navigation cannot discard pending properties', async ({ page }) => {
+test('sheet navigation retains live properties without an apply step', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openWorkbook(page);
   await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
   await page.locator('.interactive-canvas').focus();
   await page.keyboard.press('Enter');
+  const elementId = (await page
+    .locator('[data-node-id]')
+    .getAttribute('data-node-id'))!;
   const properties = page.getByRole('region', {
     name: 'Element properties',
     exact: true,
   });
   await properties.getByLabel('Width', { exact: true }).fill('248');
+  await expect(page.locator('.save-status')).toHaveText('Saved on this device');
   const tabs = page.getByRole('tablist', {
     name: 'Diagram pages',
     exact: true,
   });
   await tabs.getByRole('tab').first().focus();
   await page.keyboard.press('ArrowRight');
-  await expect(tabs.getByRole('tab').first()).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
-  await expect(properties.getByLabel('Width', { exact: true })).toHaveValue(
-    '248',
-  );
-  await expect(page.locator('.save-status')).toHaveText('Unapplied properties');
-  await properties
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
-  await tabs.getByRole('tab').first().focus();
-  await page.keyboard.press('ArrowRight');
   await expect(tabs.getByRole('tab').nth(1)).toHaveAttribute(
     'aria-selected',
     'true',
+  );
+  await tabs.getByRole('tab').first().click();
+  if (!(await page.getByLabel('Diagram element', { exact: true }).isVisible()))
+    await page.getByRole('button', { name: 'Objects', exact: true }).click();
+  await page
+    .getByLabel('Diagram element', { exact: true })
+    .selectOption(elementId);
+  await expect(properties.getByLabel('Width', { exact: true })).toHaveValue(
+    '248',
   );
 });
 

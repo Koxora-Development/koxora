@@ -218,8 +218,8 @@ export function applyWorkbook(
           ...remapConnectionLink(e, linkIds),
           id: mapped(e.id),
           layerId: mapped(e.layerId),
-          sourceId: mapped(e.sourceId),
-          targetId: mapped(e.targetId),
+          ...(e.sourceId ? { sourceId: mapped(e.sourceId) } : {}),
+          ...(e.targetId ? { targetId: mapped(e.targetId) } : {}),
         })),
         relationships: page.relationships.map((r) => ({
           ...r,

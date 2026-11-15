@@ -73,8 +73,10 @@ export interface Node extends Extensible {
 }
 export interface Connection extends Extensible {
   id: string;
-  sourceId: string;
-  targetId: string;
+  sourceId?: string;
+  targetId?: string;
+  sourcePoint?: Point;
+  targetPoint?: Point;
   layerId: string;
   relationType: string;
   waypoints: Point[];

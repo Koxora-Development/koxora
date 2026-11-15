@@ -80,9 +80,7 @@ test('sheet names are editable by double-click, F2 and context menu without chan
   await sheets.getByRole('tab').first().press('Shift+F10');
   await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
   await rename.getByLabel('Name', { exact: true }).fill('First sheet');
-  await rename
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await rename.getByRole('button', { name: 'Rename', exact: true }).click();
   await expect(sheets.getByRole('tab').first()).toHaveText('First sheet');
   await expect(page.locator('.canvas-workbook-expanded')).toBeVisible();
   await expect(sheets.getByRole('tab').last()).toHaveAttribute(
@@ -91,7 +89,7 @@ test('sheet names are editable by double-click, F2 and context menu without chan
   );
 });
 
-test('GUI scaling enlarges controls while retaining diagram zoom and unapplied properties, and persists offline', async ({
+test('GUI scaling enlarges controls while retaining diagram zoom and live properties, and persists offline', async ({
   page,
   context,
 }) => {
@@ -137,10 +135,8 @@ test('GUI scaling enlarges controls while retaining diagram zoom and unapplied p
   await expect(properties.getByLabel('Width', { exact: true })).toHaveValue(
     '248',
   );
-  await expect(page.locator('.save-status')).toHaveText('Unapplied properties');
-  await properties
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await expect(page.locator('.save-status')).toHaveText('Saved on this device');
+  await page.locator('.interactive-canvas').focus();
   await expect(page.locator('.save-status')).toHaveText('Saved on this device');
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;

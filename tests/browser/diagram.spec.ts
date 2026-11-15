@@ -97,7 +97,7 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
       await page.getByRole('tab', { name: 'Text', exact: true }).click();
       await page.getByLabel('Text size', { exact: true }).fill('18');
     }
-    await button(page, 'Apply changes').click();
+    await page.locator('.interactive-canvas').focus();
   }
   await button(page, 'Arrow').click();
   await page.getByLabel('Repeat insertion', { exact: true }).check();
@@ -121,7 +121,7 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
     .first()
     .getAttribute('data-connection-id');
   await edit(page, edge!, 'Yes');
-  await button(page, 'Apply changes').click();
+  await page.locator('.interactive-canvas').focus();
   await button(page, 'Navigate').click();
   await expect(page.locator('.scene-label').first()).toHaveText(
     'PrepareGrüße 世界',
@@ -180,7 +180,7 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
   await expect(page.locator('[data-node-id]')).toHaveCount(3);
   await expect(page.locator('.scene-arrow')).toHaveCount(2);
   await edit(page, ids[2], 'Published ✓');
-  await button(page, 'Apply changes').click();
+  await page.locator('.interactive-canvas').focus();
   await save(page);
   await button(page, 'Import .koxora').click();
   await page.getByLabel('Import as a new project').check();
@@ -191,7 +191,7 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.locator('[data-node-id]')).toHaveCount(3);
   await edit(page, ids[2], 'Imported and editable');
-  await button(page, 'Apply changes').click();
+  await page.locator('.interactive-canvas').focus();
   await save(page);
 });
 test('all shape tools, keyboard text, transformed snapping, cancellation and navigation stay independent', async ({
@@ -230,7 +230,10 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
   await page
     .getByRole('textbox', { name: 'Label / text', exact: true })
     .fill('Standalone\nעברית <img src=x>');
-  await button(page, 'Apply changes').click();
+  await page
+    .getByRole('dialog', { name: 'Edit text on canvas', exact: true })
+    .getByRole('button', { name: 'Close', exact: true })
+    .click();
   await button(page, 'Snap').click();
   await page.getByLabel('Spacing', { exact: true }).fill('32');
   await button(page, 'Zoom in').click();
@@ -291,7 +294,7 @@ test('German tools and docked properties stay usable after resize', async ({
   await page
     .getByRole('textbox', { name: 'Beschriftung / Text', exact: true })
     .fill('Prüfung bestanden');
-  await button(page, 'Änderungen übernehmen').click();
+  await page.locator('.interactive-canvas').focus();
   for (const width of [360, 800, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(

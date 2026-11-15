@@ -356,7 +356,7 @@ test('combined storage migration holds warm requests until the dialog closes and
     .toBe(2);
 });
 
-test('warm requests wait for unapplied docked link drafts without losing their values', async ({
+test('warm requests wait for a live link edit to finish saving without losing its value', async ({
   page,
 }) => {
   let source = createProject(
@@ -395,32 +395,14 @@ test('warm requests wait for unapplied docked link drafts without losing their v
   });
   await properties.getByRole('tab', { name: 'Links', exact: true }).click();
   await properties.getByLabel('Link type', { exact: true }).selectOption('url');
-  await properties
-    .getByLabel('URL address', { exact: true })
-    .fill('https://example.org/pending-draft');
-  await enqueue(page, await bytes('After link dialog'));
-  await page.waitForTimeout(1800);
-  await expect(
-    properties.getByLabel('URL address', { exact: true }),
-  ).toHaveValue('https://example.org/pending-draft');
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          (window as unknown as { openingTest: { queue: unknown[] } })
-            .openingTest.queue.length,
-      ),
-    )
-    .toBe(1);
   await page.evaluate(() => {
     (
       window as unknown as { openingTest: { holdWrites: boolean } }
     ).openingTest.holdWrites = true;
   });
   await properties
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
-  await expect(properties).toBeVisible();
+    .getByLabel('URL address', { exact: true })
+    .fill('https://example.org/live-link');
   await expect
     .poll(() =>
       page.evaluate(
@@ -430,6 +412,20 @@ test('warm requests wait for unapplied docked link drafts without losing their v
       ),
     )
     .toBe(true);
+  await enqueue(page, await bytes('After link dialog'));
+  await page.waitForTimeout(1800);
+  await expect(
+    properties.getByLabel('URL address', { exact: true }),
+  ).toHaveValue('https://example.org/live-link');
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { openingTest: { queue: unknown[] } })
+            .openingTest.queue.length,
+      ),
+    )
+    .toBe(1);
   await expect(
     page
       .getByRole('complementary', { name: 'Properties', exact: true })
@@ -457,7 +453,7 @@ test('warm requests wait for unapplied docked link drafts without losing their v
   const saved = await parseProject(JSON.parse(stored).current);
   expect(elementLink(saved, id)).toMatchObject({
     state: 'ready',
-    target: { type: 'url', url: 'https://example.org/pending-draft' },
+    target: { type: 'url', url: 'https://example.org/live-link' },
   });
 });
 
@@ -517,9 +513,7 @@ test('an explicit local follow during an in-flight save runs once after the writ
     name: 'Element properties',
     exact: true,
   });
-  await properties
-    .getByRole('button', { name: 'Discard', exact: true })
-    .click();
+  await page.locator('.interactive-canvas').focus();
   await expect(properties).toBeVisible();
   await page.evaluate(() => {
     (

@@ -1,5 +1,5 @@
 import { InfoDisclosure } from './info-disclosure';
-import { useId, type Ref } from 'react';
+import { useId, useRef, useState, type Ref } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Icon } from '@koxora/ui';
 import type { Project } from '@koxora/project';
@@ -17,6 +17,7 @@ export interface StartPageProps {
   native: boolean;
   titleRef?: Ref<HTMLHeadingElement>;
   onCreate: () => void;
+  onTemplates: () => void;
   onImport: () => void;
   onRefresh: () => void;
   onOpen: (id: string) => void;
@@ -34,6 +35,7 @@ export function StartPage({
   native,
   titleRef,
   onCreate,
+  onTemplates,
   onImport,
   onRefresh,
   onOpen,
@@ -43,6 +45,26 @@ export function StartPage({
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
     translate(locale, key, values);
   const libraryId = useId();
+  const resultsId = useId();
+  const countId = useId();
+  const searchInput = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState('');
+  const normalize = (value: string) =>
+    value.normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase(locale);
+  const search = normalize(query.trim());
+  const matching = items.filter((item) => {
+    // Recovery entries have no readable title. Keep their recovery action reachable.
+    if (item.title === null) return true;
+    const title =
+      project?.manifest.projectId === item.id
+        ? project.manifest.title
+        : item.title;
+    return !search || normalize(title).includes(search);
+  });
+  const clearSearch = () => {
+    setQuery('');
+    searchInput.current?.focus();
+  };
   const dates = new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -65,6 +87,10 @@ export function StartPage({
             <Icon name="plus" />
             {t('start.blank')}
           </button>
+          <button className="button" disabled={busy} onClick={onTemplates}>
+            <Icon name="layers" />
+            {t('templates.heading')}
+          </button>
           <button className="button" disabled={busy} onClick={onImport}>
             <Icon name="import" />
             {t('start.openFile')}
@@ -77,7 +103,7 @@ export function StartPage({
             <h2 id={libraryId}>
               {t('project.recent')}
               <span className="start-count">
-                {new Intl.NumberFormat(locale).format(items.length)}
+                {new Intl.NumberFormat(locale).format(matching.length)}
               </span>
             </h2>
             <button
@@ -91,6 +117,36 @@ export function StartPage({
               {t('project.refresh')}
             </button>
           </div>
+          <div className="start-search-row">
+            <label>
+              {t('start.search' as MessageKey)}
+              <input
+                ref={searchInput}
+                type="search"
+                autoComplete="off"
+                value={query}
+                aria-controls={resultsId}
+                aria-describedby={countId}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            {query && (
+              <button className="button" onClick={clearSearch}>
+                {t('start.clearSearch' as MessageKey)}
+              </button>
+            )}
+            <p id={countId} className="start-search-count" role="status">
+              {t('start.searchResults' as MessageKey, {
+                count: new Intl.NumberFormat(locale).format(matching.length),
+                total: new Intl.NumberFormat(locale).format(items.length),
+              })}
+            </p>
+          </div>
+          {search && items.some((item) => item.title === null) && (
+            <p className="start-search-recovery">
+              {t('start.recoverySearchHelp' as MessageKey)}
+            </p>
+          )}
           {operation && (
             <p className="start-loading" role="status">
               <span className="spinner" />
@@ -98,12 +154,16 @@ export function StartPage({
             </p>
           )}
           {!items.length && !busy ? (
-            <div className="start-empty">
+            <div className="start-empty" id={resultsId}>
               <Icon name="file" />
               <div>
                 <h3>{t('dashboard.emptyTitle')}</h3>
                 <p>{t('dashboard.emptyDescription')}</p>
               </div>
+            </div>
+          ) : !matching.length && !busy ? (
+            <div className="start-empty start-search-empty" id={resultsId}>
+              <p>{t('start.noMatches' as MessageKey)}</p>
             </div>
           ) : (
             <>
@@ -112,8 +172,8 @@ export function StartPage({
                 <span>{t('start.updated')}</span>
                 <span />
               </div>
-              <ul className="start-project-list">
-                {items.map((item) => {
+              <ul className="start-project-list" id={resultsId}>
+                {matching.map((item) => {
                   const active = project?.manifest.projectId === item.id;
                   const updated = item.updatedAt
                     ? new Date(item.updatedAt)

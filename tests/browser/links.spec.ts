@@ -96,8 +96,8 @@ async function properties(page: Page, elementId: string) {
   return dock;
 }
 async function select(page: Page, elementId: string) {
-  const dialog = await properties(page, elementId);
-  await dialog.getByRole('button', { name: 'Discard', exact: true }).click();
+  await properties(page, elementId);
+  await page.locator('.interactive-canvas').focus();
 }
 async function linkAction(page: Page, name = 'Open link') {
   const canvas = page.locator('.interactive-canvas');
@@ -110,7 +110,7 @@ async function noLink(page: Page, elementId: string) {
   await expect(dock.getByLabel('Link type', { exact: true })).toHaveValue(
     'none',
   );
-  await dock.getByRole('button', { name: 'Discard', exact: true }).click();
+  await page.locator('.interactive-canvas').focus();
 }
 async function german(page: Page) {
   await button(page, 'Settings…').click();
@@ -142,6 +142,9 @@ test('authors and undoes page links, retaining stable destinations after rename 
   await open(page, project);
   let dialog = await properties(page, node.id);
   await dialog.getByLabel('Link type', { exact: true }).selectOption('page');
+  const firstDestination = await dialog
+    .getByLabel('Destination page', { exact: true })
+    .inputValue();
   await dialog
     .getByLabel('Destination page', { exact: true })
     .selectOption(dest.id);
@@ -151,16 +154,24 @@ test('authors and undoes page links, retaining stable destinations after rename 
       path: 'docs/design/screenshots/phase-2.6/link-properties-en.png',
     });
   }
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await page.locator('.interactive-canvas').focus();
   await expect(await linkAction(page)).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator(`[data-node-id="${node.id}"] title`)).toContainText(
     'Reference / Details page',
   );
   await button(page, 'Undo').click();
+  dialog = await properties(page, node.id);
+  await expect(
+    dialog.getByLabel('Destination page', { exact: true }),
+  ).toHaveValue(firstDestination);
+  await button(page, 'Undo').click();
   await noLink(page, node.id);
+  await button(page, 'Redo').click();
+  dialog = await properties(page, node.id);
+  await expect(
+    dialog.getByLabel('Destination page', { exact: true }),
+  ).toHaveValue(firstDestination);
   await button(page, 'Redo').click();
   dialog = await properties(page, node.id);
   await expect(
@@ -169,9 +180,7 @@ test('authors and undoes page links, retaining stable destinations after rename 
   await dialog
     .getByRole('button', { name: 'Remove link', exact: true })
     .click();
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await page.locator('.interactive-canvas').focus();
   await noLink(page, node.id);
   await button(page, 'Undo').click();
   if (!(await page.locator('.project-sidebar').isVisible()))
@@ -239,17 +248,18 @@ test('opens external URLs only deliberately, without opener access or referrer',
     'https://user:pass@example.com',
   ]) {
     await dialog.getByLabel('URL address', { exact: true }).fill(url);
-    await expect(
-      dialog.getByRole('button', { name: 'Apply changes', exact: true }),
-    ).toBeDisabled();
+    await expect(dialog.getByRole('alert')).toContainText(
+      'Enter a valid HTTP(S) or mailto URL without credentials or control characters.',
+    );
+    expect(elementLink(await exported(page), node.id).state).toBe('none');
   }
   await dialog
     .getByLabel('URL address', { exact: true })
     .fill('https://example.com/help');
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
-  await page.locator(`[data-node-id="${node.id}"]`).click();
+  await page.locator('.interactive-canvas').focus();
+  await page
+    .locator(`[data-node-id="${node.id}"]`)
+    .click({ modifiers: ['Alt'] });
   await page.locator('.interactive-canvas').press('ArrowRight');
   await page
     .getByRole('menubar')
@@ -302,9 +312,7 @@ test('repairs missing connector destinations and follows links using German cont
   await dialog
     .getByLabel('Destination page', { exact: true })
     .selectOption(dest.id);
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await page.locator('.interactive-canvas').focus();
   expect(elementLink(await exported(page), edge.id)).toEqual({
     state: 'ready',
     target: { type: 'page', pageId: dest.id },
@@ -369,9 +377,7 @@ test('native IPC receives only an explicitly followed URL and reports opener fai
   await dialog
     .getByLabel('URL address', { exact: true })
     .fill('https://example.com/');
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await page.locator('.interactive-canvas').focus();
   expect(
     await page.evaluate(
       () => (window as unknown as { nativeLinks: string[] }).nativeLinks,
@@ -409,9 +415,7 @@ test('keeps future link configurations inert while allowing unrelated edits', as
       { exact: true },
     ),
   ).toBeVisible();
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await page.locator('.interactive-canvas').focus();
   await expect(await linkAction(page)).toBeDisabled();
   await page.keyboard.press('Escape');
   expect(

@@ -287,7 +287,7 @@ export function WorkbookTabs({
                 className="button primary"
                 disabled={locked || !name.trim() || name.trim().length > 1024}
               >
-                {t('diagram.apply')}
+                {t('tabs.rename')}
               </button>
             </div>
           </form>

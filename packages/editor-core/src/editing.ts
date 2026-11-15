@@ -11,7 +11,6 @@ import {
   plainText,
   richTextJson,
   formatRichText,
-  TEXT_ATTRIBUTES,
   type RichText,
 } from './rich-text';
 import { FREEHAND_KEY, freehandGeometry, readFreehand } from './freehand';
@@ -24,6 +23,8 @@ import {
 } from './stacking';
 import {
   validateProject,
+  FREEHAND_TEXT_FEATURE,
+  FREEHAND_TEXT_KEY,
   type Project,
   type Node,
   type Connection,
@@ -48,7 +49,28 @@ import {
   type Appearance,
   type ShapeKind,
 } from './shapes';
-import { type ConnectionOptions, readConnection } from './connections';
+import {
+  type ConnectionOptions,
+  type ConnectionEndpoint,
+  readConnection,
+  readConnectionEndpoints,
+  validConnectionPoint,
+  FLOATING_CONNECTIONS_FEATURE,
+} from './connections';
+import {
+  defaultTextRegions,
+  isTextRegions,
+  readTextRegions,
+  tableTextSummary,
+  TEXT_REGIONS_KEY,
+  TEXT_REGIONS_FEATURE,
+  MAX_TABLE_CELL_TEXT,
+  ADVANCED_TEXT_REGIONS_FEATURE,
+  hasAdvancedTextRegions,
+  setRegionRichText,
+  type TextRegionTarget,
+  type TextRegions,
+} from './text-regions';
 export type EditCommand =
   | { type: 'link'; id: string; link: LinkChange }
   | {
@@ -63,6 +85,12 @@ export type EditCommand =
   | { type: 'format'; ids: string[]; patch: Partial<Appearance> }
   | { type: 'richText'; id: string; value: RichText }
   | {
+      type: 'regionText';
+      id: string;
+      target: TextRegionTarget;
+      value: RichText;
+    }
+  | {
       type: 'insert';
       id: string;
       kind: ShapeKind;
@@ -71,12 +99,16 @@ export type EditCommand =
       text?: string;
       geometry?: Geometry;
       snap?: boolean;
+      startArrow?: boolean;
+      endArrow?: boolean;
     }
   | {
       type: 'connect';
       id: string;
-      sourceId: string;
-      targetId: string;
+      sourceId?: string;
+      targetId?: string;
+      sourcePoint?: Point;
+      targetPoint?: Point;
       layerId: string;
       options: ConnectionOptions;
     }
@@ -115,6 +147,7 @@ export type EditCommand =
       geometry?: Geometry;
       startArrow?: boolean;
       endArrow?: boolean;
+      textRegions?: TextRegions;
     }
   | {
       type: 'updateConnection';
@@ -123,6 +156,8 @@ export type EditCommand =
       id: string;
       options: ConnectionOptions;
       style: Appearance;
+      source?: ConnectionEndpoint;
+      target?: ConnectionEndpoint;
     };
 export class EditError extends Error {
   constructor(
@@ -147,6 +182,7 @@ function options(value: ConnectionOptions) {
   if (
     !['straight', 'orthogonal', 'curved'].includes(value.routing) ||
     typeof value.arrow !== 'boolean' ||
+    (value.startArrow !== undefined && typeof value.startArrow !== 'boolean') ||
     ![value.sourceAnchor, value.targetAnchor].every((a) =>
       ['auto', 'north', 'east', 'south', 'west'].includes(a),
     )
@@ -160,6 +196,12 @@ export function assertEditableElement(item: Node | Connection): void {
   if ('kind' in item) {
     const n = item as Node;
     if (
+      (n.extensions[TEXT_REGIONS_KEY] !== undefined && !readTextRegions(n)) ||
+      (n.kind === 'table' &&
+        (!readTextRegions(n) || n.extensions[RICH_TEXT_KEY] !== undefined))
+    )
+      throw new EditError('unsupported');
+    if (
       ['flipX', 'flipY'].some(
         (key) =>
           n.geometry[key] !== undefined && typeof n.geometry[key] !== 'boolean',
@@ -169,6 +211,9 @@ export function assertEditableElement(item: Node | Connection): void {
     if (
       (!isShapeKind(n.kind) && n.kind !== 'freehand') ||
       (n.kind === 'freehand' && !readFreehand(n)) ||
+      (n.extensions[FREEHAND_TEXT_KEY] !== undefined &&
+        (n.kind !== 'freehand' ||
+          jsonObject(n.extensions[FREEHAND_TEXT_KEY]).version !== 1)) ||
       !editableExtension(n.extensions[ELEMENT_KEY]) ||
       (isDrawing(n.kind) &&
         (!editableExtension(n.extensions[LINE_KEY]) ||
@@ -186,10 +231,12 @@ export function assertEditableElement(item: Node | Connection): void {
       raw = jsonObject(e.extensions[CONNECTION_KEY]);
     if (!editableExtension(e.extensions[CONNECTION_KEY]))
       throw new EditError('unsupported');
+    if (!readConnectionEndpoints(e)) throw new EditError('unsupported');
     const normalized = readConnection(e);
     for (const k of [
       'routing',
       'arrow',
+      'startArrow',
       'label',
       'sourceAnchor',
       'targetAnchor',
@@ -222,14 +269,16 @@ function updateAppearance(
 /** Shared eligibility for pointer/keyboard linking, target hints and committed commands. */
 export function connectionError(
   page: Pick<Page, 'nodes' | 'connections' | 'layers'>,
-  sourceId: string,
-  targetId: string | null,
+  sourceId: string | undefined,
+  targetId: string | null | undefined,
   layerId: string,
   arrow: boolean,
 ): EditError['code'] | null {
   const layers = layerStates(page.layers);
   if (!layers.get(layerId)?.editable) return 'layer';
-  for (const id of [sourceId, ...(targetId ? [targetId] : [])]) {
+  for (const id of [sourceId, targetId].filter(
+    (id): id is string => id !== undefined && id !== null,
+  )) {
     const node = page.nodes.find((n) => n.id === id);
     if (!node || isDrawing(node.kind) || node.kind === 'freehand')
       return 'endpoint';
@@ -240,8 +289,9 @@ export function connectionError(
       return 'unsupported';
     }
   }
-  if (targetId === sourceId) return 'endpoint';
+  if (sourceId !== undefined && targetId === sourceId) return 'endpoint';
   if (
+    sourceId &&
     targetId &&
     page.connections.some(
       (c) =>
@@ -251,6 +301,53 @@ export function connectionError(
   )
     return 'duplicate';
   return null;
+}
+function writeEndpoint(
+  edge: Connection,
+  side: 'source' | 'target',
+  value: ConnectionEndpoint,
+): Connection {
+  if (!value || typeof value !== 'object') throw new EditError('invalid');
+  const next = { ...edge };
+  delete next[`${side}Id`];
+  delete next[`${side}Point`];
+  if (
+    'nodeId' in value &&
+    typeof value.nodeId === 'string' &&
+    !('point' in value)
+  )
+    next[`${side}Id`] = value.nodeId;
+  else if (
+    'point' in value &&
+    !('nodeId' in value) &&
+    validConnectionPoint(value.point)
+  )
+    next[`${side}Point`] = { ...value.point };
+  else throw new EditError('invalid');
+  return next;
+}
+function validateEndpoints(page: Page, edge: Connection, arrow: boolean): void {
+  if (!readConnectionEndpoints(edge)) throw new EditError('endpoint');
+  const error = connectionError(
+    {
+      ...page,
+      connections: page.connections.filter((item) => item.id !== edge.id),
+    },
+    edge.sourceId,
+    edge.targetId,
+    edge.layerId,
+    arrow,
+  );
+  if (error) throw new EditError(error);
+  if (
+    edge.sourcePoint &&
+    edge.targetPoint &&
+    Math.hypot(
+      edge.sourcePoint.x - edge.targetPoint.x,
+      edge.sourcePoint.y - edge.targetPoint.y,
+    ) < 1e-8
+  )
+    throw new EditError('endpoint');
 }
 /** One validated immutable transaction. IDs and time are supplied, so commands can be replayed by future history. */
 export function applyEdit(
@@ -345,6 +442,48 @@ export function applyEdit(
         },
       },
     ];
+  } else if (command.type === 'regionText') {
+    const n = node(command.id);
+    if (!isRichText(command.value)) throw new EditError('invalid');
+    if (command.target.type === 'container-body') {
+      if (n.kind !== 'container') throw new EditError('invalid');
+      const value = plainText(command.value);
+      nodes = nodes.map((item) =>
+        item.id !== n.id
+          ? item
+          : {
+              ...item,
+              content: { ...item.content, text: value },
+              extensions: {
+                ...item.extensions,
+                [RICH_TEXT_KEY]: richTextJson(structuredClone(command.value)),
+              },
+            },
+      );
+    } else {
+      const regions = defaultTextRegions(n);
+      if (!regions) throw new EditError('unsupported');
+      let updated: TextRegions;
+      try {
+        updated = setRegionRichText(regions, command.target, command.value);
+      } catch {
+        throw new EditError('invalid');
+      }
+      nodes = nodes.map((item) =>
+        item.id !== n.id
+          ? item
+          : {
+              ...item,
+              content: {
+                ...item.content,
+                ...(updated.type === 'table'
+                  ? { text: tableTextSummary(updated) }
+                  : {}),
+              },
+              extensions: { ...item.extensions, [TEXT_REGIONS_KEY]: updated },
+            },
+      );
+    }
   } else if (command.type === 'richText' || command.type === 'format') {
     const ids = new Set(command.type === 'format' ? command.ids : [command.id]);
     const items = [...nodes, ...connections].filter((item) => ids.has(item.id));
@@ -357,7 +496,7 @@ export function applyEdit(
     if (
       command.type === 'richText' &&
       (!isRichText(command.value) ||
-        items.some((item) => 'kind' in item && item.kind === 'freehand'))
+        items.some((item) => 'kind' in item && item.kind === 'table'))
     )
       throw new EditError('invalid');
     const update = <T extends Node | Connection>(item: T): T => {
@@ -396,19 +535,23 @@ export function applyEdit(
         delete patch.stroke;
         delete patch.strokeWidth;
       }
-      if ('kind' in item && item.kind === 'freehand') {
-        for (const key of TEXT_ATTRIBUTES) delete patch[key];
-        delete patch.align;
-      }
       if (!Object.keys(patch).length) return item;
       const desired = { ...old, ...patch };
       style(desired);
       const rich = readRichText(item);
+      const regions = 'kind' in item ? readTextRegions(item as Node) : null;
+      if (regions?.type === 'container' && regions.titleRichText)
+        regions.titleRichText = formatRichText(regions.titleRichText, patch);
+      if (regions?.type === 'table' && regions.cellRichText)
+        regions.cellRichText = regions.cellRichText.map((row) =>
+          row.map((cell) => (cell ? formatRichText(cell, patch) : null)),
+        );
       return {
         ...item,
         extensions: {
           ...item.extensions,
           [key]: { ...updateAppearance(item, key, desired, old), version: 1 },
+          ...(regions ? { [TEXT_REGIONS_KEY]: regions } : {}),
           ...(rich
             ? { [RICH_TEXT_KEY]: richTextJson(formatRichText(rich, patch)) }
             : {}),
@@ -420,6 +563,17 @@ export function applyEdit(
   } else if (command.type === 'insert') {
     editable(command.layerId);
     text(command.text ?? '');
+    if (
+      [command.startArrow, command.endArrow].some(
+        (value) => value !== undefined && typeof value !== 'boolean',
+      )
+    )
+      throw new EditError('invalid');
+    if (
+      !isDrawing(command.kind) &&
+      (command.startArrow !== undefined || command.endArrow !== undefined)
+    )
+      throw new EditError('invalid');
     if (
       !isShapeKind(command.kind) ||
       !Number.isFinite(command.position.x) ||
@@ -456,26 +610,53 @@ export function applyEdit(
       dataBindings: [],
       extensions: { [ELEMENT_KEY]: { version: 1 } },
     };
+    if (
+      isDrawing(command.kind) &&
+      (command.startArrow !== undefined || command.endArrow !== undefined)
+    )
+      created.extensions[LINE_KEY] = {
+        version: 1,
+        ...(command.startArrow !== undefined
+          ? { startArrow: command.startArrow }
+          : {}),
+        ...(command.endArrow !== undefined
+          ? { endArrow: command.endArrow }
+          : {}),
+      };
+    const regions = defaultTextRegions(created);
+    if (regions) {
+      if (regions.type === 'table' && command.text) {
+        if (command.text.length > MAX_TABLE_CELL_TEXT)
+          throw new EditError('invalid');
+        regions.cells[0][0] = command.text;
+      }
+      created.extensions[TEXT_REGIONS_KEY] = regions;
+      if (regions.type === 'table')
+        created.content.text = tableTextSummary(regions);
+    }
     nodes = [...nodes, created];
   } else if (command.type === 'connect') {
-    const error = connectionError(
-      page,
-      command.sourceId,
-      command.targetId,
-      command.layerId,
-      command.options.arrow,
-    );
-    if (error) throw new EditError(error);
     options(command.options);
     const edge: Connection = {
       id: command.id,
-      sourceId: command.sourceId,
-      targetId: command.targetId,
+      ...(command.sourceId !== undefined ? { sourceId: command.sourceId } : {}),
+      ...(command.targetId !== undefined ? { targetId: command.targetId } : {}),
+      ...(command.sourcePoint
+        ? { sourcePoint: { ...command.sourcePoint } }
+        : {}),
+      ...(command.targetPoint
+        ? { targetPoint: { ...command.targetPoint } }
+        : {}),
       layerId: command.layerId,
       relationType: 'connection',
       waypoints: [],
       extensions: { [CONNECTION_KEY]: { version: 1, ...command.options } },
     };
+    validateEndpoints(
+      page,
+      edge,
+      command.options.arrow || command.options.startArrow === true,
+    );
     connections = [...connections, edge];
   } else if (command.type === 'transform' || command.type === 'move') {
     const geometries =
@@ -514,7 +695,10 @@ export function applyEdit(
       }
     }
     for (const edge of connections) {
-      if (removed.has(edge.sourceId) || removed.has(edge.targetId)) {
+      if (
+        (edge.sourceId && removed.has(edge.sourceId)) ||
+        (edge.targetId && removed.has(edge.targetId))
+      ) {
         editable(edge.layerId);
         assertEditableElement(edge);
         removed.add(edge.id);
@@ -582,13 +766,34 @@ export function applyEdit(
     const copiedEdges = clipboard.connections.map((e) => {
       assertEditableElement(e);
       if (command.type === 'duplicate') editable(e.layerId);
-      if (!ids.has(e.sourceId) || !ids.has(e.targetId))
+      if (
+        (e.sourceId && !ids.has(e.sourceId)) ||
+        (e.targetId && !ids.has(e.targetId))
+      )
         throw new EditError('endpoint');
       return {
         ...e,
         id: copyId(e.id),
-        sourceId: copyId(e.sourceId),
-        targetId: copyId(e.targetId),
+        ...(e.sourceId ? { sourceId: copyId(e.sourceId) } : {}),
+        ...(e.targetId ? { targetId: copyId(e.targetId) } : {}),
+        ...(e.sourcePoint
+          ? {
+              sourcePoint: {
+                ...e.sourcePoint,
+                x: e.sourcePoint.x + command.offset.x,
+                y: e.sourcePoint.y + command.offset.y,
+              },
+            }
+          : {}),
+        ...(e.targetPoint
+          ? {
+              targetPoint: {
+                ...e.targetPoint,
+                x: e.targetPoint.x + command.offset.x,
+                y: e.targetPoint.y + command.offset.y,
+              },
+            }
+          : {}),
         layerId: command.type === 'paste' ? command.layerId : e.layerId,
         waypoints: e.waypoints.map((p) => ({
           ...p,
@@ -631,8 +836,35 @@ export function applyEdit(
   } else if (command.type === 'updateNode') {
     const n = node(command.id);
     text(command.text);
-    if (n.kind === 'freehand' && (command.text || command.richText))
+    if (
+      command.textRegions !== undefined &&
+      !isTextRegions(command.textRegions, n.kind)
+    )
       throw new EditError('invalid');
+    if (
+      n.kind === 'table' &&
+      (command.richText ||
+        (command.textRegions === undefined && command.text !== n.content.text))
+    )
+      throw new EditError('unsupported');
+    const nextRegions = command.textRegions
+      ? {
+          ...jsonObject(n.extensions[TEXT_REGIONS_KEY]),
+          ...structuredClone(command.textRegions),
+        }
+      : undefined;
+    if (nextRegions && command.textRegions) {
+      // Known optional fields are authoritative; omitted ones must not linger.
+      // Unknown sibling fields remain losslessly preserved.
+      for (const key of ['titleRichText', 'cellRichText', 'merges'])
+        if (!Object.hasOwn(command.textRegions, key))
+          delete (nextRegions as Record<string, unknown>)[key];
+      if (!isTextRegions(nextRegions, n.kind)) throw new EditError('invalid');
+    }
+    const nextText =
+      command.textRegions?.type === 'table'
+        ? tableTextSummary(command.textRegions)
+        : command.text;
     if (
       command.richText &&
       (!isRichText(command.richText) ||
@@ -668,9 +900,10 @@ export function applyEdit(
             geometry: command.geometry
               ? { ...item.geometry, ...command.geometry }
               : item.geometry,
-            content: { ...item.content, text: command.text },
+            content: { ...item.content, text: nextText },
             extensions: {
               ...item.extensions,
+              ...(nextRegions ? { [TEXT_REGIONS_KEY]: nextRegions } : {}),
               ...(command.richText
                 ? { [RICH_TEXT_KEY]: richTextJson(command.richText) }
                 : {}),
@@ -721,12 +954,25 @@ export function applyEdit(
     )
       throw new EditError('unsupported');
     style(command.style);
+    let nextEdge = edge;
+    if (command.source !== undefined)
+      nextEdge = writeEndpoint(nextEdge, 'source', command.source);
+    if (command.target !== undefined)
+      nextEdge = writeEndpoint(nextEdge, 'target', command.target);
+    if (command.source !== undefined || command.target !== undefined)
+      validateEndpoints(
+        page,
+        nextEdge,
+        command.options.arrow || command.options.startArrow === true,
+      );
     connections = connections.map((e) =>
       e.id !== edge.id
         ? e
         : {
-            ...e,
+            ...nextEdge,
             waypoints:
+              command.source === undefined &&
+              command.target === undefined &&
               command.options.routing === readConnection(e).routing
                 ? e.waypoints
                 : [],
@@ -749,6 +995,19 @@ export function applyEdit(
           },
     );
   }
+  nodes = nodes.map((n) =>
+    n.kind === 'freehand' &&
+    readFreehand(n) &&
+    editableExtension(n.extensions[ELEMENT_KEY]) &&
+    n.extensions[FREEHAND_TEXT_KEY] === undefined &&
+    ((typeof n.content.text === 'string' && n.content.text.length > 0) ||
+      n.extensions[RICH_TEXT_KEY] !== undefined)
+      ? {
+          ...n,
+          extensions: { ...n.extensions, [FREEHAND_TEXT_KEY]: { version: 1 } },
+        }
+      : n,
+  );
   let next: Project = {
     ...project,
     manifest: {
@@ -774,6 +1033,87 @@ export function applyEdit(
     } catch {
       throw new EditError('unsupported');
     }
+  }
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.nodes.some((n) => n.extensions[FREEHAND_TEXT_KEY] !== undefined),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(FREEHAND_TEXT_FEATURE)
+  )
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          FREEHAND_TEXT_FEATURE,
+        ],
+      },
+    };
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.connections.some(
+          (edge) =>
+            edge.sourceId === undefined ||
+            edge.targetId === undefined ||
+            readConnection(edge).startArrow === true,
+        ),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(FLOATING_CONNECTIONS_FEATURE)
+  )
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          FLOATING_CONNECTIONS_FEATURE,
+        ],
+      },
+    };
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.nodes.some((n) => n.extensions[TEXT_REGIONS_KEY] !== undefined),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(TEXT_REGIONS_FEATURE)
+  ) {
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          TEXT_REGIONS_FEATURE,
+        ],
+      },
+    };
+  }
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.nodes.some((n) =>
+          hasAdvancedTextRegions(n.extensions[TEXT_REGIONS_KEY]),
+        ),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(ADVANCED_TEXT_REGIONS_FEATURE)
+  ) {
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          ADVANCED_TEXT_REGIONS_FEATURE,
+        ],
+      },
+    };
   }
   if (
     next.documents.some((d) =>
@@ -834,16 +1174,21 @@ export function copyElements(
   const nodeIds = new Set(nodes.map((n) => n.id));
   const connections = page.connections.filter(
     (e) =>
-      ids.has(e.id) || (nodeIds.has(e.sourceId) && nodeIds.has(e.targetId)),
+      ids.has(e.id) ||
+      ((e.sourceId !== undefined || e.targetId !== undefined) &&
+        (!e.sourceId || nodeIds.has(e.sourceId)) &&
+        (!e.targetId || nodeIds.has(e.targetId))),
   );
   for (const item of [...nodes, ...connections]) {
     if (!layers.get(item.layerId)?.editable) throw new EditError('layer');
     assertEditableElement(item);
   }
   if (
-    !nodes.length ||
+    (!nodes.length && !connections.length) ||
     connections.some(
-      (e) => !nodeIds.has(e.sourceId) || !nodeIds.has(e.targetId),
+      (e) =>
+        (e.sourceId !== undefined && !nodeIds.has(e.sourceId)) ||
+        (e.targetId !== undefined && !nodeIds.has(e.targetId)),
     )
   )
     throw new EditError('endpoint');
