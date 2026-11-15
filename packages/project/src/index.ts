@@ -25,9 +25,12 @@ import {
 } from './validation';
 import { validateProject } from './schema';
 import { readZip, writeZip } from './zip';
+export * from './connection-endpoints';
+export * from './editor-features';
 import { parseProject as parseLegacy } from './legacy';
 export * from './types';
 export * from './text-regions';
+export * from './rich-text';
 export { safeExternalUrl } from './links';
 export { DEFAULT_LIMITS, ProjectError, sha256, isId } from './validation';
 export type { ResourceLimits, ErrorCode } from './validation';

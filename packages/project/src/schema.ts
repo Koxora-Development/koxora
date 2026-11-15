@@ -24,13 +24,23 @@ import {
   type ResourceLimits,
 } from './validation';
 import { safePath } from './zip';
+import { FREEHAND_TEXT_FEATURE, FREEHAND_TEXT_KEY } from './editor-features';
+import {
+  FLOATING_CONNECTIONS_FEATURE,
+  validConnectionPoint,
+} from './connection-endpoints';
 import {
   isTextRegions,
+  hasAdvancedTextRegions,
+  ADVANCED_TEXT_REGIONS_FEATURE,
   TEXT_REGIONS_KEY,
   TEXT_REGIONS_FEATURE,
 } from './text-regions';
 export const FEATURES = [
   'node-reflection-v1',
+  FREEHAND_TEXT_FEATURE,
+  FLOATING_CONNECTIONS_FEATURE,
+  ADVANCED_TEXT_REGIONS_FEATURE,
   TEXT_REGIONS_FEATURE,
   'documents',
   'pages',
@@ -363,6 +373,22 @@ export function validateProject(
           }
         }
         record(node.content, `${np}.content`);
+        if (node.extensions[FREEHAND_TEXT_KEY] !== undefined) {
+          check(
+            manifest.requiredFeatures.includes(FREEHAND_TEXT_FEATURE),
+            `${np}.extensions.${FREEHAND_TEXT_KEY}`,
+            'feature',
+          );
+          const profile = node.extensions[FREEHAND_TEXT_KEY];
+          record(profile, `${np}.extensions.${FREEHAND_TEXT_KEY}`);
+          check(
+            node.kind === 'freehand' &&
+              Number.isSafeInteger(profile.version) &&
+              (profile.version as number) >= 1,
+            `${np}.extensions.${FREEHAND_TEXT_KEY}.version`,
+            'freehandText',
+          );
+        }
         const regions = node.extensions[TEXT_REGIONS_KEY];
         if (regions !== undefined) {
           check(
@@ -370,6 +396,12 @@ export function validateProject(
             `${np}.extensions.${TEXT_REGIONS_KEY}`,
             'feature',
           );
+          if (hasAdvancedTextRegions(regions))
+            check(
+              manifest.requiredFeatures.includes(ADVANCED_TEXT_REGIONS_FEATURE),
+              `${np}.extensions.${TEXT_REGIONS_KEY}`,
+              'feature',
+            );
           record(regions, `${np}.extensions.${TEXT_REGIONS_KEY}`);
           check(
             Number.isSafeInteger(regions.version) &&
@@ -399,8 +431,42 @@ export function validateProject(
         ext(edge, ep);
         register(edge.id, `${ep}.id`);
         docConnections.add(edge.id);
-        ref(edge.sourceId, nodeIds, `${ep}.sourceId`);
-        ref(edge.targetId, nodeIds, `${ep}.targetId`);
+        for (const endpoint of ['source', 'target'] as const) {
+          const nodeId = edge[`${endpoint}Id`];
+          const point = edge[`${endpoint}Point`];
+          if (nodeId !== undefined) {
+            ref(nodeId, nodeIds, `${ep}.${endpoint}Id`);
+            check(
+              point === undefined,
+              `${ep}.${endpoint}Point`,
+              'connectionEndpoint',
+            );
+          } else {
+            check(
+              manifest.requiredFeatures.includes(FLOATING_CONNECTIONS_FEATURE),
+              `${ep}.${endpoint}Point`,
+              'feature',
+            );
+            check(
+              validConnectionPoint(point),
+              `${ep}.${endpoint}Point`,
+              'connectionEndpoint',
+            );
+          }
+        }
+        const connection = edge.extensions['org.koxora.connection'];
+        if (
+          connection &&
+          typeof connection === 'object' &&
+          !Array.isArray(connection) &&
+          connection.version === 1 &&
+          connection.startArrow === true
+        )
+          check(
+            manifest.requiredFeatures.includes(FLOATING_CONNECTIONS_FEATURE),
+            `${ep}.extensions.org.koxora.connection.startArrow`,
+            'feature',
+          );
         ref(edge.layerId, layerIds, `${ep}.layerId`);
         text(edge.relationType, `${ep}.relationType`);
         if (edge.styleId !== undefined)

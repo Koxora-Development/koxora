@@ -252,7 +252,6 @@ export function ShapePalette({
                 keep,
               ),
             );
-            setCategoriesOpen(false);
           }}
         />
       )}

@@ -147,7 +147,7 @@ describe('freehand portable geometry', () => {
       }),
     ).toThrow();
   });
-  it('does not attach invisible text formatting or semantic ports to strokes', () => {
+  it('supports visible text formatting while preserving opaque stroke versions', () => {
     let p = fresh();
     p = edit(p, {
       type: 'freehand',
@@ -158,22 +158,25 @@ describe('freehand portable geometry', () => {
       strokeWidth: 2,
     });
     const stroke = pageOf(p).nodes[0];
-    expect(
-      pageOf(
-        edit(p, {
-          type: 'format',
-          ids: [stroke.id],
-          patch: { fontSize: 40, fill: '#ffffff', align: 'left' },
-        }),
-      ).nodes,
-    ).toEqual([stroke]);
-    expect(() =>
-      edit(p, {
-        type: 'richText',
-        id: stroke.id,
-        value: fromPlainText('hidden'),
-      }),
-    ).toThrow();
+    const formatted = edit(p, {
+      type: 'format',
+      ids: [stroke.id],
+      patch: { fontSize: 40, fill: '#ffffff', align: 'left' },
+    });
+    expect(resolveAppearance(pageOf(formatted).nodes[0])).toMatchObject({
+      fontSize: 40,
+      align: 'left',
+      fill: resolveAppearance(stroke).fill,
+    });
+    const labelled = edit(formatted, {
+      type: 'richText',
+      id: stroke.id,
+      value: fromPlainText('Visible label', 'left'),
+    });
+    expect(pageOf(labelled).nodes[0].content.text).toBe('Visible label');
+    expect(pageOf(labelled).nodes[0].extensions[FREEHAND_KEY]).toEqual(
+      stroke.extensions[FREEHAND_KEY],
+    );
     stroke.extensions[FREEHAND_KEY] = { version: 2, points: [[0, 0]] };
     expect(readFreehand(stroke)).toBeUndefined();
     expect(buildScene(pageOf(p)).nodes[0].editable).toBe(false);

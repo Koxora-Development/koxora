@@ -201,7 +201,7 @@ test('workbook tree keeps focus, reorder, duplicate, delete/undo, views and docu
     .fill('Operations');
   await page
     .getByRole('dialog')
-    .getByRole('button', { name: 'Apply changes', exact: true })
+    .getByRole('button', { name: 'New document', exact: true })
     .click();
   await page
     .locator('[role=treeitem][data-page-id]')
@@ -216,9 +216,7 @@ test('workbook tree keeps focus, reorder, duplicate, delete/undo, views and docu
     .getByRole('combobox', { name: 'Document', exact: true })
     .selectOption({ label: 'Operations' });
   await dialog.getByLabel('Position', { exact: true }).fill('2');
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await dialog.getByRole('button', { name: 'Move', exact: true }).click();
   const result = await exported(page);
   expect(result.documents[1].pages[1].id).toBe(first);
   expect(result.documents[1].pages[1].viewport.zoom).toBe(zoom);
@@ -278,9 +276,7 @@ test('on-canvas rich text formats only selected words with real keyboard size en
     page.locator(`[data-node-id="${id}"] .scene-rich-label span`).last(),
   ).toHaveCSS('font-size', '32px');
   await capture(page, 'rich-text');
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
   const result = await exported(page),
     rich = readRichText(result.documents[0].pages[0].nodes[0])!;
   expect(rich.paragraphs[0].runs[0].text).toBe('Launch ');
@@ -296,13 +292,9 @@ test('on-canvas rich text formats only selected words with real keyboard size en
     },
   });
   await button(page, 'Undo').click();
-  await expect(page.locator(`[data-node-id="${id}"]`)).toContainText(
-    'Plan launch',
-  );
+  expect((await exported(page)).documents).not.toEqual(result.documents);
   await button(page, 'Redo').click();
-  await expect(page.locator(`[data-node-id="${id}"]`)).toContainText(
-    'Launch carefully',
-  );
+  expect((await exported(page)).documents).toEqual(result.documents);
 });
 
 test('paste sanitizes active markup, keeps one line break and preserves editor undo/caret', async ({
@@ -389,9 +381,13 @@ test('mixed batch properties preserve spans and right click selection, with atom
     now,
   );
   await open(page, project);
-  await page.locator(`[data-node-id="${ids[0]}"]`).click();
+  await page
+    .locator(`[data-node-id="${ids[0]}"]`)
+    .click({ modifiers: ['Alt'] });
   await page.keyboard.down('Shift');
-  await page.locator(`[data-node-id="${ids[1]}"]`).click();
+  await page
+    .locator(`[data-node-id="${ids[1]}"]`)
+    .click({ modifiers: ['Alt', 'Shift'] });
   await page.keyboard.up('Shift');
   await page.locator(`[data-node-id="${ids[0]}"]`).click({ button: 'right' });
   await expect(page.locator('.interactive-canvas')).toHaveAttribute(
@@ -649,21 +645,23 @@ test('text-only batch selection hides shape fill and border controls', async ({
   nodes[0].kind = 'text';
   nodes[1].kind = 'text';
   await open(page, project);
-  const bounds = await Promise.all(
-    nodes
-      .slice(0, 2)
-      .map((node) => page.locator(`[data-node-id="${node.id}"]`).boundingBox()),
-  );
-  await page.mouse.click(
-    bounds[0]!.x + bounds[0]!.width / 2,
-    bounds[0]!.y + bounds[0]!.height / 2,
-  );
-  await page.keyboard.down('Shift');
-  await page.mouse.click(
-    bounds[1]!.x + bounds[1]!.width / 2,
-    bounds[1]!.y + bounds[1]!.height / 2,
-  );
+  await page.keyboard.down('Alt');
+  for (const [index, node] of nodes.slice(0, 2).entries()) {
+    if (index) await page.keyboard.down('Shift');
+    const center = await page
+      .locator(`[data-node-id="${node.id}"]`)
+      .evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      });
+    await page.mouse.click(center.x, center.y);
+  }
   await page.keyboard.up('Shift');
+  await page.keyboard.up('Alt');
+  await expect(page.locator('.interactive-canvas')).toHaveAttribute(
+    'data-selection',
+    JSON.stringify(nodes.slice(0, 2).map((node) => node.id)),
+  );
   await menu(page, 'Format');
   await page
     .getByRole('menuitem', { name: 'Element properties', exact: true })

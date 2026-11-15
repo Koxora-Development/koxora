@@ -11,6 +11,10 @@ import {
   CONNECTION_KEY,
   resolveAppearance,
   readRichText,
+  readTextRegions,
+  fromPlainText,
+  tableCellAnchor,
+  tableCellRichText,
   TEXT_ATTRIBUTES,
   type Appearance,
   type EditCommand,
@@ -41,11 +45,6 @@ export function FormatSelection({
   const applicable = (key: keyof Appearance) =>
     items.filter(
       (item) =>
-        (!(
-          TEXT_ATTRIBUTES.includes(key as (typeof TEXT_ATTRIBUTES)[number]) ||
-          key === 'align'
-        ) ||
-          !('kind' in item && item.kind === 'freehand')) &&
         (!['fill', 'cornerRadius'].includes(key) ||
           ('kind' in item &&
             !['text', 'line', 'arrow', 'freehand'].includes(
@@ -62,13 +61,52 @@ export function FormatSelection({
           'kind' in item ? undefined : CONNECTION_KEY,
         ),
         rich = readRichText(item);
-      if (rich && key === 'align') return rich.paragraphs.map((p) => p.align);
+      const regions =
+        'kind' in item ? readTextRegions(item as Page['nodes'][number]) : null;
+      const texts =
+        regions?.type === 'table'
+          ? regions.cells.flatMap((row, r) =>
+              row.flatMap((_, c) => {
+                const anchor = tableCellAnchor(regions, r, c);
+                return anchor.row === r && anchor.column === c
+                  ? [tableCellRichText(regions, r, c, base.align)]
+                  : [];
+              }),
+            )
+          : regions?.type === 'container'
+            ? [
+                regions.titleRichText ??
+                  fromPlainText(regions.title, base.align),
+                rich ??
+                  fromPlainText(
+                    String(
+                      ('content' in item &&
+                      item.content &&
+                      typeof item.content === 'object' &&
+                      !Array.isArray(item.content)
+                        ? item.content.text
+                        : '') ?? '',
+                    ),
+                    base.align,
+                  ),
+              ]
+            : rich
+              ? [rich]
+              : [];
+      if (texts.length && key === 'align')
+        return texts.flatMap((text) => text.paragraphs.map((p) => p.align));
       if (
-        rich &&
+        texts.length &&
         TEXT_ATTRIBUTES.includes(key as (typeof TEXT_ATTRIBUTES)[number])
       )
-        return rich.paragraphs.flatMap((p) =>
-          p.runs.map((r) => r.style[key as keyof typeof r.style] ?? base[key]),
+        return texts.flatMap((text) =>
+          text.paragraphs.flatMap((p) =>
+            p.runs.length
+              ? p.runs.map(
+                  (r) => r.style[key as keyof typeof r.style] ?? base[key],
+                )
+              : [base[key]],
+          ),
         );
       return [base[key]];
     });

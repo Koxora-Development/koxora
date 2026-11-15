@@ -1,12 +1,7 @@
 .text-region-title {
-  display: grid;
+  display: block;
   min-width: 0;
-  gap: calc(5px * var(--ui-scale, 1));
   margin-bottom: calc(12px * var(--ui-scale, 1));
-}
-.text-region-title input {
-  width: 100%;
-  min-width: 0;
 }
 .text-regions-editor,
 .table-structure-fields {
@@ -63,21 +58,55 @@
   background: var(--surface-muted);
   font-weight: 600;
 }
-.table-cell-editor textarea {
+.table-cell-button {
   display: block;
-  box-sizing: border-box;
-  width: calc(120px * var(--ui-scale, 1));
-  min-width: calc(90px * var(--ui-scale, 1));
+  width: 100%;
+  min-width: calc(120px * var(--ui-scale, 1));
   min-height: calc(58px * var(--ui-scale, 1));
+  max-width: calc(240px * var(--ui-scale, 1));
   padding: calc(6px * var(--ui-scale, 1));
-  resize: vertical;
+  border: 2px solid transparent;
+  border-radius: calc(3px * var(--ui-scale, 1));
   font: inherit;
-  line-height: 1.4;
   color: var(--ink);
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: calc(3px * var(--ui-scale, 1));
+  cursor: pointer;
+  overflow-wrap: anywhere;
 }
-.table-cell-editor .table-header-cell textarea {
-  font-weight: 600;
+.table-cell-button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.table-cell-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.table-header-cell,
+.table-header-cell .table-cell-button {
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+.table-cell-paragraph {
+  display: block;
+  white-space: pre-wrap;
+}
+.table-merge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(6px * var(--ui-scale, 1));
+  margin-block: calc(10px * var(--ui-scale, 1));
+}
+.table-merge-actions .button {
+  max-width: 100%;
+  white-space: normal;
+}
+.table-active-cell-editor,
+.table-range-controls {
+  min-width: 0;
+  margin-top: calc(10px * var(--ui-scale, 1));
+}
+.table-range-controls summary {
+  cursor: pointer;
+  margin-bottom: calc(8px * var(--ui-scale, 1));
+  color: var(--ink);
 }

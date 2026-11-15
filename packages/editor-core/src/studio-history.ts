@@ -17,6 +17,21 @@ interface Entry {
   afterPage: string;
   bytes: number;
 }
+interface EditGroup {
+  id: string;
+  documentId: string;
+  pageId: string;
+  at: number;
+}
+export type GroupedEditCommand = EditCommand & { historyGroup?: string };
+
+/** Group IDs describe one live field/session; this metadata never enters project data. */
+export function groupEdit<T extends EditCommand>(
+  command: T,
+  historyGroup: string,
+): T & { historyGroup: string } {
+  return { ...command, historyGroup };
+}
 /** Chronological workbook history: deleting a page and its earlier edits can both be undone.
  * Binary resources are never retained. Camera changes do not consume history entries.
  */
@@ -24,6 +39,7 @@ export class StudioHistory {
   private undo: Entry[] = [];
   private redo: Entry[] = [];
   private projectId = '';
+  private group: (EditGroup & { entry: Entry }) | null = null;
   constructor(
     readonly maxEntries = 100,
     readonly maxBytes = 16 * 1024 * 1024,
@@ -32,6 +48,7 @@ export class StudioHistory {
     this.undo = [];
     this.redo = [];
     this.projectId = '';
+    this.group = null;
   }
   status(_project?: Project, _documentId?: string, _pageId?: string) {
     void _project;
@@ -44,32 +61,67 @@ export class StudioHistory {
     after: Project,
     beforePage: string,
     afterPage: string,
+    group?: EditGroup,
   ): Project {
-    const delta = documentDelta(before.documents, after.documents);
-    if (!delta.length) return before;
+    const previous = this.undo.at(-1);
+    const coalesce =
+      group &&
+      this.group &&
+      previous === this.group.entry &&
+      this.projectId === before.manifest.projectId &&
+      group.id === this.group.id &&
+      group.documentId === this.group.documentId &&
+      group.pageId === this.group.pageId &&
+      group.at >= this.group.at &&
+      group.at - this.group.at <= 1500;
+    let delta = documentDelta(before.documents, after.documents);
+    if (!delta.length) {
+      // Even a no-op command from another control ends a contiguous typing group.
+      if (!coalesce) this.group = null;
+      return before;
+    }
+    let replace = false;
+    if (coalesce && previous) {
+      try {
+        const original = restoreDocuments(
+          before.documents,
+          previous.delta,
+          true,
+        );
+        delta = documentDelta(original, after.documents);
+        replace = true;
+      } catch {
+        // An externally changed field cannot be folded into an older baseline.
+      }
+    }
     const bytes = JSON.stringify(delta).length * 2;
     if (bytes > this.maxBytes) throw new WorkbookError('historyLimit');
     if (this.projectId !== before.manifest.projectId) this.clear();
     this.projectId = before.manifest.projectId;
     this.redo = [];
-    this.undo.push({
+    if (replace) this.undo.pop();
+    const entry: Entry = {
       delta,
-      beforePage,
+      beforePage: replace ? previous!.beforePage : beforePage,
       afterPage,
       bytes,
-    });
+    };
+    // Editing a field back to its original value leaves no artificial undo step.
+    if (delta.length) this.undo.push(entry);
     while (
       this.undo.length > this.maxEntries ||
       this.undo.reduce((n, e) => n + e.bytes, 0) > this.maxBytes
     )
       this.undo.shift();
+    this.group =
+      group && this.undo.at(-1) === entry ? { ...group, entry } : null;
     return after;
   }
   execute(
     project: Project,
     documentId: string,
     pageId: string,
-    command: EditCommand,
+    command: GroupedEditCommand,
     now: string,
   ) {
     return this.record(
@@ -77,6 +129,16 @@ export class StudioHistory {
       applyEdit(project, documentId, pageId, command, now),
       pageId,
       pageId,
+      typeof command.historyGroup === 'string' &&
+        command.historyGroup.length > 0 &&
+        command.historyGroup.length <= 256
+        ? {
+            id: command.historyGroup,
+            documentId,
+            pageId,
+            at: Date.parse(now),
+          }
+        : undefined,
     );
   }
   workbook(
@@ -100,6 +162,7 @@ export class StudioHistory {
     direction: 'undo' | 'redo',
     now: string,
   ): Project {
+    this.group = null;
     if (this.projectId !== project.manifest.projectId) return project;
     const from = direction === 'undo' ? this.undo : this.redo,
       to = direction === 'undo' ? this.redo : this.undo;

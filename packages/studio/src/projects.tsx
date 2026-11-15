@@ -134,7 +134,9 @@ export function Projects({
   const [dialogOpen, setDialogOpen] = useState(false);
   useEffect(() => {
     const update = () =>
-      setDialogOpen(!!document.querySelector('dialog[open]'));
+      setDialogOpen(
+        !!document.querySelector('dialog[open]:not([data-live-editor])'),
+      );
     const observer = new MutationObserver(update);
     observer.observe(document.body, {
       childList: true,
@@ -1667,7 +1669,7 @@ export function Projects({
         <div className="announcements" aria-live="polite" aria-atomic="true">
           {operation ? t(`operation.${operation}`) : notice}
         </div>
-        {notice && !busy && (
+        {notice && (
           <div className="notification success" role="status">
             <Icon name="check" />
             <span>{notice}</span>

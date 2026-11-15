@@ -152,8 +152,6 @@ export function ShapeCategories({
 }) {
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
     translate(locale, key, values);
-  const [draft, setDraft] = useState([...selected]);
-  const [keep, setKeep] = useState(remember);
   const [preview, setPreview] = useState<LibraryCategory>(
     selected[0] ?? 'basic',
   );
@@ -173,11 +171,15 @@ export function ShapeCategories({
         <button
           className="button"
           type="button"
-          onClick={() => setDraft([...libraryCategories])}
+          onClick={() => onApply([...libraryCategories], remember)}
         >
           {t('palette.selectAllCategories')}
         </button>
-        <button className="button" type="button" onClick={() => setDraft([])}>
+        <button
+          className="button"
+          type="button"
+          onClick={() => onApply([], remember)}
+        >
           {t('palette.clearCategories')}
         </button>
       </div>
@@ -196,16 +198,18 @@ export function ShapeCategories({
             >
               <input
                 type="checkbox"
-                checked={draft.includes(category)}
+                checked={selected.includes(category)}
                 onChange={(event) => {
                   setPreview(category);
                   const checked = event.target.checked;
-                  setDraft((current) =>
+                  onApply(
                     checked
                       ? libraryCategories.filter(
-                          (item) => item === category || current.includes(item),
+                          (item) =>
+                            item === category || selected.includes(item),
                         )
-                      : current.filter((item) => item !== category),
+                      : selected.filter((item) => item !== category),
+                    remember,
                   );
                 }}
               />
@@ -243,24 +247,17 @@ export function ShapeCategories({
         <label className="checkbox-label">
           <input
             type="checkbox"
-            checked={keep}
-            onChange={(event) => setKeep(event.target.checked)}
+            checked={remember}
+            onChange={(event) => onApply([...selected], event.target.checked)}
           />
           {t('palette.rememberCategories')}
         </label>
         <p role="status">
-          {t('palette.selectedCategories', { count: draft.length })}
+          {t('palette.selectedCategories', { count: selected.length })}
         </p>
         <div className="dialog-actions">
           <button className="button" type="button" onClick={onCancel}>
-            {t('project.cancel')}
-          </button>
-          <button
-            className="button primary"
-            type="button"
-            onClick={() => onApply(draft, keep)}
-          >
-            {t('diagram.apply')}
+            {t('office.close')}
           </button>
         </div>
       </div>

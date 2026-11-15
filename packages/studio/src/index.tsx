@@ -10,6 +10,39 @@ import { locales, translate, type MessageKey } from '@koxora/i18n';
 import { Mark } from '@koxora/ui';
 import { readPreferences, writePreferences, systemLocale } from './preferences';
 export function Studio() {
+  useEffect(() => {
+    const contextMenu = (event: MouseEvent) => {
+      // Keep native text editing actions; navigation menus have no role in the workbench.
+      const target = event.target instanceof Element ? event.target : null;
+      const input = target?.closest('input');
+      const editableInput =
+        input instanceof HTMLInputElement &&
+        !input.disabled &&
+        !input.readOnly &&
+        [
+          'text',
+          'search',
+          'email',
+          'url',
+          'tel',
+          'password',
+          'number',
+        ].includes(input.type);
+      const textarea = target?.closest('textarea');
+      const editableTextarea =
+        textarea instanceof HTMLTextAreaElement &&
+        !textarea.disabled &&
+        !textarea.readOnly;
+      if (
+        !editableInput &&
+        !editableTextarea &&
+        !(target instanceof HTMLElement && target.isContentEditable)
+      )
+        event.preventDefault();
+    };
+    document.addEventListener('contextmenu', contextMenu, true);
+    return () => document.removeEventListener('contextmenu', contextMenu, true);
+  }, []);
   const [preferences, setPreferences] = useState(() =>
     readPreferences({ getItem: (key) => localStorage.getItem(key) }),
   );

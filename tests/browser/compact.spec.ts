@@ -1,6 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { createProject, exportProject } from '../../packages/project/src/index';
+import { readFileSync } from 'node:fs';
+import {
+  createProject,
+  exportProject,
+  importProject,
+} from '../../packages/project/src/index';
 import { applyEdit } from '../../packages/editor-core/src/index';
 
 // The former compact dialog is now an Office-style properties dock. These cases
@@ -200,7 +205,7 @@ test('stacking submenu keeps keyboard focus when the pointer leaves and returns 
   await expect(page.locator('.interactive-canvas')).toBeFocused();
 });
 
-test('properties are docked and tabbed, retain drafts, and apply without closing the dock', async ({
+test('docked properties persist live and keep their values when the dock is hidden', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -211,7 +216,6 @@ test('properties are docked and tabbed, retain drafts, and apply without closing
   const bounds = await dock.boundingBox();
   expect(bounds!.width).toBeLessThan(1280 / 3);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(1281);
-
   await panel.getByRole('tab', { name: 'Text', exact: true }).focus();
   await page.keyboard.press('ArrowRight');
   await expect(
@@ -221,44 +225,33 @@ test('properties are docked and tabbed, retain drafts, and apply without closing
   await panel
     .getByLabel('URL address', { exact: true })
     .fill('https://example.org/office-review');
-  await expect(page.locator('.save-status')).toHaveText('Unapplied properties');
+  await expect(page.locator('.save-status')).toHaveText('Saved on this device');
   await expect(
     page.getByRole('button', { name: 'Save project', exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
+  await expect(
+    panel.getByRole('button', { name: /^(Apply changes|Discard)$/ }),
+  ).toHaveCount(0);
   await dock
     .getByRole('button', { name: 'Hide properties', exact: true })
     .click();
-  await expect(dock).toBeVisible();
+  await expect(dock).toHaveCount(0);
+  await page.getByRole('button', { name: 'Properties', exact: true }).click();
+  await panel.getByRole('tab', { name: 'Links', exact: true }).click();
   await expect(panel.getByLabel('URL address', { exact: true })).toHaveValue(
     'https://example.org/office-review',
   );
-  await expect(
-    page.getByText(
-      'Apply or discard the pending properties before changing the selection or leaving this page.',
-      { exact: true },
-    ),
-  ).toBeVisible();
-  await panel.getByRole('button', { name: 'Discard', exact: true }).click();
-  await panel.getByRole('tab', { name: 'Links', exact: true }).click();
-  await expect(panel.getByLabel('Link type', { exact: true })).toHaveValue(
-    'none',
-  );
-  await panel.getByLabel('Link type', { exact: true }).selectOption('url');
   await panel
     .getByLabel('URL address', { exact: true })
-    .fill('https://example.org/applied');
-  await panel
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
-  await expect(dock).toBeVisible();
-  await panel.getByRole('tab', { name: 'Links', exact: true }).click();
-  await expect(panel.getByLabel('URL address', { exact: true })).toHaveValue(
-    'https://example.org/applied',
-  );
+    .fill('https://example.org/live-update');
   await expect(page.locator('.save-status')).toHaveText('Saved on this device');
+  await expect(dock).toBeVisible();
+  await expect(panel.getByLabel('URL address', { exact: true })).toHaveValue(
+    'https://example.org/live-update',
+  );
 });
 
-test('small-window properties scroll fields and actions without horizontal overflow', async ({
+test('small-window live properties keep fields and dock controls reachable without horizontal overflow', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 640 });
@@ -269,26 +262,26 @@ test('small-window properties scroll fields and actions without horizontal overf
   const last = panel.locator('.element-fields input').last();
   await last.focus();
   await expect(last).toBeInViewport();
-  const field = await last.boundingBox();
-  const footer = await panel.locator('.dialog-actions').boundingBox();
-  expect(field!.y + field!.height).toBeLessThanOrEqual(footer!.y + 1);
-  const apply = panel.getByRole('button', {
-    name: 'Apply changes',
-    exact: true,
-  });
-  await apply.focus();
-  await expect(apply).toBeInViewport();
+  await expect(
+    panel.getByRole('button', { name: /^(Apply changes|Discard)$/ }),
+  ).toHaveCount(0);
   await page.setViewportSize({ width: 640, height: 450 });
-  await last.focus();
+  // Re-enter through keyboard navigation after the viewport changes; focusing
+  // an already focused field does not ask the browser to reveal it again.
+  await last.press('Shift+Tab');
+  await page.keyboard.press('Tab');
+  await expect(last).toBeFocused();
   await expect(last).toBeInViewport();
   expect(await dock.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
     true,
   );
-  await apply.focus();
-  await expect(apply).toBeInViewport();
-  await dock
-    .getByRole('button', { name: 'Hide properties', exact: true })
-    .click();
+  const close = dock.getByRole('button', {
+    name: 'Hide properties',
+    exact: true,
+  });
+  await close.focus();
+  await expect(close).toBeInViewport();
+  await close.click();
   await expect(dock).toHaveCount(0);
 });
 
@@ -444,33 +437,42 @@ test('integration status failures stay visible and a moved AppImage can still be
   await expect(dialog).toContainText('Desktop caches may need refreshing');
 });
 
-test('invalid properties reveal their tab and dashboard navigation retains the draft', async ({
+test('invalid numeric drafts stay local while valid text persists and navigation remains available', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  const { panel } = await properties(page);
+  const { panel, id } = await properties(page);
+  const originalWidth = await panel
+    .getByLabel('Width', { exact: true })
+    .inputValue();
   await panel.getByLabel('Width', { exact: true }).fill('1');
   await panel.getByRole('tab', { name: 'Text', exact: true }).click();
   await panel
     .getByRole('textbox', { name: 'Label / text', exact: true })
-    .fill('Pending text');
-  await panel
-    .getByRole('button', { name: 'Apply changes', exact: true })
+    .fill('Live text');
+  await expect(page.locator('.save-status')).toHaveText('Saved on this device');
+  const download = page.waitForEvent('download');
+  await page
+    .getByRole('button', { name: 'Export .koxora', exact: true })
     .click();
-  await expect(
-    panel.getByRole('tab', { name: 'Format', exact: true }),
-  ).toHaveAttribute('aria-selected', 'true');
-  await expect(panel.getByLabel('Width', { exact: true })).toBeFocused();
+  const saved = await importProject(
+    new Uint8Array(readFileSync((await (await download).path())!)),
+  );
+  expect(saved.documents[0].pages[0].nodes[0].geometry.width).toBe(
+    Number(originalWidth),
+  );
+  expect(saved.documents[0].pages[0].nodes[0].content.text).toBe('Live text');
   await page.getByRole('button', { name: /^Local projects/ }).click();
-  await expect(panel).toBeVisible();
-  await expect(panel.getByLabel('Width', { exact: true })).toHaveValue('1');
+  await expect(page.locator('.start-project-row')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Open project', exact: true }).click();
+  if (!(await page.getByLabel('Diagram element', { exact: true }).isVisible()))
+    await page.getByRole('button', { name: 'Objects', exact: true }).click();
+  await page.getByLabel('Diagram element', { exact: true }).selectOption(id);
+  await expect(panel.getByLabel('Width', { exact: true })).toHaveValue(
+    originalWidth,
+  );
   await panel.getByRole('tab', { name: 'Text', exact: true }).click();
   await expect(
     panel.getByRole('textbox', { name: 'Label / text', exact: true }),
-  ).toHaveText('Pending text');
-  await panel.getByRole('button', { name: 'Discard', exact: true }).click();
-  await panel.getByRole('tab', { name: 'Text', exact: true }).click();
-  await expect(
-    panel.getByRole('textbox', { name: 'Label / text', exact: true }),
-  ).toHaveText('Example');
+  ).toHaveText('Live text');
 });

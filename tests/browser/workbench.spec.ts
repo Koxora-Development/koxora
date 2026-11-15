@@ -290,39 +290,41 @@ test('trash cancellation and restore retain data; confirmed permanent deletion r
   await expect(page.locator('.start-project-row')).toHaveCount(0);
 });
 
-test('sheet navigation cannot discard pending properties', async ({ page }) => {
+test('sheet navigation retains live properties without an apply step', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openWorkbook(page);
   await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
   await page.locator('.interactive-canvas').focus();
   await page.keyboard.press('Enter');
+  const elementId = (await page
+    .locator('[data-node-id]')
+    .getAttribute('data-node-id'))!;
   const properties = page.getByRole('region', {
     name: 'Element properties',
     exact: true,
   });
   await properties.getByLabel('Width', { exact: true }).fill('248');
+  await expect(page.locator('.save-status')).toHaveText('Saved on this device');
   const tabs = page.getByRole('tablist', {
     name: 'Diagram pages',
     exact: true,
   });
   await tabs.getByRole('tab').first().focus();
   await page.keyboard.press('ArrowRight');
-  await expect(tabs.getByRole('tab').first()).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
-  await expect(properties.getByLabel('Width', { exact: true })).toHaveValue(
-    '248',
-  );
-  await expect(page.locator('.save-status')).toHaveText('Unapplied properties');
-  await properties
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
-  await tabs.getByRole('tab').first().focus();
-  await page.keyboard.press('ArrowRight');
   await expect(tabs.getByRole('tab').nth(1)).toHaveAttribute(
     'aria-selected',
     'true',
+  );
+  await tabs.getByRole('tab').first().click();
+  if (!(await page.getByLabel('Diagram element', { exact: true }).isVisible()))
+    await page.getByRole('button', { name: 'Objects', exact: true }).click();
+  await page
+    .getByLabel('Diagram element', { exact: true })
+    .selectOption(elementId);
+  await expect(properties.getByLabel('Width', { exact: true })).toHaveValue(
+    '248',
   );
 });
 

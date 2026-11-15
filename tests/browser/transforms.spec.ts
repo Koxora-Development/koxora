@@ -88,9 +88,7 @@ test('rotation, mirror, numeric properties, pointer cancel and offline persisten
   });
   await dock.getByRole('tab', { name: 'Format', exact: true }).click();
   await dock.getByLabel('Rotation (°)', { exact: true }).fill('-450');
-  await dock
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await page.locator('.interactive-canvas').focus();
   await expect(node).toHaveAttribute('transform', /rotate\(270 /);
   const handle = page.locator(`[data-rotate-id="${id}"]`);
   await expect(handle).toBeVisible();

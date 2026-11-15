@@ -77,7 +77,7 @@ async function chooseCategories(page: Page, values: string[], locale = 'en') {
       })
       .check();
   await dialog
-    .getByRole('button', { name: messages['diagram.apply'], exact: true })
+    .getByRole('button', { name: messages['office.close'], exact: true })
     .click();
   await expect(dialog).toHaveCount(0);
 }
@@ -266,7 +266,7 @@ for (const locale of ['en', 'de'])
     ).toBeGreaterThanOrEqual(160);
   });
 
-test('category selection is transactional, combines libraries and restores remembered choices', async ({
+test('category selection updates live, combines libraries and restores remembered choices', async ({
   page,
 }) => {
   await page.goto('/');
@@ -289,10 +289,8 @@ test('category selection is transactional, combines libraries and restores remem
   await dialog
     .getByRole('button', { name: 'Clear selection', exact: true })
     .click();
-  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(
-    palette(page).getByRole('button', { name: 'Cloud', exact: true }),
-  ).toBeVisible();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(palette(page).getByRole('button')).toHaveCount(2);
   await chooseCategories(page, []);
   await expect(palette(page).getByRole('button')).toHaveCount(2);
   await page

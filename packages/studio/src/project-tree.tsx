@@ -930,7 +930,11 @@ export function ProjectTree({
                 {t(
                   dialog.action.startsWith('delete')
                     ? 'project.confirm'
-                    : 'diagram.apply',
+                    : dialog.action === 'rename'
+                      ? 'tabs.rename'
+                      : dialog.action === 'move'
+                        ? 'tabs.moveConfirm'
+                        : 'tabs.newDocument',
                 )}
               </button>
             </div>

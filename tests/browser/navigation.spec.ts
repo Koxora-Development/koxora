@@ -56,8 +56,8 @@ async function properties(page: Page, id: string) {
   return dock;
 }
 async function select(page: Page, id: string) {
-  const d = await properties(page, id);
-  await d.getByRole('button', { name: 'Discard', exact: true }).click();
+  await properties(page, id);
+  await page.locator('.interactive-canvas').focus();
 }
 async function follow(page: Page, name = 'Open link') {
   const canvas = page.locator('.interactive-canvas');
@@ -101,9 +101,7 @@ test('authors foreign project and element targets, saves drafts and highlights l
   await dialog
     .getByLabel('Destination element', { exact: true })
     .selectOption(target.nodes[1].id);
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await page.locator('.interactive-canvas').focus();
   await page
     .getByRole('textbox', { name: 'Project name', exact: true })
     .fill('Source draft saved');
@@ -179,9 +177,7 @@ test('local element navigation centers/selects, survives history, and clears aft
   await dialog
     .getByLabel('Destination element', { exact: true })
     .selectOption(p.nodes[1].id);
-  await dialog
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await page.locator('.interactive-canvas').focus();
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await page.getByRole('button', { name: 'Redo', exact: true }).click();
   await select(page, p.nodes[0].id);

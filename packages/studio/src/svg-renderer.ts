@@ -3,7 +3,12 @@ import {
   rotatePoint,
   shapeCenter,
   freehandPath,
+  freehandTextBox,
   textColor,
+  contrastingColor,
+  tableCellAnchor,
+  tableCellBoxes,
+  mirroredTextBox,
   type RichText,
   type Appearance,
   FONT_FAMILIES,
@@ -50,6 +55,7 @@ export class SvgRenderer {
       start: Point;
       end: Point;
       arrow: boolean;
+      startArrow?: boolean;
     } | null = null,
     linkTitles: ReadonlyMap<string, string> = new Map(),
     highlighted: string | null = null,
@@ -150,7 +156,7 @@ export class SvgRenderer {
       );
     }
     if (connectionPreview) {
-      const { start, end, arrow } = connectionPreview;
+      const { start, end, arrow, startArrow } = connectionPreview;
       this.overlay.append(
         svg('path', {
           d: `M ${start.x} ${start.y} L ${end.x} ${end.y}`,
@@ -164,6 +170,16 @@ export class SvgRenderer {
             end.x,
             end.y,
             (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI,
+            'var(--accent)',
+            2 / camera.zoom,
+          ),
+        );
+      if (startArrow)
+        this.overlay.append(
+          arrowhead(
+            start.x,
+            start.y,
+            (Math.atan2(start.y - end.y, start.x - end.x) * 180) / Math.PI,
             'var(--accent)',
             2 / camera.zoom,
           ),
@@ -246,7 +262,7 @@ export class SvgRenderer {
     }
     for (const e of visible.connections
       .slice(0, MAX_VISIBLE)
-      .filter((e) => selection.has(e.id)))
+      .filter((e) => selection.has(e.id))) {
       this.overlay.append(
         svg('path', {
           d: e.path,
@@ -254,6 +270,26 @@ export class SvgRenderer {
           'stroke-width': 5 / camera.zoom,
         }),
       );
+      if (selected.length === 1 && e.editable) {
+        for (const [endpoint, point] of [
+          ['source', e.points[0]],
+          ['target', e.points.at(-1)!],
+        ] as const)
+          this.overlay.append(
+            svg('rect', {
+              x: point.x - 5 / camera.zoom,
+              y: point.y - 5 / camera.zoom,
+              width: 10 / camera.zoom,
+              height: 10 / camera.zoom,
+              rx: 2 / camera.zoom,
+              'stroke-width': 1.5 / camera.zoom,
+              class: 'resize-handle connection-endpoint-handle',
+              'data-connection-endpoint-id': e.id,
+              'data-connection-endpoint': endpoint,
+            }),
+          );
+      }
+    }
     if (marquee)
       this.overlay.append(
         svg('rect', {
@@ -310,16 +346,6 @@ function renderNode(node: SceneNode): SVGElement {
     });
     group.removeAttribute('data-connection-id');
     group.setAttribute('data-node-id', node.id);
-    if (node.startArrow)
-      group.append(
-        arrowhead(
-          a.x,
-          a.y,
-          angle + 180,
-          node.style.stroke,
-          node.style.strokeWidth,
-        ),
-      );
     return group;
   }
   const g = node.geometry,
@@ -353,7 +379,10 @@ function renderNode(node: SceneNode): SVGElement {
     transform: `translate(${g.flipX === true ? g.width : 0} ${g.flipY === true ? g.height : 0}) scale(${g.flipX === true ? -1 : 1} ${g.flipY === true ? -1 : 1})`,
     class: 'scene-node',
     fill: node.kind === 'text' || node.kind === 'freehand' ? 'none' : s.fill,
-    stroke: node.kind === 'text' ? 'none' : s.stroke,
+    stroke:
+      node.kind === 'text' || node.textRegions?.type === 'table'
+        ? 'none'
+        : s.stroke,
     'stroke-width': s.strokeWidth,
     opacity: s.opacity,
   });
@@ -364,22 +393,49 @@ function renderNode(node: SceneNode): SVGElement {
     hit.setAttribute('stroke-width', String(Math.max(12, s.strokeWidth)));
     hit.setAttribute('class', 'stroke-hit');
     group.append(hit);
-    return group;
+    if (!node.label) return group;
   }
   if (node.textRegions?.type === 'table') {
-    const { cells, headerRow } = node.textRegions;
+    const regions = node.textRegions;
+    const { cells, headerRow } = regions;
     const rows = cells.length,
       columns = cells[0].length;
     const width = g.width / columns,
       height = g.height / rows;
-    const lines: string[] = [];
+    const visibleCells = tableCellBoxes(regions, g.width, g.height);
+    const headerFill = tableHeaderFill(s.fill);
+    for (const cell of visibleCells) {
+      if (!headerRow || cell.row !== 0) continue;
+      const box = mirroredTextBox(node, cell.box);
+      if (box)
+        group.append(
+          svg('rect', {
+            ...box,
+            class: 'scene-table-header',
+            'data-table-header': 'true',
+            fill: headerFill,
+            opacity: s.opacity,
+          }),
+        );
+    }
+    const lines = [shapeRegistry.rectangle.path(g.width, g.height, 0)];
+    const sameAnchor = (r1: number, c1: number, r2: number, c2: number) => {
+      const first = tableCellAnchor(regions, r1, c1);
+      const second = tableCellAnchor(regions, r2, c2);
+      return first.row === second.row && first.column === second.column;
+    };
     for (let row = 1; row < rows; row++)
-      lines.push(`M 0 ${row * height} H ${g.width}`);
+      for (let column = 0; column < columns; column++)
+        if (!sameAnchor(row - 1, column, row, column))
+          lines.push(`M ${column * width} ${row * height} h ${width}`);
     for (let column = 1; column < columns; column++)
-      lines.push(`M ${column * width} 0 V ${g.height}`);
+      for (let row = 0; row < rows; row++)
+        if (!sameAnchor(row, column - 1, row, column))
+          lines.push(`M ${column * width} ${row * height} v ${height}`);
     group.append(
       svg('path', {
         d: lines.join(' '),
+        transform: `translate(${g.flipX === true ? g.width : 0} ${g.flipY === true ? g.height : 0}) scale(${g.flipX === true ? -1 : 1} ${g.flipY === true ? -1 : 1})`,
         class: 'scene-table-grid',
         fill: 'none',
         stroke: s.stroke,
@@ -387,25 +443,40 @@ function renderNode(node: SceneNode): SVGElement {
         opacity: s.opacity,
       }),
     );
-    cells.forEach((row, r) =>
-      row.forEach((cell, c) => {
-        const paddingX = Math.min(6, width * 0.1),
-          paddingY = Math.min(4, height * 0.1);
-        renderPlainRegion(
-          group,
-          node,
-          {
-            x: c * width + paddingX,
-            y: r * height + paddingY,
-            width: Math.max(0, width - paddingX * 2),
-            height: Math.max(0, height - paddingY * 2),
-          },
-          cell,
-          { ...s, fontWeight: headerRow && r === 0 ? 700 : s.fontWeight },
-          `cell-${r}-${c}`,
-        );
-      }),
-    );
+    for (const cell of visibleCells) {
+      const { row, column, box } = cell;
+      const paddingX = Math.min(6, box.width * 0.1),
+        paddingY = Math.min(4, box.height * 0.1);
+      const cellGroup = svg('g', {
+        'data-table-cell': `${row}-${column}`,
+        'data-rowspan': cell.rowSpan,
+        'data-colspan': cell.columnSpan,
+      });
+      const isHeader = headerRow && row === 0;
+      renderPlainRegion(
+        cellGroup,
+        node,
+        {
+          x: box.x + paddingX,
+          y: box.y + paddingY,
+          width: Math.max(0, box.width - paddingX * 2),
+          height: Math.max(0, box.height - paddingY * 2),
+        },
+        cells[row][column],
+        {
+          ...s,
+          fontWeight: isHeader ? 700 : s.fontWeight,
+          textColor:
+            isHeader && node.style.textColor === 'auto'
+              ? textColor('auto', headerFill)
+              : s.textColor,
+        },
+        `cell-${row}-${column}`,
+        regions.cellRichText?.[row]?.[column] ?? undefined,
+        textColor('auto', isHeader ? headerFill : s.fill),
+      );
+      group.append(cellGroup);
+    }
     return group;
   }
   if (node.kind === 'container') {
@@ -416,34 +487,43 @@ function renderNode(node: SceneNode): SVGElement {
       node.textRegions?.type === 'container' ? node.textRegions.title : '',
       { ...s, fontWeight: 700 },
       'title',
+      node.textRegions?.type === 'container'
+        ? node.textRegions.titleRichText
+        : undefined,
+      textColor('auto', s.fill),
     );
   }
-  const labelBox = definition.labelBox?.(g.width, g.height) ?? {
-    x: 10,
-    y: 6,
-    width: Math.max(1, g.width - 20),
-    height: Math.max(1, g.height - 12),
-  };
-  if (g.flipX === true) labelBox.x = g.width - labelBox.x - labelBox.width;
-  if (g.flipY === true) labelBox.y = g.height - labelBox.y - labelBox.height;
+  const labelBox =
+    node.kind === 'freehand'
+      ? freehandTextBox(g)
+      : mirroredTextBox(
+          node,
+          definition.labelBox?.(g.width, g.height) ?? {
+            x: 10,
+            y: 6,
+            width: Math.max(1, g.width - 20),
+            height: Math.max(1, g.height - 12),
+          },
+        );
+  if (!labelBox) return group;
   if (node.richText) {
-    group.append(
-      renderRich(
-        node.richText,
-        s,
-        labelBox.x,
-        labelBox.y,
-        labelBox.width,
-        labelBox.height,
-        true,
-        textColor(
-          'auto',
-          ['text', 'freehand', 'line', 'arrow'].includes(node.kind)
-            ? 'none'
-            : node.style.fill,
-        ),
+    const rich = renderRich(
+      node.richText,
+      s,
+      labelBox.x,
+      labelBox.y,
+      labelBox.width,
+      labelBox.height,
+      true,
+      textColor(
+        'auto',
+        ['text', 'freehand', 'line', 'arrow'].includes(node.kind)
+          ? 'none'
+          : node.style.fill,
       ),
     );
+    rich.setAttribute('data-text-region', 'body');
+    group.append(rich);
     return group;
   }
   const lines = textLines(node.label, Math.max(1, labelBox.width), s.fontSize);
@@ -464,20 +544,12 @@ function renderNode(node: SceneNode): SVGElement {
   clip.append(
     svg(
       'rect',
-      node.kind === 'container'
+      node.kind === 'container' || node.kind === 'freehand'
         ? {
-            x: Math.max(0, labelBox.x),
-            y: Math.max(0, labelBox.y),
-            width: Math.max(
-              0,
-              Math.min(g.width, labelBox.x + labelBox.width) -
-                Math.max(0, labelBox.x),
-            ),
-            height: Math.max(
-              0,
-              Math.min(g.height, labelBox.y + labelBox.height) -
-                Math.max(0, labelBox.y),
-            ),
+            x: labelBox.x,
+            y: labelBox.y,
+            width: labelBox.width,
+            height: labelBox.height,
           }
         : { x: 0, y: 0, width: g.width, height: g.height },
     ),
@@ -485,6 +557,7 @@ function renderNode(node: SceneNode): SVGElement {
   group.append(clip);
   const label = svg('text', {
     'clip-path': `url(#${clipId})`,
+    'data-text-region': 'body',
     class:
       node.kind === 'text'
         ? 'scene-label scene-standalone-label'
@@ -499,6 +572,7 @@ function renderNode(node: SceneNode): SVGElement {
       s.align === 'left' ? 'start' : s.align === 'right' ? 'end' : 'middle',
     opacity: s.opacity,
   });
+  label.style.pointerEvents = 'auto';
   shown.forEach((line, i) => {
     const span = svg('tspan', {
       x,
@@ -521,16 +595,28 @@ function renderPlainRegion(
   label: string,
   style: Appearance,
   key: string,
+  richText?: RichText,
+  automatic = textColor('auto', node.style.fill),
 ) {
-  const g = node.geometry;
-  const box = { ...rawBox };
-  if (g.flipX === true) box.x = g.width - box.x - box.width;
-  if (g.flipY === true) box.y = g.height - box.y - box.height;
-  const x0 = Math.max(0, box.x),
-    y0 = Math.max(0, box.y);
-  const width = Math.max(0, Math.min(g.width, box.x + box.width) - x0);
-  const height = Math.max(0, Math.min(g.height, box.y + box.height) - y0);
-  if (!width || !height) return;
+  const box = mirroredTextBox(node, rawBox);
+  if (!box) return;
+  const { x: x0, y: y0, width, height } = box;
+  if (richText) {
+    const rich = renderRich(
+      richText,
+      style,
+      x0,
+      y0,
+      width,
+      height,
+      true,
+      automatic,
+    );
+    rich.setAttribute('data-text-region', key);
+    rich.classList.add('scene-region-label');
+    group.append(rich);
+    return;
+  }
   const lines = textLines(label, width, style.fontSize);
   const limit = Math.max(1, Math.floor(height / (style.fontSize * 1.25)));
   const shown = lines.slice(0, limit);
@@ -557,6 +643,7 @@ function renderPlainRegion(
           ? 'end'
           : 'middle',
   });
+  text.style.pointerEvents = 'auto';
   const x =
     style.align === 'left'
       ? x0
@@ -601,15 +688,21 @@ function renderEdge(edge: SceneConnection): SVGElement {
   );
   if (edge.arrow) {
     const end = edge.points.at(-1)!;
-    const size = Math.max(8, s.strokeWidth * 3);
-    group.append(
-      svg('path', {
-        class: 'scene-arrow',
-        d: `M 0 0 L ${-size} ${-size / 2} L ${-size} ${size / 2} Z`,
-        fill: s.stroke,
-        transform: `translate(${end.x} ${end.y}) rotate(${edge.angle})`,
-      }),
-    );
+    const head = arrowhead(end.x, end.y, edge.angle, s.stroke, s.strokeWidth);
+    head.setAttribute('data-arrow-end', 'target');
+    group.append(head);
+  }
+  if (edge.startArrow) {
+    const start = edge.points[0];
+    const next =
+      edge.points.find(
+        (point) => Math.hypot(point.x - start.x, point.y - start.y) > 1e-8,
+      ) ?? edge.points.at(-1)!;
+    const angle =
+      (Math.atan2(start.y - next.y, start.x - next.x) * 180) / Math.PI;
+    const head = arrowhead(start.x, start.y, angle, s.stroke, s.strokeWidth);
+    head.setAttribute('data-arrow-end', 'source');
+    group.append(head);
   }
   if (edge.richText) {
     group.append(
@@ -640,6 +733,7 @@ function renderEdge(edge: SceneConnection): SVGElement {
       'text-anchor':
         s.align === 'left' ? 'start' : s.align === 'right' ? 'end' : 'middle',
     });
+    label.style.pointerEvents = 'auto';
     textLines(edge.label, 240, s.fontSize)
       .slice(0, 8)
       .forEach((line, i) => {
@@ -671,6 +765,24 @@ function arrowhead(
   });
 }
 
+/** Keep an empty header visible against both light and dark authored fills. */
+function tableHeaderFill(background: string): string {
+  if (!/^#[0-9a-f]{6}$/i.test(background)) return 'var(--surface-muted)';
+  const target = contrastingColor(background);
+  return (
+    '#' +
+    [1, 3, 5]
+      .map((offset) => {
+        const source = parseInt(background.slice(offset, offset + 2), 16);
+        const end = parseInt(target.slice(offset, offset + 2), 16);
+        return Math.round(source * 0.86 + end * 0.14)
+          .toString(16)
+          .padStart(2, '0');
+      })
+      .join('')
+  );
+}
+
 /** HTML namespace text layout uses the same safe run model and fonts as the editor. No imported markup. */
 function renderRich(
   value: RichText,
@@ -692,6 +804,9 @@ function renderRich(
       : 'scene-rich-label scene-edge-label',
     opacity: base.opacity,
   });
+  // Only painted runs take pointer input; a connector's bounded layout viewport
+  // must not block unrelated elements underneath its empty trailing space.
+  foreign.style.pointerEvents = 'none';
   const box = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
   Object.assign(box.style, {
     width: '100%',
@@ -708,6 +823,7 @@ function renderRich(
     color: textColor(base.textColor),
     fontWeight: String(base.fontWeight),
     fontStyle: base.fontStyle,
+    pointerEvents: 'none',
   });
   for (const p of value.paragraphs) {
     const paragraph = document.createElementNS(
@@ -729,6 +845,7 @@ function renderRich(
         fontWeight: String(a.fontWeight),
         fontStyle: a.fontStyle,
         textDecoration: a.textDecoration,
+        pointerEvents: 'auto',
         color:
           r.style.textColor === 'auto' ? automatic : textColor(a.textColor),
       });

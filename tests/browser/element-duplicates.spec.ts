@@ -208,7 +208,7 @@ test('structured element text names use authoritative regions and plain containe
       copy.setAttribute('transform', '');
       if (hideBody)
         copy
-          .querySelectorAll('text:not([data-text-region])')
+          .querySelectorAll('[data-text-region="body"]')
           .forEach((text) => text.remove());
       svg.append(copy);
       const url = URL.createObjectURL(

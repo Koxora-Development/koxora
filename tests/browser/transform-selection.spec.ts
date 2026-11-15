@@ -120,7 +120,12 @@ test('resizing a mirrored arrow endpoint keeps its fixed endpoint and arrowhead 
   const handle = page.locator(`[data-resize-id="${id}"][data-handle="end"]`);
   await expect(handle).toBeVisible();
   await handle.click({ trial: true });
-  const rect = (await handle.boundingBox())!;
+  // Hover can redraw SVG handles; read the current handle in one browser task.
+  const rect = await handle.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { x: box.x, y: box.y, width: box.width, height: box.height };
+  });
+  expect(rect.width).toBeGreaterThan(0);
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
   await page.mouse.down();
   await page.keyboard.down('Alt');

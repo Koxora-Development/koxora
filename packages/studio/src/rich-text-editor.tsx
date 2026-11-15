@@ -1,7 +1,7 @@
 import { InfoDisclosure } from './info-disclosure';
 import { useEffect, useRef, useState } from 'react';
 import { DOMParser } from 'prosemirror-model';
-import { EditorState, Plugin } from 'prosemirror-state';
+import { EditorState, Plugin, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { history, undo, redo } from 'prosemirror-history';
 import { baseKeymap, splitBlock } from 'prosemirror-commands';
@@ -13,6 +13,7 @@ import {
   contrastingColor,
   TEXT_ATTRIBUTES,
   isRichText,
+  plainText,
   type Appearance,
   type RichText,
   type TextStyle,
@@ -32,6 +33,8 @@ export function RichTextEditor({
   onChange,
   autoFocus = false,
   onPreview,
+  label,
+  maxLength = 4096,
 }: {
   value: RichText;
   base: Appearance;
@@ -39,17 +42,24 @@ export function RichTextEditor({
   onChange: (value: RichText) => void;
   autoFocus?: boolean;
   onPreview?: (value: RichText) => void;
+  label?: string;
+  maxLength?: number;
 }) {
   const t = (key: MessageKey) => translate(locale, key);
   const host = useRef<HTMLDivElement>(null),
     view = useRef<EditorView | null>(null);
   const callback = useRef(onChange),
     preview = useRef(onPreview);
+  const limit = useRef(maxLength);
+  useEffect(() => {
+    limit.current = maxLength;
+  }, [maxLength]);
   useEffect(() => {
     callback.current = onChange;
     preview.current = onPreview;
   }, [onChange, onPreview]);
-  const [initial] = useState({ value, base, autoFocus, locale });
+  const [initial] = useState({ value, base, autoFocus, locale, label });
+  const currentBase = useRef(base);
   const [current, setCurrent] = useState<Partial<Appearance>>(base),
     [search, setSearch] = useState(''),
     [notice, setNotice] = useState<MessageKey | null>(null);
@@ -83,7 +93,7 @@ export function RichTextEditor({
           editor.state.storedMarks ?? editor.state.selection.$from.marks();
         const active =
           marks.find((m) => m.type.name === key)?.attrs.value ??
-          initial.base[key];
+          currentBase.current[key];
         const { from, to, empty } = editor.state.selection,
           mark = textSchema.marks[key].create({
             value: active === on ? off : on,
@@ -125,7 +135,11 @@ export function RichTextEditor({
         keymap(baseKeymap),
         new Plugin({
           filterTransaction: (tr) => {
-            if (!tr.docChanged || isRichText(fromTextDocument(tr.doc)))
+            const rich = fromTextDocument(tr.doc);
+            if (
+              !tr.docChanged ||
+              (isRichText(rich) && plainText(rich).length <= limit.current)
+            )
               return true;
             setNotice('rich.limit');
             return false;
@@ -140,7 +154,8 @@ export function RichTextEditor({
         slice.content.textBetween(0, slice.content.size, '\n'),
       attributes: {
         role: 'textbox',
-        'aria-label': translate(initial.locale, 'diagram.label'),
+        'aria-label':
+          initial.label ?? translate(initial.locale, 'diagram.label'),
         'aria-multiline': 'true',
         spellcheck: 'true',
         tabindex: '0',
@@ -155,7 +170,7 @@ export function RichTextEditor({
         }
         const { from, to, empty, $from } = next.selection;
         const values: Partial<Appearance> = {
-          ...initial.base,
+          ...currentBase.current,
           align: $from.parent.attrs.align,
         };
         if (!empty) {
@@ -171,14 +186,14 @@ export function RichTextEditor({
             seen.add(
               (next.storedMarks ?? $from.marks()).find(
                 (m) => m.type.name === key,
-              )?.attrs.value ?? initial.base[key],
+              )?.attrs.value ?? currentBase.current[key],
             );
           else
             next.doc.nodesBetween(from, to, (n) => {
               if (n.isText)
                 seen.add(
                   n.marks.find((m) => m.type.name === key)?.attrs.value ??
-                    initial.base[key],
+                    currentBase.current[key],
                 );
             });
           Object.assign(values, {
@@ -216,11 +231,52 @@ export function RichTextEditor({
     };
   }, [initial]);
   useEffect(() => {
+    const baseChanged =
+      JSON.stringify(currentBase.current) !== JSON.stringify(base);
+    currentBase.current = base;
+    const editor = view.current;
+    if (!editor) return;
+    // Acknowledging our own transaction must preserve native line breaks, selection and undo.
+    if (
+      JSON.stringify(fromTextDocument(editor.state.doc)) ===
+      JSON.stringify(value)
+    ) {
+      if (baseChanged) editor.dispatch(editor.state.tr);
+      return;
+    }
+    const doc = toTextDocument({
+      ...value,
+      paragraphs: value.paragraphs.map((paragraph) => ({
+        ...paragraph,
+        runs: paragraph.runs.map((run) => ({
+          ...run,
+          style: {
+            ...Object.fromEntries(
+              TEXT_ATTRIBUTES.map((key) => [key, base[key]]),
+            ),
+            ...run.style,
+          },
+        })),
+      })),
+    });
+    if (editor.state.doc.eq(doc)) return;
+    const { anchor, head } = editor.state.selection;
+    const selection = TextSelection.between(
+      doc.resolve(Math.min(anchor, doc.content.size)),
+      doc.resolve(Math.min(head, doc.content.size)),
+    );
+    // External undo and property edits replace the document, without echoing another edit.
+    editor.updateState(
+      EditorState.create({ doc, selection, plugins: editor.state.plugins }),
+    );
+    editor.dispatch(editor.state.tr);
+  }, [value, base]);
+  useEffect(() => {
     view.current?.dom.setAttribute(
       'aria-label',
-      translate(locale, 'diagram.label'),
+      label ?? translate(locale, 'diagram.label'),
     );
-  }, [locale]);
+  }, [locale, label]);
   function align(value: Appearance['align']) {
     const editor = view.current;
     if (!editor) return;

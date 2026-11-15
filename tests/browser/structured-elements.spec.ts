@@ -62,15 +62,32 @@ async function openElement(page: Page, kind: 'container' | 'table') {
     });
   await saved(page);
   const rendered = page.locator(`[data-node-id="${nodeId}"]`);
-  await rendered.dblclick();
+  const bounds = (await rendered.locator('.scene-node').boundingBox())!;
+  await page.mouse.click(
+    bounds.x + bounds.width / 6,
+    bounds.y + bounds.height / 2,
+  );
+  const inline = page.getByRole('dialog', {
+    name: 'Edit text on canvas',
+    exact: true,
+  });
+  await expect(inline).toBeVisible();
+  await page.keyboard.press('Escape');
   const panel = page.getByRole('complementary', {
     name: 'Properties',
     exact: true,
   });
-  await expect(
-    panel.getByRole('tab', { name: 'Text', exact: true }),
-  ).toHaveAttribute('aria-selected', 'true');
+  if (!(await panel.isVisible()))
+    await page.getByRole('button', { name: 'Properties', exact: true }).click();
+  await panel.getByRole('tab', { name: 'Text', exact: true }).click();
   return { panel, rendered, project, nodeId };
+}
+async function cell(panel: Locator, row: number, column: number) {
+  await panel.locator(`[data-table-cell="${row - 1}-${column - 1}"]`).click();
+  return panel.getByRole('textbox', {
+    name: `Row ${row}, column ${column}`,
+    exact: true,
+  });
 }
 async function reachable(locator: Locator) {
   await locator.scrollIntoViewIfNeeded();
@@ -105,9 +122,9 @@ test('container title and rich body remain separate through editing, duplication
   await body.fill('Independent body 世界');
   await body.press('Control+a');
   await body.press('Control+b');
-  await panel
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await expect(
+    panel.getByRole('button', { name: 'Apply changes', exact: true }),
+  ).toHaveCount(0);
   await expect(rendered.locator('[data-text-region="title"]')).toHaveText(
     'Project overview',
   );
@@ -156,24 +173,15 @@ test('table cells are independent, portable and copied as one ordinary element w
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const { panel, rendered } = await openElement(page, 'table');
+  await expect(panel.locator('[data-table-cell]')).toHaveCount(9);
+  await (await cell(panel, 1, 1)).fill('Name');
+  await (await cell(panel, 1, 2)).fill('Role');
+  await (await cell(panel, 2, 1)).fill('Ada 世界');
+  const beforeLast = await exported(page);
+  await (await cell(panel, 2, 2)).fill('Lead\nReviewer');
   await expect(
-    panel.getByRole('textbox', { name: /^Row \d+, column \d+$/ }),
-  ).toHaveCount(9);
-  await panel
-    .getByRole('textbox', { name: 'Row 1, column 1', exact: true })
-    .fill('Name');
-  await panel
-    .getByRole('textbox', { name: 'Row 1, column 2', exact: true })
-    .fill('Role');
-  await panel
-    .getByRole('textbox', { name: 'Row 2, column 1', exact: true })
-    .fill('Ada 世界');
-  await panel
-    .getByRole('textbox', { name: 'Row 2, column 2', exact: true })
-    .fill('Lead\nReviewer');
-  await panel
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+    panel.getByRole('button', { name: 'Apply changes', exact: true }),
+  ).toHaveCount(0);
   await expect(rendered.locator('[data-text-region="cell-0-0"]')).toHaveText(
     'Name',
   );
@@ -181,7 +189,7 @@ test('table cells are independent, portable and copied as one ordinary element w
     'Ada 世界',
   );
   const first = await exported(page);
-  expect(node(first).extensions[TEXT_REGIONS_KEY]).toEqual({
+  expect(node(first).extensions[TEXT_REGIONS_KEY]).toMatchObject({
     version: 1,
     type: 'table',
     headerRow: true,
@@ -193,20 +201,20 @@ test('table cells are independent, portable and copied as one ordinary element w
   });
   expect(first.manifest.requiredFeatures).toContain('element-text-regions-v1');
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
-  expect(node(await exported(page)).extensions[TEXT_REGIONS_KEY]).toMatchObject(
-    {
-      cells: [
-        ['', '', ''],
-        ['', '', ''],
-        ['', '', ''],
-      ],
-    },
+  expect(node(await exported(page)).extensions[TEXT_REGIONS_KEY]).toEqual(
+    node(beforeLast).extensions[TEXT_REGIONS_KEY],
   );
   await page.getByRole('button', { name: 'Redo', exact: true }).click();
   expect(node(await exported(page)).extensions[TEXT_REGIONS_KEY]).toEqual(
     node(first).extensions[TEXT_REGIONS_KEY],
   );
   await rendered.click();
+  if (
+    await page
+      .getByRole('dialog', { name: 'Edit text on canvas', exact: true })
+      .isVisible()
+  )
+    await page.keyboard.press('Escape');
   await page
     .getByRole('region', { name: 'Interactive canvas', exact: true })
     .focus();
@@ -226,12 +234,10 @@ test('reducing a table preserves cells on cancel and can undo an explicitly conf
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const { panel } = await openElement(page, 'table');
-  await panel
-    .getByRole('textbox', { name: 'Row 3, column 3', exact: true })
-    .fill('Keep this cell');
-  await panel
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+  await (await cell(panel, 3, 3)).fill('Keep this cell');
+  await expect(
+    panel.getByRole('button', { name: 'Apply changes', exact: true }),
+  ).toHaveCount(0);
   const before = await exported(page);
   await panel
     .getByRole('combobox', { name: 'Rows', exact: true })
@@ -246,21 +252,17 @@ test('reducing a table preserves cells on cancel and can undo an explicitly conf
   await expect(
     panel.getByRole('combobox', { name: 'Rows', exact: true }),
   ).toHaveValue('3');
-  await expect(
-    panel.getByRole('textbox', { name: 'Row 3, column 3', exact: true }),
-  ).toHaveValue('Keep this cell');
+  await expect(await cell(panel, 3, 3)).toHaveText('Keep this cell');
   await panel
     .getByRole('combobox', { name: 'Rows', exact: true })
     .selectOption('2');
   await confirmation
     .getByRole('button', { name: 'Remove cells', exact: true })
     .click();
+  await expect(panel.locator('[data-table-cell]')).toHaveCount(6);
   await expect(
-    panel.getByRole('textbox', { name: /^Row \d+, column \d+$/ }),
-  ).toHaveCount(6);
-  await panel
-    .getByRole('button', { name: 'Apply changes', exact: true })
-    .click();
+    panel.getByRole('button', { name: 'Apply changes', exact: true }),
+  ).toHaveCount(0);
   expect(node(await exported(page)).extensions[TEXT_REGIONS_KEY]).toMatchObject(
     {
       cells: [
@@ -314,11 +316,34 @@ for (const locale of ['en', 'de']) {
     const box = (await canvas.boundingBox())!;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await expect(page.locator('[data-node-id]')).toHaveCount(1);
-    await page.locator('[data-node-id]').dblclick();
+    const rendered = page.locator('[data-node-id]');
+    const shape = (await rendered.locator('.scene-node').boundingBox())!;
+    await page.mouse.click(
+      shape.x + shape.width / 6,
+      shape.y + shape.height / 2,
+    );
+    await expect(
+      page.getByRole('dialog', {
+        name: messages['rich.inlineTitle'],
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
     const panel = page.getByRole('complementary', {
       name: messages['office.properties'],
       exact: true,
     });
+    if (!(await panel.isVisible()))
+      await page
+        .getByRole('button', {
+          name: messages['office.properties'],
+          exact: true,
+        })
+        .click();
+    await panel
+      .getByRole('tab', { name: messages['office.property.text'], exact: true })
+      .click();
+    await panel.locator('[data-table-cell="0-0"]').click();
     const first = panel.getByRole('textbox', {
       name: messages['regions.cellLabel']
         .replace('{row}', '1')
@@ -333,6 +358,7 @@ for (const locale of ['en', 'de']) {
     });
     await reachable(first);
     await first.fill('Header');
+    await panel.locator('[data-table-cell="2-2"]').click();
     await reachable(last);
     await last.fill('Last cell Ω');
     const widths = await panel
@@ -350,13 +376,12 @@ for (const locale of ['en', 'de']) {
     expect(widths.tab).toBeLessThanOrEqual(widths.form);
     expect(widths.cells).toBeLessThanOrEqual(widths.form);
     expect(widths.innerScrollable).toBe(true);
-    const apply = panel.getByRole('button', {
-      name: messages['diagram.apply'],
-      exact: true,
-    });
-    await reachable(apply);
-    await apply.focus();
-    await page.keyboard.press('Enter');
+    await expect(
+      panel.getByRole('button', {
+        name: messages['diagram.apply'],
+        exact: true,
+      }),
+    ).toHaveCount(0);
     await expect(page.getByRole('alert')).toHaveCount(0);
     await expect(page.locator('[data-text-region="cell-2-2"]')).toContainText(
       'Last cell Ω',

@@ -1,4 +1,12 @@
-import type { Connection, Node } from '@koxora/project';
+import {
+  validConnectionPoint,
+  type Connection,
+  type Node,
+} from '@koxora/project';
+export {
+  FLOATING_CONNECTIONS_FEATURE,
+  validConnectionPoint,
+} from '@koxora/project';
 import {
   anchorPoint,
   CONNECTION_KEY,
@@ -12,6 +20,7 @@ export type Routing = 'straight' | 'orthogonal' | 'curved';
 export interface ConnectionOptions {
   routing: Routing;
   arrow: boolean;
+  startArrow?: boolean;
   label: string;
   sourceAnchor: Anchor;
   targetAnchor: Anchor;
@@ -19,6 +28,7 @@ export interface ConnectionOptions {
 export const DEFAULT_CONNECTION: ConnectionOptions = {
   routing: 'straight',
   arrow: true,
+  startArrow: false,
   label: '',
   sourceAnchor: 'auto',
   targetAnchor: 'auto',
@@ -38,6 +48,7 @@ export function readConnection(edge: Connection): ConnectionOptions {
         ? (v.routing as Routing)
         : 'straight',
     arrow: v.version === 1 && v.arrow === true,
+    startArrow: v.version === 1 && v.startArrow === true,
     label:
       v.version === 1 && typeof v.label === 'string'
         ? v.label.slice(0, MAX_TEXT)
@@ -45,6 +56,28 @@ export function readConnection(edge: Connection): ConnectionOptions {
     sourceAnchor: v.version === 1 ? anchor(v.sourceAnchor) : 'auto',
     targetAnchor: v.version === 1 ? anchor(v.targetAnchor) : 'auto',
   };
+}
+export type ConnectionEndpoint = { nodeId: string } | { point: Point };
+
+/** A missing node reference is explicit, never a synthetic hidden element. */
+export function readConnectionEndpoints(edge: Connection): {
+  source: ConnectionEndpoint;
+  target: ConnectionEndpoint;
+} | null {
+  const endpoint = (side: 'source' | 'target'): ConnectionEndpoint | null => {
+    const id = edge[`${side}Id`];
+    const point = edge[`${side}Point`];
+    if (id !== undefined)
+      return typeof id === 'string' && point === undefined
+        ? { nodeId: id }
+        : null;
+    return validConnectionPoint(point)
+      ? { point: { x: point.x, y: point.y } }
+      : null;
+  };
+  const source = endpoint('source'),
+    target = endpoint('target');
+  return source && target ? { source, target } : null;
 }
 export function pointsBounds(points: Point[], padding = 0): Bounds {
   let x = Infinity,
@@ -72,15 +105,21 @@ export interface ConnectionPath {
   angle: number;
 }
 export function connectionPath(
-  source: Node,
-  target: Node,
+  source: Node | Point,
+  target: Node | Point,
   options: ConnectionOptions,
   waypoints: Point[] = [],
   sourceRadius = 16,
   targetRadius = 16,
 ): ConnectionPath {
-  const a = shapeCenter(source.geometry),
-    b = shapeCenter(target.geometry);
+  const isNode = (value: Node | Point): value is Node =>
+    typeof (value as Node).id === 'string' &&
+    typeof (value as Node).kind === 'string' &&
+    !!(value as Node).geometry;
+  const sourceNode = isNode(source) ? source : null;
+  const targetNode = isNode(target) ? target : null;
+  const a = sourceNode ? shapeCenter(sourceNode.geometry) : (source as Point),
+    b = targetNode ? shapeCenter(targetNode.geometry) : (target as Point);
   const horizontal = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
   const sourceToward =
     options.routing === 'orthogonal'
@@ -90,18 +129,22 @@ export function connectionPath(
     options.routing === 'orthogonal'
       ? { x: horizontal ? a.x : b.x, y: horizontal ? b.y : a.y }
       : a;
-  const start = anchorPoint(
-    source,
-    waypoints[0] ?? sourceToward,
-    options.sourceAnchor,
-    sourceRadius,
-  );
-  const end = anchorPoint(
-    target,
-    waypoints.at(-1) ?? targetToward,
-    options.targetAnchor,
-    targetRadius,
-  );
+  const start = sourceNode
+    ? anchorPoint(
+        sourceNode,
+        waypoints[0] ?? sourceToward,
+        options.sourceAnchor,
+        sourceRadius,
+      )
+    : { ...a };
+  const end = targetNode
+    ? anchorPoint(
+        targetNode,
+        waypoints.at(-1) ?? targetToward,
+        options.targetAnchor,
+        targetRadius,
+      )
+    : { ...b };
   let points = [start, ...waypoints, end];
   if (!waypoints.length && options.routing !== 'straight') {
     const x = (start.x + end.x) / 2,

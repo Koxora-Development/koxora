@@ -53,8 +53,8 @@ describe('simple local drawing templates', () => {
       ).toBe(true);
       const nodeIds = new Set(page.nodes.map((node) => node.id));
       for (const connection of page.connections) {
-        expect(nodeIds.has(connection.sourceId)).toBe(true);
-        expect(nodeIds.has(connection.targetId)).toBe(true);
+        expect(nodeIds.has(connection.sourceId!)).toBe(true);
+        expect(nodeIds.has(connection.targetId!)).toBe(true);
       }
       const reader = await importProject(await exportProject(project));
       expect(reader.documents).toEqual(project.documents);

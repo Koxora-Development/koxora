@@ -34,8 +34,10 @@ import {
   MAX_FREEHAND_POINTS,
   FREEHAND_KEY,
   ELEMENT_KEY,
-  plainText,
-  type RichText,
+  textRegionAt,
+  type TextRegionTarget,
+  freehandTextBox,
+  rotatePoint,
   alignedGeometries,
   tidyGeometries,
   type StackAction,
@@ -58,6 +60,8 @@ import {
   connectionError,
   anchorPoint,
   readConnection,
+  resolveAppearance,
+  CONNECTION_KEY,
   type Anchor,
   screenToWorld,
   pickNode,
@@ -108,6 +112,8 @@ export type CanvasCommandState = {
   propertiesVisible: boolean;
   objectsVisible: boolean;
 };
+type LinkEndpoint =
+  { id: string; anchor: Anchor } | { point: Point; anchor: Anchor };
 export interface CanvasHandle {
   prepare: () => boolean;
   run: (action: CanvasCommand) => void;
@@ -232,12 +238,12 @@ export function Canvas({
   }
   const [editing, setEditing] = useState<string | null>(null);
   const [inline, setInline] = useState(false);
-  const [textPreview, setTextPreview] = useState<RichText | null>(null);
+  const [textRegion, setTextRegion] = useState<TextRegionTarget | null>(null);
   const [textAnchor, setTextAnchor] = useState({ x: 120, y: 240 });
   function closeEditing() {
     setEditing(null);
     setInline(false);
-    setTextPreview(null);
+    setTextRegion(null);
   }
 
   function prepare() {
@@ -295,25 +301,7 @@ export function Canvas({
       ),
     [page.nodes, page.connections, page.layers, page.extensions, styles],
   );
-  const scene = useMemo(
-    () =>
-      textPreview && editing
-        ? {
-            ...baseScene,
-            nodes: baseScene.nodes.map((n) =>
-              n.id === editing
-                ? { ...n, richText: textPreview, label: plainText(textPreview) }
-                : n,
-            ),
-            connections: baseScene.connections.map((e) =>
-              e.id === editing
-                ? { ...e, richText: textPreview, label: plainText(textPreview) }
-                : e,
-            ),
-          }
-        : baseScene,
-    [baseScene, textPreview, editing],
-  );
+  const scene = baseScene;
   function activate(next: DiagramTool) {
     if (propertyDraft.current && next !== 'pan') {
       prepare();
@@ -321,13 +309,15 @@ export function Canvas({
     }
     cancelInput.current();
     setTool(next);
+    if (isDrawing(next))
+      setOptions((previous) => ({ ...previous, arrow: next === 'arrow' }));
     setSource(null);
     setEditError(null);
     setContextMenu(null);
   }
-  function pick(id: string, direct = false) {
+  function pick(id: string, direct = false, point?: Point) {
     if (!prepare()) return;
-    setInspectorOpen(true);
+    if (!direct) setInspectorOpen(true);
     const item =
       page.nodes.find((n) => n.id === id) ??
       page.connections.find((e) => e.id === id);
@@ -345,16 +335,21 @@ export function Canvas({
     setEditError(null);
     select([id]);
     const structured = item.kind === 'container' || item.kind === 'table';
-    if (direct && structured) setPropertyReset((value) => value + 1);
-    setInline(
-      direct && !structured && !('kind' in item && item.kind === 'freehand'),
+    const sceneNode = scene.nodes.find((n) => n.id === id);
+    setTextRegion(
+      direct && structured
+        ? ((point && sceneNode ? textRegionAt(sceneNode, point) : null) ??
+            (item.kind === 'table'
+              ? { type: 'table-cell', row: 0, column: 0 }
+              : { type: 'container-body' }))
+        : null,
     );
-    setTextPreview(null);
+    setInline(direct);
     const box = host.current?.getBoundingClientRect();
     if (box) {
       const n = scene.nodes.find((n) => n.id === id);
       const e = scene.connections.find((e) => e.id === id);
-      const p = n ? n.geometry : e?.labelPoint;
+      const p = point ?? (n ? n.geometry : e?.labelPoint);
       if (p)
         setTextAnchor({
           x:
@@ -370,6 +365,51 @@ export function Canvas({
     }
     setEditing(id);
   }
+  function connectEndpoints(start: LinkEndpoint, target: LinkEndpoint) {
+    if (!isDrawing(tool)) return;
+    const sourceId = 'id' in start ? start.id : undefined;
+    const targetId = 'id' in target ? target.id : undefined;
+    const attached = sourceId ?? targetId;
+    const error = attached
+      ? connectionError(
+          page,
+          attached,
+          sourceId && targetId ? targetId : null,
+          layerId,
+          options.arrow || options.startArrow === true,
+        )
+      : null;
+    if (error) {
+      setEditError(`diagram.error.${error}`);
+      return;
+    }
+    const edgeId = crypto.randomUUID();
+    if (
+      onEdit({
+        type: 'connect',
+        id: edgeId,
+        layerId,
+        ...(sourceId
+          ? { sourceId }
+          : { sourcePoint: 'point' in start ? start.point : undefined }),
+        ...(targetId
+          ? { targetId }
+          : { targetPoint: 'point' in target ? target.point : undefined }),
+        options: {
+          ...options,
+          arrow: options.arrow,
+          sourceAnchor: start.anchor,
+          targetAnchor: target.anchor,
+        },
+      })
+    ) {
+      setSource(null);
+      setEditError(null);
+      select([edgeId]);
+      controls.current?.focus();
+      if (!repeat) activate('select');
+    } else setEditError('diagram.error.invalid');
+  }
   function link(id: string | null, anchor: Anchor = 'auto', from?: Port) {
     if (!isDrawing(tool)) return;
     if (!id) {
@@ -384,7 +424,7 @@ export function Canvas({
       start?.id ?? id,
       start ? id : null,
       layerId,
-      tool === 'arrow',
+      options.arrow || options.startArrow === true,
     );
     if (error) {
       setEditError(`diagram.error.${error}`);
@@ -395,27 +435,7 @@ export function Canvas({
       setSource(id, anchor);
       return;
     }
-    const edgeId = crypto.randomUUID();
-    if (
-      onEdit({
-        type: 'connect',
-        id: edgeId,
-        sourceId: start.id,
-        targetId: id,
-        layerId,
-        options: {
-          ...options,
-          arrow: tool === 'arrow',
-          sourceAnchor: start.anchor,
-          targetAnchor: anchor,
-        },
-      })
-    ) {
-      setSource(null);
-      select([edgeId]);
-      controls.current?.focus();
-      if (!repeat) activate('select');
-    } else setEditError('diagram.error.invalid');
+    connectEndpoints(start, { id, anchor });
   }
   const candidates = useMemo(() => {
     if (!isDrawing(tool) || !layerStates(page.layers).get(layerId)?.editable)
@@ -423,8 +443,14 @@ export function Canvas({
     const excluded = new Set([source]);
     if (source)
       for (const edge of page.connections) {
-        if (edge.sourceId === source) excluded.add(edge.targetId);
-        if (tool === 'line' && edge.targetId === source)
+        if (edge.sourceId === source && edge.targetId)
+          excluded.add(edge.targetId);
+        if (
+          !options.arrow &&
+          !options.startArrow &&
+          edge.targetId === source &&
+          edge.sourceId
+        )
           excluded.add(edge.sourceId);
       }
     return scene.nodes
@@ -436,7 +462,16 @@ export function Canvas({
           !excluded.has(n.id),
       )
       .map((n) => n.id);
-  }, [scene, source, tool, page.layers, page.connections, layerId]);
+  }, [
+    scene,
+    source,
+    tool,
+    page.layers,
+    page.connections,
+    layerId,
+    options.arrow,
+    options.startArrow,
+  ]);
   function drawStroke(points: Point[]) {
     const id = crypto.randomUUID();
     if (onEdit({ type: 'freehand', id, layerId, points, ...ink })) select([id]);
@@ -455,13 +490,19 @@ export function Canvas({
           geometry,
           snap,
           text: tool === 'text' ? t('diagram.newText') : '',
+          ...(isDrawing(tool)
+            ? {
+                startArrow: options.startArrow ?? false,
+                endArrow: options.arrow,
+              }
+            : {}),
         })
       ) {
         select([id]);
         if (!repeat) activate('select');
         if (tool === 'text') {
           setInline(true);
-          setTextPreview(null);
+          setTextRegion(null);
           setEditing(id);
         }
       }
@@ -470,8 +511,8 @@ export function Canvas({
       const edge =
         id && scene.connections.find((e) => e.id === id && e.editable);
       if (edge && (!node || edge.paintOrder > node.paintOrder))
-        pick(edge.id, true);
-      else if (node) pick(node.id, true);
+        pick(edge.id, true, point);
+      else if (node) pick(node.id, true, point);
     }
   }
   const editableSelection = selected.filter((id) =>
@@ -484,22 +525,6 @@ export function Canvas({
   const propertyItem = [...page.nodes, ...page.connections].find(
     (item) => item.id === propertyId,
   );
-  const propertyLink = propertyId
-    ? JSON.stringify(elementLink(project, propertyId))
-    : '';
-  const propertyModel = useMemo(
-    () => ({ item: propertyItem, link: propertyLink, styles }),
-    [propertyItem, propertyLink, styles],
-  );
-  const [observedProperty, setObservedProperty] = useState({
-    model: propertyModel,
-    version: 0,
-  });
-  if (!propertyDirty && observedProperty.model !== propertyModel)
-    setObservedProperty({
-      model: propertyModel,
-      version: observedProperty.version + 1,
-    });
   useEffect(() => {
     onCommandState({
       selected: editableSelection.length,
@@ -606,6 +631,7 @@ export function Canvas({
       prepare();
       return;
     }
+    closeEditing();
     previewArrangement(null);
     cancelInput.current();
     if (action !== 'properties') controls.current?.focus();
@@ -709,29 +735,35 @@ export function Canvas({
     percent = useRef<HTMLOutputElement>(null);
   const interaction = useRef<{
     tool: DiagramTool;
+    options: typeof options;
     drawStroke: typeof drawStroke;
     ink: typeof ink;
     act: typeof act;
     link: typeof link;
+    connectEndpoints: typeof connectEndpoints;
     candidates: string[];
     activate: typeof activate;
     source: string | null;
     command: typeof command;
     select: typeof select;
+    editText: (id: string, point: Point) => void;
     onEdit: typeof onEdit;
   }>(null!);
   useEffect(() => {
     interaction.current = {
       tool,
+      options,
       drawStroke,
       ink,
       act,
       link,
+      connectEndpoints,
       candidates,
       activate,
       source,
       command,
       select,
+      editText: (id, point) => pick(id, true, point),
       onEdit,
     };
   });
@@ -809,14 +841,30 @@ export function Canvas({
                 origin.style.cornerRadius,
               ),
               end: cursorWorld,
-              arrow: active.tool === 'arrow',
+              arrow: active.options.arrow,
+              startArrow: active.options.startArrow,
             }
           : null;
+      const endpointCandidates =
+        gesture?.kind === 'endpoint'
+          ? scene.nodes
+              .filter(
+                (node) =>
+                  node.editable &&
+                  !isDrawing(node.kind) &&
+                  node.kind !== 'freehand',
+              )
+              .map((node) => node.id)
+          : [];
       ports.render(
         scene,
         state.current,
         size,
-        isDrawing(active.tool) ? active.candidates : [],
+        gesture?.kind === 'endpoint'
+          ? endpointCandidates
+          : isDrawing(active.tool)
+            ? active.candidates
+            : [],
         validSource ? pendingSource : null,
       );
       const nextLimited = renderer.render(
@@ -957,6 +1005,7 @@ export function Canvas({
         | 'marquee'
         | 'insert'
         | 'link'
+        | 'endpoint'
         | 'freehand';
       points?: Point[];
       start: Point;
@@ -968,8 +1017,10 @@ export function Canvas({
       handle?: string;
       pivot?: Point;
       edgeId?: string;
+      endpoint?: 'source' | 'target';
       linkStart?: Port;
       single?: string;
+      editText?: boolean;
       geometries: Record<string, Geometry>;
       geometry?: Geometry;
       snap?: boolean;
@@ -977,6 +1028,32 @@ export function Canvas({
     let gesture: Gesture | null = null;
     let keyboardStroke: Point[] | null = null;
     const world = (p: Point) => screenToWorld(p, state.current.camera, size);
+    const endpointAt = (screen: Point, raw = world(screen)): LinkEndpoint => {
+      const port = ports.hit(screen);
+      if (port) return { ...port };
+      const node = pickNode(scene, raw, 6 / state.current.camera.zoom, false);
+      return node
+        ? { id: node.id, anchor: 'auto' }
+        : { point: raw, anchor: 'auto' };
+    };
+    const freehandFieldContains = (
+      node: (typeof scene.nodes)[number],
+      point: Point,
+    ) => {
+      if (node.kind !== 'freehand') return false;
+      const local = rotatePoint(
+        point,
+        shapeCenter(node.geometry),
+        -node.geometry.rotation,
+      );
+      const box = freehandTextBox(node.geometry);
+      return (
+        local.x >= node.geometry.x + box.x &&
+        local.x <= node.geometry.x + box.x + box.width &&
+        local.y >= node.geometry.y + box.y &&
+        local.y <= node.geometry.y + box.y + box.height
+      );
+    };
     const resetPreview = () => {
       pendingMove = null;
       preview = scene;
@@ -1013,12 +1090,38 @@ export function Canvas({
       }
       const target = event.target as Element;
       const handle = target.closest('[data-resize-id]');
+      const endpointHandle = target.closest('[data-connection-endpoint-id]');
+      const endpointEdge = scene.connections.find(
+        (edge) =>
+          edge.editable &&
+          edge.id ===
+            endpointHandle?.getAttribute('data-connection-endpoint-id'),
+      );
       const rotationHandle = target.closest('[data-rotate-id]');
       const rotationNode = scene.nodes.find(
         (n) =>
           n.id === rotationHandle?.getAttribute('data-rotate-id') && n.editable,
       );
       let node = pickNode(scene, start, 6 / state.current.camera.zoom);
+      const labelId = target
+        .closest('[data-node-id]')
+        ?.getAttribute('data-node-id');
+      const labelNode = scene.nodes.find(
+        (entry) => entry.id === labelId && entry.editable,
+      );
+      if (
+        labelNode &&
+        target.closest('text,foreignObject') &&
+        (!node || labelNode.paintOrder > node.paintOrder)
+      )
+        node = labelNode;
+      const selectedFreehandField = scene.nodes.find(
+        (entry) =>
+          entry.editable &&
+          selection.current.includes(entry.id) &&
+          freehandFieldContains(entry, start),
+      );
+      if (!node && selectedFreehandField) node = selectedFreehandField;
       const edgeId = target
         .closest('[data-connection-id]')
         ?.getAttribute('data-connection-id');
@@ -1041,7 +1144,10 @@ export function Canvas({
                 : 'marquee';
       let originals: Node[] = [];
       if (active.tool === 'select') {
-        if (rotationNode) {
+        if (endpointEdge) {
+          kind = 'endpoint';
+          active.select([endpointEdge.id]);
+        } else if (rotationNode) {
           kind = 'rotate';
           originals = content.nodes.filter(
             (n) =>
@@ -1085,11 +1191,23 @@ export function Canvas({
         base: [...selection.current],
         handle: handle?.getAttribute('data-handle') ?? undefined,
         pivot: rotationNode ? shapeCenter(rotationNode.geometry) : undefined,
-        edgeId: edge?.id,
+        edgeId: endpointEdge?.id ?? edge?.id,
+        endpoint:
+          endpointHandle?.getAttribute('data-connection-endpoint') === 'source'
+            ? 'source'
+            : 'target',
         linkStart:
           port ??
           (drawingHit ? { id: drawingHit.id, anchor: 'auto' } : undefined),
         single: !event.shiftKey ? hit : undefined,
+        editText:
+          !event.shiftKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          (!!target.closest('text,foreignObject') ||
+            !!(node && textRegionAt(node, start)) ||
+            (!!node && node === selectedFreehandField)),
         geometries: {},
         ...(kind === 'freehand' ? { points: [start] } : {}),
       };
@@ -1179,9 +1297,47 @@ export function Canvas({
       const grid = state.current.grid,
         snap = grid.snap && !event.altKey;
       const point = snapPoint(raw, grid.spacing, snap);
-      snapping = snap && ['move', 'resize', 'insert'].includes(gesture.kind);
+      snapping =
+        snap && ['move', 'resize', 'insert', 'endpoint'].includes(gesture.kind);
       gesture.snap = snap;
-      if (gesture.kind === 'move')
+      if (gesture.kind === 'endpoint' && gesture.edgeId && gesture.endpoint) {
+        const edge = content.connections.find(
+          (entry) => entry.id === gesture!.edgeId,
+        );
+        if (edge) {
+          const endpoint = endpointAt(p, point);
+          const updated = { ...edge };
+          if (gesture.endpoint === 'source') {
+            delete updated.sourceId;
+            delete updated.sourcePoint;
+            if ('id' in endpoint) updated.sourceId = endpoint.id;
+            else updated.sourcePoint = { ...endpoint.point };
+          } else {
+            delete updated.targetId;
+            delete updated.targetPoint;
+            if ('id' in endpoint) updated.targetId = endpoint.id;
+            else updated.targetPoint = { ...endpoint.point };
+          }
+          updated.extensions = {
+            ...edge.extensions,
+            [CONNECTION_KEY]: {
+              ...readConnection(edge),
+              version: 1,
+              [gesture.endpoint === 'source' ? 'sourceAnchor' : 'targetAnchor']:
+                endpoint.anchor,
+            },
+          };
+          preview = buildScene(
+            {
+              ...content,
+              connections: content.connections.map((entry) =>
+                entry.id === updated.id ? updated : entry,
+              ),
+            },
+            styles,
+          );
+        }
+      } else if (gesture.kind === 'move')
         gesture.geometries = movedGeometries(
           gesture.originals,
           { x: raw.x - gesture.start.x, y: raw.y - gesture.start.y },
@@ -1345,6 +1501,39 @@ export function Canvas({
         if (done.kind === 'freehand' && done.points)
           interaction.current.drawStroke(done.points);
         else if (
+          done.kind === 'endpoint' &&
+          done.moved &&
+          done.edgeId &&
+          done.endpoint
+        ) {
+          const edge = content.connections.find(
+            (entry) => entry.id === done.edgeId,
+          );
+          if (edge) {
+            const p = local(event);
+            const point = snapPoint(
+              world(p),
+              state.current.grid.spacing,
+              state.current.grid.snap && !event.altKey,
+            );
+            const endpoint = endpointAt(p, point);
+            const connectionOptions = readConnection(edge);
+            interaction.current.onEdit({
+              type: 'updateConnection',
+              id: edge.id,
+              options: {
+                ...connectionOptions,
+                [done.endpoint === 'source' ? 'sourceAnchor' : 'targetAnchor']:
+                  endpoint.anchor,
+              },
+              style: resolveAppearance(edge, styles, CONNECTION_KEY),
+              [done.endpoint]:
+                'id' in endpoint
+                  ? { nodeId: endpoint.id }
+                  : { point: endpoint.point },
+            });
+          }
+        } else if (
           (done.kind === 'move' ||
             done.kind === 'resize' ||
             done.kind === 'rotate') &&
@@ -1362,34 +1551,57 @@ export function Canvas({
               ...marqueeSelection(scene, selectionBounds),
             ]),
           ]);
-        else if (done.kind === 'move' && !done.moved && done.single)
+        else if (done.kind === 'move' && !done.moved && done.single) {
           interaction.current.select([done.single]);
-        else if (done.kind === 'insert')
-          interaction.current.act(
-            done.start,
-            undefined,
-            done.geometry,
-            state.current.grid.snap && !event.altKey,
-          );
-        else if (done.kind === 'link') {
+          if (done.editText)
+            interaction.current.editText(done.single, world(local(event)));
+        } else if (done.kind === 'insert') {
+          const end = endpointAt(local(event));
+          if (
+            done.moved &&
+            isDrawing(interaction.current.tool) &&
+            'id' in end
+          ) {
+            const point = snapPoint(
+              done.start,
+              state.current.grid.spacing,
+              state.current.grid.snap && !event.altKey,
+            );
+            interaction.current.connectEndpoints(
+              { point, anchor: 'auto' },
+              end,
+            );
+          } else
+            interaction.current.act(
+              done.start,
+              undefined,
+              done.geometry,
+              state.current.grid.snap && !event.altKey,
+            );
+        } else if (done.kind === 'link') {
           const p = local(event);
-          const node = pickNode(
-            scene,
-            world(p),
-            6 / state.current.camera.zoom,
-            false,
+          const target = endpointAt(
+            p,
+            snapPoint(
+              world(p),
+              state.current.grid.spacing,
+              state.current.grid.snap && !event.altKey,
+            ),
           );
-          const target =
-            ports.hit(p) ??
-            (node ? { id: node.id, anchor: 'auto' as const } : undefined);
+          const start = sourceRef.current
+            ? { id: sourceRef.current, anchor: sourceAnchor.current }
+            : done.linkStart;
           if (done.moved) {
-            const start = sourceRef.current
-              ? { id: sourceRef.current, anchor: sourceAnchor.current }
-              : done.linkStart;
-            if (start && target && target.id !== start.id)
-              interaction.current.link(target.id, target.anchor, start);
+            if (start) interaction.current.connectEndpoints(start, target);
             else interaction.current.link(null);
-          } else interaction.current.link(target?.id ?? null, target?.anchor);
+          } else if ('id' in target)
+            interaction.current.link(target.id, target.anchor);
+          else if (sourceRef.current)
+            interaction.current.connectEndpoints(
+              { id: sourceRef.current, anchor: sourceAnchor.current },
+              target,
+            );
+          else interaction.current.link(null);
         }
       }
       if (event.type === 'pointercancel') interaction.current.link(null);
@@ -1487,7 +1699,12 @@ export function Canvas({
         event.preventDefault();
         commit();
         if (isShapeKind(active.tool)) {
-          if (!sourceRef.current) active.act(state.current.camera);
+          if (isDrawing(active.tool) && sourceRef.current)
+            active.connectEndpoints(
+              { id: sourceRef.current, anchor: sourceAnchor.current },
+              endpointAt(center(), state.current.camera),
+            );
+          else if (!sourceRef.current) active.act(state.current.camera);
         } else active.command('properties');
         return;
       }
@@ -1746,6 +1963,9 @@ export function Canvas({
     setGrid(next);
     controls.current?.settings();
   }
+  const editingItem =
+    page.nodes.find((node) => node.id === editing) ??
+    page.connections.find((edge) => edge.id === editing);
   return (
     <div
       id={`sheet-page-${page.id}`}
@@ -1801,7 +2021,7 @@ export function Canvas({
         }
         if (
           event.key === 'Escape' &&
-          !editing &&
+          !inline &&
           (cancelInput.current() ||
             tool !== 'select' ||
             selected.length ||
@@ -1942,17 +2162,14 @@ export function Canvas({
               >
                 {t('diagram.properties')}
               </button>
-              {editableSelection.length === 1 &&
-                !page.nodes.some(
-                  (n) => n.id === editableSelection[0] && n.kind === 'freehand',
-                ) && (
-                  <button
-                    className="button compact"
-                    onClick={() => pick(editableSelection[0], true)}
-                  >
-                    {t('rich.edit')}
-                  </button>
-                )}
+              {editableSelection.length === 1 && (
+                <button
+                  className="button compact"
+                  onClick={() => pick(editableSelection[0], true)}
+                >
+                  {t('rich.edit')}
+                </button>
+              )}
               <button
                 className="button compact"
                 disabled={!editableSelection.length}
@@ -2134,18 +2351,15 @@ export function Canvas({
             {t(editError)}
           </p>
         )}
-        {editing && inline && (
+        {editing && inline && editingItem && (
           <InlineText
-            key={editing}
-            item={
-              (page.nodes.find((n) => n.id === editing) ??
-                page.connections.find((e) => e.id === editing))!
-            }
+            key={`${editing}:${JSON.stringify(textRegion)}`}
+            item={editingItem}
             styles={styles}
             locale={locale}
             anchor={textAnchor}
+            region={textRegion}
             onApply={onEdit}
-            onPreview={setTextPreview}
             onCancel={closeEditing}
           />
         )}
@@ -2260,14 +2474,11 @@ export function Canvas({
                 {t('links.open')}
               </button>
             )}
-            {editableSelection.length === 1 &&
-              !page.nodes.some(
-                (n) => n.id === editableSelection[0] && n.kind === 'freehand',
-              ) && (
-                <button role="menuitem" onClick={() => command('text')}>
-                  {t('rich.edit')}
-                </button>
-              )}
+            {editableSelection.length === 1 && (
+              <button role="menuitem" onClick={() => command('text')}>
+                {t('rich.edit')}
+              </button>
+            )}
             {(['properties', 'duplicate', 'delete', 'copy', 'paste'] as const)
               .filter((action) =>
                 action === 'paste'
@@ -2461,7 +2672,7 @@ export function Canvas({
               <ElementDialog
                 panel
                 project={project}
-                key={`${propertyId}:${observedProperty.version}:${propertyReset}`}
+                key={`${propertyId}:${propertyReset}`}
                 page={page}
                 styles={styles}
                 id={propertyId}

@@ -2,6 +2,7 @@ import {
   transformActions,
   transformedGeometry,
   normalizedRotation,
+  groupEdit,
 } from '@koxora/editor-core';
 import { useEffect, useId, useState } from 'react';
 import { type Page, type Style, type Project } from '@koxora/project';
@@ -23,7 +24,6 @@ import {
   layerStates,
   readRichText,
   fromPlainText,
-  plainText,
   resolveAppearance,
   readConnection,
   CONNECTION_KEY,
@@ -32,6 +32,8 @@ import {
   type ConnectionOptions,
   DEFAULT_CONNECTION,
   type Anchor,
+  type Appearance,
+  type Geometry,
 } from '@koxora/editor-core';
 import { ShapePalette } from './shape-palette';
 import { RichTextEditor } from './rich-text-editor';
@@ -149,6 +151,26 @@ export function DiagramTools({
                 value={options.routing}
                 onChange={(routing) => setOptions({ ...options, routing })}
               />
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={options.startArrow === true}
+                  onChange={(event) =>
+                    setOptions({ ...options, startArrow: event.target.checked })
+                  }
+                />
+                {t('editing.startArrow')}
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={options.arrow}
+                  onChange={(event) =>
+                    setOptions({ ...options, arrow: event.target.checked })
+                  }
+                />
+                {t('editing.endArrow')}
+              </label>
               <details className="tool-picker">
                 <summary>{t('diagram.linkByName')}</summary>
                 <div className="tool-picker-content">
@@ -259,6 +281,18 @@ function RoutingSelect({
     </label>
   );
 }
+/** Keep local incomplete input while accepting external undo and editing updates. */
+function useLiveValue<T>(source: T): [T, (value: T) => void] {
+  const signature = JSON.stringify(source);
+  const [seen, setSeen] = useState(signature);
+  const [value, setValue] = useState(source);
+  if (signature !== seen) {
+    setSeen(signature);
+    if (JSON.stringify(value) !== signature) setValue(source);
+  }
+  return [value, setValue];
+}
+
 export function ElementDialog({
   project,
   page,
@@ -286,26 +320,25 @@ export function ElementDialog({
   const [tab, setTab] = useState(
     node && ['container', 'table'].includes(node.kind) ? 'text' : 'format',
   );
-  const [textRegions, setTextRegions] = useState<TextRegions | null>(() =>
+  const [textRegions, setTextRegions] = useLiveValue<TextRegions | null>(
     node ? defaultTextRegions(node) : null,
   );
   const tabId = useId();
-  useEffect(() => () => onDraftChange?.(false), [onDraftChange]);
+  const sessionId = useId();
+  useEffect(() => {
+    onDraftChange?.(false);
+    return () => onDraftChange?.(false);
+  }, [onDraftChange]);
   const initialLink = elementLink(project, id);
-  const [link, setLink] = useState<LinkTarget | null>(() =>
+  const [link, setLink] = useLiveValue<LinkTarget | null>(
     initialLink.state === 'ready' ? initialLink.target : null,
   );
-  const [linkChanged, setLinkChanged] = useState(false);
-  const validLink = validLinkTarget(project, link);
-  const linkChange = linkChanged
-    ? { link: { target: link, actionId: crypto.randomUUID() } }
-    : {};
-  const [geometry, setGeometry] = useState(node?.geometry);
+  const [geometry, setGeometry] = useLiveValue(node?.geometry);
   const line = node && isDrawing(node.kind);
-  const [startArrow, setStartArrow] = useState(
+  const [startArrow, setStartArrow] = useLiveValue(
     node ? jsonObject(node.extensions[LINE_KEY]).startArrow === true : false,
   );
-  const [endArrow, setEndArrow] = useState(
+  const [endArrow, setEndArrow] = useLiveValue(
     node
       ? typeof jsonObject(node.extensions[LINE_KEY]).endArrow === 'boolean'
         ? jsonObject(node.extensions[LINE_KEY]).endArrow === true
@@ -313,33 +346,94 @@ export function ElementDialog({
       : false,
   );
   const [failed, setFailed] = useState(false);
-  const [appearance, setAppearance] = useState(() =>
+  const [appearance, setAppearance] = useLiveValue(
     resolveAppearance(
       (node ?? edge)!,
       styles,
       node ? undefined : CONNECTION_KEY,
     ),
   );
-  const [options, setOptions] = useState(() =>
+  const [options, setOptions] = useLiveValue(
     edge ? readConnection(edge) : DEFAULT_CONNECTION,
   );
-  const [richText, setRichText] = useState(
-    () =>
-      readRichText((node ?? edge)!) ??
+  const [richText, setRichText] = useLiveValue(
+    readRichText((node ?? edge)!) ??
       fromPlainText(
         node ? String(node.content.text ?? '') : options.label,
         appearance.align,
       ),
   );
+  function publish(command: EditCommand, field?: string) {
+    setFailed(
+      !onApply(field ? groupEdit(command, `${sessionId}:${field}`) : command),
+    );
+  }
+  function changeAppearance(
+    key: keyof Appearance,
+    value: Appearance[keyof Appearance],
+    valid = true,
+  ) {
+    setAppearance({ ...appearance, [key]: value });
+    if (valid)
+      publish(
+        { type: 'format', ids: [id], patch: { [key]: value } },
+        `style:${key}`,
+      );
+  }
+  function changeGeometry(value: Geometry, field?: string) {
+    setGeometry(value);
+    const key = (['x', 'y', 'width', 'height', 'rotation'] as const).find(
+      (key) => field === `geometry:${key}`,
+    );
+    const next = key && node ? { ...node.geometry, [key]: value[key] } : value;
+    if (
+      ![next.x, next.y, next.width, next.height, next.rotation].every(
+        (v) => Number.isFinite(v) && Math.abs(v) <= 1e12,
+      ) ||
+      next.width < 8 ||
+      next.height < (line ? 1 : 8)
+    )
+      return;
+    publish(
+      {
+        type: 'transform',
+        geometries: {
+          [id]: { ...next, rotation: normalizedRotation(next.rotation) },
+        },
+      },
+      field,
+    );
+  }
+  function changeOptions(value: ConnectionOptions) {
+    if (!edge) return;
+    setOptions(value);
+    publish({
+      type: 'updateConnection',
+      id,
+      options: { ...value, label: readConnection(edge).label },
+      style: resolveAppearance(edge, styles, CONNECTION_KEY),
+    });
+  }
+  function changeArrows(start: boolean, end: boolean) {
+    if (!node) return;
+    setStartArrow(start);
+    setEndArrow(end);
+    publish({
+      type: 'updateNode',
+      id,
+      text: String(node.content.text ?? ''),
+      style: resolveAppearance(node, styles),
+      startArrow: start,
+      endArrow: end,
+    });
+  }
   const color = (key: 'fill' | 'stroke' | 'textColor') => (
     <label>
       {t(`diagram.${key}`)}
       <input
         type="color"
         value={appearance[key].startsWith('#') ? appearance[key] : '#ffffff'}
-        onChange={(e) =>
-          setAppearance({ ...appearance, [key]: e.target.value })
-        }
+        onChange={(e) => changeAppearance(key, e.target.value)}
       />
     </label>
   );
@@ -357,9 +451,13 @@ export function ElementDialog({
         min={min}
         max={max}
         step={step}
-        value={appearance[key]}
+        value={Number.isFinite(appearance[key]) ? appearance[key] : ''}
         onChange={(e) =>
-          setAppearance({ ...appearance, [key]: e.currentTarget.valueAsNumber })
+          changeAppearance(
+            key,
+            e.currentTarget.valueAsNumber,
+            e.currentTarget.value !== '' && e.currentTarget.validity.valid,
+          )
         }
       />
     </label>
@@ -372,67 +470,7 @@ export function ElementDialog({
     >
       <form
         className={`element-form ${panel ? 'office-property-form' : ''}`}
-        onChangeCapture={() => onDraftChange?.(true)}
-        onInvalidCapture={(event) => {
-          if (panel) {
-            event.preventDefault();
-            setTab(
-              (event.target as HTMLElement).closest<HTMLElement>(
-                '[data-property-tab]',
-              )?.dataset.propertyTab ?? 'format',
-            );
-            setFailed(true);
-            const target = event.target as HTMLElement;
-            requestAnimationFrame(() => target.focus());
-          }
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-            event.preventDefault();
-            event.currentTarget.requestSubmit();
-          }
-        }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (linkChanged && !validLink) return;
-          if (
-            onApply(
-              node
-                ? {
-                    type: 'updateNode',
-                    ...linkChange,
-                    id,
-                    text:
-                      node.kind === 'table'
-                        ? String(node.content.text ?? '')
-                        : plainText(richText),
-                    ...(textRegions ? { textRegions } : {}),
-                    ...(!['freehand', 'table'].includes(node.kind)
-                      ? { richText }
-                      : {}),
-                    style: appearance,
-                    geometry:
-                      geometry === node.geometry || !geometry
-                        ? undefined
-                        : {
-                            ...geometry,
-                            rotation: normalizedRotation(geometry.rotation),
-                          },
-                    ...(line ? { startArrow, endArrow } : {}),
-                  }
-                : {
-                    type: 'updateConnection',
-                    ...linkChange,
-                    id,
-                    options: { ...options, label: plainText(richText) },
-                    richText,
-                    style: appearance,
-                  },
-            )
-          )
-            onCancel();
-          else setFailed(true);
-        }}
+        onSubmit={(event) => event.preventDefault()}
       >
         {panel && (
           <div
@@ -495,14 +533,25 @@ export function ElementDialog({
           {textRegions && (
             <TextRegionsEditor
               value={textRegions}
+              base={appearance}
               locale={locale}
-              onChange={(value) => {
-                onDraftChange?.(true);
+              onChange={(value, field) => {
                 setTextRegions(value);
+                if (node)
+                  publish(
+                    {
+                      type: 'updateNode',
+                      id,
+                      text: String(node.content.text ?? ''),
+                      textRegions: value,
+                      style: resolveAppearance(node, styles),
+                    },
+                    field,
+                  );
               }}
             />
           )}
-          {node?.kind !== 'freehand' && node?.kind !== 'table' && (
+          {node?.kind !== 'table' && (
             <fieldset className="label-editor">
               <legend>
                 {t(
@@ -516,8 +565,8 @@ export function ElementDialog({
                 base={appearance}
                 locale={locale}
                 onChange={(value) => {
-                  onDraftChange?.(true);
                   setRichText(value);
+                  publish({ type: 'richText', id, value }, 'body-text');
                 }}
               />
             </fieldset>
@@ -536,9 +585,16 @@ export function ElementDialog({
             initial={initialLink}
             locale={locale}
             onChange={(value) => {
-              onDraftChange?.(true);
               setLink(value);
-              setLinkChanged(true);
+              if (validLinkTarget(project, value))
+                publish(
+                  {
+                    type: 'link',
+                    id,
+                    link: { target: value, actionId: crypto.randomUUID() },
+                  },
+                  value?.type === 'url' ? 'link-url' : undefined,
+                );
             }}
           />
         </div>
@@ -575,12 +631,17 @@ export function ElementDialog({
                         }
                         max={1e12}
                         step="any"
-                        value={geometry[key]}
+                        value={
+                          Number.isFinite(geometry[key]) ? geometry[key] : ''
+                        }
                         onChange={(e) =>
-                          setGeometry({
-                            ...geometry,
-                            [key]: e.currentTarget.valueAsNumber,
-                          })
+                          changeGeometry(
+                            {
+                              ...geometry,
+                              [key]: e.currentTarget.valueAsNumber,
+                            },
+                            `geometry:${key}`,
+                          )
                         }
                       />
                     </label>
@@ -596,13 +657,12 @@ export function ElementDialog({
                       className="button compact"
                       key={action}
                       onClick={() => {
-                        if (
-                          !Number.isFinite(geometry.rotation) ||
-                          Math.abs(geometry.rotation) > 1e12
-                        )
-                          return;
-                        onDraftChange?.(true);
-                        setGeometry(transformedGeometry(geometry, action));
+                        changeGeometry(
+                          transformedGeometry(
+                            node?.geometry ?? geometry,
+                            action,
+                          ),
+                        );
                       }}
                     >
                       {t(`transform.${action}`)}
@@ -616,7 +676,7 @@ export function ElementDialog({
                     <input
                       type="checkbox"
                       checked={startArrow}
-                      onChange={(e) => setStartArrow(e.target.checked)}
+                      onChange={(e) => changeArrows(e.target.checked, endArrow)}
                     />
                     {t('editing.startArrow')}
                   </label>
@@ -624,7 +684,9 @@ export function ElementDialog({
                     <input
                       type="checkbox"
                       checked={endArrow}
-                      onChange={(e) => setEndArrow(e.target.checked)}
+                      onChange={(e) =>
+                        changeArrows(startArrow, e.target.checked)
+                      }
                     />
                     {t('editing.endArrow')}
                   </label>
@@ -645,14 +707,16 @@ export function ElementDialog({
                   <RoutingSelect
                     locale={locale}
                     value={options.routing}
-                    onChange={(routing) => setOptions({ ...options, routing })}
+                    onChange={(routing) =>
+                      changeOptions({ ...options, routing })
+                    }
                   />
                   <AnchorSelect
                     locale={locale}
                     label="ports.source"
                     value={options.sourceAnchor}
                     onChange={(sourceAnchor) =>
-                      setOptions({ ...options, sourceAnchor })
+                      changeOptions({ ...options, sourceAnchor })
                     }
                   />
                   <AnchorSelect
@@ -660,36 +724,44 @@ export function ElementDialog({
                     label="ports.target"
                     value={options.targetAnchor}
                     onChange={(targetAnchor) =>
-                      setOptions({ ...options, targetAnchor })
+                      changeOptions({ ...options, targetAnchor })
                     }
                   />
                   <label>
                     <input
                       type="checkbox"
-                      checked={options.arrow}
+                      checked={options.startArrow === true}
                       onChange={(e) =>
-                        setOptions({ ...options, arrow: e.target.checked })
+                        changeOptions({
+                          ...options,
+                          startArrow: e.target.checked,
+                        })
                       }
                     />
-                    {t('diagram.arrow')}
+                    {t('editing.startArrow')}
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={options.arrow}
+                      onChange={(e) =>
+                        changeOptions({ ...options, arrow: e.target.checked })
+                      }
+                    />
+                    {t('editing.endArrow')}
                   </label>
                 </>
               )}
             </div>
           </details>
         </div>
-        <div className="dialog-actions">
-          <button type="button" className="button" onClick={onCancel}>
-            {t(panel ? 'office.discardProperties' : 'project.cancel')}
-          </button>
-          <button
-            type="submit"
-            className="button primary"
-            disabled={linkChanged && !validLink}
-          >
-            {t('diagram.apply')}
-          </button>
-        </div>
+        {!panel && (
+          <div className="dialog-actions">
+            <button type="button" className="button" onClick={onCancel}>
+              {t('office.close')}
+            </button>
+          </div>
+        )}
       </form>
     </PropertySurface>
   );
