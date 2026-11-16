@@ -137,3 +137,32 @@
 .table-cell-scroll {
   max-height: 40dvh;
 }
+
+.table-size-controls,
+.table-formula-controls {
+  min-width: 0;
+  margin-top: 12px;
+}
+.table-formula-controls > label:not(.checkbox-label) {
+  display: grid;
+  gap: 4px;
+}
+.table-formula-input {
+  width: 100%;
+  min-width: 0;
+  font-family: monospace;
+}
+.table-formula-controls output {
+  display: block;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.table-formula-input {
+  min-height: 64px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+}

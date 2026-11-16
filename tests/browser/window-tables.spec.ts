@@ -264,3 +264,142 @@ test('table tools focus the clicked cell instead of changing the keyboard origin
   await expect(dialog.locator('[data-table-cell="1-2"]')).toBeFocused();
   await page.screenshot({ path: test.info().outputPath('table-tools.png') });
 });
+
+for (const locale of ['en', 'de'])
+  test(`table dimensions and formulas recalculate and survive native export ${locale}`, async ({
+    page,
+  }) => {
+    const { dialog, t, id } = await open(page, locale);
+    await dialog
+      .getByRole('button', { name: t['regions.editTable'], exact: true })
+      .click();
+    const grid = dialog.locator('.table-cell-editor');
+    await dialog
+      .getByLabel(t['table.columnWidth'], { exact: true })
+      .fill('300');
+    await dialog.getByLabel(t['table.rowHeight'], { exact: true }).fill('200');
+    const rendered = page.locator(`[data-node-id="${id}"]`);
+    await expect
+      .poll(async () =>
+        Number(
+          await rendered
+            .locator('.scene-table-header')
+            .first()
+            .getAttribute('width'),
+        ),
+      )
+      .toBeCloseTo(216);
+    await expect
+      .poll(async () =>
+        Number(
+          await rendered
+            .locator('.scene-table-header')
+            .first()
+            .getAttribute('height'),
+        ),
+      )
+      .toBeCloseTo(105);
+    await dialog.getByLabel(t['table.calculate'], { exact: true }).check();
+    const source = dialog.locator('.table-formula-input');
+    await source.fill('2');
+    await grid.locator('[data-table-cell="0-1"]').click();
+    await source.fill('3');
+    await grid.locator('[data-table-cell="0-2"]').click();
+    await source.fill(locale === 'de' ? '=SUMME(A1:B1)' : '=SUM(A1:B1)');
+    await expect(dialog.locator('output')).toContainText('5');
+    await expect(rendered.locator('[data-text-region="cell-0-2"]')).toHaveText(
+      '5',
+    );
+    await grid.locator('[data-table-cell="0-0"]').click();
+    await source.fill('4');
+    await expect(rendered.locator('[data-text-region="cell-0-2"]')).toHaveText(
+      '7',
+    );
+    await dialog
+      .getByRole('button', { name: t['regions.column.before'], exact: true })
+      .click();
+    await expect(rendered.locator('[data-text-region="cell-0-3"]')).toHaveText(
+      '7',
+    );
+    await grid.locator('[data-table-cell="0-3"]').click();
+    await expect(source).toHaveValue(
+      locale === 'de' ? '=SUMME(B1:C1)' : '=SUM(B1:C1)',
+    );
+    await grid.locator('[data-table-cell="1-0"]').click();
+    await source.fill('=1/0');
+    await expect(dialog.locator('output')).toContainText('#DIV/0!');
+    await grid.locator('[data-table-cell="2-0"]').click();
+    await source.fill('=A3');
+    await expect(dialog.locator('output')).toContainText('#CYCLE!');
+    await source.fill('Line one\nLine two');
+    await expect(source).toHaveValue('Line one\nLine two');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('.save-status')).toHaveText(t['project.saved']);
+    const download = page.waitForEvent('download');
+    await page
+      .getByRole('button', { name: t['project.export'], exact: true })
+      .click();
+    const project = await importProject(
+      new Uint8Array(readFileSync((await (await download).path())!)),
+    );
+    expect(project.manifest.requiredFeatures).toContain(
+      'table-layout-formulas-v1',
+    );
+    const regions = project.documents[0].pages[0].nodes[0].extensions[
+      TEXT_REGIONS_KEY
+    ] as unknown as TableTextRegions;
+    expect(regions.columnWidths).toEqual([100, 300, 100, 100]);
+    expect(regions.rowHeights).toEqual([200, 100, 100]);
+    expect(regions.cells[2][0]).toBe('Line one\nLine two');
+    expect(regions.cells[0][3]).toBe(
+      locale === 'de' ? '=SUMME(B1:C1)' : '=SUM(B1:C1)',
+    );
+  });
+
+test('copying a formula inside Koxora adjusts relative references and preserves absolute ones', async ({
+  page,
+}) => {
+  const { dialog, t } = await open(page);
+  await dialog
+    .getByRole('button', { name: t['regions.editTable'], exact: true })
+    .click();
+  await dialog.getByLabel(t['table.calculate'], { exact: true }).check();
+  const grid = dialog.locator('.table-cell-editor'),
+    source = dialog.locator('.table-formula-input');
+  for (const [cell, value] of [
+    ['0-0', '2'],
+    ['0-1', '3'],
+    ['1-0', '10'],
+    ['1-1', '20'],
+    ['0-2', '=A1+B1+$A$1'],
+  ]) {
+    await grid.locator(`[data-table-cell="${cell}"]`).click();
+    await source.fill(value);
+  }
+  await expect(dialog.locator('output')).toContainText('7');
+  const copied = await grid
+    .locator('[data-table-cell="0-2"]')
+    .evaluate((el) => {
+      const data = new DataTransfer();
+      el.dispatchEvent(
+        new ClipboardEvent('copy', { bubbles: true, clipboardData: data }),
+      );
+      return {
+        text: data.getData('text/plain'),
+        native: data.getData('application/x-koxora-table'),
+      };
+    });
+  await grid.locator('[data-table-cell="1-2"]').click();
+  await grid.locator('[data-table-cell="1-2"]').evaluate((el, copied) => {
+    const data = new DataTransfer();
+    data.setData('text/plain', copied.text);
+    data.setData('application/x-koxora-table', copied.native);
+    el.dispatchEvent(
+      new ClipboardEvent('paste', { bubbles: true, clipboardData: data }),
+    );
+  }, copied);
+  await expect(source).toHaveValue('=A2+B2+$A$1');
+  await expect(dialog.locator('output')).toContainText('32');
+  await page.screenshot({ path: test.info().outputPath('formula-editor.png') });
+});

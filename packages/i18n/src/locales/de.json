@@ -772,8 +772,19 @@
   "regions.formatSelection": "Ausgewählte Zellen formatieren",
   "regions.boldSelection": "Auswahl fett",
   "regions.normalSelection": "Normaler Text",
-  "regions.operationFailed": "Die Tabelle konnte nicht geändert werden. Zell- und Textgrenzen prüfen; verbundene Zellen vor dem Einfügen mehrerer Zellen trennen.",
+  "regions.operationFailed": "Die Tabelle konnte nicht geändert werden. Zell- und Textgrenzen prüfen; verbundene Zellen vor dem Einfügen mehrerer Zellen trennen. Eine Formel kann nicht mit anderen gefüllten Zellen verbunden werden.",
   "regions.editTable": "Tabellenstruktur bearbeiten",
   "regions.editCellOnly": "Zurück zum Zelltext",
-  "shape.kite": "Drachenviereck"
+  "shape.kite": "Drachenviereck",
+  "table.dimensions": "Zeilenhöhen und Spaltenbreiten",
+  "table.rowHeight": "Zeilenhöhe (relativ)",
+  "table.columnWidth": "Spaltenbreite (relativ)",
+  "table.sizeHelp": "Gilt für ausgewählte Zeilen oder Spalten. 100 ist der Standard, 200 doppelt so groß. Die äußere Tabellengröße bleibt gleich.",
+  "table.equalRows": "Zeilen gleichmäßig verteilen",
+  "table.equalColumns": "Spalten gleichmäßig verteilen",
+  "table.formulas": "Zellwerte und Formeln",
+  "table.calculate": "Formeln in dieser Tabelle berechnen",
+  "table.source": "Wert oder Formel — {cell}",
+  "table.result": "Ergebnis: {value}",
+  "table.formulaHelp": "Berechnung für Eingaben mit = aktivieren. Beispiele: =A1+B1, =SUMME(A1:B3), =WENN(A1>0;1;0). Dezimalpunkt und Komma oder Semikolon als Trennzeichen verwenden. Funktionen: SUMME, MITTELWERT, MIN, MAX, ANZAHL, ABS, RUNDEN, WENN (auch englische Namen). Text mit einem Apostroph beginnen. Fehler: #REF! ungültiger Bezug, #CYCLE! Zirkelbezug, #DIV/0! Division durch null."
 }

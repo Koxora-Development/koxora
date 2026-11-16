@@ -67,6 +67,8 @@ import {
   MAX_TABLE_CELL_TEXT,
   ADVANCED_TEXT_REGIONS_FEATURE,
   hasAdvancedTextRegions,
+  hasTableCalculations,
+  TABLE_CALCULATION_FEATURE,
   setRegionRichText,
   type TextRegionTarget,
   type TextRegions,
@@ -856,7 +858,14 @@ export function applyEdit(
     if (nextRegions && command.textRegions) {
       // Known optional fields are authoritative; omitted ones must not linger.
       // Unknown sibling fields remain losslessly preserved.
-      for (const key of ['titleRichText', 'cellRichText', 'merges'])
+      for (const key of [
+        'titleRichText',
+        'cellRichText',
+        'merges',
+        'columnWidths',
+        'rowHeights',
+        'formulas',
+      ])
         if (!Object.hasOwn(command.textRegions, key))
           delete (nextRegions as Record<string, unknown>)[key];
       if (!isTextRegions(nextRegions, n.kind)) throw new EditError('invalid');
@@ -1033,6 +1042,27 @@ export function applyEdit(
     } catch {
       throw new EditError('unsupported');
     }
+  }
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.nodes.some((n) =>
+          hasTableCalculations(n.extensions[TEXT_REGIONS_KEY]),
+        ),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(TABLE_CALCULATION_FEATURE)
+  ) {
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          TABLE_CALCULATION_FEATURE,
+        ],
+      },
+    };
   }
   if (
     next.documents.some((d) =>

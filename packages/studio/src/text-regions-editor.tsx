@@ -1,8 +1,11 @@
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog } from '@koxora/ui';
 import {
   FONT_FAMILIES,
+  evaluateTable,
+  calculatedCellRichText,
+  tableColumnName,
   changeTableAxis,
   formatTableSelection,
   pasteTableText,
@@ -109,6 +112,46 @@ function CellPreview({ value }: { value: RichText }) {
   ));
 }
 
+function TableSizeInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState<{ source: number; text: string } | null>(
+    null,
+  );
+  return (
+    <label>
+      {label}
+      <input
+        type="number"
+        min={1}
+        max={10000}
+        step={1}
+        value={draft?.source === value ? draft.text : String(value)}
+        onChange={(event) => {
+          const raw = event.currentTarget.value;
+          const number = Number(raw);
+          setDraft({
+            source:
+              raw && Number.isFinite(number) && number >= 1 && number <= 10000
+                ? number
+                : value,
+            text: raw,
+          });
+          if (raw && Number.isFinite(number) && number >= 1 && number <= 10000)
+            onChange(number);
+        }}
+        onBlur={() => setDraft(null)}
+      />
+    </label>
+  );
+}
+
 export function TableTextEditor({
   value,
   base,
@@ -134,6 +177,7 @@ export function TableTextEditor({
   const caption = useId();
   const rows = value.cells.length;
   const columns = value.cells[0].length;
+  const calculated = useMemo(() => evaluateTable(value), [value]);
   const bounded = (point: CellPosition): CellPosition => ({
     row: Math.min(rows - 1, point.row),
     column: Math.min(columns - 1, point.column),
@@ -219,6 +263,35 @@ export function TableTextEditor({
     } catch {
       setFailure(true);
     }
+  }
+  function sizeSelection(axis: 'row' | 'column', size: number) {
+    const field = axis === 'row' ? 'rowHeights' : 'columnWidths';
+    const weights = [
+      ...(value[field] ??
+        Array.from({ length: axis === 'row' ? rows : columns }, () => 100)),
+    ];
+    const count = axis === 'row' ? selection.rowSpan : selection.columnSpan;
+    for (let index = selection[axis]; index < selection[axis] + count; index++)
+      weights[index] = size;
+    onChange({ ...value, [field]: weights }, field);
+  }
+  function sourceChange(text: string) {
+    const rich = fromPlainText(
+      text,
+      activeText.paragraphs[0]?.align ?? base.align,
+    );
+    if (rich.paragraphs[0].runs[0])
+      rich.paragraphs[0].runs[0].style = {
+        ...activeText.paragraphs[0]?.runs[0]?.style,
+      };
+    onChange(
+      setRegionRichText(
+        value,
+        { type: 'table-cell', row: active.row, column: active.column },
+        rich,
+      ),
+      `cell:${active.row}:${active.column}`,
+    );
   }
   function merge() {
     try {
@@ -332,6 +405,85 @@ export function TableTextEditor({
           {t('regions.headerRow')}
         </label>
       </fieldset>
+      <fieldset className="table-size-controls">
+        <legend>{t('table.dimensions')}</legend>
+        <p className="field-help">{t('table.sizeHelp')}</p>
+        <div className="table-dimension-fields">
+          <TableSizeInput
+            key={`row-${active.row}`}
+            label={t('table.rowHeight')}
+            value={value.rowHeights?.[active.row] ?? 100}
+            onChange={(size) => sizeSelection('row', size)}
+          />
+          <TableSizeInput
+            key={`column-${active.column}`}
+            label={t('table.columnWidth')}
+            value={value.columnWidths?.[active.column] ?? 100}
+            onChange={(size) => sizeSelection('column', size)}
+          />
+        </div>
+        <div className="table-merge-actions">
+          <button
+            className="button"
+            type="button"
+            onClick={() =>
+              onChange({
+                ...value,
+                rowHeights: Array.from({ length: rows }, () => 100),
+              })
+            }
+          >
+            {t('table.equalRows')}
+          </button>
+          <button
+            className="button"
+            type="button"
+            onClick={() =>
+              onChange({
+                ...value,
+                columnWidths: Array.from({ length: columns }, () => 100),
+              })
+            }
+          >
+            {t('table.equalColumns')}
+          </button>
+        </div>
+      </fieldset>
+      <fieldset className="table-formula-controls">
+        <legend>{t('table.formulas')}</legend>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={value.formulas ?? false}
+            onChange={(event) =>
+              onChange({ ...value, formulas: event.currentTarget.checked })
+            }
+          />
+          {t('table.calculate')}
+        </label>
+        <label>
+          {t('table.source', {
+            cell: `${tableColumnName(active.column)}${active.row + 1}`,
+          })}
+          <textarea
+            rows={2}
+            className="table-formula-input"
+            value={value.cells[active.row][active.column]}
+            maxLength={editorLimit}
+            onChange={(event) => sourceChange(event.currentTarget.value)}
+            spellCheck={false}
+          />
+        </label>
+        {value.formulas &&
+          value.cells[active.row][active.column].startsWith('=') && (
+            <output aria-live="polite">
+              {t('table.result', {
+                value: calculated[active.row][active.column],
+              })}
+            </output>
+          )}
+        <p className="field-help">{t('table.formulaHelp')}</p>
+      </fieldset>
       <p className="field-help">{t('regions.selectionHelp')}</p>
       <div
         className="table-structure-actions"
@@ -385,6 +537,16 @@ export function TableTextEditor({
               'text/plain',
               copyTableText(value, selection),
             );
+            if (value.formulas)
+              event.clipboardData.setData(
+                'application/x-koxora-table',
+                JSON.stringify({
+                  version: 1,
+                  row: selection.row,
+                  column: selection.column,
+                  text: copyTableText(value, selection),
+                }),
+              );
           }}
           onPaste={(event) => {
             if (!event.clipboardData.types.includes('text/plain')) return;
@@ -395,12 +557,30 @@ export function TableTextEditor({
               return;
             event.preventDefault();
             try {
+              let source: { row: number; column: number } | undefined;
+              const custom = event.clipboardData.getData(
+                'application/x-koxora-table',
+              );
+              if (custom && custom.length <= 140000) {
+                try {
+                  const data = JSON.parse(custom);
+                  if (
+                    data &&
+                    data.version === 1 &&
+                    data.text === event.clipboardData.getData('text/plain')
+                  )
+                    source = { row: data.row, column: data.column };
+                } catch {
+                  /* External clipboard metadata is optional. */
+                }
+              }
               commitStructure(
                 pasteTableText(
                   value,
                   active.row,
                   active.column,
                   event.clipboardData.getData('text/plain'),
+                  source,
                 ),
                 active,
               );
@@ -438,7 +618,8 @@ export function TableTextEditor({
                       setEnd({ row: rows - 1, column });
                     }}
                   >
-                    {t('regions.columnNumber', { column: column + 1 })}
+                    {t('regions.columnNumber', { column: column + 1 })} (
+                    {tableColumnName(column)})
                   </button>
                 </th>
               ))}
@@ -529,10 +710,11 @@ export function TableTextEditor({
                         }}
                       >
                         <CellPreview
-                          value={tableCellRichText(
+                          value={calculatedCellRichText(
                             value,
                             row,
                             column,
+                            calculated,
                             base.align,
                           )}
                         />

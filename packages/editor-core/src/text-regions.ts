@@ -1,3 +1,4 @@
+import { rewriteTableFormula } from './table-formulas';
 import {
   isTextRegions,
   TEXT_REGIONS_KEY,
@@ -21,6 +22,8 @@ import {
 export {
   isTextRegions,
   hasAdvancedTextRegions,
+  hasTableCalculations,
+  TABLE_CALCULATION_FEATURE,
   ADVANCED_TEXT_REGIONS_FEATURE,
   TEXT_REGIONS_KEY,
   TEXT_REGIONS_FEATURE,
@@ -236,6 +239,32 @@ export function regionRichText(
   throw new RangeError('Invalid region target');
 }
 
+export function rewriteTableReferences(
+  value: TableTextRegions,
+  axis: 'row' | 'column',
+  index: number,
+  count: number,
+  action: 'insert' | 'delete',
+): void {
+  if (!value.formulas) return;
+  value.cells.forEach((row, r) =>
+    row.forEach((text, c) => {
+      const next = rewriteTableFormula(text, axis, index, count, action);
+      if (next === text) return;
+      value.cells[r][c] = next;
+      if (value.cellRichText?.[r][c]) {
+        const old = value.cellRichText[r][c]!;
+        const rich = fromPlainText(next, old.paragraphs[0]?.align);
+        if (rich.paragraphs[0].runs[0])
+          rich.paragraphs[0].runs[0].style = {
+            ...old.paragraphs[0]?.runs[0]?.style,
+          };
+        value.cellRichText[r][c] = rich;
+      }
+    }),
+  );
+}
+
 /** Resizing clips spans at the new boundary and retains the surviving anchor contents. */
 export function resizeTable(
   value: TableTextRegions,
@@ -262,6 +291,32 @@ export function resizeTable(
         structuredClone(value.cellRichText?.[r]?.[c] ?? null),
       ),
     );
+  if (value.rowHeights)
+    next.rowHeights = Array.from(
+      { length: rows },
+      (_, r) => value.rowHeights?.[r] ?? 100,
+    );
+  if (value.columnWidths)
+    next.columnWidths = Array.from(
+      { length: columns },
+      (_, c) => value.columnWidths?.[c] ?? 100,
+    );
+  if (rows < value.cells.length)
+    rewriteTableReferences(
+      next,
+      'row',
+      rows,
+      value.cells.length - rows,
+      'delete',
+    );
+  if (columns < value.cells[0].length)
+    rewriteTableReferences(
+      next,
+      'column',
+      columns,
+      value.cells[0].length - columns,
+      'delete',
+    );
   if (value.merges)
     next.merges = value.merges
       .filter((m) => m.row < rows && m.column < columns)
@@ -284,6 +339,25 @@ export function mergeTableCells(
   const range = normalizeTableSelection(value, selection);
   if (range.rowSpan * range.columnSpan < 2)
     throw new RangeError('Select multiple cells');
+  const selected = value.cells
+    .slice(range.row, range.row + range.rowSpan)
+    .flatMap((row) => row.slice(range.column, range.column + range.columnSpan))
+    .filter(Boolean);
+  if (
+    value.formulas &&
+    selected.some((text) => text.startsWith('=')) &&
+    selected.length > 1
+  )
+    throw new RangeError('Merging would combine a formula with other content');
+  if (value.formulas)
+    for (let r = range.row; r < range.row + range.rowSpan; r++)
+      for (let c = range.column; c < range.column + range.columnSpan; c++) {
+        if (
+          (r !== range.row || c !== range.column) &&
+          value.cells[r][c].startsWith('=')
+        )
+          throw new RangeError('Keep formulas at the merged anchor');
+      }
   const next = structuredClone(value);
   const paragraphs: RichText['paragraphs'] = [];
   for (let r = range.row; r < range.row + range.rowSpan; r++)

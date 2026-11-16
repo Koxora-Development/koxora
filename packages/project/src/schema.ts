@@ -32,11 +32,14 @@ import {
 import {
   isTextRegions,
   hasAdvancedTextRegions,
+  hasTableCalculations,
+  TABLE_CALCULATION_FEATURE,
   ADVANCED_TEXT_REGIONS_FEATURE,
   TEXT_REGIONS_KEY,
   TEXT_REGIONS_FEATURE,
 } from './text-regions';
 export const FEATURES = [
+  TABLE_CALCULATION_FEATURE,
   'node-reflection-v1',
   FREEHAND_TEXT_FEATURE,
   FLOATING_CONNECTIONS_FEATURE,
@@ -396,6 +399,12 @@ export function validateProject(
             `${np}.extensions.${TEXT_REGIONS_KEY}`,
             'feature',
           );
+          if (hasTableCalculations(regions))
+            check(
+              manifest.requiredFeatures.includes(TABLE_CALCULATION_FEATURE),
+              `${np}.extensions.${TEXT_REGIONS_KEY}`,
+              'feature',
+            );
           if (hasAdvancedTextRegions(regions))
             check(
               manifest.requiredFeatures.includes(ADVANCED_TEXT_REGIONS_FEATURE),

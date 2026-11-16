@@ -19,3 +19,5 @@ export * from './text-regions';
 export * from './table-layout';
 
 export * from './table-operations';
+
+export * from './table-formulas';

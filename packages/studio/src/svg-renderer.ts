@@ -8,6 +8,9 @@ import {
   contrastingColor,
   tableCellAnchor,
   tableCellBoxes,
+  tableAxisOffsets,
+  evaluateTable,
+  calculatedCellRichText,
   mirroredTextBox,
   type RichText,
   type Appearance,
@@ -400,8 +403,9 @@ function renderNode(node: SceneNode): SVGElement {
     const { cells, headerRow } = regions;
     const rows = cells.length,
       columns = cells[0].length;
-    const width = g.width / columns,
-      height = g.height / rows;
+    const xs = tableAxisOffsets(regions.columnWidths, columns, g.width),
+      ys = tableAxisOffsets(regions.rowHeights, rows, g.height);
+    const calculated = evaluateTable(regions);
     const visibleCells = tableCellBoxes(regions, g.width, g.height);
     const headerFill = tableHeaderFill(s.fill);
     for (const cell of visibleCells) {
@@ -427,11 +431,13 @@ function renderNode(node: SceneNode): SVGElement {
     for (let row = 1; row < rows; row++)
       for (let column = 0; column < columns; column++)
         if (!sameAnchor(row - 1, column, row, column))
-          lines.push(`M ${column * width} ${row * height} h ${width}`);
+          lines.push(
+            `M ${xs[column]} ${ys[row]} h ${xs[column + 1] - xs[column]}`,
+          );
     for (let column = 1; column < columns; column++)
       for (let row = 0; row < rows; row++)
         if (!sameAnchor(row, column - 1, row, column))
-          lines.push(`M ${column * width} ${row * height} v ${height}`);
+          lines.push(`M ${xs[column]} ${ys[row]} v ${ys[row + 1] - ys[row]}`);
     group.append(
       svg('path', {
         d: lines.join(' '),
@@ -462,7 +468,7 @@ function renderNode(node: SceneNode): SVGElement {
           width: Math.max(0, box.width - paddingX * 2),
           height: Math.max(0, box.height - paddingY * 2),
         },
-        cells[row][column],
+        calculated[row][column],
         {
           ...s,
           fontWeight: isHeader ? 700 : s.fontWeight,
@@ -472,7 +478,7 @@ function renderNode(node: SceneNode): SVGElement {
               : s.textColor,
         },
         `cell-${row}-${column}`,
-        regions.cellRichText?.[row]?.[column] ?? undefined,
+        calculatedCellRichText(regions, row, column, calculated, s.align),
         textColor('auto', isHeader ? headerFill : s.fill),
       );
       group.append(cellGroup);

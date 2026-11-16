@@ -1,3 +1,4 @@
+import { translateTableFormula } from './table-formulas';
 import {
   isTextRegions,
   type TableTextRegions,
@@ -10,6 +11,7 @@ import {
   tableCellAnchor,
   tableCellRichText,
   resizeTable,
+  rewriteTableReferences,
   setRegionRichText,
 } from './text-regions';
 import {
@@ -105,6 +107,10 @@ export function changeTableAxis(
       );
     if (updated.rowSpan * updated.columnSpan > 1) next.merges!.push(updated);
   }
+  const dimension = axis === 'row' ? 'rowHeights' : 'columnWidths';
+  const weights = value[dimension];
+  if (weights) next[dimension] = source.map((i) => (i < 0 ? 100 : weights[i]));
+  rewriteTableReferences(next, axis, index, count, action);
   if (!isTextRegions(next, 'table'))
     throw new RangeError('Invalid table operation');
   return next;
@@ -203,9 +209,27 @@ export function pasteTableText(
   row: number,
   column: number,
   text: string,
+  source?: { row: number; column: number },
 ): TableTextRegions {
   tableCellAnchor(value, row, column);
-  const lines = parseTableText(text);
+  let lines = parseTableText(text);
+  if (source) {
+    if (
+      !Number.isInteger(source.row) ||
+      !Number.isInteger(source.column) ||
+      source.row < 0 ||
+      source.row >= MAX_TABLE_ROWS ||
+      source.column < 0 ||
+      source.column >= MAX_TABLE_COLUMNS
+    )
+      throw new RangeError('Clipboard origin');
+    if (value.formulas)
+      lines = lines.map((line) =>
+        line.map((cell) =>
+          translateTableFormula(cell, row - source.row, column - source.column),
+        ),
+      );
+  }
   const width = Math.max(...lines.map((line) => line.length));
   const range = { row, column, rowSpan: lines.length, columnSpan: width };
   if (lines.length === 1 && width === 1)

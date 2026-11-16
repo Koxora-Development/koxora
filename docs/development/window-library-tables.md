@@ -24,7 +24,7 @@ Picking and connection boundaries share the registered contours. Dedicated label
 - Merge/split retains existing formatted paragraphs. Range formatting applies alignment, bold or normal character styling to each selected visible cell. Individual mixed rich-text editing remains available.
 - With a cell or heading focused, copy/paste uses quoted plain TSV. Embedded newlines, tabs and quotes retain their cell boundaries. Paste grows trailing dimensions within the existing limits. A multi-cell paste overlapping merged cells is rejected until those cells are split. Invalid/oversized input is rejected atomically. Clipboard payloads without plain text leave the table unchanged. This uses clipboard events and introduces no clipboard permission.
 
-All operations use immutable updates and the existing version-1 text-region payload/required features. Unknown sibling data, unaffected cells and rich formatting survive. No new schema or native permission is needed. The established limits remain 20 rows, 12 columns, 1,024 characters per cell and 32,768 total. Tables are diagram elements with uniform cell dimensions inside a freely resizable shape; independent column widths, row heights, formulas and dataset import are not included in this assignment slice.
+All operations use immutable updates and the existing version-1 text-region payload/required features. Unknown sibling data, unaffected cells and rich formatting survive. No new schema or native permission is needed. The established limits remain 20 rows, 12 columns, 1,024 characters per cell and 32,768 total. The subsequent Product Owner assignment adds [independent dimensions and formulas](table-calculations.md); dataset import remains separate.
 
 ## Review and verification
 

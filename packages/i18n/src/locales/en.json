@@ -772,8 +772,19 @@
   "regions.formatSelection": "Format selected cells",
   "regions.boldSelection": "Bold selection",
   "regions.normalSelection": "Normal text",
-  "regions.operationFailed": "The table could not be changed. Check the cell/text limits; split merged cells before pasting multiple cells.",
+  "regions.operationFailed": "The table could not be changed. Check the cell/text limits; split merged cells before pasting multiple cells. A formula cannot be merged with other nonempty cells.",
   "regions.editTable": "Edit table structure",
   "regions.editCellOnly": "Back to cell text",
-  "shape.kite": "Kite"
+  "shape.kite": "Kite",
+  "table.dimensions": "Row heights and column widths",
+  "table.rowHeight": "Row height (relative)",
+  "table.columnWidth": "Column width (relative)",
+  "table.sizeHelp": "Applies to selected rows or columns. 100 is the default; 200 is twice as large. The outer table size stays fixed.",
+  "table.equalRows": "Distribute rows equally",
+  "table.equalColumns": "Distribute columns equally",
+  "table.formulas": "Cell values and formulas",
+  "table.calculate": "Calculate formulas in this table",
+  "table.source": "Value or formula — {cell}",
+  "table.result": "Result: {value}",
+  "table.formulaHelp": "Enable calculation for entries starting with =. Examples: =A1+B1, =SUM(A1:B3), =IF(A1>0,1,0). Use a decimal point and comma or semicolon separators. Functions: SUM, AVERAGE, MIN, MAX, COUNT, ABS, ROUND, IF. Prefix literal text with an apostrophe. Errors: #REF! invalid reference, #CYCLE! circular reference, #DIV/0! division by zero."
 }
