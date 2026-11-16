@@ -1,0 +1,25 @@
+.canvas-text-dialog {
+  cursor: move;
+}
+.canvas-text-dialog :is(button, input, select, textarea, label, summary, a),
+.canvas-text-dialog [contenteditable] {
+  cursor: auto;
+}
+.canvas-text-dialog .floating-window-handle {
+  cursor: move;
+  border: 0;
+  background: transparent;
+  padding: 10px 8px;
+}
+.floating-window-header {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 10px;
+  user-select: none;
+  touch-action: none;
+}
+.floating-window-help {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}

@@ -327,10 +327,18 @@ function textLines(label: string, width: number, fontSize: number): string[] {
   const length = Math.max(1, Math.floor(width / (fontSize * 0.62)));
   const lines: string[] = [];
   for (const line of label.split('\n')) {
-    const chars = Array.from(line);
-    if (!chars.length) lines.push('');
-    for (let i = 0; i < chars.length && lines.length < 64; i += length)
-      lines.push(chars.slice(i, i + length).join(''));
+    let chars = Array.from(line);
+    while (chars.length > length && lines.length < 63) {
+      // Prefer a word boundary. Only a word longer than the available line
+      // may be split; ordinary phrases must never end in partial words.
+      let boundary = -1;
+      for (let i = 1; i <= length; i++) if (/\s/u.test(chars[i])) boundary = i;
+      const end = boundary > 0 ? boundary : length;
+      lines.push(chars.slice(0, end).join('').trimEnd());
+      chars = chars.slice(end);
+      while (chars.length && /\s/u.test(chars[0])) chars.shift();
+    }
+    lines.push(chars.join(''));
     if (lines.length >= 64) break;
   }
   return lines;
@@ -821,7 +829,8 @@ function renderRich(
     flexDirection: 'column',
     justifyContent: center ? 'safe center' : 'start',
     overflow: 'hidden',
-    overflowWrap: 'anywhere',
+    overflowWrap: 'break-word',
+    wordBreak: 'normal',
     whiteSpace: 'pre-wrap',
     fontFamily: FONT_FAMILIES[base.fontFamily],
     fontSize: `${base.fontSize}px`,

@@ -71,8 +71,17 @@ async function openElement(page: Page, kind: 'container' | 'table') {
     name: 'Edit text on canvas',
     exact: true,
   });
-  await expect(inline).toBeVisible();
-  await page.keyboard.press('Escape');
+  if (kind === 'table') {
+    const toolbar = page.locator('.canvas-table-toolbar');
+    await expect(toolbar).toBeVisible();
+    await toolbar
+      .getByRole('button', { name: 'Finish table editing', exact: true })
+      .click();
+    await expect(toolbar).toHaveCount(0);
+  } else {
+    await expect(inline).toBeVisible();
+    await page.keyboard.press('Escape');
+  }
   const panel = page.getByRole('complementary', {
     name: 'Properties',
     exact: true,
@@ -209,6 +218,11 @@ test('table cells are independent, portable and copied as one ordinary element w
     node(first).extensions[TEXT_REGIONS_KEY],
   );
   await rendered.click();
+  if (await page.locator('.canvas-table-toolbar').isVisible())
+    await page
+      .locator('.canvas-table-toolbar')
+      .getByRole('button', { name: 'Finish table editing', exact: true })
+      .click();
   if (
     await page
       .getByRole('dialog', { name: 'Edit text on canvas', exact: true })
@@ -322,13 +336,14 @@ for (const locale of ['en', 'de']) {
       shape.x + shape.width / 6,
       shape.y + shape.height / 2,
     );
-    await expect(
-      page.getByRole('dialog', {
-        name: messages['rich.inlineTitle'],
+    await expect(page.locator('.canvas-table-toolbar')).toBeVisible();
+    await page
+      .locator('.canvas-table-toolbar')
+      .getByRole('button', {
+        name: messages['directTable.finish'],
         exact: true,
-      }),
-    ).toBeVisible();
-    await page.keyboard.press('Escape');
+      })
+      .click();
     const panel = page.getByRole('complementary', {
       name: messages['office.properties'],
       exact: true,
@@ -375,7 +390,7 @@ for (const locale of ['en', 'de']) {
       }));
     expect(widths.tab).toBeLessThanOrEqual(widths.form);
     expect(widths.cells).toBeLessThanOrEqual(widths.form);
-    expect(widths.innerScrollable).toBe(true);
+    expect(widths.innerScrollable).toBe(false);
     await expect(
       panel.getByRole('button', {
         name: messages['diagram.apply'],

@@ -1,5 +1,6 @@
 import { InfoDisclosure } from './info-disclosure';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DOMParser } from 'prosemirror-model';
 import { EditorState, Plugin, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
@@ -35,6 +36,8 @@ export function RichTextEditor({
   onPreview,
   label,
   maxLength = 4096,
+  toolbarContainer,
+  embedded = false,
 }: {
   value: RichText;
   base: Appearance;
@@ -44,6 +47,8 @@ export function RichTextEditor({
   onPreview?: (value: RichText) => void;
   label?: string;
   maxLength?: number;
+  toolbarContainer?: HTMLElement | null;
+  embedded?: boolean;
 }) {
   const t = (key: MessageKey) => translate(locale, key);
   const host = useRef<HTMLDivElement>(null),
@@ -58,7 +63,14 @@ export function RichTextEditor({
     callback.current = onChange;
     preview.current = onPreview;
   }, [onChange, onPreview]);
-  const [initial] = useState({ value, base, autoFocus, locale, label });
+  const [initial] = useState({
+    value,
+    base,
+    autoFocus,
+    locale,
+    label,
+    embedded,
+  });
   const currentBase = useRef(base);
   const [current, setCurrent] = useState<Partial<Appearance>>(base),
     [search, setSearch] = useState(''),
@@ -131,6 +143,7 @@ export function RichTextEditor({
           'Shift-Mod-z': redo,
           'Mod-y': redo,
           'Shift-Enter': splitBlock,
+          ...(initial.embedded ? { 'Alt-Enter': splitBlock } : {}),
         }),
         keymap(baseKeymap),
         new Plugin({
@@ -289,191 +302,188 @@ export function RichTextEditor({
     editor.dispatch(tr);
     editor.focus();
   }
-  return (
-    <div className="rich-text-editor">
-      <div
-        className="rich-toolbar"
-        role="group"
-        aria-label={t('text.formatting')}
-      >
-        <details className="font-picker">
-          <summary
-            aria-label={t('text.family')}
-            style={{
-              fontFamily: current.fontFamily
-                ? FONT_FAMILIES[current.fontFamily]
-                : undefined,
-            }}
-          >
-            {current.fontFamily
-              ? t(`text.family.${current.fontFamily}`)
-              : t('format.mixed')}
-          </summary>
-          <div className="font-menu">
-            <input
-              type="search"
-              aria-label={t('rich.searchFonts')}
-              placeholder={t('rich.searchFonts')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <div role="group" aria-label={t('text.family')}>
-              {(Object.keys(FONT_FAMILIES) as Appearance['fontFamily'][])
-                .filter((f) =>
-                  t(`text.family.${f}`)
-                    .toLocaleLowerCase()
-                    .includes(search.toLocaleLowerCase()),
-                )
-                .map((f) => (
-                  <button
-                    type="button"
-                    key={f}
-                    style={{ fontFamily: FONT_FAMILIES[f] }}
-                    aria-pressed={current.fontFamily === f}
-                    onClick={(e) => {
-                      format('fontFamily', f);
-                      e.currentTarget
-                        .closest('details')
-                        ?.removeAttribute('open');
-                    }}
-                  >
-                    {t(`text.family.${f}`)}
-                  </button>
-                ))}
-            </div>
+  const toolbar = (
+    <div
+      className="rich-toolbar"
+      role="group"
+      aria-label={t('text.formatting')}
+    >
+      <details className="font-picker">
+        <summary
+          aria-label={t('text.family')}
+          style={{
+            fontFamily: current.fontFamily
+              ? FONT_FAMILIES[current.fontFamily]
+              : undefined,
+          }}
+        >
+          {current.fontFamily
+            ? t(`text.family.${current.fontFamily}`)
+            : t('format.mixed')}
+        </summary>
+        <div className="font-menu">
+          <input
+            type="search"
+            aria-label={t('rich.searchFonts')}
+            placeholder={t('rich.searchFonts')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div role="group" aria-label={t('text.family')}>
+            {(Object.keys(FONT_FAMILIES) as Appearance['fontFamily'][])
+              .filter((f) =>
+                t(`text.family.${f}`)
+                  .toLocaleLowerCase()
+                  .includes(search.toLocaleLowerCase()),
+              )
+              .map((f) => (
+                <button
+                  type="button"
+                  key={f}
+                  style={{ fontFamily: FONT_FAMILIES[f] }}
+                  aria-pressed={current.fontFamily === f}
+                  onClick={(e) => {
+                    format('fontFamily', f);
+                    e.currentTarget.closest('details')?.removeAttribute('open');
+                  }}
+                >
+                  {t(`text.family.${f}`)}
+                </button>
+              ))}
           </div>
-        </details>
-        <label>
-          {t('diagram.fontSize')}
-          <input
-            type="number"
-            min={8}
-            max={96}
-            step="any"
-            aria-label={t('diagram.fontSize')}
-            placeholder={t('format.mixed')}
-            key={current.fontSize ?? 'mixed'}
-            defaultValue={current.fontSize ?? ''}
-            onBlur={(e) => {
-              const n = e.target.valueAsNumber;
-              if (n >= 8 && n <= 96) format('fontSize', n, false);
-            }}
-          />
-        </label>
-        {(['bold', 'italic', 'underline'] as const).map((style) => {
-          const key =
-            style === 'bold'
-              ? 'fontWeight'
-              : style === 'italic'
-                ? 'fontStyle'
-                : 'textDecoration';
-          const on =
-            style === 'bold'
-              ? 700
-              : style === 'italic'
-                ? 'italic'
-                : 'underline';
-          const off =
-            style === 'bold' ? 400 : style === 'italic' ? 'normal' : 'none';
-          return (
-            <button
-              type="button"
-              key={style}
-              className={`button compact format-${style}`}
-              aria-label={t(`text.${style}`)}
-              aria-pressed={
-                current[key] === undefined ? 'mixed' : current[key] === on
-              }
-              title={t(`text.${style}`)}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => format(key, current[key] === on ? off : on)}
-            >
-              {t(`rich.${style}`)}
-            </button>
-          );
-        })}
-        <label>
-          {t('diagram.textColor')}
-          <input
-            type="color"
-            aria-label={t('diagram.textColor')}
-            value={
-              current.textColor?.startsWith('#') ? current.textColor : '#18243d'
+        </div>
+      </details>
+      <label>
+        {t('diagram.fontSize')}
+        <input
+          type="number"
+          min={8}
+          max={96}
+          step="any"
+          aria-label={t('diagram.fontSize')}
+          placeholder={t('format.mixed')}
+          key={current.fontSize ?? 'mixed'}
+          defaultValue={current.fontSize ?? ''}
+          onBlur={(e) => {
+            const n = e.target.valueAsNumber;
+            if (n >= 8 && n <= 96) format('fontSize', n, false);
+          }}
+        />
+      </label>
+      {(['bold', 'italic', 'underline'] as const).map((style) => {
+        const key =
+          style === 'bold'
+            ? 'fontWeight'
+            : style === 'italic'
+              ? 'fontStyle'
+              : 'textDecoration';
+        const on =
+          style === 'bold' ? 700 : style === 'italic' ? 'italic' : 'underline';
+        const off =
+          style === 'bold' ? 400 : style === 'italic' ? 'normal' : 'none';
+        return (
+          <button
+            type="button"
+            key={style}
+            className={`button compact format-${style}`}
+            aria-label={t(`text.${style}`)}
+            aria-pressed={
+              current[key] === undefined ? 'mixed' : current[key] === on
             }
-            onChange={(e) => format('textColor', e.target.value, false)}
-          />
-          {current.textColor === undefined && <span>{t('format.mixed')}</span>}
-        </label>
-        <button
-          type="button"
-          className="button compact"
-          aria-pressed={current.textColor === 'auto'}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => format('textColor', 'auto')}
-        >
-          {t('text.autoColor')}
-        </button>
-        <label>
-          {t('diagram.align')}
-          <select
-            aria-label={t('diagram.align')}
-            value={current.align ?? ''}
-            onChange={(e) => align(e.target.value as Appearance['align'])}
+            title={t(`text.${style}`)}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => format(key, current[key] === on ? off : on)}
           >
-            <option value="" disabled>
-              {t('format.mixed')}
+            {t(`rich.${style}`)}
+          </button>
+        );
+      })}
+      <label>
+        {t('diagram.textColor')}
+        <input
+          type="color"
+          aria-label={t('diagram.textColor')}
+          value={
+            current.textColor?.startsWith('#') ? current.textColor : '#18243d'
+          }
+          onChange={(e) => format('textColor', e.target.value, false)}
+        />
+        {current.textColor === undefined && <span>{t('format.mixed')}</span>}
+      </label>
+      <button
+        type="button"
+        className="button compact"
+        aria-pressed={current.textColor === 'auto'}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => format('textColor', 'auto')}
+      >
+        {t('text.autoColor')}
+      </button>
+      <label>
+        {t('diagram.align')}
+        <select
+          aria-label={t('diagram.align')}
+          value={current.align ?? ''}
+          onChange={(e) => align(e.target.value as Appearance['align'])}
+        >
+          <option value="" disabled>
+            {t('format.mixed')}
+          </option>
+          {(['left', 'center', 'right'] as const).map((a) => (
+            <option key={a} value={a}>
+              {t(`align.${a}`)}
             </option>
-            {(['left', 'center', 'right'] as const).map((a) => (
-              <option key={a} value={a}>
-                {t(`align.${a}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="button compact"
-          onClick={() => {
-            const editor = view.current;
-            if (!editor) return;
-            const { from, to, empty } = editor.state.selection;
-            editor.dispatch(
-              empty
-                ? editor.state.tr.setStoredMarks([])
-                : editor.state.tr.removeMark(from, to),
-            );
-            editor.focus();
-          }}
-        >
-          {t('rich.clear')}
-        </button>
-        <button
-          type="button"
-          className="button compact"
-          aria-label={t('rich.undo')}
-          onClick={() => {
-            if (view.current) {
-              undo(view.current.state, view.current.dispatch);
-              view.current.focus();
-            }
-          }}
-        >
-          {'↶'}
-        </button>
-        <button
-          type="button"
-          className="button compact"
-          aria-label={t('rich.redo')}
-          onClick={() => {
-            if (view.current) {
-              redo(view.current.state, view.current.dispatch);
-              view.current.focus();
-            }
-          }}
-        >
-          {'↷'}
-        </button>
-      </div>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        className="button compact"
+        onClick={() => {
+          const editor = view.current;
+          if (!editor) return;
+          const { from, to, empty } = editor.state.selection;
+          editor.dispatch(
+            empty
+              ? editor.state.tr.setStoredMarks([])
+              : editor.state.tr.removeMark(from, to),
+          );
+          editor.focus();
+        }}
+      >
+        {t('rich.clear')}
+      </button>
+      <button
+        type="button"
+        className="button compact"
+        aria-label={t('rich.undo')}
+        onClick={() => {
+          if (view.current) {
+            undo(view.current.state, view.current.dispatch);
+            view.current.focus();
+          }
+        }}
+      >
+        {'↶'}
+      </button>
+      <button
+        type="button"
+        className="button compact"
+        aria-label={t('rich.redo')}
+        onClick={() => {
+          if (view.current) {
+            redo(view.current.state, view.current.dispatch);
+            view.current.focus();
+          }
+        }}
+      >
+        {'↷'}
+      </button>
+    </div>
+  );
+  return (
+    <div className="rich-text-editor" data-embedded={embedded || undefined}>
+      {toolbarContainer ? createPortal(toolbar, toolbarContainer) : toolbar}
       <div
         ref={host}
         className="rich-text-host"
@@ -495,14 +505,16 @@ export function RichTextEditor({
             base.textColor === 'none' ? '0 0 0 var(--ink)' : undefined,
         }}
       />
-      <InfoDisclosure
-        className="field-help compact-help"
-        title={t('controls.help')}
-      >
-        <p>
-          {t('rich.help')} {t('text.editContrast')}
-        </p>
-      </InfoDisclosure>
+      {!embedded && (
+        <InfoDisclosure
+          className="field-help compact-help"
+          title={t('controls.help')}
+        >
+          <p>
+            {t('rich.help')} {t('text.editContrast')}
+          </p>
+        </InfoDisclosure>
+      )}
       {notice && (
         <p role="status" className="field-help">
           {t(notice)}

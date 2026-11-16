@@ -56,6 +56,18 @@ interface Props {
   options: ConnectionOptions;
   setOptions: (options: ConnectionOptions) => void;
 }
+const linePresets = [
+  { id: 'straight-line', routing: 'straight', arrow: false, startArrow: false },
+  { id: 'straight-arrow', routing: 'straight', arrow: true, startArrow: false },
+  { id: 'straight-both', routing: 'straight', arrow: true, startArrow: true },
+  { id: 'elbow-line', routing: 'orthogonal', arrow: false, startArrow: false },
+  { id: 'elbow-arrow', routing: 'orthogonal', arrow: true, startArrow: false },
+  { id: 'elbow-both', routing: 'orthogonal', arrow: true, startArrow: true },
+  { id: 'curved-line', routing: 'curved', arrow: false, startArrow: false },
+  { id: 'curved-arrow', routing: 'curved', arrow: true, startArrow: false },
+  { id: 'curved-both', routing: 'curved', arrow: true, startArrow: true },
+] as const;
+
 export function DiagramTools({
   ink,
   setInk,
@@ -146,6 +158,40 @@ export function DiagramTools({
           )}
           {isDrawing(tool) && (
             <>
+              <label className="line-preset-picker">
+                {t('line.presets')}
+                <select
+                  value={
+                    linePresets.find(
+                      (preset) =>
+                        preset.routing === options.routing &&
+                        preset.arrow === options.arrow &&
+                        preset.startArrow === (options.startArrow ?? false),
+                    )?.id ?? ''
+                  }
+                  onChange={(event) => {
+                    const preset = linePresets.find(
+                      (item) => item.id === event.currentTarget.value,
+                    );
+                    if (preset)
+                      setOptions({
+                        ...options,
+                        routing: preset.routing,
+                        arrow: preset.arrow,
+                        startArrow: preset.startArrow,
+                      });
+                  }}
+                >
+                  <option value="" disabled>
+                    {t('line.custom')}
+                  </option>
+                  {linePresets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {t(`line.${preset.id}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <RoutingSelect
                 locale={locale}
                 value={options.routing}
@@ -291,6 +337,46 @@ function useLiveValue<T>(source: T): [T, (value: T) => void] {
     if (JSON.stringify(value) !== signature) setValue(source);
   }
   return [value, setValue];
+}
+
+/** Keep rounded presentation separate from the precise stored geometry. */
+function GeometryInput({
+  value,
+  min,
+  onChange,
+}: {
+  value: number;
+  min: number;
+  onChange: (value: number) => void;
+}) {
+  const display = (number: number) => String(Number(number.toFixed(2)));
+  const [seen, setSeen] = useState(value);
+  const [draft, setDraft] = useState(() => display(value));
+  if (value !== seen) {
+    setSeen(value);
+    // Preserve a field's own live echo, including trailing decimal input.
+    if (draft.trim() === '' || Number(draft) !== value)
+      setDraft(display(value));
+  }
+  return (
+    <input
+      type="number"
+      required
+      min={min}
+      max={1e12}
+      step="any"
+      value={draft}
+      onChange={(event) => {
+        setDraft(event.currentTarget.value);
+        if (
+          event.currentTarget.value !== '' &&
+          event.currentTarget.validity.valid
+        )
+          onChange(event.currentTarget.valueAsNumber);
+      }}
+      onBlur={() => setDraft(display(value))}
+    />
+  );
 }
 
 export function ElementDialog({
@@ -617,9 +703,7 @@ export function ElementDialog({
                   (key) => (
                     <label key={key}>
                       {t(`editing.${key}`)}
-                      <input
-                        type="number"
-                        required
+                      <GeometryInput
                         min={
                           key === 'width'
                             ? 8
@@ -629,16 +713,12 @@ export function ElementDialog({
                                 : 8
                               : -1e12
                         }
-                        max={1e12}
-                        step="any"
-                        value={
-                          Number.isFinite(geometry[key]) ? geometry[key] : ''
-                        }
-                        onChange={(e) =>
+                        value={node?.geometry[key] ?? geometry[key]}
+                        onChange={(value) =>
                           changeGeometry(
                             {
                               ...geometry,
-                              [key]: e.currentTarget.valueAsNumber,
+                              [key]: value,
                             },
                             `geometry:${key}`,
                           )

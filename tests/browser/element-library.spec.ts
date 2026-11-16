@@ -275,6 +275,10 @@ test('category selection updates live, combines libraries and restores remembere
   await expect(
     palette(page).getByRole('button', { name: 'Rectangle', exact: true }),
   ).toHaveCount(1);
+  // Enabled libraries span responsive pages; jump directly to Symbols.
+  await page
+    .getByRole('combobox', { name: 'Show library', exact: true })
+    .selectOption('symbols');
   await expect(
     palette(page).getByRole('button', { name: 'Cloud', exact: true }),
   ).toBeVisible();
@@ -321,6 +325,10 @@ test('category selection updates live, combines libraries and restores remembere
   await saved(page);
   await page.reload();
   await page.getByRole('button', { name: 'Open project', exact: true }).click();
+  // Enabled libraries span responsive pages; jump directly to Symbols.
+  await page
+    .getByRole('combobox', { name: 'Show library', exact: true })
+    .selectOption('symbols');
   await expect(
     palette(page).getByRole('button', { name: 'Cloud', exact: true }),
   ).toBeVisible();

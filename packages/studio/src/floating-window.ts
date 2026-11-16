@@ -53,8 +53,19 @@ export function useFloatingWindow(
     };
   }, []);
   return {
-    onPointerDown(event: React.PointerEvent<HTMLButtonElement>) {
+    onPointerDown(event: React.PointerEvent<HTMLElement>) {
       if (event.button !== 0) return;
+      const target = event.target as Element;
+      // Keep controls, label text and editable content usable for selection.
+      // The title handle is the one interactive control intended for dragging.
+      if (
+        target.closest(
+          'input, select, textarea, a, label, summary, [contenteditable], [role="textbox"], [data-no-drag]',
+        ) ||
+        (target.closest('button, [role="button"]') &&
+          !target.closest('.floating-window-handle'))
+      )
+        return;
       event.preventDefault();
       const rect = ref.current!.getBoundingClientRect();
       drag.current = {
@@ -64,7 +75,7 @@ export function useFloatingWindow(
       };
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    onPointerMove(event: React.PointerEvent<HTMLButtonElement>) {
+    onPointerMove(event: React.PointerEvent<HTMLElement>) {
       const current = drag.current;
       if (!current || current.id !== event.pointerId) return;
       desired.current = {

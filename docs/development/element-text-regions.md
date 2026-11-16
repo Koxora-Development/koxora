@@ -1,6 +1,6 @@
 # Element text regions, tables and library discovery
 
-**Status: Product Owner-assigned follow-up to [Issue #60](https://github.com/Koxora-Development/koxora/issues/60) and [PR #61](https://github.com/Koxora-Development/koxora/pull/61), continued 2026-11-15. Implementation is for review; manual acceptance, merge and release remain pending.** The Product Owner requested an exact-duplicate audit, useful independent text fields including table cells, search in Local projects, and a category selection that can scale to hundreds of elements while retaining Koxora's existing workbench. Further feedback adds direct canvas text editing, visible header rows, merged table cells, centered Freehand text, floating connection ends and live properties with consistent rich-text controls.
+**Status: accepted by the Product Owner and merged in [PR #61](https://github.com/Koxora-Development/koxora/pull/61) on 2026-11-15 (`7efb135`), following [Issue #60](https://github.com/Koxora-Development/koxora/issues/60). Public release and packaged target-native evidence remain separate.** The Product Owner requested an exact-duplicate audit, useful independent text fields including table cells, search in Local projects, and a category selection that can scale to hundreds of elements while retaining Koxora's existing workbench. Further feedback adds direct canvas text editing, visible header rows, merged table cells, centered Freehand text, floating connection ends and live properties with consistent rich-text controls.
 
 Relevant catalog requirements are EDIT-003/005/007/008/015 and CORE-001–008/015/016. This follows the existing Phase 2 editor work and does not change the master catalog, phase order or release gates.
 
@@ -131,4 +131,8 @@ Recorded validation for this additional scope:
 
 The earlier 602-test and 136-browser-case results remain a baseline for the preceding implementation. Current-head CI and packaged target-native manual acceptance are reported separately.
 
-Earlier template-build results are also a separate baseline. Product Owner acceptance, packaged target-native manual acceptance, merge and release remain pending.
+Earlier template-build results are also a separate baseline. The Product Owner subsequently accepted PR #61 and it was merged on 2026-11-15. Packaged target-native manual acceptance and public release remain separate evidence and decisions.
+
+## Active follow-up
+
+The unmerged PR #62 adds [window, library and table operations](window-library-tables.md) and [individual table dimensions and formulas](table-calculations.md). Subsequent AppImage feedback requires [table authoring directly on the canvas](direct-table-editing.md), beyond opening a detached editor from a cell. That follow-up also improves window movement, quick symbol navigation and layout. The accepted PR #61 status above does not imply acceptance or merge of PR #62.

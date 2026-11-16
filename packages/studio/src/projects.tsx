@@ -124,6 +124,20 @@ export function Projects({
   const [navigatorVisible, setNavigatorVisible] = useState(
     () => window.innerWidth >= 1000,
   );
+  useEffect(() => {
+    const media = window.matchMedia(
+      `(max-width: ${(1000 * guiScale) / 100 - 0.01}px)`,
+    );
+    const collapse = () => {
+      if (media.matches) {
+        setNavigatorVisible(false);
+        setNavigatorOpen(false);
+      }
+    };
+    collapse();
+    media.addEventListener('change', collapse);
+    return () => media.removeEventListener('change', collapse);
+  }, [guiScale]);
   const [propertyDraft, setPropertyDraft] = useState(false);
   const [commandState, setCommandState] = useState<CanvasCommandState>(() => ({
     selected: 0,

@@ -4,13 +4,13 @@ Status: Product Owner follow-up on 2026-11-16, extending PR #62. Requirements: E
 
 ## Row and column sizes
 
-Table tools expose numeric height/width for the selected rows/columns. Positive relative weights range from 1 to 10,000; 100 is the default. For example, widths `[100, 300]` allocate 25% and 75% of the table width. Editing one weight redistributes the fixed outer table size; resizing the outer element scales all cells proportionally. Equal rows/columns restores weights of 100. These controls are available in both the direct movable table editor and the properties panel.
+Table tools expose numeric height/width for the selected rows/columns. Positive relative weights range from 1 to 10,000; 100 is the default. For example, widths `[100, 300]` allocate 25% and 75% of the table width. Editing one weight redistributes the fixed outer table size; resizing the outer element scales all cells proportionally. Equal rows/columns restores weights of 100. These controls are available in both the direct canvas table editor and the properties panel.
 
 Cell bounds, header fills, grid paths, text layout and hit testing share cumulative weighted offsets. Merged cells occupy the sum of their component dimensions. Rotation and reflection keep the existing geometry contract. Insertion adds a default weight at the selected boundary; deletion removes the addressed weights; trailing expansion/shrink preserves retained weights.
 
 ## Formula entry and calculation
 
-Enable **Calculate formulas in this table**. This explicit per-table option preserves old projects whose literal text begins with `=`. The value/formula field edits the selected cell's source, including multiline text. Ordinary rich text controls remain available. Calculated values appear in the editor grid and on the canvas; the source formula remains portable and editable. Calculations run locally with no dependency, scripts, filesystem or network access.
+Enable **Calculate formulas in this table**. This explicit per-table option preserves old projects whose literal text begins with `=`. The value/formula field edits the selected cell's source, including multiline text. Ordinary rich text controls remain available, including mixed run formatting directly in the active canvas cell. See [direct table editing](direct-table-editing.md) for the AppImage feedback follow-up. Calculated values appear in the editor grid and on the canvas; the source formula remains portable and editable. Calculations run locally with no dependency, scripts, filesystem or network access.
 
 Supported syntax:
 

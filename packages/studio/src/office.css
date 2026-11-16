@@ -225,7 +225,7 @@
 }
 .office-canvas-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) calc(254px * var(--ui-scale, 1));
+  grid-template-columns: minmax(0, 1fr) calc(360px * var(--ui-scale, 1));
   height: 100%;
   min-height: 0;
   min-width: 0;
@@ -518,7 +518,9 @@
   font-size: calc(10px * var(--ui-scale, 1));
 }
 .office-property-form .rich-toolbar input[type='number'] {
-  width: calc(43px * var(--ui-scale, 1));
+  width: calc(76px * var(--ui-scale, 1));
+  min-width: calc(76px * var(--ui-scale, 1));
+  flex: 0 0 auto;
 }
 .office-property-form .rich-toolbar input[type='color'] {
   width: calc(28px * var(--ui-scale, 1));
@@ -1117,4 +1119,28 @@
   .studio-shell .project-sidebar {
     width: calc(232px * var(--ui-scale, 1));
   }
+}
+
+/* Compact controls keep their focus indicator inside their own hit area. */
+.studio-shell :is(button, input, select, textarea, summary):focus-visible,
+.studio-dialog :is(button, input, select, textarea, summary):focus-visible,
+.context-menu :focus-visible {
+  outline-offset: -2px;
+}
+.office-property-form .rich-toolbar label {
+  flex-wrap: wrap;
+  row-gap: calc(4px * var(--ui-scale, 1));
+}
+.office-property-form .rich-toolbar label:has(input[type='number']) {
+  flex: 0 0 auto;
+}
+.office-property-scroll {
+  scroll-padding: calc(10px * var(--ui-scale, 1));
+}
+
+.studio-shell .tool-context .line-preset-picker {
+  flex: 0 0 auto;
+}
+.studio-shell .line-preset-picker select {
+  width: calc(164px * var(--ui-scale, 1));
 }

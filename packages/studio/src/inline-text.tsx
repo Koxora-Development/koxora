@@ -18,6 +18,7 @@ import type { Connection, Node, Style } from '@koxora/project';
 import { RichTextEditor } from './rich-text-editor';
 import { TableTextEditor } from './text-regions-editor';
 import { useFloatingWindow } from './floating-window';
+import './floating-window.css';
 export function InlineText({
   item,
   styles,
@@ -152,6 +153,11 @@ export function InlineText({
       ref={ref}
       className="canvas-text-dialog"
       data-live-editor="true"
+      onPointerDown={moveWindow.onPointerDown}
+      onPointerMove={moveWindow.onPointerMove}
+      onPointerUp={moveWindow.onPointerUp}
+      onPointerCancel={moveWindow.onPointerCancel}
+      onLostPointerCapture={moveWindow.onLostPointerCapture}
       aria-label={t('rich.inlineTitle')}
       onCancel={(e) => {
         e.preventDefault();
@@ -175,10 +181,12 @@ export function InlineText({
           className="floating-window-handle"
           aria-label={t('window.move')}
           title={t('window.moveHelp')}
-          {...moveWindow}
+          onKeyDown={moveWindow.onKeyDown}
         >
           <span aria-hidden="true">{'⠿'}</span>{' '}
-          {tableMode ? t('regions.tableStructure') : label}
+          {tableMode
+            ? t('regions.tableStructure')
+            : t('window.textTitle' as MessageKey)}
         </button>
         <button
           type="button"
@@ -189,6 +197,9 @@ export function InlineText({
           ×
         </button>
       </header>
+      <p className="floating-window-help">
+        {t('window.dragHelp' as MessageKey)}
+      </p>
       {!tableMode &&
         region?.type === 'table-cell' &&
         regions?.type === 'table' && (

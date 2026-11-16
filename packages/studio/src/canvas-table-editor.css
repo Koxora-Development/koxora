@@ -1,0 +1,202 @@
+.canvas-table-toolbar {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.65rem;
+  border-block: 1px solid var(--line);
+  background: var(--surface);
+  max-height: 36vh;
+  overflow: auto;
+}
+.canvas-table-toolbar [role='toolbar'],
+.canvas-table-source {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+.canvas-table-toolbar .field-help {
+  margin: 0.3rem 0 0;
+}
+.canvas-table-toolbar .button {
+  min-height: 30px;
+}
+.canvas-table-toolbar details > summary {
+  cursor: pointer;
+  padding: 0.35rem;
+}
+.canvas-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.4rem;
+}
+.canvas-table-source > label:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 15rem;
+}
+.canvas-table-source textarea {
+  min-width: 6rem;
+  width: 100%;
+  flex: 1;
+}
+.canvas-table-address {
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5rem;
+}
+.canvas-table-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+.canvas-table-grid {
+  position: absolute;
+  transform-origin: center;
+  outline: 2px solid var(--accent, #7c3aed);
+  pointer-events: auto;
+}
+.canvas-table-grid [role='gridcell'] {
+  position: absolute;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  min-width: 0;
+  min-height: 0;
+  color: transparent;
+}
+.canvas-table-grid [role='gridcell'][aria-selected='true'] {
+  background: color-mix(in srgb, var(--accent, #7c3aed) 15%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent, #7c3aed);
+}
+.canvas-table-grid [role='gridcell']:focus-visible {
+  outline: 2px solid var(--accent, #7c3aed);
+  outline-offset: -4px;
+}
+.canvas-cell-input {
+  position: absolute;
+  z-index: 3;
+  border: 0;
+  border-radius: 0;
+  padding: 4px;
+  resize: none;
+  background: var(--surface);
+  color: var(--ink);
+  outline: 2px solid var(--accent, #7c3aed);
+  outline-offset: -2px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.canvas-table-column,
+.canvas-table-row {
+  position: absolute;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+.canvas-table-column {
+  top: -22px;
+  height: 22px;
+}
+.canvas-table-row {
+  left: -26px;
+  width: 26px;
+}
+.canvas-table-grid .canvas-table-resize {
+  position: absolute;
+  z-index: 4;
+  touch-action: none;
+}
+.canvas-table-resize.column {
+  top: 0;
+  width: 6px;
+  cursor: col-resize;
+}
+.canvas-table-resize.row {
+  left: 0;
+  height: 6px;
+  cursor: row-resize;
+}
+.canvas-table-resize:hover,
+.canvas-table-resize:focus-visible {
+  background: var(--accent, #7c3aed);
+  outline: 0;
+}
+
+.canvas-table-corner {
+  position: absolute;
+  top: -22px;
+  left: -26px;
+  width: 26px;
+  height: 22px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+.canvas-table-toolbar [type='number'] {
+  width: 5rem;
+  min-width: 5rem;
+}
+
+.canvas-cell-input {
+  padding: 0;
+}
+.canvas-cell-input .rich-text-editor,
+.canvas-cell-input .rich-text-host {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.canvas-cell-input .ProseMirror {
+  height: 100%;
+  min-height: 0;
+  padding: 4px;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+}
+.canvas-table-rich-toolbar .rich-toolbar {
+  margin: 0.3rem 0;
+  padding: 0.35rem;
+}
+.canvas-table-toolbar [hidden] {
+  display: none !important;
+}
+
+.canvas-table-source {
+  margin-top: 0.4rem;
+}
+.canvas-table-source textarea {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0.4rem 0.55rem;
+  min-height: 32px;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+.canvas-table-help {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.canvas-table-help summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 0.25rem 0;
+}

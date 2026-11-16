@@ -90,7 +90,8 @@
   min-height: 112px;
   padding: 16px;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
   line-height: 1.25;
   user-select: text;
   -webkit-user-select: text;
