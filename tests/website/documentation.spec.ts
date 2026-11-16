@@ -44,18 +44,22 @@ test.describe('the documentation', () => {
     page,
   }) => {
     await page.goto('/en/docs/getting-started/');
-    const shot = page.locator('.shot img');
-    await expect(shot).toHaveCount(1);
+    // The first screen, and the template overview a reader can start from.
+    await expect(page.locator('.shot img')).toHaveCount(2);
+    const shot = page.locator('.shot img').first();
     await expect(shot).toHaveAttribute('src', /docs-dashboard/);
     // An alternative text that describes the picture, a frame label so it is
     // not read as live interface, and a caption saying which version it is.
-    await expect(shot).toHaveAttribute('alt', /project list/);
-    await expect(page.locator('.shot-label')).toContainText('Screenshot');
-    await expect(page.locator('figcaption')).toContainText(
-      'development version',
+    await expect(shot).toHaveAttribute('alt', /project library/);
+    await expect(page.locator('.shot-label').first()).toContainText(
+      'Screenshot',
     );
+    for (const caption of await page.locator('figcaption').all())
+      await expect(caption).toContainText('development version');
     await page.goto('/en/docs/editing/');
-    await expect(page.locator('.shot img')).toHaveCount(4);
+    await expect(page.locator('.shot img')).toHaveCount(7);
+    for (const caption of await page.locator('figcaption').all())
+      await expect(caption).toContainText('development version');
   });
   test('never offers a download that does not exist', async ({ page }) => {
     for (const [english, german] of sections)
@@ -73,8 +77,8 @@ test.describe('the documentation', () => {
     await page.goto('/de/dokumentation/faq/');
     const questions = page.locator('#questions dt');
     const answers = page.locator('#questions dd');
-    await expect(questions).toHaveCount(16);
-    await expect(answers).toHaveCount(16);
+    await expect(questions).toHaveCount(19);
+    await expect(answers).toHaveCount(19);
     await expect(questions.first()).toContainText('Konto');
   });
   test('warns about browser storage where it matters', async ({ page }) => {
@@ -87,15 +91,35 @@ test.describe('the documentation', () => {
       await expect(page.locator('main'), path).toContainText(needle);
     }
   });
-  test('loads the localized Studio 2.5 navigator, rich-text and pen captures', async ({
+  test('loads the captures of the current studio in the language of the page', async ({
     page,
   }) => {
-    for (const [locale, editing, projects] of [
-      ['en', '/en/docs/editing/', '/en/docs/projects/'],
-      ['de', '/de/dokumentation/bearbeiten/', '/de/dokumentation/projekte/'],
+    for (const [locale, start, editing, projects] of [
+      [
+        'en',
+        '/en/docs/getting-started/',
+        '/en/docs/editing/',
+        '/en/docs/projects/',
+      ],
+      [
+        'de',
+        '/de/dokumentation/erste-schritte/',
+        '/de/dokumentation/bearbeiten/',
+        '/de/dokumentation/projekte/',
+      ],
     ] as const) {
       for (const [path, names] of [
-        [editing, ['docs-rich-text', 'docs-freehand']],
+        [start, ['docs-templates']],
+        [
+          editing,
+          [
+            'docs-library',
+            'docs-rich-text',
+            'docs-table',
+            'docs-links',
+            'docs-freehand',
+          ],
+        ],
         [projects, ['docs-navigator']],
       ] as const) {
         await page.goto(path);
@@ -108,7 +132,8 @@ test.describe('the documentation', () => {
             )
             .toBe(1440);
           await expect(shot).toHaveAttribute('width', '1440');
-          await expect(shot).toHaveAttribute('alt', /Studio.?2\.5/);
+          // A description of the picture, not a file name or a version tag.
+          await expect(shot).toHaveAttribute('alt', /\S.{30,}/);
         }
       }
     }
