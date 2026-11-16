@@ -99,7 +99,9 @@ async function open(page: Page, locale = 'en', scale = 100, cell = '0-0') {
   const dialog = page.locator('.canvas-text-dialog');
   await expect(dialog).toBeVisible();
   const [row, column] = cell.split('-').map(Number);
-  await expect(dialog.getByRole('textbox')).toHaveAttribute(
+  await expect(
+    dialog.locator('[contenteditable][role="textbox"]'),
+  ).toHaveAttribute(
     'aria-label',
     t['regions.cellLabel']
       .replace('{row}', String(row + 1))
