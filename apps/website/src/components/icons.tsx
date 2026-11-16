@@ -35,6 +35,11 @@ const paths: Record<IconName, string> = {
   plugin: 'M4 8h3.2a2.3 2.3 0 1 1 4.6 0H15v3.2a2.3 2.3 0 1 0 0 4.6V19H4z',
   server: 'M3 4.5h18V10H3zM3 14h18v5.5H3zM6.5 7.2h.01M6.5 16.8h.01',
   mobile: 'M7 3h10v18H7zM10.8 18h2.4',
+  table: 'M3 5h18v14H3zM3 10h18M3 14.5h18M9 5v14M15 5v14',
+  link: 'M9.5 8H7a4 4 0 0 0 0 8h2.5M14.5 8H17a4 4 0 0 1 0 8h-2.5M8.5 12h7',
+  rotate: 'M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15',
+  search: 'M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13M15.2 15.2 20 20',
+  sliders: 'M4 7h8M16 7h4M4 17h4M12 17h8M12 5v4h4V5zM8 15v4h4v-4z',
 };
 export function Icon({ name }: { name: IconName }) {
   return (

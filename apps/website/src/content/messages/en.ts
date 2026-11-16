@@ -73,7 +73,7 @@ export const en = {
     'Koxora Studio is a working technical preview. The public website is in review. There is no public release and no download yet.',
   'project.statusMilestone': 'Current milestone',
   'project.statusMilestoneValue':
-    'Studio phase 2.5 accepted and merged · Website W2 in review',
+    'Studio phase 2.7 merged · Website W2 in review',
   'project.statusUpdated': 'Content last reviewed on {date}',
   'project.statusLink': 'Development status and roadmap',
 
@@ -92,11 +92,11 @@ export const en = {
   'home.preview.caption':
     'Real screenshot of the current development version of Koxora Studio, captured on {date}. Not a mock-up.',
   'home.preview.altDark':
-    'Koxora Studio in dark appearance with a flowchart of connected shapes on the canvas.',
+    'Koxora Studio in dark appearance: the application menu, the project navigator on the left, a flowchart with a table and a container on the canvas, and the properties panel on the right.',
   'home.preview.altLight':
-    'Koxora Studio in light appearance showing the shape palette and the project inspector.',
+    'Koxora Studio in light appearance, with the element palette above the canvas, the same diagram and the sheet tabs along the bottom edge.',
   'home.preview.altMobile':
-    'Koxora Studio on a narrow phone screen, with the shape palette and the project details below each other.',
+    'Koxora Studio on a narrow phone screen, with the menu, the element palette and the diagram stacked above the sheet tabs.',
   'home.preview.tabDark': 'Dark',
   'home.preview.tabLight': 'Light',
   'home.preview.tabMobile': 'On a phone',
@@ -164,7 +164,7 @@ export const en = {
 
   'features.meta.title': 'Features: available, in development and planned',
   'features.meta.description':
-    'What Koxora does today — shapes, connections, local projects, offline use — and what is in development or planned, each clearly labelled.',
+    'What Koxora does today — templates, an element library, tables, links, offline projects — and what is in development or planned, each clearly labelled.',
   'features.hero.eyebrow': 'Features',
   'features.hero.title': 'Everything Koxora does, and everything it will do',
   'features.hero.lead':
@@ -188,7 +188,7 @@ export const en = {
   'features.limits.item3':
     'Undo history is bounded and session-only; it is not stored in the project file.',
   'features.limits.item4':
-    'Interactive links, moving pages between projects and a full layer manager are not implemented yet.',
+    'Templates are simple built-in starters. You cannot save your own yet, and there is no automatic layout for mind maps, organization charts or other diagram types.',
   'features.limits.item5':
     'There is no collaboration, no cloud and no AI assistance in the product today.',
 
@@ -552,22 +552,22 @@ export const en = {
 
   'feature.shapes.title': 'Shapes, text and connections',
   'feature.shapes.body':
-    'Rectangles, rounded rectangles, ellipses, diamonds, triangles, hexagons, parallelograms, containers, free text, lines and arrows. Connections attach to visible ports or find their own anchor, and they follow the shapes when you move them.',
+    'A library of 23 built-in elements: basic shapes, flowchart symbols such as document, database and predefined process, a cloud, a note and a chevron, plus text, containers, tables, lines, arrows and a freehand pen. A connection attaches to a visible port, finds its own anchor or ends at a free point, with an arrowhead at either end.',
   'feature.canvas.title': 'A canvas that gets out of the way',
   'feature.canvas.body':
     'Pan, zoom, fit the content, and switch the grid and snapping on or off with adjustable spacing. Hold Alt to bypass snapping for a single action.',
   'feature.editing.title': 'Direct editing',
   'feature.editing.body':
-    'Select, move, resize and duplicate objects. Edit compatible properties together, align or distribute a selection, arrange it without overlap, and change the stack order of shapes and connections within a layer.',
+    'Select, move, resize and duplicate objects. A properties panel docked beside the canvas shows Format, Text and Links, and every valid change applies at once. Align or distribute a selection, arrange it without overlap, and change the stack order within a layer.',
   'feature.history.title': 'Undo and redo',
   'feature.history.body':
-    'Undo and redo diagram edits and page operations across the current project. History is bounded to 100 steps and 16 MiB and lasts for the session; an open text draft has its own undo history.',
+    'Undo and redo diagram edits and page operations across the current project. Continuous changes to one field count as a single step. History is bounded to 100 steps and 16 MiB, lasts for the session and is not stored in the project file.',
   'feature.projects.title': 'Projects on your device',
   'feature.projects.body':
-    'Create, rename, duplicate and switch local projects. Changes save automatically, with a previous save for recovery. Confirmed project deletion moves it to local Trash, where it can be restored.',
+    'A project library lists what is stored on this device, with search by title. Create, rename, duplicate and switch projects; changes save automatically, with a previous save for recovery. Deleting moves a project to a local Trash, from which it can be restored or removed for good.',
   'feature.files.title': 'Portable .koxora files',
   'feature.files.body':
-    'Export a project as a documented archive, import it again on another device, or import a copy with a new identity. Unknown content from newer versions is preserved, not dropped.',
+    'Export a project as a documented archive and open it again on another device, by choosing the file or dropping it onto the studio, or import a copy with a new identity. Unknown content from newer versions is preserved, not dropped.',
   'feature.offline.title': 'Works offline',
   'feature.offline.body':
     'After the first visit the browser studio starts and runs without a network connection. No account, no sign-in, no waiting for a server.',
@@ -579,25 +579,25 @@ export const en = {
     'The whole product and this website exist in both languages, chosen independently of your operating system. The architecture is ready for more languages.',
   'feature.themes.title': 'Light and dark',
   'feature.themes.body':
-    'A light and a dark appearance for the studio and for this website, with the contrast and focus styles that keyboard users need.',
-  'feature.keyboard.title': 'Keyboard and accessibility',
+    'A light and a dark appearance for the studio and for this website, or the one your system is set to, with the contrast and focus styles that keyboard users need.',
+  'feature.keyboard.title': 'Keyboard operation',
   'feature.keyboard.body':
-    'Tools, ports, dialogs and the canvas can be operated from the keyboard, with a searchable shortcut reference in both languages.',
+    'Menus, tools, ports, dialogs and the canvas can be operated from the keyboard, with a searchable shortcut reference in both languages.',
   'feature.recovery.title': 'Saving and recovery',
   'feature.recovery.body':
     'Changes are written to your device shortly after you stop typing, and the previous save stays available if something goes wrong.',
   'feature.pages.title': 'Documents and diagram pages',
   'feature.pages.body':
-    'Keep several documents and pages in one .koxora project. The sidebar navigator supports switching, renaming, duplicating, reordering and moving pages between documents, with individual zoom and canvas views.',
+    'Keep several documents and pages in one .koxora project. Switch pages with the sheet tabs below the canvas or in the project navigator; rename, duplicate, reorder and move pages between documents. Each page keeps its own zoom and view.',
   'feature.richText.title': 'Office-style rich-text editing',
   'feature.richText.body':
-    'Edit text beside its canvas label with a formatting toolbar. Format individual words or selected passages in text elements, shapes, lines, arrows and connections; keep multiline content, clipboard formatting and text undo.',
+    'Click a label, a container title or a table cell and edit it right there, with a formatting toolbar beside it. Format single words or passages in shapes, text elements, lines, arrows, connections and freehand strokes. Changes apply as you type, and continuous typing counts as one undo step.',
   'feature.desktop.title': 'Desktop applications',
   'feature.desktop.body':
-    'A desktop shell for Linux, Windows and macOS exists in the repository and runs from source. Signed, supported installers are not released yet.',
+    'A desktop shell for Linux, Windows and macOS runs from source and as unsigned review builds. It keeps projects in a folder you choose and registers .koxora files so they open from the file manager; acceptance on every platform is still under way. Signed, supported installers are not released.',
   'feature.diagramTypes.title': 'Guided diagram types',
   'feature.diagramTypes.body':
-    'Mind maps, flowcharts, organization charts, UML, ER, BPMN, C4, network, Gantt, Kanban and wireframe families with templates and assisted layout. Today you can draw freely with shapes, text and connections.',
+    'Mind maps, flowcharts, organization charts, UML, ER, BPMN, C4, network, Gantt, Kanban and wireframe families with their own elements and assisted layout. Today the built-in templates are starting points drawn from ordinary shapes, text and connections.',
   'feature.export.title': 'Export to SVG, PNG and PDF',
   'feature.export.body':
     'Image and document export for sharing and printing. Today a project is exchanged as a .koxora archive.',
@@ -634,7 +634,7 @@ export const en = {
     'Monorepo, shared browser and desktop shell, localization, themes, local storage and continuous integration.',
   'phase.2.title': 'Editor',
   'phase.2.body':
-    'The editor foundation through accepted Studio 2.5 includes shapes, connections, multi-document/page navigation, rich text, batch properties, freehand drawing, stacking, non-overlap arrangement and portable project files. Further editor capabilities remain planned.',
+    'The editor now includes an element library with tables and containers, connections with attached or free ends, links between elements, pages and projects, rotation and mirroring, rich text, a freehand pen, documents with pages, simple built-in templates and portable project files. Guided diagram types, templates of your own and further editor capabilities remain planned.',
   'phase.3.title': 'Data and export',
   'phase.3.body':
     'Table import, charts, and export to SVG, PNG, PDF and interactive HTML.',
@@ -739,31 +739,31 @@ export const en = {
   'project.statusSummary.published':
     'Koxora Studio is a working technical preview. There is no public release and no download yet.',
   'project.statusMilestoneValue.published':
-    'Studio phase 2.5 accepted and merged · No public Studio release',
+    'Studio phase 2.7 merged · No public Studio release',
   'legalNotice.contact.security': 'First contact about a security problem',
 
   'docsStart.shot.alt':
-    'The Koxora studio with an empty project list, a New project button and an Import .koxora button.',
+    'The Koxora studio with an empty project library, a New blank project button, a Templates button and an Open file button.',
   'docsEditing.shot.alt':
-    'The keyboard shortcut reference open over the editor, with a search field and the navigation shortcuts listed.',
+    'The keyboard shortcut reference open over the editor, with a search field and the shortcuts for pages and rich text listed first.',
   'docsEditing.properties.alt':
-    'The properties of a selected element open over the editor, with text and formatting controls at the top.',
+    'A selected diamond with its resize and rotation handles, and the properties panel beside the canvas showing position, size, rotation, mirroring, fill and outline in the Format tab.',
 
   'docs.hub.title': 'Everything there is to read',
   'docs.hub.note':
     'Each section says which state it describes. Koxora has no public release, so "available" means implemented and merged in the development version you can run from the repository, never downloadable today.',
   'docs.section.start.title': 'First steps with Koxora',
   'docs.section.start.summary':
-    'Opening the studio, making a project, and what the first screen offers.',
+    'Opening the studio, starting from a blank project or a template, and what the first screen offers.',
   'docs.section.editing.title': 'Editing a diagram',
   'docs.section.editing.summary':
-    'Shapes, connections, rich text, freehand strokes, batch properties, arrangement and undo in the accepted Studio 2.5 development version.',
+    'Elements and their library, connections, text, tables, links, rotation, freehand strokes, arrangement and undo in the merged development version.',
   'docs.section.localFirst.title': 'Local-first, explained',
   'docs.section.localFirst.summary':
     'What local-first means here, and what it means for your files and your privacy.',
   'docs.section.projects.title': 'Projects and file formats',
   'docs.section.projects.summary':
-    'Manage documents and diagram pages, switch local projects, use Trash and keep portable .koxora backups.',
+    'Manage documents and pages, find and switch local projects, use Trash and keep portable .koxora backups.',
   'docs.section.features.title': 'Available capabilities',
   'docs.section.features.summary':
     'The list of what is implemented, with the limits of the current version named.',
@@ -772,29 +772,29 @@ export const en = {
     'What is intended, in which order, with no committed dates.',
   'docs.section.faq.title': 'Frequently asked questions',
   'docs.section.faq.summary':
-    'Questions about the implemented editor, pages, formatting, offline storage and the features still planned.',
+    'Questions about the implemented editor, templates, pages, links, offline storage and the features still planned.',
   'docs.section.support.title': 'Reporting a problem, and getting help',
   'docs.section.support.summary':
     'Where a bug report goes, what to put in it, and where a security problem goes instead.',
   'docsStart.meta.title': 'First steps with Koxora',
   'docsStart.meta.description':
-    'Opening the Koxora studio, making a first project and finding your way around the first screen, with no account and nothing to install.',
+    'Opening the Koxora studio, starting a project from scratch or from a template and finding your way around, with no account and nothing to install.',
   'docsStart.hero.eyebrow': 'Documentation',
   'docsStart.hero.title': 'First steps',
   'docsStart.hero.lead':
     'Koxora has no public release yet, so there is nothing to download. What follows describes the development version, which runs in a browser and keeps everything on your device.',
   'docsStart.step1.title': 'Open the studio',
   'docsStart.step1.body':
-    'The studio is a web application. It asks for no account, no email address and no sign-in: the first screen is the project list, and it is empty because nothing has been made yet. Until a public release exists, the way to run it is from the source repository.',
-  'docsStart.step2.title': 'Make a project, or bring one',
+    'The studio is a web application. It asks for no account, no email address and no sign-in: the first screen is the project library, and it is empty because nothing has been made yet. Until a public release exists, the way to run it is from the source repository.',
+  'docsStart.step2.title': 'Start blank, from a template, or bring a project',
   'docsStart.step2.body':
-    '"New project" starts an empty one. "Import .koxora" opens a project file you already have — from another device, from a backup, or from someone who sent you one. Both end in the same place: a project on this device.',
+    '"New blank project" starts an empty one. "Templates" opens an overview of eight simple starters; "Use template" creates a separate project from one of them, which you then edit like any other. "Open file…" opens a .koxora file you already have — from another device, from a backup, or from someone who sent you one — and so does dropping the file onto the studio. All of these end in the same place: a project on this device.',
   'docsStart.step3.title': 'Draw something',
   'docsStart.step3.body':
-    'Choose a shape above the canvas and click or drag to place it. Use Line or Arrow to connect shapes, and Freehand pen to sketch. The Project navigator in the sidebar adds documents and diagram pages; each page keeps its own view.',
+    'Choose an element in the palette above the canvas and click or drag to place it. Categories and the search field narrow the palette, and Browse elements shows every element with its name. Use Line or Arrow to connect, and Freehand pen to sketch. The sheet tabs below the canvas and the project navigator in the sidebar add documents and pages; each page keeps its own view.',
   'docsStart.step4.title': 'Automatic saves and portable backups',
   'docsStart.step4.body':
-    'Changes save on this device after a short pause; the header shows the save status. Save project also saves immediately. Export .koxora creates a portable backup. Nothing is uploaded to a Koxora server.',
+    'Changes save on this device after a short pause; the toolbar shows the save status. Save project, or Ctrl/Cmd+S, also saves immediately. Export .koxora, or Ctrl/Cmd+Shift+S, creates a portable backup. Nothing is uploaded to a Koxora server.',
   'docsStart.shot.caption':
     'The first screen of the studio, before any project exists. Captured from the development version.',
   'docsStart.warning.title': 'One thing to know on the first day',
@@ -802,39 +802,39 @@ export const en = {
     'A project lives in this browser on this device. Clearing the browser data, using a private window, or losing the device removes it. Export a .koxora file for anything you would be sorry to lose — that is the backup, and there is no copy anywhere else.',
   'docsEditing.meta.title': 'Editing a diagram',
   'docsEditing.meta.description':
-    'Use Studio 2.5 shapes, connections, rich-text formatting, freehand drawing, batch properties, stacking and undo in the merged development version.',
+    'Place and connect elements, edit text and tables in place, add links, rotate, mirror and draw freehand in the merged development version.',
   'docsEditing.hero.eyebrow': 'Documentation',
   'docsEditing.hero.title': 'Editing a diagram',
   'docsEditing.hero.lead':
     'What the editor does today, described from the merged development version. Where something is not there yet, this page says so rather than leaving you to find out.',
-  'docsEditing.place.title': 'Placing shapes',
+  'docsEditing.place.title': 'Placing elements',
   'docsEditing.place.body':
-    'Choose a rectangle, rounded rectangle, ellipse, diamond, triangle, hexagon, parallelogram, text element or container. Click to place it, drag to size it, or press Enter to insert at the view centre. Repeat insertion keeps a shape tool active. Line, Arrow and Freehand pen have their own drawing gestures.',
+    'The palette above the canvas holds the built-in elements: basic shapes, flowchart symbols such as document, database and predefined process, a cloud, a note, a chevron and more, plus text, container and table. Click to place one, drag to size it, or press Enter to insert it at the view centre. Repeat insertion keeps a tool active. Line, Arrow and Freehand pen have their own drawing gestures, and the Insert menu lists the same elements.',
   'docsEditing.select.title': 'Selecting',
   'docsEditing.select.body':
-    'Click to select. Shift-click adds to or removes from the selection. Dragging across empty canvas draws a marquee around everything inside it, and Ctrl or Cmd with A selects everything on the page that can be edited. Escape clears a tool or a draft.',
-  'docsEditing.move.title': 'Moving and resizing',
+    'Click to select. Shift-click adds to or removes from the selection. Dragging across empty canvas draws a marquee around everything inside it, and Ctrl or Cmd with A selects everything on the page that can be edited. Objects in the toolbar lists the elements of the page by name, which selects one without touching its label. Escape clears a tool or the selection.',
+  'docsEditing.move.title': 'Moving, resizing, rotating and mirroring',
   'docsEditing.move.body':
-    'Drag a selection to move it. A single selected shape gets corner handles; holding Shift keeps its proportions. The arrow keys nudge by one unit or one grid step, and Shift multiplies that by ten. Snapping follows the grid, and holding Alt switches it off for as long as you hold it — the canvas shows a coloured border while snapping is on.',
+    'Drag a selection to move it. A single selected shape gets corner handles; holding Shift keeps its proportions. The round handle above a selection rotates it, and Shift snaps the angle to steps of 15 degrees. The Format tab takes an exact angle and offers quarter turns and horizontal or vertical mirroring; each element turns around its own centre and its text stays readable. The arrow keys nudge by one unit or one grid step, and Shift multiplies that by ten. Snapping follows the grid, and holding Alt switches it off for as long as you hold it.',
   'docsEditing.connect.title': 'Connecting shapes',
   'docsEditing.connect.body':
-    'Choose Line or Arrow, then either click a visible port on the edge of each shape or click the shapes themselves and let the editor choose the anchor. Line draws no arrowhead; Arrow draws one. A connection keeps its chosen anchors when either shape is moved or resized. There is no obstacle routing and no connection from a shape to itself.',
+    'Choose Line or Arrow, then click a visible port on the edge of a shape, or the shape itself to let the editor choose the anchor. Either end may also stay free: start or finish on empty canvas, and later drag an end onto a shape to attach it or away from it to detach it. Arrowheads are set separately for the start and the end, and the path is straight, elbow or curved. An attached end follows its shape when that is moved, resized or rotated. There is no obstacle routing and no connection from a shape to itself.',
   'docsEditing.text.title': 'Text and formatting',
   'docsEditing.text.body':
-    'Double-click a label or choose Edit text to open the canvas text editor; Element properties provides the same editor. Select a word or passage and apply font, size, bold, italic, underline or colour. Alignment applies to paragraphs. Ctrl/Cmd+B, I and U toggle formatting; paste keeps supported text styles and line breaks. Apply changes or Ctrl/Cmd+Enter commits the draft; Escape cancels it.',
+    'Click a label to edit it where it is: a small editor opens beside it with font, size, bold, italic, underline, colour and alignment. Select a word or a passage to format just that. Changes apply as you make them, so there is nothing to confirm: Close, Escape, Ctrl/Cmd+Enter or a click elsewhere finishes, and Undo takes a change back. Ctrl/Cmd+B, I and U toggle formatting; paste keeps supported text styles and line breaks. The Text tab of the properties panel offers the same editor.',
   'docsEditing.history.title': 'Undoing',
   'docsEditing.history.body':
-    'Ctrl/Cmd+Z undoes and Ctrl/Cmd+Shift+Z or Ctrl+Y redoes. Project history follows edits across pages, including page creation, movement and deletion; it retains at most 100 steps within a 16 MiB bound. It resets when another project is opened and is not saved in .koxora. While a text draft is open, undo affects the draft; applying it creates one project edit. Restore project in Trash is separate from Undo.',
+    'Ctrl/Cmd+Z undoes and Ctrl/Cmd+Shift+Z or Ctrl+Y redoes. Project history follows edits across pages, including page creation, movement and deletion; it retains at most 100 steps within a 16 MiB bound. Continuous changes to the same field are grouped into one step. History resets when another project is opened and is not saved in .koxora. Restore project in Trash is separate from Undo.',
   'docsEditing.keyboard.title': 'Doing it from the keyboard',
   'docsEditing.keyboard.body':
-    'Every tool is reachable with Tab and the arrow keys, and the ports for connecting are too. F1 or the question mark opens a searchable list of every shortcut, in English and German, with Ctrl shown as Cmd on Apple computers. Text fields keep the editing shortcuts you already know.',
+    'The application menu, every tool and the ports for connecting are reachable with Tab and the arrow keys. F1 or the question mark opens a searchable list of every shortcut, in English and German, with Ctrl shown as Cmd on Apple computers; the Help menu opens the same list. Text fields keep the editing shortcuts you already know.',
   'docsEditing.shot.caption':
     'The keyboard shortcut reference, opened with F1. Captured from the development version.',
   'docsEditing.properties.caption':
-    'The properties of a selected element, with text and formatting first. Captured from the development version.',
+    'The properties panel of a selected element, docked beside the canvas with its Format, Text and Links tabs. Captured from the development version.',
   'docsEditing.limits.title': 'Not there yet',
   'docsEditing.limits.body':
-    'Image export, import from other diagram tools, interactive links, full layer management, collaboration, cloud sync and AI assistance are not implemented. The freehand pen has no eraser or pressure brushes. Undo history does not survive reopening a project. The capability list distinguishes the implemented development version from future work.',
+    'Image export, import from other diagram tools, templates of your own, automatic layout for diagram types, a full layer manager, collaboration, cloud sync and AI assistance are not implemented. Tables have no formulas and no data import. The freehand pen has no eraser or pressure brushes. Undo history does not survive reopening a project. The capability list distinguishes the implemented development version from future work.',
   'docsProjects.meta.title': 'Projects and file formats',
   'docsProjects.meta.description':
     'What a Koxora project is, where it is kept, what the .koxora file contains, how to move a project between devices and how to keep a backup.',
@@ -844,22 +844,22 @@ export const en = {
     'A project is yours, it is on your device, and it comes out as a file you keep. This page says exactly what that file is and what happens to it.',
   'docsProjects.format.title': 'The .koxora file',
   'docsProjects.format.body':
-    'Export creates one portable .koxora archive containing all documents, pages, page views, rich-text formatting and freehand strokes. Existing projects still open without conversion. The documented format stores structured text, not HTML. Keep a backup before editing in an older version: it cannot display every newer feature.',
+    'Export creates one portable .koxora archive containing all documents, pages, page views, formatted text, tables, links and freehand strokes. The documented format stores structured text, not HTML. A project that uses a newer capability — tables and container titles, mirrored elements, labelled freehand strokes, free connection ends — says so in the file, and an older version of Koxora declines to open it rather than showing it incompletely. Keep a backup before you go back to an older version.',
   'docsProjects.saved.title': 'Where a project is while you work',
   'docsProjects.saved.body':
-    'In the browser, on the device you are using, in that browser’s own storage. Changes are written there automatically after a short pause. No Koxora server receives the project, because there is none, and nothing is uploaded.',
+    'In the browser, on the device you are using, in that browser’s own storage. The desktop application, which is not released yet, keeps projects in a folder on your computer and lets you choose that folder. Changes are written automatically after a short pause. No Koxora server receives the project, because there is none, and nothing is uploaded.',
   'docsProjects.transfer.title': 'Moving a project to another device',
   'docsProjects.transfer.body':
-    'Export it to a .koxora file, move the file the way you would move any file, and import it on the other device. Browser storage belongs to one address on one device, so this is the way to carry work across — and it is the same way to hand a project to someone else.',
+    'Export it to a .koxora file, move the file the way you would move any file, and open it on the other device with Open file, with Import .koxora or by dropping it onto the studio. Opening the same unchanged file twice does not create a duplicate; a changed file for a project you already have is offered as a copy instead of overwriting it. Browser storage belongs to one address on one device, so this is the way to carry work across — and it is the same way to hand a project to someone else.',
   'docsProjects.backup.title': 'Keeping a backup',
   'docsProjects.backup.body':
     'Export the projects you care about to .koxora files and keep them where you keep your other documents. Clearing browser data, a private window, a reinstalled browser or a lost device all remove what is only in browser storage, and no copy exists anywhere else to restore it from. An exported file is the backup.',
   'docsProjects.notStored.title': 'What the file does not contain',
   'docsProjects.notStored.body':
-    'What you had selected, which tool was active, what was on the internal clipboard and the undo history are not written into a project. They belong to the session you are in. Data the current version does not understand is preserved rather than dropped, so a file written by a newer version does not lose what it carried.',
+    'What you had selected, which tool was active, what was on the internal clipboard and the undo history are not written into a project. They belong to the session you are in. Language, appearance, interface scale and the element categories you chose are preferences of this device and are not part of a project either. Data the current version does not understand is preserved rather than dropped, so a file written by a newer version does not lose what it carried.',
   'docsFaq.meta.title': 'Frequently asked questions',
   'docsFaq.meta.description':
-    'Answers about Studio 2.5 pages, rich text, freehand drawing, offline files, fonts and release status, with unimplemented features clearly identified.',
+    'Answers about templates, pages, links, tables, rich text, offline files, fonts and release status, with unimplemented features clearly identified.',
   'docsFaq.hero.eyebrow': 'Documentation',
   'docsFaq.hero.title': 'Frequently asked questions',
   'docsFaq.hero.lead':
@@ -869,7 +869,7 @@ export const en = {
     'No. There is no registration, no sign-in and no account to create. The studio has no server behind it to hold one.',
   'faq.release.q': 'Can I download Koxora?',
   'faq.release.a':
-    'Not yet. There is no public release and no approved public installer download. Studio 2.5 is accepted and merged in the source repository. CI test packages do not constitute a published release; the download page will change only after a separate release approval.',
+    'Not yet. There is no public release and no approved public installer download. The studio described on this site, up to phase 2.7, is merged in the source repository. CI test packages do not constitute a published release; the download page will change only after a separate release approval.',
   'faq.offline.q': 'Does it work without an internet connection?',
   'faq.offline.a':
     'The editor runs on your device and needs no server once it has loaded. Projects are stored locally, so the work itself does not depend on a connection.',
@@ -884,7 +884,7 @@ export const en = {
     'Koxora reads and writes its own .koxora project archive. Importing from other diagram tools and exporting to an image are not implemented yet; both are documented scope rather than something you can do today.',
   'faq.today.q': 'What can the editor actually do right now?',
   'faq.today.a':
-    'Studio 2.5 includes shapes and connections with ports, documents and diagram pages, formatting of individual words, batch properties, freehand drawing, stack order and arrangement without overlap. Projects save locally and can be exported as .koxora; session undo works across their pages. These features belong to the merged development version, not a public release.',
+    'The merged development version has a library of built-in elements, connections with ports and free ends, tables and containers, text formatting down to a single word, links between elements, pages and local projects, rotation and mirroring, a freehand pen, documents with pages, and eight simple templates. Projects save locally and can be exported as .koxora; session undo works across their pages. These features belong to the development version, not a public release.',
   'faq.missing.q': 'What about working together, the cloud, or assistance?',
   'faq.missing.a':
     'None of the three is implemented. All three are documented product scope, and all three are planned as optional, so a Koxora without them stays a complete product rather than a crippled one.',
@@ -1145,7 +1145,7 @@ export const en = {
   'cmp.withoutAccount.visio':
     'Microsoft states that web access needs a Microsoft 365 work or school account, and that personal identities such as outlook.com are not supported. The desktop application needs an assigned licence.',
   'cmp.desktop.koxora':
-    'A desktop build for Linux, Windows and macOS is documented product scope and is not implemented. There is no download.',
+    'There is no desktop application to install. A desktop shell for Linux, Windows and macOS is being built in the public repository, without a release and without a download.',
   'cmp.desktop.drawio':
     'Installers are published for Windows, including an ARM64 build and a portable build, for Linux as AppImage, deb and rpm as well as through the Snap and Flatpak stores, and for macOS.',
   'cmp.desktop.excalidraw':
@@ -1157,7 +1157,7 @@ export const en = {
   'cmp.desktop.visio':
     'The desktop application is listed for Visio Plan 2 and for the single-purchase editions. Visio Plan 1 and Visio in Microsoft 365 are listed as web only.',
   'cmp.diagramTypes.koxora':
-    'The merged Studio 2.5 development version supports shapes, rich text, connections with ports, freehand strokes and several documents/pages per project. Guided diagram types and semantic auto-layout remain planned.',
+    'The merged development version has a library of general-purpose elements, tables and containers, rich text, connections with ports or free ends, freehand strokes, several documents and pages per project and eight simple templates, three of them mind-map layouts. Diagram types with their own rules and automatic layout remain planned.',
   'cmp.diagramTypes.drawio':
     'Not verified for this review. The official shape libraries are extensive; which families they cover was not confirmed against a single official page.',
   'cmp.diagramTypes.excalidraw':
@@ -1258,7 +1258,7 @@ export const en = {
   'cmp.page.drawio.strengths.body':
     'The desktop application is described by its makers as completely isolated from the internet apart from a daily update check, which can be switched off. It is published under the GPL version 3 licence for Windows, including an ARM64 and a portable build, for Linux as AppImage, deb, rpm, Snap and Flatpak, and for macOS. The online editor needs no account and uses storage you bring yourself, and the official site names integrations with Google, Microsoft, Atlassian, GitHub, VS Code and Notion. It is a mature tool with a large shape library and years of use behind it.',
   'cmp.page.drawio.koxora.body':
-    'Koxora is at the start of its life and has no public release, so the honest comparison today is about intent rather than about a finished product. Koxora is built as one editor with a portable project format across browser and desktop, with German and English in the product from the first version, and with cloud, assistance and collaboration designed as optional parts rather than as the default. What exists today is the development version in the open repository: shapes, text and connections, projects on the device, and project files that can be written and read.',
+    'Koxora is at the start of its life and has no public release, so the honest comparison today is about intent rather than about a finished product. Koxora is built as one editor with a portable project format across browser and desktop, with German and English in the product from the first version, and with cloud, assistance and collaboration designed as optional parts rather than as the default. What exists today is the development version in the open repository: a library of elements with tables and connections, simple templates, links between pages and projects, projects on the device, and project files that can be written and read.',
   'cmp.page.drawio.chooseOther':
     'you need a finished tool today, want the large shape library, work inside Google, Microsoft, Atlassian or GitHub, or want an installed application that does not talk to the internet at all.',
   'cmp.page.drawio.chooseKoxora':
@@ -1293,55 +1293,129 @@ export const en = {
     'the file has to live on your machine rather than in a provider account, you want to start without registering, and you can wait for a release.',
   'feature.freehand.title': 'Freehand drawing',
   'feature.freehand.body':
-    'Sketch with mouse, touch, pen or keyboard. Set stroke colour and width, then move, resize, copy or delete each stroke like an object. Strokes save offline in your project; pressure brushes and an eraser are not included.',
+    'Sketch with mouse, touch, pen or keyboard. Set stroke colour and width, then move, resize, rotate, copy or delete each stroke like an object, and give it a centred text label. Strokes save offline in your project; pressure brushes and an eraser are not included.',
   'docsEditing.fonts.title': 'Fonts, colour and text limits',
   'docsEditing.fonts.body':
-    'The searchable menu previews 20 font preferences using installed fonts and fallbacks. No fonts are downloaded; two missing families may look alike on your device. Sizes range from 8 to 96. Automatic colour adapts to the background; explicit colours stay as authored. A label holds up to 4,096 characters. A small shape can clip its display without discarding the stored text: resize it or reduce the font size.',
+    'The searchable menu previews 20 font preferences using installed fonts and fallbacks. No fonts are downloaded; two missing families may look alike on your device. Sizes range from 8 to 96. Automatic colour adapts to the background; explicit colours stay as authored. A label holds up to 4,096 characters and a table cell up to 1,024. A small shape can clip its display without discarding the stored text: resize it or reduce the font size.',
   'docsEditing.batch.title': 'Changing several objects together',
   'docsEditing.batch.body':
-    'Select objects with Shift-click or a marquee, then open Element properties or the context menu. Mixed values stay unchanged until you edit that property. A colour change leaves font choices and other formatting intact. Each batch change is one undo step; only properties supported by the selected objects are offered.',
+    'Select objects with Shift-click or a marquee; the properties panel then shows Format selection. Mixed values stay unchanged until you edit that property. A colour change leaves font choices and other formatting intact. Each batch change is one undo step; only properties supported by the selected objects are offered.',
   'docsEditing.arrange.title': 'Aligning, arranging and stacking',
   'docsEditing.arrange.body':
-    'Align appears for at least two selected shapes; Distribute needs three. Hover or focus previews a command and Escape cancels. Align shares an edge or centre and can overlap objects. Arrange without overlap is a separate action that moves selected editable objects around visible obstacles. Bring forward, Send backward, Bring to front and Send to back order shapes and connections within their existing layer. Each command can be undone; there is no full layer manager yet.',
+    'The Format menu and the context menu of a selection hold Align / Distribute, Stacking and Arrange without overlap. Align needs at least two selected shapes and Distribute three. Hover or focus previews a command and Escape cancels. Align shares an edge or centre and can overlap objects. Arrange without overlap is a separate action that moves selected editable objects around visible obstacles. Bring forward, Send backward, Bring to front and Send to back order shapes and connections within their existing layer. Each command can be undone; there is no full layer manager yet.',
   'docsEditing.pen.title': 'Drawing freehand',
   'docsEditing.pen.body':
-    'Choose Freehand pen, set stroke colour and width, and draw with mouse, touch or pen. Each completed stroke is an editable object saved in .koxora. For keyboard drawing, Enter starts at the view centre, arrows extend the stroke, Shift makes larger steps, and Enter finishes. Escape cancels an unfinished stroke. There are no pressure or tilt brushes, eraser or individual point editing.',
+    'Choose Freehand pen, set stroke colour and width, and draw with mouse, touch or pen. Each completed stroke is an editable object saved in .koxora, and it can carry a centred text label like a shape. For keyboard drawing, Enter starts at the view centre, arrows extend the stroke, Shift makes larger steps, and Enter finishes. Escape cancels an unfinished stroke. There are no pressure or tilt brushes, eraser or individual point editing.',
   'docsProjects.pages.title': 'Documents and diagram pages',
   'docsProjects.pages.body':
-    'One .koxora project can contain several documents, each with diagram pages. Use the Project navigator in the sidebar to switch pages; expanded canvas opens the same navigator from its button. Each page keeps its zoom, position and grid. The accepted Studio 2.5 uses this single hierarchy instead of the originally planned bottom diagram tabs.',
+    'One .koxora project can contain several documents, each with diagram pages. The sheet tabs below the canvas switch between the pages of the current document, with a document selector beside them; the project navigator in the sidebar shows the whole hierarchy of project, documents and pages. Each page keeps its zoom, position and grid. In the expanded canvas the tabs stay in place and the navigator opens from its button.',
   'docsProjects.actions.title': 'Creating and organising pages',
   'docsProjects.actions.body':
-    'Use New document and New page, double-click or F2 to rename, and right-click, Shift+F10 or the row action button for page operations. Duplicate a page, reorder by dragging or Alt+Up/Down, or move it to another document in the same project. Deletion asks for confirmation and supports Undo. The last page of a document and the last document of a project are protected. Referenced pages may also be protected; moving pages between different projects is not supported.',
+    'Add page at the end of the sheet tabs adds a page; New document and New page are also in the navigator. Rename a page with a double-click, F2 or its menu, on the tab or in the navigator. A page’s menu in the navigator — right-click, Shift+F10 or the action button of its row — duplicates it, reorders it or moves it to another document of the same project; dragging and Alt+Up or Alt+Down reorder as well. Deletion asks for confirmation and supports Undo. The last page of a document and the last document of a project are protected, and so is a page that a link still points to. Moving pages between different projects is not supported.',
   'docsProjects.trash.title': 'Switching, copying and deleting projects',
   'docsProjects.trash.body':
-    'The navigator lists local projects. Switching saves the current work first; if saving fails, it stays open. Duplicate creates a complete project copy with a new project identity. Delete project asks for confirmation and moves it to local Trash; Restore project brings it back with its recovery data. Trash belongs to this device, is not an export or backup, and does not delete exported .koxora files.',
+    'Switching projects saves the current work first; if saving fails, it stays open. Duplicate creates a complete project copy with a new project identity. Delete project asks for confirmation and moves it to local Trash; Restore project brings it back with its recovery data. Permanently delete removes one trashed project and its saved recovery data for good, after a confirmation that names it. Trash belongs to this device, is not an export or backup, and never touches exported .koxora files.',
   'faq.pages.q': 'Where are the diagram tabs?',
   'faq.pages.a':
-    'Studio 2.5 provides several diagram pages through one sidebar Project navigator: project, document, page. It replaces the initially planned bottom tabs. Create, rename, duplicate, reorder or delete pages there, and move them between documents in the same project. Each page keeps its own view.',
+    'Below the canvas. The sheet tabs list the pages of the current document, with a document selector beside them and Add page at the end; a double-click or F2 renames a page. The project navigator in the sidebar shows the same pages in one hierarchy of project, documents and pages. Each page keeps its own view.',
   'faq.richText.q':
     'Can I format just one word, and do I need to download fonts?',
   'faq.richText.a':
-    'Yes: select a word or passage in the canvas text editor and change its font, size, bold, italic, underline or colour. The 20 searchable font preferences use installed families and fallbacks. There are no external font downloads; missing families can look alike and layout can vary between systems. Formatting is stored in .koxora.',
+    'Yes: click a label, select a word or passage and change its font, size, bold, italic, underline or colour; the change applies at once. The 20 searchable font preferences use installed families and fallbacks. There are no external font downloads; missing families can look alike and layout can vary between systems. Formatting is stored in .koxora.',
   'faq.pen.q': 'Can I sketch freehand?',
   'faq.pen.a':
-    'Yes. The Freehand pen supports mouse, touch, pen and keyboard drawing, with stroke colour and width. Completed strokes can be edited as objects and saved offline. Pressure and tilt brushes, an eraser and point editing are not implemented.',
+    'Yes. The Freehand pen supports mouse, touch, pen and keyboard drawing, with stroke colour and width. Completed strokes can be edited as objects, labelled with text and saved offline. Pressure and tilt brushes, an eraser and point editing are not implemented.',
   'faq.links.q': 'Can a shape link to another page or website?',
   'faq.links.a':
-    'Interactive link authoring and activation are not implemented yet. Ordinary navigation between pages is available in the sidebar; it does not make shapes clickable links. Cross-project page transfer and a full layer manager are also future work.',
+    'Yes. In the Links tab of the properties panel, an element can link to a web or mail address, a page, another element, or another project on this device. Clicking still edits; select the element and use Open link or Alt+Enter to follow the link. An exported image or web page with working links does not exist yet, because there is no such export.',
   'milestone.workbook.title': 'Pages, rich text and freehand editing',
   'milestone.workbook.body':
     'Studio 2.5: project/document/page navigation, word-level formatting, offline font preferences, batch properties, freehand pen, stacking and non-overlap arrangement. Manually accepted and merged; no public release.',
   'docsEditing.rich.alt':
-    'The Studio 2.5 canvas text editor showing mixed word formatting and its font toolbar.',
+    'The text editor open beside a label on the canvas, with one bold coloured word, one italic word and the font toolbar.',
   'docsEditing.rich.caption':
-    'The Studio 2.5 canvas text editor showing mixed word formatting and its font toolbar. Captured from the accepted development version; not a public release.',
+    'Editing a label in place, with one word formatted differently from the next. Captured from the merged development version; not a public release.',
   'docsEditing.pen.alt':
-    'The Studio 2.5 freehand pen and a drawn stroke alongside a diagram.',
+    'The freehand pen with its colour and width options and a drawn wavy stroke between the rows of a diagram.',
   'docsEditing.pen.caption':
-    'The Studio 2.5 freehand pen and a drawn stroke alongside a diagram. Captured from the accepted development version; not a public release.',
+    'The freehand pen and a drawn stroke, selected like any other object. Captured from the merged development version; not a public release.',
   'docsProjects.shot.alt':
-    'The Studio 2.5 sidebar navigator with multiple documents and pages and the page context menu.',
+    'The project navigator in the sidebar with two documents and their pages, the menu of a page open, and the sheet tabs below the canvas.',
   'docsProjects.shot.caption':
-    'The Studio 2.5 sidebar navigator with multiple documents and pages and the page context menu. Captured from the accepted development version; not a public release.',
+    'The project navigator with the menu of a page, and the sheet tabs along the bottom. Captured from the merged development version; not a public release.',
+  'features.limits.item6':
+    'A table is a table for text. It has no formulas and takes no data from a spreadsheet or a CSV file.',
+  'features.limits.item7':
+    'Moving pages between projects and a full layer manager are not implemented yet.',
+  'feature.library.title': 'A searchable element library',
+  'feature.library.body':
+    'Show the Basic shapes, Flowchart, Symbols and Drawing groups together or one at a time, and have the choice remembered on this device. Search elements by name, or open the element browser for labelled tiles.',
+  'feature.templates.title': 'Templates to start from',
+  'feature.templates.body':
+    'Eight built-in starters — three mind-map layouts, two flowcharts, a team chart, a weekly plan and a goals board — in a searchable overview with previews. Using one creates a separate, ordinary project that you edit with the normal tools.',
+  'feature.tables.title': 'Tables and containers',
+  'feature.tables.body':
+    'Insert a table with up to 20 rows and 12 columns, a header row and cells that are edited and formatted one at a time; merge a rectangle of cells and split it again. A container carries a title in its header and separate body text. Tables hold text, not formulas or imported data.',
+  'feature.links.title': 'Links between elements, pages and projects',
+  'feature.links.body':
+    'Give an element a link to a web or mail address, a page, another element or another project on this device. Ordinary clicks keep editing; Open link or Alt+Enter follows the link. Links to pages and elements work offline and survive renaming.',
+  'feature.transforms.title': 'Rotate and mirror',
+  'feature.transforms.body':
+    'Turn elements with a handle, by an exact angle or in quarter turns, and mirror them horizontally or vertically. Each element turns around its own centre, its text stays readable, and attached connections follow.',
+  'feature.interface.title': 'Interface size and accessibility options',
+  'feature.interface.body':
+    'Scale menus, panels and controls from 100 to 200 percent without changing the zoom of your diagram. An optional setting adds larger controls, a stronger keyboard focus, more contrast and less animation. These are accommodations, not a certification.',
+  'milestone.links.title': 'Links',
+  'milestone.links.body':
+    'Studio 2.6: links from elements and connections to web addresses and pages, followed deliberately with Open link or Alt+Enter and preserved through project files and undo.',
+  'milestone.workbench.title': 'Workbench, storage and navigation',
+  'milestone.workbench.body':
+    'An Office-style workbench with menus, a docked properties panel, sheet tabs, a project library and an interface scale; links to elements and other local projects; a configurable storage folder and native opening of .koxora files on the desktop.',
+  'milestone.transforms.title': 'Rotation, mirroring and interface options',
+  'milestone.transforms.body':
+    'Rotation and mirroring of elements, language and appearance that can follow the system, optional enhanced accessibility and a project library that reflows with the window.',
+  'milestone.templates.title': 'Templates, tables and live editing',
+  'milestone.templates.body':
+    'Studio 2.7: eight built-in templates, a categorized element library with ten more shapes, tables and containers with text regions of their own, properties that apply without a confirmation step, and connections with free ends. Merged; no public release.',
+  'docsStart.step5.title': 'Set language, appearance and size',
+  'docsStart.step5.body':
+    'Settings, at the right end of the toolbar and in the File menu, holds the language and the light or dark appearance, each of which can follow your system, and an interface scale from 100 to 200 percent. Enhanced accessibility adds larger controls and a stronger keyboard focus. These choices stay on this device and never change a diagram.',
+  'docsStart.templates.alt':
+    'The template overview with a search field, a category filter and preview cards, starting with three mind-map layouts.',
+  'docsStart.templates.caption':
+    'The template overview. Each card creates a separate project that you edit freely. Captured from the merged development version; not a public release.',
+  'docsEditing.library.title': 'Finding an element',
+  'docsEditing.library.body':
+    'Categories… chooses which groups the palette shows — Basic shapes, Flowchart, Symbols and Drawing, several at once if you like — and Remember selection keeps that choice on this device. The search field matches names in the language you use and in English. Browse elements… opens the same library as labelled tiles. Select and Navigate stay available whatever is filtered.',
+  'docsEditing.regions.title': 'Tables and containers',
+  'docsEditing.regions.body':
+    'A table starts with three rows and three columns and can have up to 20 rows and 12 columns. Click a cell to edit and format it on its own; Header row gives the first row a visible band. In the Text tab, select a rectangle of cells with Shift and merge it, or split a merged cell again. Making a table smaller asks first if that would remove filled cells. A container has a title in its header and a separate body text. A table holds text only, without formulas or imported data, and a container does not group or move what is placed on it.',
+  'docsEditing.links.title': 'Linking elements',
+  'docsEditing.links.body':
+    'Select one element and open the Links tab of the properties panel. A link leads to a web or mail address, to a page of this project, to an element in this project, or to another project stored on this device. An ordinary click still selects and edits; to follow a link, select the element and use Open link or Alt+Enter. Web and mail addresses are handed to your browser or mail program. Links to pages and elements work offline and keep working after renaming. If a linked project is not on this device, the studio says so and offers to import its .koxora file.',
+  'docsEditing.table.alt':
+    'A selected table on the canvas and the Text tab of the properties panel with the row and column counts, the header row option, the cell grid and the controls for merging and splitting.',
+  'docsEditing.table.caption':
+    'A table and its Text tab: one text per cell, a header row, and merging for a selected range. Captured from the merged development version; not a public release.',
+  'docsEditing.links.alt':
+    'A selected element whose Links tab shows the link type Page in this project, the destination page and an Open link button.',
+  'docsEditing.links.caption':
+    'A link from an element to another page of the same project. Captured from the merged development version; not a public release.',
+  'docsEditing.library.alt':
+    'The element library as a dialog of labelled tiles, from Rectangle to Table and Freehand pen, with a search field above them.',
+  'docsEditing.library.caption':
+    'Browse elements shows every built-in element with its name. Captured from the merged development version; not a public release.',
+  'docsProjects.library.title': 'The project library',
+  'docsProjects.library.body':
+    'The library is the first screen and lists every project stored on this device, with the time it was last saved. Search by title narrows the list without changing anything. From there you open a project, rename it, or recover its previous save. Local projects in the sidebar brings you back to the library from an open project.',
+  'faq.templates.q': 'Are there templates, for a mind map for example?',
+  'faq.templates.a':
+    'Yes, eight simple ones: three mind-map layouts, a process and a decision flow, a small team chart, a weekly plan and a goals board. A template creates an ordinary project made of shapes, text and connections that you edit freely. There is no special mind-map mode and no automatic layout, and you cannot save your own templates yet.',
+  'faq.tables.q': 'Can I put a table in a diagram?',
+  'faq.tables.a':
+    'Yes. The table element has up to 20 rows and 12 columns, an optional header row, cells you format one at a time and merged cells. It is a table for text: there are no formulas, and importing data from CSV or a spreadsheet is planned, not implemented.',
+  'faq.size.q': 'Can I make the interface larger?',
+  'faq.size.a':
+    'Yes. Settings, under General, has an interface scale from 100 to 200 percent that enlarges menus, panels and controls without changing the zoom of your diagram, and an Enhanced accessibility option with larger controls, a stronger keyboard focus, more contrast and less animation.',
 } as const;
 export type WebsiteMessageKey = keyof typeof en;
