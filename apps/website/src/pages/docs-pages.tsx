@@ -43,6 +43,12 @@ export function DocsStartPage(context: PageContext) {
           alt={t('docsStart.shot.alt')}
           caption={t('docsStart.shot.caption')}
         />
+        <Screenshot
+          name={`docs-templates-${locale}`}
+          label={t('shot.frameLabel')}
+          alt={t('docsStart.templates.alt')}
+          caption={t('docsStart.templates.caption')}
+        />
       </Section>
       <Section id="warning">
         {/* The first thing a reader needs to know, and the thing a local-first
@@ -73,10 +79,22 @@ export function DocsEditingPage(context: PageContext) {
       </Section>
       <Section id="screens" tone="panel">
         <Screenshot
+          name={`docs-library-${locale}`}
+          label={t('shot.frameLabel')}
+          alt={t('docsEditing.library.alt')}
+          caption={t('docsEditing.library.caption')}
+        />
+        <Screenshot
           name={`docs-rich-text-${locale}`}
           label={t('shot.frameLabel')}
           alt={t('docsEditing.rich.alt')}
           caption={t('docsEditing.rich.caption')}
+        />
+        <Screenshot
+          name={`docs-table-${locale}`}
+          label={t('shot.frameLabel')}
+          alt={t('docsEditing.table.alt')}
+          caption={t('docsEditing.table.caption')}
         />
         <Screenshot
           name="docs-properties"
@@ -85,16 +103,22 @@ export function DocsEditingPage(context: PageContext) {
           caption={t('docsEditing.properties.caption')}
         />
         <Screenshot
-          name="docs-shortcuts"
+          name={`docs-links-${locale}`}
           label={t('shot.frameLabel')}
-          alt={t('docsEditing.shot.alt')}
-          caption={t('docsEditing.shot.caption')}
+          alt={t('docsEditing.links.alt')}
+          caption={t('docsEditing.links.caption')}
         />
         <Screenshot
           name={`docs-freehand-${locale}`}
           label={t('shot.frameLabel')}
           alt={t('docsEditing.pen.alt')}
           caption={t('docsEditing.pen.caption')}
+        />
+        <Screenshot
+          name="docs-shortcuts"
+          label={t('shot.frameLabel')}
+          alt={t('docsEditing.shot.alt')}
+          caption={t('docsEditing.shot.caption')}
         />
       </Section>
       <Section id="limits">

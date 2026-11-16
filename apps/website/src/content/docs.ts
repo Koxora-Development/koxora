@@ -92,10 +92,13 @@ export const faqEntries: DocsEntry[] = [
   { titleKey: 'faq.clearing.q', bodyKey: 'faq.clearing.a' },
   { titleKey: 'faq.formats.q', bodyKey: 'faq.formats.a' },
   { titleKey: 'faq.today.q', bodyKey: 'faq.today.a' },
+  { titleKey: 'faq.templates.q', bodyKey: 'faq.templates.a' },
   { titleKey: 'faq.pages.q', bodyKey: 'faq.pages.a' },
   { titleKey: 'faq.richText.q', bodyKey: 'faq.richText.a' },
+  { titleKey: 'faq.tables.q', bodyKey: 'faq.tables.a' },
   { titleKey: 'faq.pen.q', bodyKey: 'faq.pen.a' },
   { titleKey: 'faq.links.q', bodyKey: 'faq.links.a' },
+  { titleKey: 'faq.size.q', bodyKey: 'faq.size.a' },
   { titleKey: 'faq.missing.q', bodyKey: 'faq.missing.a' },
   { titleKey: 'faq.languages.q', bodyKey: 'faq.languages.a' },
   { titleKey: 'faq.price.q', bodyKey: 'faq.price.a' },
@@ -108,10 +111,15 @@ export const startSteps: DocsEntry[] = [
   { titleKey: 'docsStart.step2.title', bodyKey: 'docsStart.step2.body' },
   { titleKey: 'docsStart.step3.title', bodyKey: 'docsStart.step3.body' },
   { titleKey: 'docsStart.step4.title', bodyKey: 'docsStart.step4.body' },
+  { titleKey: 'docsStart.step5.title', bodyKey: 'docsStart.step5.body' },
 ];
 /** What the editor does today, grouped the way a reader works. */
 export const editingTopics: DocsEntry[] = [
   { titleKey: 'docsEditing.place.title', bodyKey: 'docsEditing.place.body' },
+  {
+    titleKey: 'docsEditing.library.title',
+    bodyKey: 'docsEditing.library.body',
+  },
   { titleKey: 'docsEditing.select.title', bodyKey: 'docsEditing.select.body' },
   { titleKey: 'docsEditing.move.title', bodyKey: 'docsEditing.move.body' },
   {
@@ -119,6 +127,11 @@ export const editingTopics: DocsEntry[] = [
     bodyKey: 'docsEditing.connect.body',
   },
   { titleKey: 'docsEditing.text.title', bodyKey: 'docsEditing.text.body' },
+  {
+    titleKey: 'docsEditing.regions.title',
+    bodyKey: 'docsEditing.regions.body',
+  },
+  { titleKey: 'docsEditing.links.title', bodyKey: 'docsEditing.links.body' },
   { titleKey: 'docsEditing.fonts.title', bodyKey: 'docsEditing.fonts.body' },
   { titleKey: 'docsEditing.batch.title', bodyKey: 'docsEditing.batch.body' },
   {
@@ -137,6 +150,10 @@ export const editingTopics: DocsEntry[] = [
 ];
 /** What a project is, where it lives and how it leaves. */
 export const projectTopics: DocsEntry[] = [
+  {
+    titleKey: 'docsProjects.library.title',
+    bodyKey: 'docsProjects.library.body',
+  },
   { titleKey: 'docsProjects.pages.title', bodyKey: 'docsProjects.pages.body' },
   {
     titleKey: 'docsProjects.actions.title',

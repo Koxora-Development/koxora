@@ -53,8 +53,8 @@ test.describe('the sourced comparison', () => {
     // historical facts: re-reading a source is a deliberate act and should
     // mean editing this list, not watching an assertion follow it silently.
     await expect(
-      entries.filter({ hasText: 'Koxora Studio 2.5' }),
-    ).toContainText('Read on October 28, 2026');
+      entries.filter({ hasText: 'Koxora Studio 2.7' }),
+    ).toContainText('Read on November 15, 2026');
     for (const name of ['jgraph/drawio-desktop', 'Excalidraw+', 'Miro pricing'])
       await expect(entries.filter({ hasText: name })).toContainText(
         'Read on October 25, 2026',

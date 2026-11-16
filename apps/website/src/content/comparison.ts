@@ -74,7 +74,7 @@ export interface Dimension {
   claims: Record<ProductId, Claim>;
 }
 /** Latest content review; each source retains its actual individual read date. */
-export const comparisonCheckedOn = '2026-10-28';
+export const comparisonCheckedOn = '2026-11-15';
 export const products: Product[] = [
   {
     id: 'koxora',
@@ -122,8 +122,8 @@ export const products: Product[] = [
 export const sources: Source[] = [
   {
     id: 'koxora-repo',
-    url: 'https://github.com/Koxora-Development/koxora/tree/0d610773fc895e99aa7c8371b34e98327ba8bcf2',
-    label: 'Koxora Studio 2.5, accepted merge of PR #39',
+    url: 'https://github.com/Koxora-Development/koxora/tree/7efb13538f4bd01934bdc254b271c4109180c874',
+    label: 'Koxora Studio 2.7, merge of PR #61',
     checked: comparisonCheckedOn,
   },
   {

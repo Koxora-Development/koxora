@@ -69,8 +69,18 @@ describe('the documentation structure', () => {
   });
 });
 describe('what the documentation is allowed to say', () => {
-  it('separates accepted Studio 2.5 from unreleased and planned capabilities', () => {
-    for (const id of ['pages', 'richText', 'freehand'])
+  it('separates the merged studio from unreleased and planned capabilities', () => {
+    for (const id of [
+      'pages',
+      'richText',
+      'freehand',
+      'templates',
+      'library',
+      'tables',
+      'links',
+      'transforms',
+      'interface',
+    ])
       expect(features.find((entry) => entry.id === id)?.status, id).toBe(
         'available',
       );
@@ -132,6 +142,10 @@ describe('the screenshots the documentation shows', () => {
         'docs-navigator',
         'docs-rich-text',
         'docs-freehand',
+        'docs-templates',
+        'docs-table',
+        'docs-links',
+        'docs-library',
       ]) {
         const id = `${name}-${locale}`;
         expect(screenshotSizes[id], id).toBeDefined();
@@ -151,6 +165,20 @@ describe('the screenshots the documentation shows', () => {
         'docsEditing.shot.caption',
         'docsEditing.properties.alt',
         'docsEditing.properties.caption',
+        'docsStart.templates.alt',
+        'docsStart.templates.caption',
+        'docsEditing.rich.alt',
+        'docsEditing.rich.caption',
+        'docsEditing.pen.alt',
+        'docsEditing.pen.caption',
+        'docsEditing.table.alt',
+        'docsEditing.table.caption',
+        'docsEditing.links.alt',
+        'docsEditing.links.caption',
+        'docsEditing.library.alt',
+        'docsEditing.library.caption',
+        'docsProjects.shot.alt',
+        'docsProjects.shot.caption',
       ] as const)
         expect(
           catalog.translate(locale, key).trim().length,
@@ -163,6 +191,13 @@ describe('the screenshots the documentation shows', () => {
         'docsStart.shot.caption',
         'docsEditing.shot.caption',
         'docsEditing.properties.caption',
+        'docsStart.templates.caption',
+        'docsEditing.rich.caption',
+        'docsEditing.pen.caption',
+        'docsEditing.table.caption',
+        'docsEditing.links.caption',
+        'docsEditing.library.caption',
+        'docsProjects.shot.caption',
       ] as const)
         expect(
           catalog.translate(locale, key).toLowerCase(),

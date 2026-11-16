@@ -27,7 +27,12 @@ export type IconName =
   | 'spark'
   | 'plugin'
   | 'server'
-  | 'mobile';
+  | 'mobile'
+  | 'table'
+  | 'link'
+  | 'rotate'
+  | 'search'
+  | 'sliders';
 export interface FeatureEntry {
   id: string;
   status: FeatureStatus;
@@ -37,6 +42,10 @@ export interface FeatureEntry {
   /** Shown in the condensed home page grid. */
   highlight: boolean;
 }
+// The available entries follow the order a reader meets them in: what can be
+// drawn, how it is edited, where it is kept and how the studio is operated.
+// Nine of them are highlighted, which fills the three-column grid on the home
+// page without a ragged last row.
 export const features: FeatureEntry[] = [
   {
     id: 'shapes',
@@ -47,12 +56,60 @@ export const features: FeatureEntry[] = [
     highlight: true,
   },
   {
+    id: 'library',
+    status: 'available',
+    icon: 'search',
+    titleKey: 'feature.library.title',
+    bodyKey: 'feature.library.body',
+    highlight: false,
+  },
+  {
+    id: 'templates',
+    status: 'available',
+    icon: 'template',
+    titleKey: 'feature.templates.title',
+    bodyKey: 'feature.templates.body',
+    highlight: true,
+  },
+  {
+    id: 'tables',
+    status: 'available',
+    icon: 'table',
+    titleKey: 'feature.tables.title',
+    bodyKey: 'feature.tables.body',
+    highlight: true,
+  },
+  {
+    id: 'richText',
+    status: 'available',
+    icon: 'text',
+    titleKey: 'feature.richText.title',
+    bodyKey: 'feature.richText.body',
+    highlight: true,
+  },
+  {
+    id: 'typography',
+    status: 'available',
+    icon: 'text',
+    titleKey: 'feature.typography.title',
+    bodyKey: 'feature.typography.body',
+    highlight: false,
+  },
+  {
+    id: 'links',
+    status: 'available',
+    icon: 'link',
+    titleKey: 'feature.links.title',
+    bodyKey: 'feature.links.body',
+    highlight: true,
+  },
+  {
     id: 'canvas',
     status: 'available',
     icon: 'canvas',
     titleKey: 'feature.canvas.title',
     bodyKey: 'feature.canvas.body',
-    highlight: true,
+    highlight: false,
   },
   {
     id: 'editing',
@@ -63,12 +120,36 @@ export const features: FeatureEntry[] = [
     highlight: false,
   },
   {
+    id: 'transforms',
+    status: 'available',
+    icon: 'rotate',
+    titleKey: 'feature.transforms.title',
+    bodyKey: 'feature.transforms.body',
+    highlight: false,
+  },
+  {
+    id: 'freehand',
+    status: 'available',
+    icon: 'cursor',
+    titleKey: 'feature.freehand.title',
+    bodyKey: 'feature.freehand.body',
+    highlight: false,
+  },
+  {
     id: 'history',
     status: 'available',
     icon: 'history',
     titleKey: 'feature.history.title',
     bodyKey: 'feature.history.body',
     highlight: false,
+  },
+  {
+    id: 'pages',
+    status: 'available',
+    icon: 'tabs',
+    titleKey: 'feature.pages.title',
+    bodyKey: 'feature.pages.body',
+    highlight: true,
   },
   {
     id: 'projects',
@@ -84,7 +165,7 @@ export const features: FeatureEntry[] = [
     icon: 'file',
     titleKey: 'feature.files.title',
     bodyKey: 'feature.files.body',
-    highlight: true,
+    highlight: false,
   },
   {
     id: 'offline',
@@ -95,11 +176,11 @@ export const features: FeatureEntry[] = [
     highlight: true,
   },
   {
-    id: 'typography',
+    id: 'recovery',
     status: 'available',
-    icon: 'text',
-    titleKey: 'feature.typography.title',
-    bodyKey: 'feature.typography.body',
+    icon: 'shield',
+    titleKey: 'feature.recovery.title',
+    bodyKey: 'feature.recovery.body',
     highlight: false,
   },
   {
@@ -119,43 +200,19 @@ export const features: FeatureEntry[] = [
     highlight: false,
   },
   {
+    id: 'interface',
+    status: 'available',
+    icon: 'sliders',
+    titleKey: 'feature.interface.title',
+    bodyKey: 'feature.interface.body',
+    highlight: false,
+  },
+  {
     id: 'keyboard',
     status: 'available',
     icon: 'keyboard',
     titleKey: 'feature.keyboard.title',
     bodyKey: 'feature.keyboard.body',
-    highlight: false,
-  },
-  {
-    id: 'recovery',
-    status: 'available',
-    icon: 'shield',
-    titleKey: 'feature.recovery.title',
-    bodyKey: 'feature.recovery.body',
-    highlight: false,
-  },
-  {
-    id: 'pages',
-    status: 'available',
-    icon: 'tabs',
-    titleKey: 'feature.pages.title',
-    bodyKey: 'feature.pages.body',
-    highlight: true,
-  },
-  {
-    id: 'richText',
-    status: 'available',
-    icon: 'text',
-    titleKey: 'feature.richText.title',
-    bodyKey: 'feature.richText.body',
-    highlight: true,
-  },
-  {
-    id: 'freehand',
-    status: 'available',
-    icon: 'cursor',
-    titleKey: 'feature.freehand.title',
-    bodyKey: 'feature.freehand.body',
     highlight: false,
   },
   {
@@ -255,6 +312,8 @@ export const featureLimitKeys: MessageKey[] = [
   'features.limits.item2',
   'features.limits.item3',
   'features.limits.item4',
+  'features.limits.item6',
+  'features.limits.item7',
   'features.limits.item5',
 ];
 export type PhaseState = 'done' | 'active' | 'planned';
@@ -451,6 +510,10 @@ export const noTrackingKeys: MessageKey[] = [
 // repository. A merged milestone is explicitly not a product release.
 export interface Milestone {
   id: string;
+  /**
+   * The studio phase, or the pull request for work that was merged between
+   * two numbered phases and never had a number of its own.
+   */
   phase: string;
   titleKey: MessageKey;
   bodyKey: MessageKey;
@@ -491,6 +554,34 @@ export const milestones: Milestone[] = [
     titleKey: 'milestone.workbook.title',
     bodyKey: 'milestone.workbook.body',
     path: 'docs/development/workbook-rich-text.md',
+  },
+  {
+    id: 'links',
+    phase: '2.6',
+    titleKey: 'milestone.links.title',
+    bodyKey: 'milestone.links.body',
+    path: 'docs/development/interactive-links.md',
+  },
+  {
+    id: 'workbench',
+    phase: '#58',
+    titleKey: 'milestone.workbench.title',
+    bodyKey: 'milestone.workbench.body',
+    path: 'docs/development/office-studio.md',
+  },
+  {
+    id: 'transforms',
+    phase: '#59',
+    titleKey: 'milestone.transforms.title',
+    bodyKey: 'milestone.transforms.body',
+    path: 'docs/development/element-transforms.md',
+  },
+  {
+    id: 'templates',
+    phase: '2.7',
+    titleKey: 'milestone.templates.title',
+    bodyKey: 'milestone.templates.body',
+    path: 'docs/development/templates.md',
   },
 ];
 export function milestoneUrl(milestone: Milestone): string {
