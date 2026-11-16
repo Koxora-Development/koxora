@@ -300,8 +300,9 @@ test('enhanced accessibility is optional, persists, enlarges targets and preserv
   ]) {
     for (const control of await page.locator(selector).all()) {
       const box = (await control.boundingBox())!;
-      expect(box.height).toBeGreaterThanOrEqual(44);
-      expect(box.width).toBeGreaterThanOrEqual(44);
+      // Browser geometry can report 44 CSS pixels as 43.999969.
+      expect(box.height).toBeGreaterThanOrEqual(44 - 0.001);
+      expect(box.width).toBeGreaterThanOrEqual(44 - 0.001);
     }
   }
   const row = page

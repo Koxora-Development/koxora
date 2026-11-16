@@ -75,10 +75,20 @@ async function open(page: Page, locale = 'en', scale = 100, cell = '0-0') {
   const region = page.locator(
     `[data-node-id="${id}"] [data-text-region="cell-${cell}"]`,
   );
+  await region.scrollIntoViewIfNeeded();
   const point = await region.evaluate((el) => {
-    const element = el as SVGGraphicsElement,
-      box = element.getBBox(),
-      matrix = element.getScreenCTM()!;
+    const element = el as SVGGraphicsElement;
+    // WebKit can report foreignObject bounds at the origin instead of x/y.
+    const box =
+      element instanceof SVGForeignObjectElement
+        ? {
+            x: element.x.baseVal.value,
+            y: element.y.baseVal.value,
+            width: element.width.baseVal.value,
+            height: element.height.baseVal.value,
+          }
+        : element.getBBox();
+    const matrix = element.getScreenCTM()!;
     const point = new DOMPoint(
       box.x + box.width / 2,
       box.y + box.height / 2,
@@ -88,6 +98,13 @@ async function open(page: Page, locale = 'en', scale = 100, cell = '0-0') {
   await page.mouse.dblclick(point.x, point.y);
   const dialog = page.locator('.canvas-text-dialog');
   await expect(dialog).toBeVisible();
+  const [row, column] = cell.split('-').map(Number);
+  await expect(dialog.getByRole('textbox')).toHaveAttribute(
+    'aria-label',
+    t['regions.cellLabel']
+      .replace('{row}', String(row + 1))
+      .replace('{column}', String(column + 1)),
+  );
   return { dialog, t, id };
 }
 async function within(dialog: Locator) {
@@ -168,10 +185,14 @@ test('table structure, heading selection, merged content and quoted clipboard pe
     .getByRole('button', { name: 'Select row 2', exact: true })
     .evaluate((el) => {
       const data = new DataTransfer();
-      el.dispatchEvent(
-        new ClipboardEvent('copy', { bubbles: true, clipboardData: data }),
-      );
-      return data.getData('text/plain');
+      const event = new ClipboardEvent('copy', {
+        bubbles: true,
+        clipboardData: data,
+      });
+      el.dispatchEvent(event);
+      // Firefox clones the supplied transfer; read the event's actual payload.
+      const clipboard = event.clipboardData!;
+      return clipboard.getData('text/plain');
     });
   expect(copied).toBe('Header\t\t\n');
   await dialog
@@ -382,12 +403,16 @@ test('copying a formula inside Koxora adjusts relative references and preserves 
     .locator('[data-table-cell="0-2"]')
     .evaluate((el) => {
       const data = new DataTransfer();
-      el.dispatchEvent(
-        new ClipboardEvent('copy', { bubbles: true, clipboardData: data }),
-      );
+      const event = new ClipboardEvent('copy', {
+        bubbles: true,
+        clipboardData: data,
+      });
+      el.dispatchEvent(event);
+      // Firefox clones the supplied transfer; read the event's actual payload.
+      const clipboard = event.clipboardData!;
       return {
-        text: data.getData('text/plain'),
-        native: data.getData('application/x-koxora-table'),
+        text: clipboard.getData('text/plain'),
+        native: clipboard.getData('application/x-koxora-table'),
       };
     });
   await grid.locator('[data-table-cell="1-2"]').click();
