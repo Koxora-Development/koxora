@@ -110,3 +110,30 @@
   margin-bottom: calc(8px * var(--ui-scale, 1));
   color: var(--ink);
 }
+
+.table-structure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.table-structure-actions fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+.table-structure-actions .button {
+  white-space: normal;
+}
+.table-heading-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 6px;
+  cursor: pointer;
+}
+.table-cell-scroll {
+  max-height: 40dvh;
+}

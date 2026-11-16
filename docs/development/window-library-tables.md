@@ -1,0 +1,37 @@
+# Movable editing windows, expanded libraries and table operations
+
+Status: Product Owner assignment of 2026-11-15, based on accepted PR #61 (`7efb135`). Implementation and review do not authorize merge or publication. Relevant requirements: EDIT-003/005/007/008/015, CORE-001–008/012/014/015/016.
+
+## Editing window
+
+The nonmodal canvas text editor measures its actual rendered size instead of assuming a 640×380 window. It stays within the visible viewport with an eight-pixel margin and scrolls when content is taller than available space. ResizeObserver and viewport resize/scroll events cover content growth, interface scale, window resizing and visual viewport changes. The header supports pointer capture for dragging, including touch, and focused arrow-key movement (10 pixels, or 40 with Shift). Closing retains accepted edits and restores the original focus when focus has not already moved elsewhere.
+
+Table cells expose **Edit table structure** in the same movable window. The existing properties panel remains another entry point. The expanded table tools use the live current node, so saving does not close the window. Text and structure changes retain existing atomic/grouped history behavior.
+
+## Expanded element library
+
+The catalog grows from 22 to 58 shape kinds, plus the existing freehand tool. Eight additional categories bring the total to twelve: polygons, stars, block arrows, callouts, badges and banners, buildings, communication and devices complement basic shapes, flowcharts, symbols and drawing. Existing stored category selections stay intact; new or reset selections include all categories.
+
+The 36 additions comprise kite/heptagon/nonagon/decagon; five star variants; seven block/notched arrows; manual input/operation, off-page connector, delay, display and internal storage; three callouts; shield/bookmark/ribbon/ticket; house/factory; envelope; monitor/laptop/phone/server. Geometry is original declarative vector data, with no external assets, fonts, licensing additions, remote fetches or provider logos. Device symbols are ordinary editable shapes, not a network topology engine or port-aware device model. Search accepts localized labels, English labels and kind identifiers. The quick palette remains capped at 24 items and the browser reveals up to 48 items per batch.
+
+Picking and connection boundaries share the registered contours. Dedicated label boxes keep labels within narrow/concave silhouettes. Existing kind storage, unknown-kind preservation, native round trips and transformations apply unchanged. Older readers may show a bounded fallback for unfamiliar kinds; no new project schema is introduced.
+
+## Office-style table operations
+
+- Select a cell or extend a rectangle with Shift+click/Shift+Arrow. Row and column headings select entire rows/columns, and the corner heading selects the whole table. Selections include complete merged cells.
+- Insert one row above/below or column left/right of the selection. Delete the selected rows or columns; the final row/column cannot be removed. Existing trailing dimension controls remain available.
+- Insertion inside a merge extends it. Deletion clips affected merges; if an anchor is removed but part of its merge survives, all combined rich text moves to the surviving anchor. A removed populated range requires confirmation. Cancellation leaves the table intact. Confirmation checks that the source has not changed.
+- Merge/split retains existing formatted paragraphs. Range formatting applies alignment, bold or normal character styling to each selected visible cell. Individual mixed rich-text editing remains available.
+- With a cell or heading focused, copy/paste uses quoted plain TSV. Embedded newlines, tabs and quotes retain their cell boundaries. Paste grows trailing dimensions within the existing limits. A multi-cell paste overlapping merged cells is rejected until those cells are split. Invalid/oversized input is rejected atomically. Clipboard payloads without plain text leave the table unchanged. This uses clipboard events and introduces no clipboard permission.
+
+All operations use immutable updates and the existing version-1 text-region payload/required features. Unknown sibling data, unaffected cells and rich formatting survive. No new schema or native permission is needed. The established limits remain 20 rows, 12 columns, 1,024 characters per cell and 32,768 total. Tables are diagram elements with uniform cell dimensions inside a freely resizable shape; independent column widths, row heights, formulas and dataset import are not included in this assignment slice.
+
+## Review and verification
+
+Review window placement at every viewport edge in EN/DE, 100–200% scale, narrow windows and enhanced accessibility; drag the header, use keyboard movement, grow the table editor, resize the window and close with Escape. Validate row/column insertion around merged cells, cancellation of populated deletion, quoted multi-line paste, range formatting, undo/redo, save/export/import and offline reopening. Browse all categories, load the second element-browser batch, and verify new shapes remain ordinary selectable, transformable elements.
+
+Automated evidence is recorded in the accompanying review handover. Browser checks do not substitute for physical touch, native GUI or screen-reader acceptance.
+
+Local validation: `pnpm check` passed 739 unit/integration tests plus type, lint, format, documentation and dependency-license checks. The production web build passed, retaining the existing bundle-size warning. The main browser run passed 70 cases in Chromium desktop/mobile across new window/table flows, advanced text regions, live editing, libraries, structured tables and rendered duplicate audits. Independent review passed 182 targeted core tests; clipboard, focus and contour findings were addressed. Native Python helper checks passed eight cases, with one NSIS-specific skip. Cargo is unavailable locally, so native builds/GUI remain unverified here; remote CI is separate evidence.
+
+After the selected-cell focus correction, all 14 window/table cases passed again on Chromium desktop/mobile, including the two new keyboard-origin cases (72 distinct browser cases across the main and follow-up runs). Type checking, targeted lint and formatting also passed after that correction. A screenshot of the actual table editor was visually inspected.

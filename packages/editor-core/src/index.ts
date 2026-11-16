@@ -17,3 +17,5 @@ export * from './transforms';
 export * from './templates';
 export * from './text-regions';
 export * from './table-layout';
+
+export * from './table-operations';

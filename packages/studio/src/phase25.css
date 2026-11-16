@@ -486,3 +486,32 @@
 .element-links .field-help {
   white-space: normal;
 }
+
+.canvas-text-dialog {
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+}
+.floating-window-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: sticky;
+  top: -1px;
+  z-index: 2;
+  background: var(--surface);
+  padding-bottom: 8px;
+}
+.floating-window-handle {
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+  font-weight: 600;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}

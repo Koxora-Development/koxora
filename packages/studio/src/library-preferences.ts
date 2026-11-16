@@ -6,11 +6,35 @@ export const libraryCategories = [
   'flowchart',
   'symbols',
   'drawing',
+  'polygons',
+  'stars',
+  'block-arrows',
+  'callouts',
+  'badges',
+  'buildings',
+  'communication',
+  'devices',
 ] as const;
 export type LibraryCategory = (typeof libraryCategories)[number];
 export const libraryElementKinds: Readonly<
   Record<LibraryCategory, readonly string[]>
 > = {
+  polygons: ['kite', 'heptagon', 'nonagon', 'decagon'],
+  stars: ['star-4', 'star-5', 'star-6', 'star-8', 'star-12'],
+  'block-arrows': [
+    'block-arrow-right',
+    'block-arrow-left',
+    'block-arrow-up',
+    'block-arrow-down',
+    'block-arrow-both',
+    'block-arrow-vertical',
+    'notched-arrow',
+  ],
+  callouts: ['speech-bubble', 'speech-bubble-right', 'burst'],
+  badges: ['shield', 'bookmark', 'ribbon', 'ticket'],
+  buildings: ['house', 'factory'],
+  communication: ['envelope'],
+  devices: ['monitor', 'laptop', 'phone', 'server'],
   basic: [
     'rectangle',
     'rounded-rectangle',
@@ -26,6 +50,13 @@ export const libraryElementKinds: Readonly<
     'table',
   ],
   flowchart: [
+    'manual-input',
+    'manual-operation',
+    'offpage',
+    'delay',
+    'display',
+    'internal-storage',
+
     'rectangle',
     'rounded-rectangle',
     'diamond',
