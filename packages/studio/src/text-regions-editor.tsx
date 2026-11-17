@@ -1,8 +1,16 @@
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import { Dialog } from '@koxora/ui';
 import {
   FONT_FAMILIES,
+  evaluateTable,
+  calculatedCellRichText,
+  tableColumnName,
+  changeTableAxis,
+  formatTableSelection,
+  pasteTableText,
+  copyTableText,
+  type TableAxis,
   fromPlainText,
   plainText,
   tableCellAnchor,
@@ -104,26 +112,72 @@ function CellPreview({ value }: { value: RichText }) {
   ));
 }
 
-function TableTextEditor({
+function TableSizeInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState<{ source: number; text: string } | null>(
+    null,
+  );
+  return (
+    <label>
+      {label}
+      <input
+        type="number"
+        min={1}
+        max={10000}
+        step={1}
+        value={draft?.source === value ? draft.text : String(value)}
+        onChange={(event) => {
+          const raw = event.currentTarget.value;
+          const number = Number(raw);
+          setDraft({
+            source:
+              raw && Number.isFinite(number) && number >= 1 && number <= 10000
+                ? number
+                : value,
+            text: raw,
+          });
+          if (raw && Number.isFinite(number) && number >= 1 && number <= 10000)
+            onChange(number);
+        }}
+        onBlur={() => setDraft(null)}
+      />
+    </label>
+  );
+}
+
+export function TableTextEditor({
   value,
   base,
   locale,
   onChange,
-}: Omit<Props, 'value'> & { value: TableTextRegions }) {
+  initialCell = { row: 0, column: 0 },
+}: Omit<Props, 'value'> & {
+  value: TableTextRegions;
+  initialCell?: CellPosition;
+}) {
   const t = (key: string, values: Record<string, string | number> = {}) =>
     translate(locale, key as MessageKey, values);
   const [pending, setPending] = useState<{
-    rows: number;
-    columns: number;
+    next: TableTextRegions;
+    source: string;
+    point: CellPosition;
     nonempty: number;
   } | null>(null);
-  const [start, setStart] = useState<CellPosition>({ row: 0, column: 0 });
-  const [end, setEnd] = useState<CellPosition>({ row: 0, column: 0 });
+  const [start, setStart] = useState<CellPosition>(initialCell);
+  const [end, setEnd] = useState<CellPosition>(initialCell);
   const [failure, setFailure] = useState(false);
   const [revision, setRevision] = useState(0);
   const caption = useId();
   const rows = value.cells.length;
   const columns = value.cells[0].length;
+  const calculated = useMemo(() => evaluateTable(value), [value]);
   const bounded = (point: CellPosition): CellPosition => ({
     row: Math.min(rows - 1, point.row),
     column: Math.min(columns - 1, point.column),
@@ -169,34 +223,75 @@ function TableTextEditor({
     if (!extend) setStart(point);
     setEnd(point);
   }
-  function resize(nextRows: number, nextColumns: number) {
-    onChange(resizeTable(value, nextRows, nextColumns));
+  function commitStructure(next: TableTextRegions, point: CellPosition) {
+    onChange(next);
     setRevision((current) => current + 1);
-    setStart((point) => ({
-      row: Math.min(point.row, nextRows - 1),
-      column: Math.min(point.column, nextColumns - 1),
-    }));
-    setEnd((point) => ({
-      row: Math.min(point.row, nextRows - 1),
-      column: Math.min(point.column, nextColumns - 1),
-    }));
+    const position = {
+      row: Math.min(point.row, next.cells.length - 1),
+      column: Math.min(point.column, next.cells[0].length - 1),
+    };
+    setStart(position);
+    setEnd(position);
     setFailure(false);
+  }
+  function requestStructure(next: TableTextRegions, point = active) {
+    const nonempty =
+      value.cells.flat().filter(Boolean).length -
+      next.cells.flat().filter(Boolean).length;
+    if (nonempty > 0)
+      setPending({ next, source: JSON.stringify(value), point, nonempty });
+    else commitStructure(next, point);
   }
   function requestResize(nextRows: number, nextColumns: number) {
     if (nextRows === rows && nextColumns === columns) return;
-    const nonempty = value.cells.reduce(
-      (count, row, rowIndex) =>
-        count +
-        row.filter(
-          (cell, columnIndex) =>
-            (rowIndex >= nextRows || columnIndex >= nextColumns) &&
-            cell.length > 0,
-        ).length,
-      0,
+    requestStructure(resizeTable(value, nextRows, nextColumns));
+  }
+  function axisAction(axis: TableAxis, action: 'before' | 'after' | 'delete') {
+    const length = axis === 'row' ? selection.rowSpan : selection.columnSpan;
+    const index = selection[axis] + (action === 'after' ? length : 0);
+    try {
+      requestStructure(
+        changeTableAxis(
+          value,
+          axis,
+          index,
+          action === 'delete' ? length : 1,
+          action === 'delete' ? 'delete' : 'insert',
+        ),
+        { ...active, [axis]: index },
+      );
+    } catch {
+      setFailure(true);
+    }
+  }
+  function sizeSelection(axis: 'row' | 'column', size: number) {
+    const field = axis === 'row' ? 'rowHeights' : 'columnWidths';
+    const weights = [
+      ...(value[field] ??
+        Array.from({ length: axis === 'row' ? rows : columns }, () => 100)),
+    ];
+    const count = axis === 'row' ? selection.rowSpan : selection.columnSpan;
+    for (let index = selection[axis]; index < selection[axis] + count; index++)
+      weights[index] = size;
+    onChange({ ...value, [field]: weights }, field);
+  }
+  function sourceChange(text: string) {
+    const rich = fromPlainText(
+      text,
+      activeText.paragraphs[0]?.align ?? base.align,
     );
-    if (nonempty)
-      setPending({ rows: nextRows, columns: nextColumns, nonempty });
-    else resize(nextRows, nextColumns);
+    if (rich.paragraphs[0].runs[0])
+      rich.paragraphs[0].runs[0].style = {
+        ...activeText.paragraphs[0]?.runs[0]?.style,
+      };
+    onChange(
+      setRegionRichText(
+        value,
+        { type: 'table-cell', row: active.row, column: active.column },
+        rich,
+      ),
+      `cell:${active.row}:${active.column}`,
+    );
   }
   function merge() {
     try {
@@ -310,21 +405,222 @@ function TableTextEditor({
           {t('regions.headerRow')}
         </label>
       </fieldset>
+      <fieldset className="table-size-controls">
+        <legend>{t('table.dimensions')}</legend>
+        <p className="field-help">{t('table.sizeHelp')}</p>
+        <div className="table-dimension-fields">
+          <TableSizeInput
+            key={`row-${active.row}`}
+            label={t('table.rowHeight')}
+            value={value.rowHeights?.[active.row] ?? 100}
+            onChange={(size) => sizeSelection('row', size)}
+          />
+          <TableSizeInput
+            key={`column-${active.column}`}
+            label={t('table.columnWidth')}
+            value={value.columnWidths?.[active.column] ?? 100}
+            onChange={(size) => sizeSelection('column', size)}
+          />
+        </div>
+        <div className="table-merge-actions">
+          <button
+            className="button"
+            type="button"
+            onClick={() =>
+              onChange({
+                ...value,
+                rowHeights: Array.from({ length: rows }, () => 100),
+              })
+            }
+          >
+            {t('table.equalRows')}
+          </button>
+          <button
+            className="button"
+            type="button"
+            onClick={() =>
+              onChange({
+                ...value,
+                columnWidths: Array.from({ length: columns }, () => 100),
+              })
+            }
+          >
+            {t('table.equalColumns')}
+          </button>
+        </div>
+      </fieldset>
+      <fieldset className="table-formula-controls">
+        <legend>{t('table.formulas')}</legend>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={value.formulas ?? false}
+            onChange={(event) =>
+              onChange({ ...value, formulas: event.currentTarget.checked })
+            }
+          />
+          {t('table.calculate')}
+        </label>
+        <label>
+          {t('table.source', {
+            cell: `${tableColumnName(active.column)}${active.row + 1}`,
+          })}
+          <textarea
+            rows={2}
+            className="table-formula-input"
+            value={value.cells[active.row][active.column]}
+            maxLength={editorLimit}
+            onChange={(event) => sourceChange(event.currentTarget.value)}
+            spellCheck={false}
+          />
+        </label>
+        {value.formulas &&
+          value.cells[active.row][active.column].startsWith('=') && (
+            <output aria-live="polite">
+              {t('table.result', {
+                value: calculated[active.row][active.column],
+              })}
+            </output>
+          )}
+        <p className="field-help">{t('table.formulaHelp')}</p>
+      </fieldset>
       <p className="field-help">{t('regions.selectionHelp')}</p>
+      <div
+        className="table-structure-actions"
+        role="group"
+        aria-label={t('regions.rowColumnActions')}
+      >
+        {(['row', 'column'] as const).map((axis) => (
+          <fieldset key={axis}>
+            <legend>
+              {t(axis === 'row' ? 'regions.rows' : 'regions.columns')}
+            </legend>
+            {(['before', 'after', 'delete'] as const).map((action) => (
+              <button
+                className="button"
+                type="button"
+                key={action}
+                disabled={
+                  action === 'delete'
+                    ? axis === 'row'
+                      ? selection.rowSpan === rows
+                      : selection.columnSpan === columns
+                    : axis === 'row'
+                      ? rows >= MAX_TABLE_ROWS
+                      : columns >= MAX_TABLE_COLUMNS
+                }
+                onClick={() => axisAction(axis, action)}
+              >
+                {t(`regions.${axis}.${action}`)}
+              </button>
+            ))}
+          </fieldset>
+        ))}
+      </div>
+      <p className="field-help">{t('regions.clipboardHelp')}</p>
       <div
         className="table-cell-scroll"
         role="region"
         aria-labelledby={caption}
         tabIndex={0}
       >
-        <table className="table-cell-editor">
+        <table
+          className="table-cell-editor"
+          onCopy={(event) => {
+            if (
+              !(event.target instanceof HTMLElement) ||
+              !event.target.closest('button')
+            )
+              return;
+            event.preventDefault();
+            event.clipboardData.setData(
+              'text/plain',
+              copyTableText(value, selection),
+            );
+            if (value.formulas)
+              event.clipboardData.setData(
+                'application/x-koxora-table',
+                JSON.stringify({
+                  version: 1,
+                  row: selection.row,
+                  column: selection.column,
+                  text: copyTableText(value, selection),
+                }),
+              );
+          }}
+          onPaste={(event) => {
+            if (!event.clipboardData.types.includes('text/plain')) return;
+            if (
+              !(event.target instanceof HTMLElement) ||
+              !event.target.closest('button')
+            )
+              return;
+            event.preventDefault();
+            try {
+              let source: { row: number; column: number } | undefined;
+              const custom = event.clipboardData.getData(
+                'application/x-koxora-table',
+              );
+              if (custom && custom.length <= 140000) {
+                try {
+                  const data = JSON.parse(custom);
+                  if (
+                    data &&
+                    data.version === 1 &&
+                    data.text === event.clipboardData.getData('text/plain')
+                  )
+                    source = { row: data.row, column: data.column };
+                } catch {
+                  /* External clipboard metadata is optional. */
+                }
+              }
+              commitStructure(
+                pasteTableText(
+                  value,
+                  active.row,
+                  active.column,
+                  event.clipboardData.getData('text/plain'),
+                  source,
+                ),
+                active,
+              );
+            } catch {
+              setFailure(true);
+            }
+          }}
+        >
           <caption id={caption}>{t('regions.cellContents')}</caption>
           <thead>
             <tr>
-              <th scope="col">{t('regions.rowColumn')}</th>
+              <th scope="col">
+                <button
+                  type="button"
+                  className="table-heading-button"
+                  aria-label={t('regions.selectAll')}
+                  onClick={() => {
+                    setStart({ row: 0, column: 0 });
+                    setEnd({ row: rows - 1, column: columns - 1 });
+                  }}
+                >
+                  {t('regions.rowColumn')}
+                </button>
+              </th>
               {value.cells[0].map((_, column) => (
                 <th scope="col" key={column}>
-                  {t('regions.columnNumber', { column: column + 1 })}
+                  <button
+                    type="button"
+                    className="table-heading-button"
+                    aria-label={t('regions.selectColumn', {
+                      column: column + 1,
+                    })}
+                    onClick={() => {
+                      setStart({ row: 0, column });
+                      setEnd({ row: rows - 1, column });
+                    }}
+                  >
+                    {t('regions.columnNumber', { column: column + 1 })} (
+                    {tableColumnName(column)})
+                  </button>
                 </th>
               ))}
             </tr>
@@ -332,7 +628,19 @@ function TableTextEditor({
           <tbody>
             {value.cells.map((cells, row) => (
               <tr key={row}>
-                <th scope="row">{t('regions.rowNumber', { row: row + 1 })}</th>
+                <th scope="row">
+                  <button
+                    type="button"
+                    className="table-heading-button"
+                    aria-label={t('regions.selectRow', { row: row + 1 })}
+                    onClick={() => {
+                      setStart({ row, column: 0 });
+                      setEnd({ row, column: columns - 1 });
+                    }}
+                  >
+                    {t('regions.rowNumber', { row: row + 1 })}
+                  </button>
+                </th>
                 {cells.map((_, column) => {
                   const anchor = tableCellAnchor(value, row, column);
                   if (anchor.row !== row || anchor.column !== column)
@@ -402,10 +710,11 @@ function TableTextEditor({
                         }}
                       >
                         <CellPreview
-                          value={tableCellRichText(
+                          value={calculatedCellRichText(
                             value,
                             row,
                             column,
+                            calculated,
                             base.align,
                           )}
                         />
@@ -447,7 +756,51 @@ function TableTextEditor({
           {t('regions.splitCell')}
         </button>
       </div>
-      {failure && <p role="alert">{t('regions.mergeLimit')}</p>}
+      <div
+        className="table-merge-actions"
+        role="group"
+        aria-label={t('regions.formatSelection')}
+      >
+        {(['left', 'center', 'right'] as const).map((align) => (
+          <button
+            type="button"
+            className="button"
+            key={align}
+            onClick={() =>
+              onChange(formatTableSelection(value, selection, { align }))
+            }
+          >
+            {t(`align.${align}`)}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="button"
+          onClick={() =>
+            onChange(
+              formatTableSelection(value, selection, { fontWeight: 700 }),
+            )
+          }
+        >
+          {t('regions.boldSelection')}
+        </button>
+        <button
+          type="button"
+          className="button"
+          onClick={() =>
+            onChange(
+              formatTableSelection(value, selection, {
+                fontWeight: 400,
+                fontStyle: 'normal',
+                textDecoration: 'none',
+              }),
+            )
+          }
+        >
+          {t('regions.normalSelection')}
+        </button>
+      </div>
+      {failure && <p role="alert">{t('regions.operationFailed')}</p>}
       <fieldset className="label-editor table-active-cell-editor">
         <legend>
           {t('regions.editCell', {
@@ -501,7 +854,9 @@ function TableTextEditor({
               type="button"
               className="button primary"
               onClick={() => {
-                resize(pending.rows, pending.columns);
+                if (pending.source === JSON.stringify(value))
+                  commitStructure(pending.next, pending.point);
+                else setFailure(true);
                 setPending(null);
               }}
             >

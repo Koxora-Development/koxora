@@ -72,6 +72,19 @@ async function settings(page: Page, locale = 'en') {
   return page.getByRole('dialog', { name, exact: true });
 }
 
+async function navigatorState(page: Page, visible: boolean, locale = 'en') {
+  const sidebar = page.locator('.project-sidebar');
+  if ((await sidebar.isVisible()) !== visible)
+    await page
+      .getByRole('button', {
+        name: translate(locale, 'tree.heading'),
+        exact: true,
+      })
+      .click();
+  if (visible) await expect(sidebar).toBeVisible();
+  else await expect(sidebar).toBeHidden();
+}
+
 async function unobscured(control: Locator) {
   await control.scrollIntoViewIfNeeded();
   await expect(control).toBeInViewport();
@@ -142,7 +155,11 @@ test('the library uses the available width and help never resizes it at 100% or 
       .getByLabel('Interface scale', { exact: true })
       .selectOption(scale);
     await page.keyboard.press('Escape');
-    await expect(page.locator('.project-sidebar')).toBeVisible();
+    if (scale === '200')
+      await expect(page.locator('.project-sidebar')).toBeHidden();
+    // Auto-collapse frees the editor at this effective width; explicitly reopen
+    // the library navigator to retain the full-width/non-overlap coverage.
+    await navigatorState(page, true);
     await noLibraryOverlap(page);
     const main = (await page.locator('.dashboard-main').boundingBox())!;
     const start = (await page.locator('.studio-start').boundingBox())!;
@@ -161,7 +178,8 @@ test('the library uses the available width and help never resizes it at 100% or 
   }
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-ui-scale', '200');
-  await expect(page.locator('.project-sidebar')).toBeVisible();
+  await expect(page.locator('.project-sidebar')).toBeHidden();
+  await navigatorState(page, true);
   await expect(page.locator('.start-project-row')).toHaveCount(3);
   await noLibraryOverlap(page);
   await stableHelpWidth(page);
@@ -200,13 +218,10 @@ for (const locale of ['en', 'de']) {
         'data-ui-small',
         'true',
       );
+      await navigatorState(page, true, locale);
       await noLibraryOverlap(page);
       await stableHelpWidth(page);
-      const navigator = page.getByRole('button', {
-        name: translate(locale, 'tree.heading'),
-        exact: true,
-      });
-      await navigator.click();
+      await navigatorState(page, false, locale);
       await expect(page.locator('.project-sidebar')).toBeHidden();
       await noLibraryOverlap(page);
       await stableHelpWidth(page);
@@ -242,7 +257,7 @@ for (const locale of ['en', 'de']) {
           .getByRole('heading', { name: `Reachable ${width}`, exact: true }),
       ).toBeVisible();
       await noLibraryOverlap(page);
-      await navigator.click();
+      await navigatorState(page, true, locale);
       await expect(page.locator('.project-sidebar')).toBeVisible();
       await noLibraryOverlap(page);
     }
@@ -300,8 +315,9 @@ test('enhanced accessibility is optional, persists, enlarges targets and preserv
   ]) {
     for (const control of await page.locator(selector).all()) {
       const box = (await control.boundingBox())!;
-      expect(box.height).toBeGreaterThanOrEqual(44);
-      expect(box.width).toBeGreaterThanOrEqual(44);
+      // Browser geometry can report 44 CSS pixels as 43.999969.
+      expect(box.height).toBeGreaterThanOrEqual(44 - 0.001);
+      expect(box.width).toBeGreaterThanOrEqual(44 - 0.001);
     }
   }
   const row = page
@@ -399,9 +415,7 @@ test('enhanced accessibility at 200% keeps narrow editor controls fully reachabl
     .getByLabel('Interface scale', { exact: true })
     .selectOption('200');
   await page.keyboard.press('Escape');
-  await page
-    .getByRole('button', { name: 'Project navigator', exact: true })
-    .click();
+  await navigatorState(page, false);
   await page.setViewportSize({ width: 800, height: 600 });
   await expect(page.locator('.studio-shell')).toHaveAttribute(
     'data-ui-small',

@@ -36,6 +36,12 @@ import {
   type Geometry,
 } from '@koxora/editor-core';
 import { ShapePalette } from './shape-palette';
+import { ConnectionPalette, ConnectionStyleFields } from './connection-palette';
+import {
+  connectionPresets as linePresets,
+  connectionPresetMatches,
+  applyConnectionPreset,
+} from './connection-presets';
 import { RichTextEditor } from './rich-text-editor';
 import { PORT_ANCHORS } from './connection-ports';
 export type DiagramTool = 'select' | 'pan' | 'freehand' | ShapeKind;
@@ -56,6 +62,7 @@ interface Props {
   options: ConnectionOptions;
   setOptions: (options: ConnectionOptions) => void;
 }
+
 export function DiagramTools({
   ink,
   setInk,
@@ -85,6 +92,16 @@ export function DiagramTools({
         tool={tool}
         activate={activate}
         writable={!!available.length}
+      />
+      <ConnectionPalette
+        locale={locale}
+        options={options}
+        active={isDrawing(tool)}
+        writable={!!available.length}
+        onChoose={(next) => {
+          activate(next.arrow ? 'arrow' : 'line');
+          setOptions(next);
+        }}
       />
       {(isShapeKind(tool) || tool === 'freehand') && (
         <div
@@ -146,6 +163,37 @@ export function DiagramTools({
           )}
           {isDrawing(tool) && (
             <>
+              <label className="line-preset-picker">
+                {t('line.presets')}
+                <select
+                  value={
+                    linePresets.find((preset) =>
+                      connectionPresetMatches(options, preset),
+                    )?.id ?? ''
+                  }
+                  onChange={(event) => {
+                    const preset = linePresets.find(
+                      (item) => item.id === event.currentTarget.value,
+                    );
+                    if (preset)
+                      setOptions(applyConnectionPreset(options, preset));
+                  }}
+                >
+                  <option value="" disabled>
+                    {t('line.custom')}
+                  </option>
+                  {linePresets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {t(`line.${preset.id}` as MessageKey)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <ConnectionStyleFields
+                locale={locale}
+                options={options}
+                onChange={setOptions}
+              />
               <RoutingSelect
                 locale={locale}
                 value={options.routing}
@@ -156,7 +204,17 @@ export function DiagramTools({
                   type="checkbox"
                   checked={options.startArrow === true}
                   onChange={(event) =>
-                    setOptions({ ...options, startArrow: event.target.checked })
+                    setOptions({
+                      ...options,
+                      startArrow: event.target.checked,
+                      ...(options.sourceMarker !== undefined
+                        ? {
+                            sourceMarker: event.target.checked
+                              ? 'arrow'
+                              : 'none',
+                          }
+                        : {}),
+                    })
                   }
                 />
                 {t('editing.startArrow')}
@@ -166,7 +224,17 @@ export function DiagramTools({
                   type="checkbox"
                   checked={options.arrow}
                   onChange={(event) =>
-                    setOptions({ ...options, arrow: event.target.checked })
+                    setOptions({
+                      ...options,
+                      arrow: event.target.checked,
+                      ...(options.targetMarker !== undefined
+                        ? {
+                            targetMarker: event.target.checked
+                              ? 'arrow'
+                              : 'none',
+                          }
+                        : {}),
+                    })
                   }
                 />
                 {t('editing.endArrow')}
@@ -291,6 +359,46 @@ function useLiveValue<T>(source: T): [T, (value: T) => void] {
     if (JSON.stringify(value) !== signature) setValue(source);
   }
   return [value, setValue];
+}
+
+/** Keep rounded presentation separate from the precise stored geometry. */
+function GeometryInput({
+  value,
+  min,
+  onChange,
+}: {
+  value: number;
+  min: number;
+  onChange: (value: number) => void;
+}) {
+  const display = (number: number) => String(Number(number.toFixed(2)));
+  const [seen, setSeen] = useState(value);
+  const [draft, setDraft] = useState(() => display(value));
+  if (value !== seen) {
+    setSeen(value);
+    // Preserve a field's own live echo, including trailing decimal input.
+    if (draft.trim() === '' || Number(draft) !== value)
+      setDraft(display(value));
+  }
+  return (
+    <input
+      type="number"
+      required
+      min={min}
+      max={1e12}
+      step="any"
+      value={draft}
+      onChange={(event) => {
+        setDraft(event.currentTarget.value);
+        if (
+          event.currentTarget.value !== '' &&
+          event.currentTarget.validity.valid
+        )
+          onChange(event.currentTarget.valueAsNumber);
+      }}
+      onBlur={() => setDraft(display(value))}
+    />
+  );
 }
 
 export function ElementDialog({
@@ -617,9 +725,7 @@ export function ElementDialog({
                   (key) => (
                     <label key={key}>
                       {t(`editing.${key}`)}
-                      <input
-                        type="number"
-                        required
+                      <GeometryInput
                         min={
                           key === 'width'
                             ? 8
@@ -629,16 +735,12 @@ export function ElementDialog({
                                 : 8
                               : -1e12
                         }
-                        max={1e12}
-                        step="any"
-                        value={
-                          Number.isFinite(geometry[key]) ? geometry[key] : ''
-                        }
-                        onChange={(e) =>
+                        value={node?.geometry[key] ?? geometry[key]}
+                        onChange={(value) =>
                           changeGeometry(
                             {
                               ...geometry,
-                              [key]: e.currentTarget.valueAsNumber,
+                              [key]: value,
                             },
                             `geometry:${key}`,
                           )
@@ -704,6 +806,11 @@ export function ElementDialog({
                 number('cornerRadius', 0, 128)}
               {edge && (
                 <>
+                  <ConnectionStyleFields
+                    locale={locale}
+                    options={options}
+                    onChange={changeOptions}
+                  />
                   <RoutingSelect
                     locale={locale}
                     value={options.routing}
@@ -735,6 +842,13 @@ export function ElementDialog({
                         changeOptions({
                           ...options,
                           startArrow: e.target.checked,
+                          ...(options.sourceMarker !== undefined
+                            ? {
+                                sourceMarker: e.target.checked
+                                  ? ('arrow' as const)
+                                  : ('none' as const),
+                              }
+                            : {}),
                         })
                       }
                     />
@@ -745,7 +859,17 @@ export function ElementDialog({
                       type="checkbox"
                       checked={options.arrow}
                       onChange={(e) =>
-                        changeOptions({ ...options, arrow: e.target.checked })
+                        changeOptions({
+                          ...options,
+                          arrow: e.target.checked,
+                          ...(options.targetMarker !== undefined
+                            ? {
+                                targetMarker: e.target.checked
+                                  ? 'arrow'
+                                  : 'none',
+                              }
+                            : {}),
+                        })
                       }
                     />
                     {t('editing.endArrow')}

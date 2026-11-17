@@ -103,7 +103,15 @@ for (const { width, height, radius } of [
             'viewBox',
             `${-padding} ${-padding} ${width + padding * 2} ${height + padding * 2}`,
           );
-          svg.append(group.cloneNode(true));
+          const clone = group.cloneNode(true) as Element;
+          // Empty HTML labels taint SVG-to-canvas reads in Chromium/WebKit.
+          // Assert they are blank before removing only these unpainted labels.
+          for (const label of clone.querySelectorAll('foreignObject')) {
+            if (label.textContent?.trim())
+              throw new Error(`Unexpected label in shape audit: ${node.kind}`);
+            label.remove();
+          }
+          svg.append(clone);
           const url = URL.createObjectURL(
             new Blob([new XMLSerializer().serializeToString(svg)], {
               type: 'image/svg+xml',

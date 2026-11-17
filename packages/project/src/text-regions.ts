@@ -4,6 +4,7 @@ import { isRichText, plainText, type RichText } from './rich-text';
 export const TEXT_REGIONS_KEY = 'org.koxora.text-regions';
 export const TEXT_REGIONS_FEATURE = 'element-text-regions-v1';
 export const ADVANCED_TEXT_REGIONS_FEATURE = 'advanced-text-regions-v1';
+export const TABLE_CALCULATION_FEATURE = 'table-layout-formulas-v1';
 export const MAX_REGION_TITLE = 4096;
 export const MAX_TABLE_ROWS = 20;
 export const MAX_TABLE_COLUMNS = 12;
@@ -28,8 +29,22 @@ export type TableTextRegions = {
   headerRow: boolean;
   cellRichText?: (RichText | null)[][];
   merges?: TableMerge[];
+  columnWidths?: number[];
+  rowHeights?: number[];
+  formulas?: boolean;
 };
 export type TextRegions = ContainerTextRegions | TableTextRegions;
+
+export function hasTableCalculations(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const data = value as Record<string, unknown>;
+  return (
+    data.version === 1 &&
+    ['columnWidths', 'rowHeights', 'formulas'].some(
+      (key) => data[key] !== undefined,
+    )
+  );
+}
 
 /** Older region readers must reject advanced semantics rather than flatten them. */
 export function hasAdvancedTextRegions(value: unknown): boolean {
@@ -59,7 +74,8 @@ export function isTextRegions(
         (isRichText(v.titleRichText) &&
           plainText(v.titleRichText) === v.title)) &&
       v.cellRichText === undefined &&
-      v.merges === undefined
+      v.merges === undefined &&
+      !hasTableCalculations(v)
     );
   if (
     kind !== 'table' ||
@@ -83,6 +99,23 @@ export function isTextRegions(
       if (length > MAX_TABLE_TEXT) return false;
     }
   }
+  for (const [key, size] of [
+    ['columnWidths', columns],
+    ['rowHeights', v.cells.length],
+  ] as const) {
+    const values = v[key];
+    if (
+      values !== undefined &&
+      (!Array.isArray(values) ||
+        values.length !== size ||
+        values.some(
+          (n) =>
+            typeof n !== 'number' || !Number.isFinite(n) || n < 1 || n > 10000,
+        ))
+    )
+      return false;
+  }
+  if (v.formulas !== undefined && typeof v.formulas !== 'boolean') return false;
   if (v.cellRichText !== undefined) {
     if (
       !Array.isArray(v.cellRichText) ||

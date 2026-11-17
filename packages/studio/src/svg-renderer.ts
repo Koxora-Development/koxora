@@ -1,3 +1,4 @@
+import { connectionMarkerGeometry } from './connection-marker';
 import {
   gridStep,
   rotatePoint,
@@ -8,8 +9,12 @@ import {
   contrastingColor,
   tableCellAnchor,
   tableCellBoxes,
+  tableAxisOffsets,
+  evaluateTable,
+  calculatedCellRichText,
   mirroredTextBox,
   type RichText,
+  type EndpointMarker,
   type Appearance,
   FONT_FAMILIES,
   isDrawing,
@@ -324,10 +329,18 @@ function textLines(label: string, width: number, fontSize: number): string[] {
   const length = Math.max(1, Math.floor(width / (fontSize * 0.62)));
   const lines: string[] = [];
   for (const line of label.split('\n')) {
-    const chars = Array.from(line);
-    if (!chars.length) lines.push('');
-    for (let i = 0; i < chars.length && lines.length < 64; i += length)
-      lines.push(chars.slice(i, i + length).join(''));
+    let chars = Array.from(line);
+    while (chars.length > length && lines.length < 63) {
+      // Prefer a word boundary. Only a word longer than the available line
+      // may be split; ordinary phrases must never end in partial words.
+      let boundary = -1;
+      for (let i = 1; i <= length; i++) if (/\s/u.test(chars[i])) boundary = i;
+      const end = boundary > 0 ? boundary : length;
+      lines.push(chars.slice(0, end).join('').trimEnd());
+      chars = chars.slice(end);
+      while (chars.length && /\s/u.test(chars[0])) chars.shift();
+    }
+    lines.push(chars.join(''));
     if (lines.length >= 64) break;
   }
   return lines;
@@ -400,8 +413,9 @@ function renderNode(node: SceneNode): SVGElement {
     const { cells, headerRow } = regions;
     const rows = cells.length,
       columns = cells[0].length;
-    const width = g.width / columns,
-      height = g.height / rows;
+    const xs = tableAxisOffsets(regions.columnWidths, columns, g.width),
+      ys = tableAxisOffsets(regions.rowHeights, rows, g.height);
+    const calculated = evaluateTable(regions);
     const visibleCells = tableCellBoxes(regions, g.width, g.height);
     const headerFill = tableHeaderFill(s.fill);
     for (const cell of visibleCells) {
@@ -427,11 +441,13 @@ function renderNode(node: SceneNode): SVGElement {
     for (let row = 1; row < rows; row++)
       for (let column = 0; column < columns; column++)
         if (!sameAnchor(row - 1, column, row, column))
-          lines.push(`M ${column * width} ${row * height} h ${width}`);
+          lines.push(
+            `M ${xs[column]} ${ys[row]} h ${xs[column + 1] - xs[column]}`,
+          );
     for (let column = 1; column < columns; column++)
       for (let row = 0; row < rows; row++)
         if (!sameAnchor(row, column - 1, row, column))
-          lines.push(`M ${column * width} ${row * height} v ${height}`);
+          lines.push(`M ${xs[column]} ${ys[row]} v ${ys[row + 1] - ys[row]}`);
     group.append(
       svg('path', {
         d: lines.join(' '),
@@ -462,7 +478,7 @@ function renderNode(node: SceneNode): SVGElement {
           width: Math.max(0, box.width - paddingX * 2),
           height: Math.max(0, box.height - paddingY * 2),
         },
-        cells[row][column],
+        calculated[row][column],
         {
           ...s,
           fontWeight: isHeader ? 700 : s.fontWeight,
@@ -472,7 +488,7 @@ function renderNode(node: SceneNode): SVGElement {
               : s.textColor,
         },
         `cell-${row}-${column}`,
-        regions.cellRichText?.[row]?.[column] ?? undefined,
+        calculatedCellRichText(regions, row, column, calculated, s.align),
         textColor('auto', isHeader ? headerFill : s.fill),
       );
       group.append(cellGroup);
@@ -672,6 +688,16 @@ function renderEdge(edge: SceneConnection): SVGElement {
       d: edge.path,
       class: 'scene-connection',
       fill: 'none',
+      ...(edge.lineStyle === 'dashed'
+        ? {
+            'stroke-dasharray': `${Math.max(1, s.strokeWidth) * 6} ${Math.max(1, s.strokeWidth) * 3}`,
+          }
+        : edge.lineStyle === 'dotted'
+          ? {
+              'stroke-dasharray': `0 ${Math.max(1, s.strokeWidth) * 3}`,
+              'stroke-linecap': 'round',
+            }
+          : {}),
       stroke: s.stroke,
       'stroke-width': s.strokeWidth,
     }),
@@ -686,13 +712,25 @@ function renderEdge(edge: SceneConnection): SVGElement {
       class: 'connection-hit',
     }),
   );
-  if (edge.arrow) {
+  const targetMarker = edge.targetMarker ?? (edge.arrow ? 'arrow' : 'none');
+  const sourceMarker =
+    edge.sourceMarker ?? (edge.startArrow ? 'arrow' : 'none');
+  if (targetMarker !== 'none') {
     const end = edge.points.at(-1)!;
-    const head = arrowhead(end.x, end.y, edge.angle, s.stroke, s.strokeWidth);
-    head.setAttribute('data-arrow-end', 'target');
+    const head = endpointMarker(
+      targetMarker,
+      end.x,
+      end.y,
+      edge.angle,
+      s.stroke,
+      s.strokeWidth,
+    );
+    head.setAttribute('data-marker-end', 'target');
+    if (targetMarker === 'arrow' || targetMarker === 'open-arrow')
+      head.setAttribute('data-arrow-end', 'target');
     group.append(head);
   }
-  if (edge.startArrow) {
+  if (sourceMarker !== 'none') {
     const start = edge.points[0];
     const next =
       edge.points.find(
@@ -700,8 +738,17 @@ function renderEdge(edge: SceneConnection): SVGElement {
       ) ?? edge.points.at(-1)!;
     const angle =
       (Math.atan2(start.y - next.y, start.x - next.x) * 180) / Math.PI;
-    const head = arrowhead(start.x, start.y, angle, s.stroke, s.strokeWidth);
-    head.setAttribute('data-arrow-end', 'source');
+    const head = endpointMarker(
+      sourceMarker,
+      start.x,
+      start.y,
+      angle,
+      s.stroke,
+      s.strokeWidth,
+    );
+    head.setAttribute('data-marker-end', 'source');
+    if (sourceMarker === 'arrow' || sourceMarker === 'open-arrow')
+      head.setAttribute('data-arrow-end', 'source');
     group.append(head);
   }
   if (edge.richText) {
@@ -747,6 +794,35 @@ function renderEdge(edge: SceneConnection): SVGElement {
     group.append(label);
   }
   return group;
+}
+
+function endpointMarker(
+  marker: EndpointMarker,
+  x: number,
+  y: number,
+  angle: number,
+  color: string,
+  stroke: number,
+): SVGElement {
+  const geometry = connectionMarkerGeometry(marker, Math.max(8, stroke * 3));
+  const head =
+    marker === 'arrow'
+      ? arrowhead(x, y, angle, color, stroke)
+      : svg('path', {
+          class: 'scene-marker',
+          d: geometry.path,
+          fill: geometry.filled
+            ? color
+            : marker === 'diamond' || marker === 'circle'
+              ? 'var(--surface)'
+              : 'none',
+          stroke: color,
+          'stroke-width': stroke,
+          'stroke-linejoin': 'round',
+          transform: `translate(${x} ${y}) rotate(${angle})`,
+        });
+  head.setAttribute('data-endpoint-marker', marker);
+  return head;
 }
 
 function arrowhead(
@@ -815,7 +891,8 @@ function renderRich(
     flexDirection: 'column',
     justifyContent: center ? 'safe center' : 'start',
     overflow: 'hidden',
-    overflowWrap: 'anywhere',
+    overflowWrap: 'break-word',
+    wordBreak: 'normal',
     whiteSpace: 'pre-wrap',
     fontFamily: FONT_FAMILIES[base.fontFamily],
     fontSize: `${base.fontSize}px`,

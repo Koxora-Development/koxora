@@ -24,6 +24,11 @@ import {
   type ResourceLimits,
 } from './validation';
 import { safePath } from './zip';
+import {
+  CONNECTION_DECORATIONS_FEATURE,
+  hasConnectionDecorations,
+  validConnectionDecorations,
+} from './connection-decorations';
 import { FREEHAND_TEXT_FEATURE, FREEHAND_TEXT_KEY } from './editor-features';
 import {
   FLOATING_CONNECTIONS_FEATURE,
@@ -32,11 +37,15 @@ import {
 import {
   isTextRegions,
   hasAdvancedTextRegions,
+  hasTableCalculations,
+  TABLE_CALCULATION_FEATURE,
   ADVANCED_TEXT_REGIONS_FEATURE,
   TEXT_REGIONS_KEY,
   TEXT_REGIONS_FEATURE,
 } from './text-regions';
 export const FEATURES = [
+  CONNECTION_DECORATIONS_FEATURE,
+  TABLE_CALCULATION_FEATURE,
   'node-reflection-v1',
   FREEHAND_TEXT_FEATURE,
   FLOATING_CONNECTIONS_FEATURE,
@@ -396,6 +405,12 @@ export function validateProject(
             `${np}.extensions.${TEXT_REGIONS_KEY}`,
             'feature',
           );
+          if (hasTableCalculations(regions))
+            check(
+              manifest.requiredFeatures.includes(TABLE_CALCULATION_FEATURE),
+              `${np}.extensions.${TEXT_REGIONS_KEY}`,
+              'feature',
+            );
           if (hasAdvancedTextRegions(regions))
             check(
               manifest.requiredFeatures.includes(ADVANCED_TEXT_REGIONS_FEATURE),
@@ -455,6 +470,25 @@ export function validateProject(
           }
         }
         const connection = edge.extensions['org.koxora.connection'];
+        if (
+          connection &&
+          typeof connection === 'object' &&
+          !Array.isArray(connection) &&
+          connection.version === 1 &&
+          hasConnectionDecorations(connection)
+        ) {
+          check(
+            manifest.requiredFeatures.includes(CONNECTION_DECORATIONS_FEATURE),
+            `${ep}.extensions.org.koxora.connection`,
+            'feature',
+          );
+          check(
+            validConnectionDecorations(connection),
+            `${ep}.extensions.org.koxora.connection`,
+            'connectionDecorations',
+          );
+        }
+
         if (
           connection &&
           typeof connection === 'object' &&

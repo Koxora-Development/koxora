@@ -315,6 +315,9 @@ test('connectors can start or end in empty space, detach and reattach either end
   await expect(page.locator('[data-connection-id]')).toHaveCount(2);
   await connect(page, { x: -200, y: 0 }, { x: 200, y: 0 });
   await expect(page.locator('[data-connection-id]')).toHaveCount(3);
+  // Keep the distant free-line endpoints inside the working area with the connection strip visible.
+  await canvas(page).focus();
+  await page.keyboard.press('-');
   await connect(page, { x: -320, y: -240 }, { x: 320, y: -240 }, 'Line');
   await expect(page.locator('[data-node-id]')).toHaveCount(3);
   let result = await exported(page),

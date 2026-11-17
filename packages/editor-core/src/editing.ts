@@ -56,6 +56,9 @@ import {
   readConnectionEndpoints,
   validConnectionPoint,
   FLOATING_CONNECTIONS_FEATURE,
+  CONNECTION_DECORATIONS_FEATURE,
+  hasConnectionDecorations,
+  validConnectionDecorations,
 } from './connections';
 import {
   defaultTextRegions,
@@ -67,6 +70,8 @@ import {
   MAX_TABLE_CELL_TEXT,
   ADVANCED_TEXT_REGIONS_FEATURE,
   hasAdvancedTextRegions,
+  hasTableCalculations,
+  TABLE_CALCULATION_FEATURE,
   setRegionRichText,
   type TextRegionTarget,
   type TextRegions,
@@ -180,6 +185,7 @@ function style(value: Appearance) {
 function options(value: ConnectionOptions) {
   text(value.label);
   if (
+    !validConnectionDecorations(value) ||
     !['straight', 'orthogonal', 'curved'].includes(value.routing) ||
     typeof value.arrow !== 'boolean' ||
     (value.startArrow !== undefined && typeof value.startArrow !== 'boolean') ||
@@ -240,6 +246,9 @@ export function assertEditableElement(item: Node | Connection): void {
       'label',
       'sourceAnchor',
       'targetAnchor',
+      'lineStyle',
+      'sourceMarker',
+      'targetMarker',
     ] as const)
       if (raw[k] !== undefined && raw[k] !== normalized[k])
         throw new EditError('unsupported');
@@ -652,6 +661,11 @@ export function applyEdit(
       waypoints: [],
       extensions: { [CONNECTION_KEY]: { version: 1, ...command.options } },
     };
+    for (const key of ['lineStyle', 'sourceMarker', 'targetMarker'] as const)
+      if (edge.extensions[CONNECTION_KEY] && command.options[key] === undefined)
+        delete (edge.extensions[CONNECTION_KEY] as Record<string, unknown>)[
+          key
+        ];
     validateEndpoints(
       page,
       edge,
@@ -856,7 +870,14 @@ export function applyEdit(
     if (nextRegions && command.textRegions) {
       // Known optional fields are authoritative; omitted ones must not linger.
       // Unknown sibling fields remain losslessly preserved.
-      for (const key of ['titleRichText', 'cellRichText', 'merges'])
+      for (const key of [
+        'titleRichText',
+        'cellRichText',
+        'merges',
+        'columnWidths',
+        'rowHeights',
+        'formulas',
+      ])
         if (!Object.hasOwn(command.textRegions, key))
           delete (nextRegions as Record<string, unknown>)[key];
       if (!isTextRegions(nextRegions, n.kind)) throw new EditError('invalid');
@@ -965,6 +986,18 @@ export function applyEdit(
         nextEdge,
         command.options.arrow || command.options.startArrow === true,
       );
+    const updatedExtension = {
+      ...updateAppearance(
+        edge,
+        CONNECTION_KEY,
+        command.style,
+        resolveAppearance(edge, styles, CONNECTION_KEY),
+      ),
+      version: 1,
+      ...command.options,
+    };
+    for (const key of ['lineStyle', 'sourceMarker', 'targetMarker'] as const)
+      if (command.options[key] === undefined) delete updatedExtension[key];
     connections = connections.map((e) =>
       e.id !== edge.id
         ? e
@@ -981,16 +1014,7 @@ export function applyEdit(
               ...(command.richText
                 ? { [RICH_TEXT_KEY]: richTextJson(command.richText) }
                 : {}),
-              [CONNECTION_KEY]: {
-                ...updateAppearance(
-                  e,
-                  CONNECTION_KEY,
-                  command.style,
-                  resolveAppearance(e, styles, CONNECTION_KEY),
-                ),
-                version: 1,
-                ...command.options,
-              },
+              [CONNECTION_KEY]: updatedExtension,
             },
           },
     );
@@ -1033,6 +1057,48 @@ export function applyEdit(
     } catch {
       throw new EditError('unsupported');
     }
+  }
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.connections.some((edge) => {
+          const raw = jsonObject(edge.extensions[CONNECTION_KEY]);
+          return raw.version === 1 && hasConnectionDecorations(raw);
+        }),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(CONNECTION_DECORATIONS_FEATURE)
+  )
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          CONNECTION_DECORATIONS_FEATURE,
+        ],
+      },
+    };
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.nodes.some((n) =>
+          hasTableCalculations(n.extensions[TEXT_REGIONS_KEY]),
+        ),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(TABLE_CALCULATION_FEATURE)
+  ) {
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          TABLE_CALCULATION_FEATURE,
+        ],
+      },
+    };
   }
   if (
     next.documents.some((d) =>

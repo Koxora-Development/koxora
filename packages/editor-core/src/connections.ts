@@ -1,11 +1,26 @@
 import {
   validConnectionPoint,
+  isLineStyle,
+  isEndpointMarker,
+  type LineStyle,
+  type EndpointMarker,
   type Connection,
   type Node,
 } from '@koxora/project';
 export {
   FLOATING_CONNECTIONS_FEATURE,
   validConnectionPoint,
+} from '@koxora/project';
+export {
+  CONNECTION_DECORATIONS_FEATURE,
+  LINE_STYLES,
+  ENDPOINT_MARKERS,
+  hasConnectionDecorations,
+  validConnectionDecorations,
+  isLineStyle,
+  isEndpointMarker,
+  type LineStyle,
+  type EndpointMarker,
 } from '@koxora/project';
 import {
   anchorPoint,
@@ -21,6 +36,9 @@ export interface ConnectionOptions {
   routing: Routing;
   arrow: boolean;
   startArrow?: boolean;
+  lineStyle?: LineStyle;
+  sourceMarker?: EndpointMarker;
+  targetMarker?: EndpointMarker;
   label: string;
   sourceAnchor: Anchor;
   targetAnchor: Anchor;
@@ -41,6 +59,15 @@ export function readConnection(edge: Connection): ConnectionOptions {
       ? (value as Anchor)
       : 'auto';
   return {
+    ...(v.version === 1 && isLineStyle(v.lineStyle)
+      ? { lineStyle: v.lineStyle }
+      : {}),
+    ...(v.version === 1 && isEndpointMarker(v.sourceMarker)
+      ? { sourceMarker: v.sourceMarker }
+      : {}),
+    ...(v.version === 1 && isEndpointMarker(v.targetMarker)
+      ? { targetMarker: v.targetMarker }
+      : {}),
     routing:
       v.version === 1 &&
       typeof v.routing === 'string' &&

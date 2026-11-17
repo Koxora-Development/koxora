@@ -16,6 +16,9 @@ import {
 } from '@koxora/editor-core';
 import type { Connection, Node, Style } from '@koxora/project';
 import { RichTextEditor } from './rich-text-editor';
+import { TableTextEditor } from './text-regions-editor';
+import { useFloatingWindow } from './floating-window';
+import './floating-window.css';
 export function InlineText({
   item,
   styles,
@@ -35,6 +38,7 @@ export function InlineText({
 }) {
   const t = (k: MessageKey) => translate(locale, k),
     ref = useRef<HTMLDialogElement>(null);
+  const moveWindow = useFloatingWindow(ref, anchor);
   const historyGroup = useId();
   const close = useRef(onCancel);
   const failure = useRef(false);
@@ -73,6 +77,15 @@ export function InlineText({
       ),
   );
   const [failed, setFailed] = useState(false);
+  const [tableMode, setTableMode] = useState(false);
+  useEffect(() => {
+    if (tableMode)
+      ref.current
+        ?.querySelector<HTMLButtonElement>(
+          '[data-table-cell][aria-pressed="true"]',
+        )
+        ?.focus();
+  }, [tableMode]);
   const label =
     region?.type === 'container-title'
       ? t('regions.containerTitle')
@@ -89,7 +102,7 @@ export function InlineText({
     region?.type === 'table-cell' && regions?.type === 'table'
       ? Math.min(
           MAX_TABLE_CELL_TEXT,
-          regions.cells[region.row][region.column].length +
+          (regions.cells[region.row]?.[region.column]?.length ?? 0) +
             MAX_TABLE_TEXT -
             regions.cells.reduce(
               (total, row) =>
@@ -99,9 +112,7 @@ export function InlineText({
         )
       : 4096;
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
     const el = ref.current!;
-    el.show();
     el.querySelector<HTMLElement>('[contenteditable]')?.focus();
     const outside = (event: PointerEvent) => {
       if (el.contains(event.target as globalThis.Node)) return;
@@ -122,12 +133,6 @@ export function InlineText({
     return () => {
       document.removeEventListener('pointerdown', outside, true);
       document.removeEventListener('focusin', outsideFocus);
-      el.close();
-      if (
-        el.contains(document.activeElement) ||
-        document.activeElement === document.body
-      )
-        previous?.focus();
     };
   }, []);
   const change = (next: RichText) => {
@@ -143,21 +148,17 @@ export function InlineText({
     failure.current = !accepted;
     setFailed(!accepted);
   };
-  const top =
-    window.innerWidth < 700
-      ? 8
-      : Math.max(8, Math.min(window.innerHeight - 380, anchor.y));
   return (
     <dialog
       ref={ref}
       className="canvas-text-dialog"
       data-live-editor="true"
+      onPointerDown={moveWindow.onPointerDown}
+      onPointerMove={moveWindow.onPointerMove}
+      onPointerUp={moveWindow.onPointerUp}
+      onPointerCancel={moveWindow.onPointerCancel}
+      onLostPointerCapture={moveWindow.onLostPointerCapture}
       aria-label={t('rich.inlineTitle')}
-      style={{
-        left: Math.max(8, Math.min(window.innerWidth - 640, anchor.x)),
-        top,
-        maxHeight: `calc(100dvh - ${top + 8}px)`,
-      }}
       onCancel={(e) => {
         e.preventDefault();
         onCancel();
@@ -174,26 +175,76 @@ export function InlineText({
         }
       }}
     >
-      <h2>{label}</h2>
-      <RichTextEditor
-        value={value}
-        base={base}
-        locale={locale}
-        onChange={change}
-        autoFocus
-        label={label}
-        maxLength={maxLength}
-      />
+      <header className="floating-window-header">
+        <button
+          type="button"
+          className="floating-window-handle"
+          aria-label={t('window.move')}
+          title={t('window.moveHelp')}
+          onKeyDown={moveWindow.onKeyDown}
+        >
+          <span aria-hidden="true">{'⠿'}</span>{' '}
+          {tableMode
+            ? t('regions.tableStructure')
+            : t('window.textTitle' as MessageKey)}
+        </button>
+        <button
+          type="button"
+          className="button"
+          aria-label={t('office.close')}
+          onClick={onCancel}
+        >
+          ×
+        </button>
+      </header>
+      {!tableMode &&
+        region?.type === 'table-cell' &&
+        regions?.type === 'table' && (
+          <button
+            type="button"
+            className="button"
+            onClick={() => setTableMode(true)}
+          >
+            {t('regions.editTable')}
+          </button>
+        )}
+      {tableMode && regions?.type === 'table' && 'kind' in item ? (
+        <TableTextEditor
+          value={regions}
+          base={resolveAppearance(item, styles)}
+          locale={locale}
+          initialCell={region?.type === 'table-cell' ? region : undefined}
+          onChange={(textRegions, field) => {
+            const command: EditCommand = {
+              type: 'updateNode',
+              id: item.id,
+              text: String((item as Node).content.text ?? ''),
+              style: resolveAppearance(item, styles),
+              textRegions,
+            };
+            const accepted = onApply(
+              field ? groupEdit(command, `${historyGroup}:${field}`) : command,
+            );
+            failure.current = !accepted;
+            setFailed(!accepted);
+          }}
+        />
+      ) : (
+        <RichTextEditor
+          value={value}
+          base={base}
+          locale={locale}
+          onChange={change}
+          autoFocus
+          label={label}
+          maxLength={maxLength}
+        />
+      )}
       {failed && (
         <p role="alert" tabIndex={-1}>
           {t('diagram.error.invalid')}
         </p>
       )}
-      <div className="dialog-actions">
-        <button type="button" className="button" onClick={onCancel}>
-          {t('office.close')}
-        </button>
-      </div>
     </dialog>
   );
 }
