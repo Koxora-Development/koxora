@@ -31,6 +31,8 @@ import {
   readConnection,
   readConnectionEndpoints,
   type ConnectionPath,
+  type EndpointMarker,
+  type LineStyle,
 } from './connections';
 export interface SceneNode {
   id: string;
@@ -49,6 +51,9 @@ export interface SceneNode {
   endArrow?: boolean;
 }
 export interface SceneConnection extends ConnectionPath {
+  lineStyle?: LineStyle;
+  sourceMarker?: EndpointMarker;
+  targetMarker?: EndpointMarker;
   id: string;
   label: string;
   richText?: RichText;
@@ -200,6 +205,15 @@ export function buildScene(
           label: options.label,
           arrow: options.arrow,
           startArrow: options.startArrow === true,
+          ...(options.lineStyle !== undefined
+            ? { lineStyle: options.lineStyle }
+            : {}),
+          ...(options.sourceMarker !== undefined
+            ? { sourceMarker: options.sourceMarker }
+            : {}),
+          ...(options.targetMarker !== undefined
+            ? { targetMarker: options.targetMarker }
+            : {}),
           style,
           editable:
             layer.editable &&

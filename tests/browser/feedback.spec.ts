@@ -615,6 +615,9 @@ test('context menus clamp to narrow viewport edges and visible touch actions dis
   ).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(canvas(page)).toBeFocused();
+  await expect(page.locator('.project-sidebar')).toBeHidden();
+  await button(page, 'Project navigator').click();
+  await expect(page.locator('.project-sidebar')).toBeVisible();
   const trigger = page.locator('.tree-actions').last();
   await trigger.click();
   await expect(

@@ -40,7 +40,7 @@ test('line presets create routed free connections and preserve both arrowheads i
     name: 'Line / arrow style',
     exact: true,
   });
-  await expect(presets.locator('option:not(:disabled)')).toHaveCount(9);
+  await expect(presets.locator('option:not(:disabled)')).toHaveCount(20);
   await presets.selectOption('curved-both');
   await expect(
     page.getByRole('combobox', { name: 'Connection path', exact: true }),

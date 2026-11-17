@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
   shapeKinds,
@@ -110,6 +110,79 @@ export function ShapePalette({
   );
   const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
   const currentPage = Math.min(page, pageCount - 1);
+  const wheelPages = useRef({ page: currentPage, count: pageCount });
+  const wheelMotion = useRef({
+    amount: 0,
+    direction: 0,
+    lastEvent: 0,
+    nextPage: 0,
+  });
+  useLayoutEffect(() => {
+    wheelPages.current = { page: currentPage, count: pageCount };
+  }, [currentPage, pageCount]);
+  useEffect(() => {
+    wheelMotion.current = {
+      amount: 0,
+      direction: 0,
+      lastEvent: 0,
+      nextPage: 0,
+    };
+  }, [currentCategory, query, pageSize, pageCount]);
+  useEffect(() => {
+    const element = strip.current!;
+    const wheel = (event: WheelEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.ctrlKey ||
+        event.metaKey ||
+        wheelPages.current.count < 2 ||
+        (event.target instanceof Element &&
+          event.target.closest(
+            'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="listbox"]',
+          ))
+      )
+        return;
+      const axis =
+        Math.abs(event.deltaX) > Math.abs(event.deltaY)
+          ? event.deltaX
+          : event.deltaY;
+      const unit =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? Math.max(1, element.clientWidth)
+            : 1;
+      const delta = axis * unit;
+      if (!Number.isFinite(delta) || delta === 0) return;
+      // A nonpassive native listener is required to contain scrolling here.
+      // At either end, keep the strip still rather than moving the workbench.
+      event.preventDefault();
+      event.stopPropagation();
+      const now = performance.now();
+      const motion = wheelMotion.current;
+      const direction = Math.sign(delta);
+      if (direction !== motion.direction || now - motion.lastEvent > 160)
+        motion.amount = 0;
+      motion.direction = direction;
+      motion.lastEvent = now;
+      if (now < motion.nextPage) return;
+      motion.amount += delta;
+      // Accumulate small trackpad deltas; a mouse notch advances one page.
+      if (Math.abs(motion.amount) < 48) return;
+      motion.amount = 0;
+      motion.nextPage = now + 240;
+      const current = wheelPages.current;
+      const next = Math.max(
+        0,
+        Math.min(current.count - 1, current.page + direction),
+      );
+      if (next === current.page) return;
+      current.page = next;
+      setPage(next);
+    };
+    element.addEventListener('wheel', wheel, { passive: false });
+    return () => element.removeEventListener('wheel', wheel);
+  }, []);
   const pageStart = currentPage * pageSize;
   const tools: DiagramTool[] = [
     'select',
@@ -200,7 +273,7 @@ export function ShapePalette({
           })}
         </span>
       </div>
-      <div className="palette-strip" ref={strip}>
+      <div className="palette-strip" ref={strip} title={t('palette.wheelHelp')}>
         <button
           type="button"
           className="button palette-page-button"

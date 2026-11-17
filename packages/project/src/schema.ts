@@ -24,6 +24,11 @@ import {
   type ResourceLimits,
 } from './validation';
 import { safePath } from './zip';
+import {
+  CONNECTION_DECORATIONS_FEATURE,
+  hasConnectionDecorations,
+  validConnectionDecorations,
+} from './connection-decorations';
 import { FREEHAND_TEXT_FEATURE, FREEHAND_TEXT_KEY } from './editor-features';
 import {
   FLOATING_CONNECTIONS_FEATURE,
@@ -39,6 +44,7 @@ import {
   TEXT_REGIONS_FEATURE,
 } from './text-regions';
 export const FEATURES = [
+  CONNECTION_DECORATIONS_FEATURE,
   TABLE_CALCULATION_FEATURE,
   'node-reflection-v1',
   FREEHAND_TEXT_FEATURE,
@@ -464,6 +470,25 @@ export function validateProject(
           }
         }
         const connection = edge.extensions['org.koxora.connection'];
+        if (
+          connection &&
+          typeof connection === 'object' &&
+          !Array.isArray(connection) &&
+          connection.version === 1 &&
+          hasConnectionDecorations(connection)
+        ) {
+          check(
+            manifest.requiredFeatures.includes(CONNECTION_DECORATIONS_FEATURE),
+            `${ep}.extensions.org.koxora.connection`,
+            'feature',
+          );
+          check(
+            validConnectionDecorations(connection),
+            `${ep}.extensions.org.koxora.connection`,
+            'connectionDecorations',
+          );
+        }
+
         if (
           connection &&
           typeof connection === 'object' &&

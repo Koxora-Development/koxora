@@ -106,7 +106,10 @@ async function open(
     ).matrixTransform(matrix);
     return { x: point.x, y: point.y };
   });
-  await page.mouse.dblclick(point.x, point.y);
+  // Table editing begins on the first click; a second click can hit a new
+  // cell after the contextual toolbar changes the canvas height.
+  if (kind === 'table') await page.mouse.click(point.x, point.y);
+  else await page.mouse.dblclick(point.x, point.y);
   const dialog = page.locator('.canvas-text-dialog'),
     toolbar = page.locator('.canvas-table-toolbar'),
     grid = page.locator('.canvas-table-grid');
@@ -147,7 +150,9 @@ async function chooseCell(grid: Locator, cell: string) {
   await grid.locator(`[data-canvas-cell="${cell}"]`).click();
 }
 async function structure(toolbar: Locator, label: string) {
-  const details = toolbar.locator(':scope > [role="toolbar"] > details');
+  const details = toolbar.locator(
+    ':scope > [role="toolbar"] > details:not(.font-picker)',
+  );
   if ((await details.getAttribute('open')) === null)
     await details.locator('summary').click();
   await details.getByRole('button', { name: label, exact: true }).click();

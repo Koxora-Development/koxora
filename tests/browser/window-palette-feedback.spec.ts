@@ -66,28 +66,24 @@ for (const locale of ['en', 'de']) {
       new RegExp(t['window.textTitle']),
     );
     const before = (await dialog.boundingBox())!;
-    const background = (await dialog
-      .locator('.floating-window-help')
-      .boundingBox())!;
-    await page.mouse.move(
-      background.x + background.width / 2,
-      background.y + background.height / 2,
-    );
+    const background = (await dialog.locator('.rich-toolbar').boundingBox())!;
+    await page.mouse.move(background.x + 2, background.y + 2);
     await page.mouse.down();
-    await page.mouse.move(
-      background.x + background.width / 2 - 80,
-      background.y + background.height / 2 - 30,
-      { steps: 5 },
-    );
+    await page.mouse.move(background.x + 2 - 80, background.y + 2 - 30, {
+      steps: 5,
+    });
     await page.mouse.up();
     expect((await dialog.boundingBox())!.x).toBeLessThan(before.x - 60);
     const moved = (await dialog.boundingBox())!;
     const editor = dialog.locator('[contenteditable]');
     await editor.click();
     await page.keyboard.press('ControlOrMeta+A');
-    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(
-      'Move and select this text',
-    );
+    // WebKit includes a block's terminal newline when selecting its text.
+    expect(
+      await page.evaluate(() =>
+        window.getSelection()?.toString().replace(/\n$/, ''),
+      ),
+    ).toBe('Move and select this text');
     expect((await dialog.boundingBox())!.x).toBeCloseTo(moved.x, 1);
     await dialog.locator('.floating-window-handle').focus();
     await page.keyboard.press('ArrowRight');

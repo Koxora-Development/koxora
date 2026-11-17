@@ -56,6 +56,9 @@ import {
   readConnectionEndpoints,
   validConnectionPoint,
   FLOATING_CONNECTIONS_FEATURE,
+  CONNECTION_DECORATIONS_FEATURE,
+  hasConnectionDecorations,
+  validConnectionDecorations,
 } from './connections';
 import {
   defaultTextRegions,
@@ -182,6 +185,7 @@ function style(value: Appearance) {
 function options(value: ConnectionOptions) {
   text(value.label);
   if (
+    !validConnectionDecorations(value) ||
     !['straight', 'orthogonal', 'curved'].includes(value.routing) ||
     typeof value.arrow !== 'boolean' ||
     (value.startArrow !== undefined && typeof value.startArrow !== 'boolean') ||
@@ -242,6 +246,9 @@ export function assertEditableElement(item: Node | Connection): void {
       'label',
       'sourceAnchor',
       'targetAnchor',
+      'lineStyle',
+      'sourceMarker',
+      'targetMarker',
     ] as const)
       if (raw[k] !== undefined && raw[k] !== normalized[k])
         throw new EditError('unsupported');
@@ -654,6 +661,11 @@ export function applyEdit(
       waypoints: [],
       extensions: { [CONNECTION_KEY]: { version: 1, ...command.options } },
     };
+    for (const key of ['lineStyle', 'sourceMarker', 'targetMarker'] as const)
+      if (edge.extensions[CONNECTION_KEY] && command.options[key] === undefined)
+        delete (edge.extensions[CONNECTION_KEY] as Record<string, unknown>)[
+          key
+        ];
     validateEndpoints(
       page,
       edge,
@@ -974,6 +986,18 @@ export function applyEdit(
         nextEdge,
         command.options.arrow || command.options.startArrow === true,
       );
+    const updatedExtension = {
+      ...updateAppearance(
+        edge,
+        CONNECTION_KEY,
+        command.style,
+        resolveAppearance(edge, styles, CONNECTION_KEY),
+      ),
+      version: 1,
+      ...command.options,
+    };
+    for (const key of ['lineStyle', 'sourceMarker', 'targetMarker'] as const)
+      if (command.options[key] === undefined) delete updatedExtension[key];
     connections = connections.map((e) =>
       e.id !== edge.id
         ? e
@@ -990,16 +1014,7 @@ export function applyEdit(
               ...(command.richText
                 ? { [RICH_TEXT_KEY]: richTextJson(command.richText) }
                 : {}),
-              [CONNECTION_KEY]: {
-                ...updateAppearance(
-                  e,
-                  CONNECTION_KEY,
-                  command.style,
-                  resolveAppearance(e, styles, CONNECTION_KEY),
-                ),
-                version: 1,
-                ...command.options,
-              },
+              [CONNECTION_KEY]: updatedExtension,
             },
           },
     );
@@ -1043,6 +1058,27 @@ export function applyEdit(
       throw new EditError('unsupported');
     }
   }
+  if (
+    next.documents.some((d) =>
+      d.pages.some((p) =>
+        p.connections.some((edge) => {
+          const raw = jsonObject(edge.extensions[CONNECTION_KEY]);
+          return raw.version === 1 && hasConnectionDecorations(raw);
+        }),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(CONNECTION_DECORATIONS_FEATURE)
+  )
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          CONNECTION_DECORATIONS_FEATURE,
+        ],
+      },
+    };
   if (
     next.documents.some((d) =>
       d.pages.some((p) =>

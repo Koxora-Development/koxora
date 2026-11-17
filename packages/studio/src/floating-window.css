@@ -17,9 +17,3 @@
   user-select: none;
   touch-action: none;
 }
-.floating-window-help {
-  margin: 0 0 12px;
-  color: var(--muted);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}

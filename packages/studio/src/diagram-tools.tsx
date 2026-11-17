@@ -36,6 +36,12 @@ import {
   type Geometry,
 } from '@koxora/editor-core';
 import { ShapePalette } from './shape-palette';
+import { ConnectionPalette, ConnectionStyleFields } from './connection-palette';
+import {
+  connectionPresets as linePresets,
+  connectionPresetMatches,
+  applyConnectionPreset,
+} from './connection-presets';
 import { RichTextEditor } from './rich-text-editor';
 import { PORT_ANCHORS } from './connection-ports';
 export type DiagramTool = 'select' | 'pan' | 'freehand' | ShapeKind;
@@ -56,17 +62,6 @@ interface Props {
   options: ConnectionOptions;
   setOptions: (options: ConnectionOptions) => void;
 }
-const linePresets = [
-  { id: 'straight-line', routing: 'straight', arrow: false, startArrow: false },
-  { id: 'straight-arrow', routing: 'straight', arrow: true, startArrow: false },
-  { id: 'straight-both', routing: 'straight', arrow: true, startArrow: true },
-  { id: 'elbow-line', routing: 'orthogonal', arrow: false, startArrow: false },
-  { id: 'elbow-arrow', routing: 'orthogonal', arrow: true, startArrow: false },
-  { id: 'elbow-both', routing: 'orthogonal', arrow: true, startArrow: true },
-  { id: 'curved-line', routing: 'curved', arrow: false, startArrow: false },
-  { id: 'curved-arrow', routing: 'curved', arrow: true, startArrow: false },
-  { id: 'curved-both', routing: 'curved', arrow: true, startArrow: true },
-] as const;
 
 export function DiagramTools({
   ink,
@@ -97,6 +92,16 @@ export function DiagramTools({
         tool={tool}
         activate={activate}
         writable={!!available.length}
+      />
+      <ConnectionPalette
+        locale={locale}
+        options={options}
+        active={isDrawing(tool)}
+        writable={!!available.length}
+        onChoose={(next) => {
+          activate(next.arrow ? 'arrow' : 'line');
+          setOptions(next);
+        }}
       />
       {(isShapeKind(tool) || tool === 'freehand') && (
         <div
@@ -162,11 +167,8 @@ export function DiagramTools({
                 {t('line.presets')}
                 <select
                   value={
-                    linePresets.find(
-                      (preset) =>
-                        preset.routing === options.routing &&
-                        preset.arrow === options.arrow &&
-                        preset.startArrow === (options.startArrow ?? false),
+                    linePresets.find((preset) =>
+                      connectionPresetMatches(options, preset),
                     )?.id ?? ''
                   }
                   onChange={(event) => {
@@ -174,12 +176,7 @@ export function DiagramTools({
                       (item) => item.id === event.currentTarget.value,
                     );
                     if (preset)
-                      setOptions({
-                        ...options,
-                        routing: preset.routing,
-                        arrow: preset.arrow,
-                        startArrow: preset.startArrow,
-                      });
+                      setOptions(applyConnectionPreset(options, preset));
                   }}
                 >
                   <option value="" disabled>
@@ -187,11 +184,16 @@ export function DiagramTools({
                   </option>
                   {linePresets.map((preset) => (
                     <option key={preset.id} value={preset.id}>
-                      {t(`line.${preset.id}`)}
+                      {t(`line.${preset.id}` as MessageKey)}
                     </option>
                   ))}
                 </select>
               </label>
+              <ConnectionStyleFields
+                locale={locale}
+                options={options}
+                onChange={setOptions}
+              />
               <RoutingSelect
                 locale={locale}
                 value={options.routing}
@@ -202,7 +204,17 @@ export function DiagramTools({
                   type="checkbox"
                   checked={options.startArrow === true}
                   onChange={(event) =>
-                    setOptions({ ...options, startArrow: event.target.checked })
+                    setOptions({
+                      ...options,
+                      startArrow: event.target.checked,
+                      ...(options.sourceMarker !== undefined
+                        ? {
+                            sourceMarker: event.target.checked
+                              ? 'arrow'
+                              : 'none',
+                          }
+                        : {}),
+                    })
                   }
                 />
                 {t('editing.startArrow')}
@@ -212,7 +224,17 @@ export function DiagramTools({
                   type="checkbox"
                   checked={options.arrow}
                   onChange={(event) =>
-                    setOptions({ ...options, arrow: event.target.checked })
+                    setOptions({
+                      ...options,
+                      arrow: event.target.checked,
+                      ...(options.targetMarker !== undefined
+                        ? {
+                            targetMarker: event.target.checked
+                              ? 'arrow'
+                              : 'none',
+                          }
+                        : {}),
+                    })
                   }
                 />
                 {t('editing.endArrow')}
@@ -784,6 +806,11 @@ export function ElementDialog({
                 number('cornerRadius', 0, 128)}
               {edge && (
                 <>
+                  <ConnectionStyleFields
+                    locale={locale}
+                    options={options}
+                    onChange={changeOptions}
+                  />
                   <RoutingSelect
                     locale={locale}
                     value={options.routing}
@@ -815,6 +842,13 @@ export function ElementDialog({
                         changeOptions({
                           ...options,
                           startArrow: e.target.checked,
+                          ...(options.sourceMarker !== undefined
+                            ? {
+                                sourceMarker: e.target.checked
+                                  ? ('arrow' as const)
+                                  : ('none' as const),
+                              }
+                            : {}),
                         })
                       }
                     />
@@ -825,7 +859,17 @@ export function ElementDialog({
                       type="checkbox"
                       checked={options.arrow}
                       onChange={(e) =>
-                        changeOptions({ ...options, arrow: e.target.checked })
+                        changeOptions({
+                          ...options,
+                          arrow: e.target.checked,
+                          ...(options.targetMarker !== undefined
+                            ? {
+                                targetMarker: e.target.checked
+                                  ? 'arrow'
+                                  : 'none',
+                              }
+                            : {}),
+                        })
                       }
                     />
                     {t('editing.endArrow')}

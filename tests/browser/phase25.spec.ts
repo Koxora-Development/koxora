@@ -450,6 +450,9 @@ test('many pages, 20 fonts and compact German selection controls remain reachabl
   await open(page, project);
   await preference(page, 'Language', 'de');
   await page.setViewportSize({ width: 390, height: 900 });
+  await expect(page.locator('.project-sidebar')).toBeHidden();
+  await button(page, 'Projektnavigation').click();
+  await expect(page.locator('.project-sidebar')).toBeVisible();
   const tabs = page.locator('[role=treeitem][data-page-id]');
   await tabs.first().focus();
   await page.keyboard.press('End');
@@ -470,12 +473,14 @@ test('many pages, 20 fonts and compact German selection controls remain reachabl
     .getByRole('button', { name: 'Projektnavigation', exact: true })
     .click();
   await expect(page.locator('.project-sidebar')).toBeHidden();
-  // Desktop docks become overlays at this width. Close both through the
-  // Office toolbar before reaching the drawing tools underneath them.
-  await button(page, 'Eigenschaften').click();
+  // Narrow windows collapse properties automatically; reopening the navigator
+  // above must not reopen properties over the drawing tools.
   await expect(
     page.getByRole('complementary', { name: 'Eigenschaften', exact: true }),
   ).toHaveCount(0);
+  await page
+    .getByRole('searchbox', { name: 'Elemente suchen', exact: true })
+    .fill('Text');
   await button(page, 'Text').click();
   await page.locator('.interactive-canvas').focus();
   await page.keyboard.press('Enter');

@@ -1,3 +1,4 @@
+import { connectionMarkerGeometry } from './connection-marker';
 import {
   gridStep,
   rotatePoint,
@@ -13,6 +14,7 @@ import {
   calculatedCellRichText,
   mirroredTextBox,
   type RichText,
+  type EndpointMarker,
   type Appearance,
   FONT_FAMILIES,
   isDrawing,
@@ -686,6 +688,16 @@ function renderEdge(edge: SceneConnection): SVGElement {
       d: edge.path,
       class: 'scene-connection',
       fill: 'none',
+      ...(edge.lineStyle === 'dashed'
+        ? {
+            'stroke-dasharray': `${Math.max(1, s.strokeWidth) * 6} ${Math.max(1, s.strokeWidth) * 3}`,
+          }
+        : edge.lineStyle === 'dotted'
+          ? {
+              'stroke-dasharray': `0 ${Math.max(1, s.strokeWidth) * 3}`,
+              'stroke-linecap': 'round',
+            }
+          : {}),
       stroke: s.stroke,
       'stroke-width': s.strokeWidth,
     }),
@@ -700,13 +712,25 @@ function renderEdge(edge: SceneConnection): SVGElement {
       class: 'connection-hit',
     }),
   );
-  if (edge.arrow) {
+  const targetMarker = edge.targetMarker ?? (edge.arrow ? 'arrow' : 'none');
+  const sourceMarker =
+    edge.sourceMarker ?? (edge.startArrow ? 'arrow' : 'none');
+  if (targetMarker !== 'none') {
     const end = edge.points.at(-1)!;
-    const head = arrowhead(end.x, end.y, edge.angle, s.stroke, s.strokeWidth);
-    head.setAttribute('data-arrow-end', 'target');
+    const head = endpointMarker(
+      targetMarker,
+      end.x,
+      end.y,
+      edge.angle,
+      s.stroke,
+      s.strokeWidth,
+    );
+    head.setAttribute('data-marker-end', 'target');
+    if (targetMarker === 'arrow' || targetMarker === 'open-arrow')
+      head.setAttribute('data-arrow-end', 'target');
     group.append(head);
   }
-  if (edge.startArrow) {
+  if (sourceMarker !== 'none') {
     const start = edge.points[0];
     const next =
       edge.points.find(
@@ -714,8 +738,17 @@ function renderEdge(edge: SceneConnection): SVGElement {
       ) ?? edge.points.at(-1)!;
     const angle =
       (Math.atan2(start.y - next.y, start.x - next.x) * 180) / Math.PI;
-    const head = arrowhead(start.x, start.y, angle, s.stroke, s.strokeWidth);
-    head.setAttribute('data-arrow-end', 'source');
+    const head = endpointMarker(
+      sourceMarker,
+      start.x,
+      start.y,
+      angle,
+      s.stroke,
+      s.strokeWidth,
+    );
+    head.setAttribute('data-marker-end', 'source');
+    if (sourceMarker === 'arrow' || sourceMarker === 'open-arrow')
+      head.setAttribute('data-arrow-end', 'source');
     group.append(head);
   }
   if (edge.richText) {
@@ -761,6 +794,35 @@ function renderEdge(edge: SceneConnection): SVGElement {
     group.append(label);
   }
   return group;
+}
+
+function endpointMarker(
+  marker: EndpointMarker,
+  x: number,
+  y: number,
+  angle: number,
+  color: string,
+  stroke: number,
+): SVGElement {
+  const geometry = connectionMarkerGeometry(marker, Math.max(8, stroke * 3));
+  const head =
+    marker === 'arrow'
+      ? arrowhead(x, y, angle, color, stroke)
+      : svg('path', {
+          class: 'scene-marker',
+          d: geometry.path,
+          fill: geometry.filled
+            ? color
+            : marker === 'diamond' || marker === 'circle'
+              ? 'var(--surface)'
+              : 'none',
+          stroke: color,
+          'stroke-width': stroke,
+          'stroke-linejoin': 'round',
+          transform: `translate(${x} ${y}) rotate(${angle})`,
+        });
+  head.setAttribute('data-endpoint-marker', marker);
+  return head;
 }
 
 function arrowhead(

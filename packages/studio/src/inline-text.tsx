@@ -197,9 +197,6 @@ export function InlineText({
           ×
         </button>
       </header>
-      <p className="floating-window-help">
-        {t('window.dragHelp' as MessageKey)}
-      </p>
       {!tableMode &&
         region?.type === 'table-cell' &&
         regions?.type === 'table' && (

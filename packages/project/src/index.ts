@@ -26,6 +26,7 @@ import {
 import { validateProject } from './schema';
 import { readZip, writeZip } from './zip';
 export * from './connection-endpoints';
+export * from './connection-decorations';
 export * from './editor-features';
 import { parseProject as parseLegacy } from './legacy';
 export * from './types';

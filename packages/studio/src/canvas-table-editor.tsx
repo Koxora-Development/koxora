@@ -1,6 +1,7 @@
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -37,7 +38,7 @@ import {
   type Camera,
 } from '@koxora/editor-core';
 import './canvas-table-editor.css';
-import { RichTextEditor } from './rich-text-editor';
+import { FontPicker, RichTextEditor } from './rich-text-editor';
 
 type Cell = { row: number; column: number };
 /** A transient editing surface follows the actual table, without changing its portable geometry. */
@@ -71,7 +72,11 @@ export function CanvasTableEditor({
   }, [onClose]);
   const toolbar = useRef<HTMLDivElement>(null),
     layer = useRef<HTMLDivElement>(null);
-  const replaceOnFocus = useRef(true);
+  const [focusRequest, setFocusRequest] = useState<{
+    key: number;
+    selection: 'all' | 'end';
+  }>({ key: 0, selection: 'all' });
+  const pendingCellFocus = useRef<Cell | null>(null);
   const input = useRef<HTMLDivElement>(null),
     grid = useRef<HTMLDivElement>(null);
   const [richToolbar, setRichToolbar] = useState<HTMLDivElement | null>(null);
@@ -115,11 +120,16 @@ export function CanvasTableEditor({
     (c) => c.row === active.row && c.column === active.column,
   )!;
   const span = tableCellSpan(value, active.row, active.column);
-  const activeRich = tableCellRichText(
-    value,
-    active.row,
-    active.column,
-    base.align,
+  const activeRich = useMemo(
+    () => tableCellRichText(value, active.row, active.column, base.align),
+    [value, active.row, active.column, base.align],
+  );
+  const editorBase = useMemo(
+    () =>
+      value.headerRow && active.row === 0
+        ? { ...base, fontWeight: 700 as const }
+        : base,
+    [value.headerRow, active.row, base],
   );
   const activeStyle = {
     ...base,
@@ -170,14 +180,18 @@ export function CanvasTableEditor({
     setFailed(false);
   }
   function focusCell(point: Cell) {
-    requestAnimationFrame(() =>
-      grid.current
-        ?.querySelector<HTMLButtonElement>(
-          `[data-canvas-cell="${point.row}-${point.column}"]`,
-        )
-        ?.focus({ preventScroll: true }),
-    );
+    pendingCellFocus.current = point;
   }
+  useLayoutEffect(() => {
+    const point = pendingCellFocus.current;
+    if (!point) return;
+    grid.current
+      ?.querySelector<HTMLButtonElement>(
+        `[data-canvas-cell="${point.row}-${point.column}"]`,
+      )
+      ?.focus({ preventScroll: true });
+    pendingCellFocus.current = null;
+  });
   function source(text: string) {
     const old = tableCellRichText(value, active.row, active.column, base.align);
     const rich = fromPlainText(text, old.paragraphs[0]?.align ?? base.align);
@@ -290,25 +304,10 @@ export function CanvasTableEditor({
         el.focus({ preventScroll: true });
     };
   }, [host]);
-  function focusInput() {
-    requestAnimationFrame(() => {
-      const editor =
-        input.current?.querySelector<HTMLElement>('[contenteditable]');
-      if (!editor) return;
-      editor.focus({ preventScroll: true });
-      const range = document.createRange();
-      range.selectNodeContents(editor);
-      if (!replaceOnFocus.current) range.collapse(false);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-      document.dispatchEvent(new Event('selectionchange'));
-      replaceOnFocus.current = true;
-    });
+  function beginTyping(selection: 'all' | 'end' = 'all') {
+    setFocusRequest((previous) => ({ key: previous.key + 1, selection }));
+    setTyping(true);
   }
-  useEffect(() => {
-    if (typing) focusInput();
-  }, [typing]);
   const drag = useRef<{
     axis: 'row' | 'column';
     index: number;
@@ -392,7 +391,7 @@ export function CanvasTableEditor({
       move(event.key, event.shiftKey);
     } else if (event.key === 'F2') {
       event.preventDefault();
-      setTyping(true);
+      beginTyping();
     } else if (
       (event.ctrlKey || event.metaKey) &&
       event.key.toLowerCase() === 'a'
@@ -418,8 +417,7 @@ export function CanvasTableEditor({
     ) {
       event.preventDefault();
       source(event.key);
-      replaceOnFocus.current = false;
-      setTyping(true);
+      beginTyping('end');
     }
   };
   const layerContent = (
@@ -526,7 +524,7 @@ export function CanvasTableEditor({
                   }}
                   onDoubleClick={() => {
                     choose(c);
-                    setTyping(true);
+                    beginTyping();
                   }}
                 >
                   <span className="sr-only">{results[c.row][c.column]}</span>
@@ -565,11 +563,7 @@ export function CanvasTableEditor({
             <RichTextEditor
               key={`${active.row}-${active.column}`}
               value={activeRich}
-              base={
-                value.headerRow && active.row === 0
-                  ? { ...base, fontWeight: 700 }
-                  : base
-              }
+              base={editorBase}
               locale={locale}
               label={t('regions.cellLabel', {
                 row: active.row + 1,
@@ -577,6 +571,7 @@ export function CanvasTableEditor({
               })}
               maxLength={editorLimit}
               embedded
+              focusRequest={focusRequest}
               toolbarContainer={richToolbar}
               onChange={(rich) => {
                 try {
@@ -760,8 +755,7 @@ export function CanvasTableEditor({
             type="button"
             className="button compact"
             onClick={() => {
-              setTyping(true);
-              focusInput();
+              beginTyping();
             }}
           >
             {t('directTable.editCell')}
@@ -823,6 +817,48 @@ export function CanvasTableEditor({
           >
             {t('regions.splitCell')}
           </button>
+          {!typing && (
+            <FontPicker
+              locale={locale}
+              value={activeStyle.fontFamily}
+              onChange={(font) => {
+                let next = formatTableSelection(value, selection, {
+                  fontFamily: font,
+                });
+                // Empty paragraphs need a portable style seed for later typing.
+                for (const cell of cells.filter((c) =>
+                  selected(c.row, c.column),
+                )) {
+                  const rich = tableCellRichText(
+                    next,
+                    cell.row,
+                    cell.column,
+                    base.align,
+                  );
+                  let changed = false;
+                  for (const paragraph of rich.paragraphs)
+                    if (!paragraph.runs.length) {
+                      paragraph.runs.push({
+                        text: '',
+                        style: { fontFamily: font },
+                      });
+                      changed = true;
+                    }
+                  if (changed)
+                    next = setRegionRichText(
+                      next,
+                      {
+                        type: 'table-cell',
+                        row: cell.row,
+                        column: cell.column,
+                      },
+                      rich,
+                    );
+                }
+                apply(next);
+              }}
+            />
+          )}
           {!typing &&
             (['bold', 'italic', 'underline'] as const).map((kind) => {
               const enabled =

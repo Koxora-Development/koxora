@@ -89,7 +89,10 @@ test('cell typing, merged range extension, native heading activation and focus s
   await editor.fill('A');
   await editor.press('Tab');
   await expect(toolbar.locator('.canvas-table-address')).toHaveText('B1');
-  await page.keyboard.type('xy');
+  await expect(grid.locator('[data-canvas-cell="0-1"]')).toBeFocused();
+  await page.keyboard.press('x');
+  await expect(editor).toBeFocused();
+  await page.keyboard.press('y');
   await expect(editor).toHaveText('xy');
   await editor.press('Escape');
   const row = grid.getByRole('button', { name: 'Select row 1', exact: true });
@@ -155,8 +158,12 @@ test('rotated reflected table resize follows its header and shrinking the window
   const saved = await exported(page),
     node = saved.documents[0].pages[0].nodes[0],
     regions = node.extensions[TEXT_REGIONS_KEY] as unknown as TableTextRegions;
-  expect(regions.columnWidths![0]).toBeCloseTo(125);
-  expect(regions.columnWidths![1]).toBeCloseTo(75);
+  // Rotated pointer coordinates are rounded differently by browser engines.
+  // A 0.05 weight tolerance is less than 0.06 canvas pixels for this fixture.
+  expect(regions.columnWidths![0]).toBeCloseTo(125, 1);
+  expect(regions.columnWidths![1]).toBeCloseTo(75, 1);
+  expect(regions.columnWidths![0] + regions.columnWidths![1]).toBeCloseTo(200);
+  expect(regions.columnWidths![2]).toBe(100);
   expect(node.geometry).toMatchObject({
     rotation: 30,
     flipX: true,

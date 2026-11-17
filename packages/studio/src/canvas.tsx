@@ -62,6 +62,7 @@ import {
   connectionError,
   anchorPoint,
   readConnection,
+  hasConnectionDecorations,
   resolveAppearance,
   CONNECTION_KEY,
   type Anchor,
@@ -500,7 +501,10 @@ export function Canvas({
   }
   function act(point: Point, id?: string, geometry?: Geometry, snap?: boolean) {
     if (tool === 'freehand') return;
-    if (isDrawing(tool) && options.routing !== 'straight') {
+    if (
+      isDrawing(tool) &&
+      (options.routing !== 'straight' || hasConnectionDecorations(options))
+    ) {
       const endpoints = geometry
         ? lineEndpoints(geometry)
         : [
