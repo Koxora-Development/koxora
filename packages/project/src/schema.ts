@@ -35,6 +35,11 @@ import {
   validConnectionPoint,
 } from './connection-endpoints';
 import {
+  CONNECTION_PORTS_FEATURE,
+  hasConnectionPorts,
+  isConnectionAnchor,
+} from './connection-ports';
+import {
   isTextRegions,
   hasAdvancedTextRegions,
   hasTableCalculations,
@@ -44,6 +49,7 @@ import {
   TEXT_REGIONS_FEATURE,
 } from './text-regions';
 export const FEATURES = [
+  CONNECTION_PORTS_FEATURE,
   CONNECTION_DECORATIONS_FEATURE,
   TABLE_CALCULATION_FEATURE,
   'node-reflection-v1',
@@ -365,6 +371,12 @@ export function validateProject(
         nodeIds.add(node.id);
         docNodes.add(node.id);
         text(node.kind, `${np}.kind`);
+        if (node.kind === 'junction')
+          check(
+            manifest.requiredFeatures.includes(CONNECTION_PORTS_FEATURE),
+            `${np}.kind`,
+            'feature',
+          );
         ref(node.layerId, layerIds, `${np}.layerId`);
         record(node.geometry, `${np}.geometry`);
         for (const key of ['x', 'y', 'rotation'] as const)
@@ -470,6 +482,26 @@ export function validateProject(
           }
         }
         const connection = edge.extensions['org.koxora.connection'];
+        if (
+          connection &&
+          typeof connection === 'object' &&
+          !Array.isArray(connection) &&
+          connection.version === 1
+        ) {
+          for (const key of ['sourceAnchor', 'targetAnchor'] as const)
+            check(
+              connection[key] === undefined ||
+                isConnectionAnchor(connection[key]),
+              `${ep}.extensions.org.koxora.connection.${key}`,
+              'connectionAnchor',
+            );
+          if (hasConnectionPorts(connection))
+            check(
+              manifest.requiredFeatures.includes(CONNECTION_PORTS_FEATURE),
+              `${ep}.extensions.org.koxora.connection`,
+              'feature',
+            );
+        }
         if (
           connection &&
           typeof connection === 'object' &&

@@ -2,9 +2,11 @@
 
 Status: Product Owner-assigned follow-up in unmerged PR #62. Requirements: EDIT-005/007/008 and CORE-003/005/006/007/008/015/016. Implementation does not authorize merge or publication. This extends [direct table editing](direct-table-editing.md) and the existing [shapes and connections](shapes-text-connections.md).
 
+The subsequent screenshot review requests a shared tabbed Shapes/Connections strip, width-based shape capacity, adaptive attachment ports and an explicit junction point. See [connection ports and junctions](connection-ports-junctions.md) for that additional contract and its separate acceptance cases.
+
 ## Connection choices
 
-An always-visible connection strip offers twenty named visual presets. Straight, orthogonal and curved paths with no, one or both arrowheads are joined by dashed/dotted lines and arrows, open arrowheads, open/filled diamonds, circles and bars. All are ordinary local connections. The detailed options independently select line pattern and each endpoint symbol; they do not impose UML, ERD or network semantics.
+The first 2026-11-17 implementation provides an always-visible connection strip with twenty named visual presets. Straight, orthogonal and curved paths with no, one or both arrowheads are joined by dashed/dotted lines and arrows, open arrowheads, open/filled diamonds, circles and bars. All are ordinary local connections. The detailed options independently select line pattern and each endpoint symbol; they do not impose UML, ERD or network semantics.
 
 Decorated free drawings use the existing floating-endpoint connection model, including a straight decorated line. Attached and mixed endpoints keep their existing anchor/attachment behavior. Choosing a plain preset clears prior decoration options for the next drawing; ordinary straight standalone Line/Arrow nodes remain unchanged. Styling an existing connection preserves its endpoints, text, unrelated extension data and ordinary history.
 

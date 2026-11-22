@@ -180,7 +180,8 @@ describe('shape registry and geometry', () => {
       const bounds = geometryBounds(g, 2);
       expect(p.x).toBeGreaterThanOrEqual(bounds.x);
       expect(p.x).toBeLessThanOrEqual(bounds.x + bounds.width);
-      expect(anchorPoint(n, c, 'east').x).toBeGreaterThan(c.x);
+      if (kind === 'junction') expect(anchorPoint(n, c, 'east')).toEqual(c);
+      else expect(anchorPoint(n, c, 'east').x).toBeGreaterThan(c.x);
     },
   );
   it('matches ellipse, diamond, rotated and rounded boundary coordinates', () => {
@@ -543,7 +544,7 @@ it('handles hostile enum objects and bounds every emitted connection label/arrow
     arrow: true,
     style: { fontSize: 96, strokeWidth: 32 },
   };
-  validateProject(p);
+  expect(() => validateProject(p)).toThrow(/connectionAnchor/);
   const scene = buildScene(model),
     edge = scene.connections[0];
   expect(edge.path).not.toMatch(/NaN/);

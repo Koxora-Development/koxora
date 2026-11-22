@@ -66,7 +66,8 @@ async function open(page: Page, transformed = false) {
     ).matrixTransform(f.getScreenCTM()!);
     return { x: p.x, y: p.y };
   });
-  await page.mouse.dblclick(point.x, point.y);
+  // The contextual toolbar changes the canvas height after entering a cell.
+  await page.mouse.click(point.x, point.y);
   const toolbar = page.locator('.canvas-table-toolbar'),
     grid = page.locator('.canvas-table-grid');
   await expect(toolbar).toBeVisible();
@@ -136,11 +137,22 @@ test('cell typing, merged range extension, native heading activation and focus s
 test('rotated reflected table resize follows its header and shrinking the window closes properties', async ({
   page,
 }) => {
-  const { toolbar, grid } = await open(page, true);
+  const { toolbar, grid, id } = await open(page, true);
   const divider = grid.locator('.canvas-table-resize.column').first();
-  const b = (await divider.boundingBox())!,
-    x = b.x + b.width / 2,
-    y = b.y + b.height / 2;
+  await expect(divider).toBeVisible();
+  // Transform the header's local center through the rendered table geometry.
+  // WebKit's transformed HTML bounds can include the wrong corner for this hit target.
+  const { x, y } = await divider.evaluate((element, id) => {
+    const handle = element as HTMLElement;
+    const table = document.querySelector<SVGGraphicsElement>(
+      `[data-node-id="${id}"]`,
+    )!;
+    const center = new DOMPoint(
+      handle.offsetLeft + handle.offsetWidth / 2,
+      handle.offsetTop + handle.offsetHeight / 2,
+    ).matrixTransform(table.getScreenCTM()!);
+    return { x: center.x, y: center.y };
+  }, id);
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.move(

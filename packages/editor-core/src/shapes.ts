@@ -1,4 +1,10 @@
-import type { Json, Node, Layer, Style } from '@koxora/project';
+import type {
+  Json,
+  Node,
+  Layer,
+  Style,
+  ConnectionAnchor,
+} from '@koxora/project';
 import type { Bounds, Point } from './viewport';
 
 export const ELEMENT_KEY = 'org.koxora.element';
@@ -103,6 +109,7 @@ export const shapeKinds = [
   'block-arrow-pentagon',
   'striped-arrow',
   'wide-chevron',
+  'junction',
 ] as const;
 export type ShapeKind = (typeof shapeKinds)[number];
 export type Geometry = Node['geometry'];
@@ -1927,6 +1934,25 @@ export const shapeRegistry: Readonly<Record<ShapeKind, ShapeDefinition>> = {
       h > 0 &&
       ((p.x - w / 2) / (w / 2)) ** 2 + ((p.y - h / 2) / (h / 2)) ** 2 <= 1,
   },
+  junction: {
+    width: 16,
+    height: 16,
+    labelBox: (w, h) => {
+      const side = Math.min(w, h) / 2;
+      return {
+        x: (w - side) / 2,
+        y: (h - side) / 2,
+        width: side,
+        height: side,
+      };
+    },
+    path: (w, h) => {
+      const radius = Math.min(w, h) / 2;
+      return `M ${w / 2 - radius} ${h / 2} A ${radius} ${radius} 0 1 0 ${w / 2 + radius} ${h / 2} A ${radius} ${radius} 0 1 0 ${w / 2 - radius} ${h / 2} Z`;
+    },
+    contains: (p, w, h) =>
+      Math.hypot(p.x - w / 2, p.y - h / 2) <= Math.min(w, h) / 2,
+  },
   diamond: {
     labelBox: (width, height) => ({
       x: width * 0.25,
@@ -2252,7 +2278,7 @@ export function boundaryPoint(
   }
   return { x: c.x + (dx / length) * lo, y: c.y + (dy / length) * lo };
 }
-export type Anchor = 'auto' | 'north' | 'east' | 'south' | 'west';
+export type Anchor = ConnectionAnchor;
 export function anchorPoint(
   node: Pick<Node, 'kind' | 'geometry'>,
   toward: Point,
@@ -2260,13 +2286,22 @@ export function anchorPoint(
   radius = 16,
 ): Point {
   const c = shapeCenter(node.geometry);
+  if (node.kind === 'junction') return c;
   const directions = {
     north: { x: 0, y: -1 },
     east: { x: 1, y: 0 },
     south: { x: 0, y: 1 },
     west: { x: -1, y: 0 },
   };
-  const d = anchor === 'auto' ? null : directions[anchor];
+  const d =
+    typeof anchor === 'object'
+      ? {
+          x: (anchor.x - 0.5) * node.geometry.width,
+          y: (anchor.y - 0.5) * node.geometry.height,
+        }
+      : anchor === 'auto'
+        ? null
+        : directions[anchor];
   return boundaryPoint(
     node.kind,
     node.geometry,
@@ -2279,4 +2314,86 @@ export function anchorPoint(
       : toward,
     radius,
   );
+}
+
+export interface ConnectionPort {
+  anchor: Anchor;
+  point: Point;
+}
+/** Candidate density may change with size; saved anchors never depend on this list. */
+export function connectionPortsForNode(
+  node: Pick<Node, 'kind' | 'geometry'>,
+  radius = 16,
+): ConnectionPort[] {
+  const center = shapeCenter(node.geometry);
+  if (node.kind === 'junction') return [{ anchor: 'auto', point: center }];
+  if (['line', 'arrow', 'freehand'].includes(node.kind)) return [];
+  const anchors: Anchor[] = ['north', 'east', 'south', 'west'];
+  const { width, height } = node.geometry;
+  if (node.kind === 'triangle') {
+    const vertices = [
+      { x: 0.5, y: 0 },
+      { x: 1, y: 1 },
+      { x: 0, y: 1 },
+    ];
+    const divisions = Math.min(
+      8,
+      2 + 2 * Math.floor(Math.max(width, height) / 300),
+    );
+    for (let edge = 0; edge < vertices.length; edge++) {
+      const a = vertices[edge],
+        b = vertices[(edge + 1) % vertices.length];
+      for (let step = 0; step < divisions; step++) {
+        const t = step / divisions;
+        anchors.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+      }
+    }
+  } else if (
+    node.kind === 'ellipse' ||
+    node.kind.startsWith('star-') ||
+    node.kind === 'diamond'
+  ) {
+    const base = node.kind.startsWith('star-') ? 8 : 4;
+    const count = Math.min(
+      24,
+      base + 4 * Math.floor(Math.max(width, height) / 220),
+    );
+    for (let index = 0; index < count; index++) {
+      const angle = (index / count) * 2 * Math.PI;
+      anchors.push({
+        x: 0.5 + Math.cos(angle) / 2,
+        y: 0.5 + Math.sin(angle) / 2,
+      });
+    }
+  } else {
+    // Symmetric side positions give wide tables and equipment useful spaced ports.
+    const offsets = (size: number) => {
+      const divisions = Math.min(8, 2 + 2 * Math.floor(size / 220));
+      return Array.from(
+        { length: divisions - 1 },
+        (_, index) => (index + 1) / divisions,
+      );
+    };
+    for (const x of offsets(width)) anchors.push({ x, y: 0 }, { x, y: 1 });
+    for (const y of offsets(height)) anchors.push({ x: 0, y }, { x: 1, y });
+    if (node.kind === 'hexagon')
+      anchors.push(
+        { x: 0.25, y: 0 },
+        { x: 0.75, y: 0 },
+        { x: 0.25, y: 1 },
+        { x: 0.75, y: 1 },
+      );
+  }
+  const ports: ConnectionPort[] = [];
+  for (const anchor of anchors) {
+    const point = anchorPoint(node, center, anchor, radius);
+    if (
+      !ports.some(
+        (port) =>
+          Math.hypot(port.point.x - point.x, port.point.y - point.y) < 1e-6,
+      )
+    )
+      ports.push({ anchor, point });
+  }
+  return ports;
 }

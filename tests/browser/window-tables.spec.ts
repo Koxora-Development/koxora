@@ -327,6 +327,9 @@ test('expanded categories expose more browser batches and searchable server shap
   await toolbar
     .getByRole('button', { name: t['directTable.finish'], exact: true })
     .click();
+  await page.locator('[data-ribbon-tab="shapes"]').click();
+  if (!(await page.locator('.ribbon-shape-filters').isVisible()))
+    await page.locator('.ribbon-filter-toggle').click();
   await page
     .getByRole('button', { name: t['palette.browseElements'], exact: true })
     .click();

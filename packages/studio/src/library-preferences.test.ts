@@ -104,8 +104,13 @@ describe('element library preferences', () => {
   });
 });
 
-it('makes every registered shape discoverable through a known category with no dead entries', () => {
-  const supported = new Set<string>([...shapeKinds, 'freehand']);
+it('categorizes shapes without duplicating tools from the connection gallery', () => {
+  const supported = new Set<string>([
+    ...shapeKinds.filter(
+      (kind) => !['line', 'arrow', 'junction'].includes(kind),
+    ),
+    'freehand',
+  ]);
   const categorised = new Set<string>();
   for (const category of libraryCategories) {
     expect(libraryElementKinds[category].length).toBeGreaterThan(0);

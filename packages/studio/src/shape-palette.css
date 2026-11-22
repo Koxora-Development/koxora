@@ -311,3 +311,79 @@
 .element-browser-search + .category-selection-description {
   margin-top: calc(12px * var(--ui-scale, 1));
 }
+
+.compact-tool-ribbon .ribbon-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(5px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  min-width: 0;
+}
+.ribbon-mode-tabs {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: calc(2px * var(--ui-scale, 1));
+}
+.ribbon-mode-tabs button {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: calc(3px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+  background: transparent;
+  color: var(--ink);
+  font-size: calc(10px * var(--ui-scale, 1));
+  min-height: calc(26px * var(--ui-scale, 1));
+}
+.ribbon-mode-tabs button[aria-selected='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.ribbon-mode-tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.ribbon-connection-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(3px * var(--ui-scale, 1));
+  min-width: 0;
+}
+.ribbon-active-label {
+  color: var(--muted);
+  font-size: calc(10px * var(--ui-scale, 1));
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.ribbon-search {
+  display: flex;
+  flex: 1 1 80px;
+  min-width: 80px;
+  max-width: calc(170px * var(--ui-scale, 1));
+}
+.ribbon-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: calc(26px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
+  padding: calc(3px * var(--ui-scale, 1)) calc(5px * var(--ui-scale, 1));
+}
+.ribbon-search:focus-within {
+  flex-grow: 3;
+}
+.ribbon-filter-toggle {
+  flex: 0 0 auto;
+  min-width: calc(26px * var(--ui-scale, 1));
+  min-height: calc(26px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1));
+}
+.compact-tool-ribbon .ribbon-shape-filters {
+  padding: 0;
+  flex: 1 1 auto;
+}
+.compact-tool-ribbon :is(.palette-strip, .palette-page-status) {
+  padding-block: calc(2px * var(--ui-scale, 1));
+}
+.compact-tool-ribbon .ribbon-shape-filters .element-results {
+  margin-inline-start: auto;
+}

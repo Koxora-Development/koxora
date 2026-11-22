@@ -12,6 +12,33 @@ import {
 } from '../../packages/editor-core/src/index';
 const button = (p: Page, name: string) =>
   p.getByRole('button', { name, exact: true });
+async function chooseTool(p: Page, name: string) {
+  if (name === 'Line' || name === 'Arrow') {
+    await p.locator('[data-ribbon-tab="connections"]').click();
+    const previous = p.locator('.connection-page-button').first();
+    while (await previous.isEnabled()) await previous.click();
+    const tool = p.locator(
+      `[data-connection-preset="straight-${name === 'Line' ? 'line' : 'arrow'}"]`,
+    );
+    const next = p.locator('.connection-page-button').last();
+    while (!(await tool.count()) && (await next.isEnabled()))
+      await next.click();
+    await tool.click();
+  } else {
+    await p.locator('[data-ribbon-tab="shapes"]').click();
+    const tool = p
+      .locator('.shape-palette')
+      .getByRole('button', { name, exact: true });
+    if (!(await tool.count())) {
+      const previous = p.locator('.palette-page-button').first();
+      while (await previous.isEnabled()) await previous.click();
+      const next = p.locator('.palette-page-button').last();
+      while (!(await tool.count()) && (await next.isEnabled()))
+        await next.click();
+    }
+    await tool.click();
+  }
+}
 const canvas = (p: Page) => p.locator('.interactive-canvas');
 async function menuAction(p: Page, menu: string, action: string) {
   await p
@@ -166,8 +193,25 @@ test('visible explicit ports attach through move, resize, undo, save and offline
   await expect(
     page.getByLabel('Repeat insertion', { exact: true }),
   ).toHaveCount(0);
-  await button(page, 'Line').click();
-  await expect(page.locator('.connection-port')).toHaveCount(16);
+  await chooseTool(page, 'Line');
+  await expect
+    .poll(() =>
+      page
+        .locator('.connection-port')
+        .evaluateAll((buttons) =>
+          buttons.map(
+            (button) =>
+              `${button.getAttribute('data-port-node')}:${button.getAttribute('data-port-anchor')}`,
+          ),
+        ),
+    )
+    .toEqual(
+      expect.arrayContaining(
+        ids.flatMap((id) =>
+          ['north', 'east', 'south', 'west'].map((anchor) => `${id}:${anchor}`),
+        ),
+      ),
+    );
   const source = port(page, ids[0], 'east');
   await source.click();
   await expect(source).toHaveAttribute('aria-pressed', 'true');
@@ -221,7 +265,7 @@ test('visible explicit ports attach through move, resize, undo, save and offline
   expect((await exported(page)).documents[0].pages[0].connections).toEqual(
     model.connections,
   );
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   await port(page, ids[2], 'north').click();
   await port(page, ids[3], 'south').click();
   await expect(page.locator('[data-connection-id]')).toHaveCount(2);
@@ -231,12 +275,12 @@ test('automatic linking, port drag, invalid targets and cancellation keep free d
   page,
 }) => {
   const ids = await fixture(page);
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   await click(page, -210, -100);
   await click(page, 210, -100);
   await expect(page.locator('[data-connection-id]')).toHaveCount(1);
   await expect(page.locator('.scene-arrow')).toHaveCount(1);
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   await click(page, -210, -100);
   await click(page, -210, -100);
   await expect(page.getByRole('alert')).toBeVisible();
@@ -244,19 +288,19 @@ test('automatic linking, port drag, invalid targets and cancellation keep free d
   await expect(page.getByRole('alert')).toContainText('already');
   await page.keyboard.press('Escape');
   await expect(page.locator('.connection-preview')).toHaveCount(0);
-  await button(page, 'Line').click();
+  await chooseTool(page, 'Line');
   await port(page, ids[2], 'north').click();
-  await button(page, 'Rectangle').click();
+  await chooseTool(page, 'Rectangle');
   await expect(page.locator('.connection-port')).toHaveCount(0);
   await page.keyboard.press('Escape');
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   await drag(
     page,
     await center(port(page, ids[2], 'north')),
     await center(port(page, ids[3], 'south')),
   );
   await expect(page.locator('[data-connection-id]')).toHaveCount(2);
-  await button(page, 'Line').click();
+  await chooseTool(page, 'Line');
   await drag(page, await point(page, -100, 230), await point(page, 120, 230));
   await expect(page.locator('[data-node-id]')).toHaveCount(5);
   await expect(page.locator('[data-handle="start"]')).toBeVisible();
@@ -279,7 +323,7 @@ test('ports keep screen-sized targets, keyboard focus and localized touch or pen
   isMobile,
 }) => {
   const ids = await fixture(page);
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   const first = port(page, ids[0], 'north');
   await expect(first).toBeVisible();
   await expect(first).toHaveAttribute('tabindex', '0');
@@ -293,8 +337,14 @@ test('ports keep screen-sized targets, keyboard focus and localized touch or pen
   await canvas(page).dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
   await expect(port(page, ids[0], 'east')).toBeFocused();
   expect((await port(page, ids[0], 'east').boundingBox())!.width).toBe(32);
-  for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowRight');
-  await expect(port(page, ids[1], 'west')).toBeFocused();
+  const target = port(page, ids[1], 'west');
+  const portCount = await page.locator('.connection-port').count();
+  for (let i = 0; i < portCount; i++) {
+    if (await target.evaluate((element) => element === document.activeElement))
+      break;
+    await page.keyboard.press('ArrowRight');
+  }
+  await expect(target).toBeFocused();
   await page.keyboard.press('Space');
   await expect(page.locator('[data-connection-id]')).toHaveCount(1);
   await expect(canvas(page)).toBeFocused();
@@ -302,7 +352,7 @@ test('ports keep screen-sized targets, keyboard focus and localized touch or pen
   await german(page);
   await button(page, 'Zeichenfläche erweitern').click();
   await button(page, 'Inhalt einpassen').click();
-  await button(page, 'Pfeil').click();
+  await chooseTool(page, 'Arrow');
   const a = port(page, ids[2], 'south'),
     b = port(page, ids[3], 'north');
   await expect(a).toHaveAccessibleName('Revise: Verbindungspunkt Unten');
@@ -340,7 +390,7 @@ test('a pending source stays authoritative when the next pointer gesture becomes
   page,
 }) => {
   const ids = await fixture(page);
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   await port(page, ids[0], 'east').click();
   const a = await center(port(page, ids[1], 'north')),
     b = await center(port(page, ids[3], 'west'));
@@ -368,7 +418,8 @@ test('name and point pickers provide connection access without canvas pointing',
   page,
 }) => {
   const ids = await fixture(page);
-  await button(page, 'Line').click();
+  await chooseTool(page, 'Line');
+  await page.locator('[data-connection-options]').click();
   await page.getByText('Connect by name', { exact: true }).click();
   await page
     .getByRole('combobox', { name: 'Source shape', exact: true })
@@ -397,19 +448,19 @@ test('whole-label typography renders on shapes, text, free lines and connectors 
 }) => {
   test.setTimeout(60_000);
   const ids = await fixture(page);
-  await button(page, 'Line').click();
+  await chooseTool(page, 'Line');
   await click(page, -210, -100);
   await click(page, 210, -100);
   const edge = (await page
     .locator('[data-connection-id]')
     .getAttribute('data-connection-id'))!;
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   await drag(page, await point(page, -100, 230), await point(page, 100, 230));
   const free = (await page
     .locator('[data-node-id]')
     .last()
     .getAttribute('data-node-id'))!;
-  await button(page, 'Text').click();
+  await chooseTool(page, 'Text');
   await canvas(page).focus();
   await page.keyboard.press('Enter');
   await page.getByLabel('Label / text', { exact: true }).fill('Text sample');

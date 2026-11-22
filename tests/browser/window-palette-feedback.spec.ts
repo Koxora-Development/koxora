@@ -108,6 +108,28 @@ for (const locale of ['en', 'de']) {
       name: t['palette.previousPage'],
       exact: true,
     });
+    await expect(page.locator('.compact-tool-ribbon')).toHaveAttribute(
+      'data-palette-measured',
+      'true',
+    );
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      const ribbon = document.querySelector('.compact-tool-ribbon')!;
+      let previous = '',
+        stable = 0;
+      for (let frame = 0; frame < 120; frame++) {
+        await new Promise(requestAnimationFrame);
+        const current = JSON.stringify([
+          ribbon.getBoundingClientRect().width,
+          ribbon.getAttribute('data-palette-capacity'),
+          ribbon.getAttribute('data-palette-page-size'),
+        ]);
+        stable = current === previous ? stable + 1 : 0;
+        previous = current;
+        if (stable >= 4) return;
+      }
+      throw new Error('The responsive symbol palette did not settle');
+    });
     await expect(previous).toBeDisabled();
     const seen = new Set<string>();
     for (let count = 0; count <= shapeKinds.length; count++) {
@@ -121,8 +143,17 @@ for (const locale of ['en', 'de']) {
       if (await next.isDisabled()) break;
       await next.click();
     }
-    expect([...seen].sort()).toEqual([...shapeKinds, 'freehand'].sort());
+    expect([...seen].sort()).toEqual(
+      [
+        ...shapeKinds.filter(
+          (kind) => !['line', 'arrow', 'junction'].includes(kind),
+        ),
+        'freehand',
+      ].sort(),
+    );
     await expect(previous).toBeEnabled();
+    if (!(await page.locator('.ribbon-shape-filters').isVisible()))
+      await page.locator('.ribbon-filter-toggle').click();
     await page
       .getByRole('combobox', { name: t['palette.quickCategory'], exact: true })
       .selectOption('drawing');

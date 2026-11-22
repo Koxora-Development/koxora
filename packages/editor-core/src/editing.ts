@@ -25,6 +25,9 @@ import {
   validateProject,
   FREEHAND_TEXT_FEATURE,
   FREEHAND_TEXT_KEY,
+  CONNECTION_PORTS_FEATURE,
+  hasConnectionPorts,
+  isConnectionAnchor,
   type Project,
   type Node,
   type Connection,
@@ -39,6 +42,7 @@ import {
   CONNECTION_KEY,
   ELEMENT_KEY,
   MAX_TEXT,
+  DEFAULT_APPEARANCE,
   editableExtension,
   isShapeKind,
   jsonObject,
@@ -189,11 +193,17 @@ function options(value: ConnectionOptions) {
     !['straight', 'orthogonal', 'curved'].includes(value.routing) ||
     typeof value.arrow !== 'boolean' ||
     (value.startArrow !== undefined && typeof value.startArrow !== 'boolean') ||
-    ![value.sourceAnchor, value.targetAnchor].every((a) =>
-      ['auto', 'north', 'east', 'south', 'west'].includes(a),
-    )
+    ![value.sourceAnchor, value.targetAnchor].every(isConnectionAnchor)
   )
     throw new EditError('invalid');
+}
+/** Mutable command/read objects must not become part of a stored history entry. */
+function storedConnectionOptions(value: ConnectionOptions): ConnectionOptions {
+  return {
+    ...value,
+    sourceAnchor: structuredClone(value.sourceAnchor),
+    targetAnchor: structuredClone(value.targetAnchor),
+  };
 }
 /** Refuse edits when rendering defaults/clipping would discard unsupported stored semantics. */
 export function assertEditableElement(item: Node | Connection): void {
@@ -250,7 +260,12 @@ export function assertEditableElement(item: Node | Connection): void {
       'sourceMarker',
       'targetMarker',
     ] as const)
-      if (raw[k] !== undefined && raw[k] !== normalized[k])
+      if (
+        raw[k] !== undefined &&
+        (k === 'sourceAnchor' || k === 'targetAnchor'
+          ? JSON.stringify(raw[k]) !== JSON.stringify(normalized[k])
+          : raw[k] !== normalized[k])
+      )
         throw new EditError('unsupported');
   }
 }
@@ -619,6 +634,11 @@ export function applyEdit(
       dataBindings: [],
       extensions: { [ELEMENT_KEY]: { version: 1 } },
     };
+    if (command.kind === 'junction')
+      created.extensions[ELEMENT_KEY] = {
+        version: 1,
+        style: { fill: DEFAULT_APPEARANCE.stroke },
+      };
     if (
       isDrawing(command.kind) &&
       (command.startArrow !== undefined || command.endArrow !== undefined)
@@ -659,7 +679,12 @@ export function applyEdit(
       layerId: command.layerId,
       relationType: 'connection',
       waypoints: [],
-      extensions: { [CONNECTION_KEY]: { version: 1, ...command.options } },
+      extensions: {
+        [CONNECTION_KEY]: {
+          version: 1,
+          ...storedConnectionOptions(command.options),
+        },
+      },
     };
     for (const key of ['lineStyle', 'sourceMarker', 'targetMarker'] as const)
       if (edge.extensions[CONNECTION_KEY] && command.options[key] === undefined)
@@ -994,7 +1019,7 @@ export function applyEdit(
         resolveAppearance(edge, styles, CONNECTION_KEY),
       ),
       version: 1,
-      ...command.options,
+      ...storedConnectionOptions(command.options),
     };
     for (const key of ['lineStyle', 'sourceMarker', 'targetMarker'] as const)
       if (command.options[key] === undefined) delete updatedExtension[key];
@@ -1058,6 +1083,29 @@ export function applyEdit(
       throw new EditError('unsupported');
     }
   }
+  if (
+    next.documents.some((d) =>
+      d.pages.some(
+        (p) =>
+          p.nodes.some((node) => node.kind === 'junction') ||
+          p.connections.some((edge) => {
+            const raw = jsonObject(edge.extensions[CONNECTION_KEY]);
+            return raw.version === 1 && hasConnectionPorts(raw);
+          }),
+      ),
+    ) &&
+    !next.manifest.requiredFeatures.includes(CONNECTION_PORTS_FEATURE)
+  )
+    next = {
+      ...next,
+      manifest: {
+        ...next.manifest,
+        requiredFeatures: [
+          ...next.manifest.requiredFeatures,
+          CONNECTION_PORTS_FEATURE,
+        ],
+      },
+    };
   if (
     next.documents.some((d) =>
       d.pages.some((p) =>

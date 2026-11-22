@@ -884,5 +884,17 @@
   "line.filled-diamond": "Filled diamond at start",
   "line.circle-ends": "Circles at both ends",
   "line.bar-ends": "Bars at both ends",
-  "line.dashed-open-arrow": "Dashed with open arrowhead"
+  "line.dashed-open-arrow": "Dashed with open arrowhead",
+  "ports.position": "{x}% across, {y}% down",
+  "ports.center": "Center",
+  "shape.junction": "Junction / splitter",
+  "ribbon.heading": "Drawing tools",
+  "ribbon.shapes": "Shapes",
+  "ribbon.connections": "Connections",
+  "ribbon.libraries": "Libraries…",
+  "ribbon.previousConnections": "Previous connections",
+  "ribbon.nextConnections": "Next connections",
+  "ribbon.connectionResults": "{start}–{end} of {count} connections",
+  "line.options": "Connection options…",
+  "ribbon.activeTool": "Active: {tool}"
 }

@@ -103,9 +103,19 @@ async function start(
   });
   if (kind === 'table') await page.mouse.click(point.x, point.y);
   else await page.mouse.dblclick(point.x, point.y);
-  if (kind === 'table')
+  if (kind === 'table') {
     await expect(page.locator('.canvas-table-toolbar')).toBeVisible();
-  else await expect(page.locator('.canvas-text-dialog')).toBeVisible();
+    // Opening the toolbar changes the canvas height during the first pointer
+    // gesture. Select the intended cell after that layout, then enter editing.
+    const editor = page.locator('.canvas-cell-input [contenteditable]');
+    if (await editor.count()) await editor.press('Escape');
+    const cell = page.locator('.canvas-table-grid [data-canvas-cell="1-0"]');
+    await cell.click();
+    await cell.press('F2');
+    await expect(
+      page.locator('.canvas-cell-input [contenteditable]'),
+    ).toHaveText('Alpha Beta');
+  } else await expect(page.locator('.canvas-text-dialog')).toBeVisible();
   return { t, rendered };
 }
 async function selectBeta(editor: Locator) {

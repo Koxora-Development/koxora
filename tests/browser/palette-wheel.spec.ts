@@ -35,7 +35,10 @@ async function open(page: Page, locale = 'en') {
   await expect(page.locator('.save-status')).toHaveText(
     messages['project.saved'],
   );
-  await page.clock.install();
+  await expect(page.locator('.compact-tool-ribbon')).toHaveAttribute(
+    'data-palette-measured',
+    'true',
+  );
   return {
     messages,
     strip: page.locator('.palette-strip'),
@@ -49,6 +52,27 @@ async function open(page: Page, locale = 'en') {
       exact: true,
     }),
   };
+}
+async function settlePalette(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    const ribbon = document.querySelector('.compact-tool-ribbon')!;
+    let previous = '',
+      stable = 0;
+    for (let frame = 0; frame < 120; frame++) {
+      await new Promise(requestAnimationFrame);
+      const current = JSON.stringify([
+        ribbon.getBoundingClientRect().width,
+        ribbon.getAttribute('data-palette-capacity'),
+        ribbon.getAttribute('data-palette-page-size'),
+        ribbon.querySelector('.palette-page-status')?.textContent,
+      ]);
+      stable = current === previous ? stable + 1 : 0;
+      previous = current;
+      if (stable >= 4) return;
+    }
+    throw new Error('The responsive symbol palette did not settle');
+  });
 }
 async function dispatch(
   locator: Locator,
@@ -79,6 +103,9 @@ for (const locale of ['en', 'de'])
     const { strip, status, next, previous } = await open(page, locale);
     await page.setViewportSize({ width: 420, height: 540 });
     await strip.scrollIntoViewIfNeeded();
+    // Let viewport resize, fonts and the width observer settle before freezing time.
+    await settlePalette(page);
+    await page.clock.install();
     await expect(next).toBeEnabled();
     const first = await status.textContent();
     const icon = strip.locator('.palette-tool').first();
@@ -122,6 +149,8 @@ test('trackpad bursts, line/page delta modes, boundaries and zoom modifiers pres
   page,
 }) => {
   const { messages, strip, status, next, previous } = await open(page);
+  await settlePalette(page);
+  await page.clock.install();
   const first = await status.textContent();
   await strip.evaluate((element) => {
     for (let i = 0; i < 12; i++)

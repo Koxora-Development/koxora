@@ -83,6 +83,7 @@ import {
 } from '@koxora/editor-core';
 import { SvgRenderer } from './svg-renderer';
 import { ConnectionPorts, type Port } from './connection-ports';
+import { parsePortAnchor } from './port-anchor';
 import { KeyboardShortcuts } from './keyboard-shortcuts';
 import {
   editingShortcut,
@@ -833,7 +834,11 @@ export function Canvas({
       gridRect.current!,
     );
 
-    const ports = new ConnectionPorts(portRoot.current!, locale);
+    const ports = new ConnectionPorts(
+      portRoot.current!,
+      locale,
+      content.connections,
+    );
     let cursorPoint: Point | null = null;
     const writableLayer = layerStates(content.layers).get(layerId)?.editable;
     const measure = () => {
@@ -905,6 +910,7 @@ export function Canvas({
             ? active.candidates
             : [],
         validSource ? pendingSource : null,
+        cursorPoint,
       );
       const nextLimited = renderer.render(
         preview,
@@ -1678,7 +1684,7 @@ export function Canvas({
         event.preventDefault();
         active.link(
           event.target.dataset.portNode,
-          event.target.dataset.portAnchor as Anchor,
+          parsePortAnchor(event.target.dataset.portAnchor),
         );
         schedule();
         return;
@@ -1865,7 +1871,7 @@ export function Canvas({
       if (button && event.detail === 0)
         interaction.current.link(
           button.dataset.portNode!,
-          button.dataset.portAnchor as Anchor,
+          parsePortAnchor(button.dataset.portAnchor),
         );
     };
     element.addEventListener('click', portClick);

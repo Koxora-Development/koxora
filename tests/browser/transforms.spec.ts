@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { createProject, exportProject } from '../../packages/project/src/index';
 import { applyEdit } from '../../packages/editor-core/src/index';
 async function fixture(page: Page) {
@@ -48,6 +48,29 @@ async function transform(page: Page, name: string) {
   await page.getByRole('menuitem', { name: 'Transform', exact: true }).click();
   await page.getByRole('menuitem', { name, exact: true }).click();
 }
+async function handleCenter(handle: Locator) {
+  await handle.click({ trial: true });
+  let point: { x: number; y: number } | null = null;
+  await expect
+    .poll(async () => {
+      point = await handle.evaluate((element) => {
+        const svg = element as SVGGraphicsElement;
+        const matrix = svg.getScreenCTM();
+        if (!svg.isConnected || !matrix) return null;
+        const box = svg.getBBox();
+        const center = new DOMPoint(
+          box.x + box.width / 2,
+          box.y + box.height / 2,
+        ).matrixTransform(matrix);
+        if (!svg.contains(document.elementFromPoint(center.x, center.y)))
+          return null;
+        return { x: center.x, y: center.y };
+      });
+      return point !== null;
+    })
+    .toBe(true);
+  return point!;
+}
 test('rotation, mirror, numeric properties, pointer cancel and offline persistence agree', async ({
   page,
   context,
@@ -92,20 +115,17 @@ test('rotation, mirror, numeric properties, pointer cancel and offline persisten
   await expect(node).toHaveAttribute('transform', /rotate\(270 /);
   const handle = page.locator(`[data-rotate-id="${id}"]`);
   await expect(handle).toBeVisible();
-  await handle.click({ trial: true });
-  const b = await handle.boundingBox();
-  expect(b).not.toBeNull();
-  await page.mouse.move(b!.x + b!.width / 2, b!.y + b!.height / 2);
+  const b = await handleCenter(handle);
+  await page.mouse.move(b.x, b.y);
   await page.mouse.down();
-  await page.mouse.move(b!.x + 40, b!.y + 35, { steps: 5 });
+  await page.mouse.move(b.x + 40, b.y + 35, { steps: 5 });
   await page.keyboard.press('Escape');
   await page.mouse.up();
   await expect(node).toHaveAttribute('transform', /rotate\(270 /);
   await node.click();
   await expect(handle).toBeVisible();
-  await handle.click({ trial: true });
-  const h = (await handle.boundingBox())!;
-  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+  const h = await handleCenter(handle);
+  await page.mouse.move(h.x, h.y);
   await page.mouse.down();
   await page.keyboard.down('Shift');
   await page.mouse.move(h.x + 45, h.y + 55, { steps: 5 });

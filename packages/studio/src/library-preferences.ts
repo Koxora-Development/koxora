@@ -112,7 +112,7 @@ export const libraryElementKinds: Readonly<
     'table',
   ],
   symbols: ['cloud', 'note', 'cross'],
-  drawing: ['line', 'arrow', 'freehand'],
+  drawing: ['freehand'],
 };
 export const libraryPreferenceKey = 'koxora.element-libraries.v1';
 

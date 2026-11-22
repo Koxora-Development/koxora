@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
   shapeKinds,
@@ -36,11 +43,18 @@ export function ShapePalette({
   tool,
   activate,
   writable,
+  connectionTools,
+  connectionActive = false,
 }: {
   locale: string;
   tool: DiagramTool;
   activate: (tool: DiagramTool) => void;
   writable: boolean;
+  connectionTools?: (
+    query: string,
+    actionsContainer: HTMLDivElement | null,
+  ) => ReactNode;
+  connectionActive?: boolean;
 }) {
   const [categories, setCategories] = useState<LibraryCategory[]>(() =>
     sessionSelection
@@ -54,31 +68,55 @@ export function ShapePalette({
   const [browserOpen, setBrowserOpen] = useState(false);
   const [storageFailed, setStorageFailed] = useState(false);
   const [query, setQuery] = useState('');
+  const [connectionQuery, setConnectionQuery] = useState('');
+  const [mode, setMode] = useState<'shapes' | 'connections'>(
+    connectionActive ? 'connections' : 'shapes',
+  );
+  const [seenTool, setSeenTool] = useState(tool);
+  if (tool !== seenTool) {
+    setSeenTool(tool);
+    if (connectionActive) setMode('connections');
+    else if (isShapeKind(tool) || tool === 'freehand') setMode('shapes');
+  }
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [connectionActions, setConnectionActions] =
+    useState<HTMLDivElement | null>(null);
+  const [measured, setMeasured] = useState(false);
+  const [inlineFilters, setInlineFilters] = useState(false);
+  const ribbonId = useId();
+  const ribbon = useRef<HTMLDivElement>(null);
   const [quickCategory, setQuickCategory] = useState<LibraryCategory | 'all'>(
     'all',
   );
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(12);
+  const [pageAnchor, setPageAnchor] = useState(0);
+  const [capacity, setCapacity] = useState(16);
   const strip = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const element = strip.current!;
+    const root = ribbon.current!;
     const measure = () => {
       const toolbar = element.querySelector<HTMLElement>('.shape-palette')!;
       const button = toolbar.querySelector<HTMLElement>('.palette-tool');
       const width = button?.getBoundingClientRect().width ?? 27;
-      const gap = Number.parseFloat(getComputedStyle(toolbar).columnGap) || 1;
       const padding = getComputedStyle(toolbar);
+      const gap = Number.parseFloat(padding.columnGap) || 1;
       const available =
         toolbar.clientWidth -
         Number.parseFloat(padding.paddingLeft) -
         Number.parseFloat(padding.paddingRight);
-      // Navigation, the pen and a possibly pinned current tool remain visible.
-      setPageSize(
-        Math.max(1, Math.min(23, Math.floor(available / (width + gap)) - 4)),
-      );
+      if (available > 0 && width > 0) {
+        setMeasured(true);
+        setCapacity(Math.max(1, Math.floor((available + gap) / (width + gap))));
+      }
+      const scale =
+        Number.parseFloat(
+          getComputedStyle(root).getPropertyValue('--ui-scale'),
+        ) || 1;
+      setInlineFilters(root.clientWidth >= 860 * scale);
     };
     const observer = new ResizeObserver(measure);
     observer.observe(element);
+    observer.observe(root);
     return () => observer.disconnect();
   }, []);
   const t = (key: string) => translate(locale, key as MessageKey);
@@ -89,8 +127,8 @@ export function ShapePalette({
     const allowed = new Set(
       selected.flatMap((category) => [...libraryElementKinds[category]]),
     );
-    const entries = [...shapeKinds, 'freehand' as const].filter((kind) =>
-      allowed.has(kind),
+    const entries = [...shapeKinds, 'freehand' as const].filter(
+      (kind) => allowed.has(kind) && !isDrawing(kind) && kind !== 'junction',
     );
     const search = normalize(nextQuery.trim());
     return entries.filter(
@@ -108,9 +146,29 @@ export function ShapePalette({
     currentCategory === 'all' ? categories : [currentCategory],
     query,
   );
+  // Reserve a current-tool slot so arming a shape cannot shift page boundaries.
+  const pinTool =
+    tool !== 'select' &&
+    tool !== 'pan' &&
+    !isDrawing(tool) &&
+    tool !== 'junction';
+  const reservePen = matches.includes('freehand') ? 1 : 0;
+  const pageSize = Math.max(
+    1,
+    Math.min(matches.length || 1, capacity - 3 - reservePen),
+  );
   const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
-  const currentPage = Math.min(page, pageCount - 1);
-  const wheelPages = useRef({ page: currentPage, count: pageCount });
+  // An exact catalog position survives repeated width changes without drift.
+  const currentPage = Math.min(
+    Math.floor(pageAnchor / pageSize),
+    pageCount - 1,
+  );
+  const setPage = (next: number) => setPageAnchor(next * pageSize);
+  const wheelPages = useRef({
+    page: currentPage,
+    count: pageCount,
+    size: pageSize,
+  });
   const wheelMotion = useRef({
     amount: 0,
     direction: 0,
@@ -118,8 +176,12 @@ export function ShapePalette({
     nextPage: 0,
   });
   useLayoutEffect(() => {
-    wheelPages.current = { page: currentPage, count: pageCount };
-  }, [currentPage, pageCount]);
+    wheelPages.current = {
+      page: currentPage,
+      count: pageCount,
+      size: pageSize,
+    };
+  }, [currentPage, pageCount, pageSize]);
   useEffect(() => {
     wheelMotion.current = {
       amount: 0,
@@ -178,7 +240,7 @@ export function ShapePalette({
       );
       if (next === current.page) return;
       current.page = next;
-      setPage(next);
+      setPageAnchor(next * current.size);
     };
     element.addEventListener('wheel', wheel, { passive: false });
     return () => element.removeEventListener('wheel', wheel);
@@ -191,12 +253,14 @@ export function ShapePalette({
   ];
   // Menu/shortcut activation can select a tool outside the current category.
   // Keep that explicit choice visible and retain a keyboard entry point.
-  if (!tools.includes(tool)) tools.splice(2, 0, tool);
+  if (pinTool && !tools.includes(tool)) tools.splice(2, 0, tool);
   // Preserve the pen's established quick/End-key entry point when enabled.
   if (matches.includes('freehand') && !tools.includes('freehand'))
     tools.push('freehand');
   const focusTool =
-    writable || tool === 'select' || tool === 'pan' ? tool : 'select';
+    tools.includes(tool) && (writable || tool === 'select' || tool === 'pan')
+      ? tool
+      : 'select';
   const updateFilters = (
     nextCategories: LibraryCategory[],
     nextQuery: string,
@@ -208,6 +272,8 @@ export function ShapePalette({
     if (
       tool !== 'select' &&
       tool !== 'pan' &&
+      mode === 'shapes' &&
+      !connectionActive &&
       !filtered(nextCategories, nextQuery).includes(tool)
     )
       activate('select');
@@ -218,163 +284,272 @@ export function ShapePalette({
     pan: 'M 16 3 V 29 M 3 16 H 29 M 11 8 L 16 3 L 21 8 M 11 24 L 16 29 L 21 24 M 8 11 L 3 16 L 8 21 M 24 11 L 29 16 L 24 21',
   };
   return (
-    <div className="element-library">
-      <div
-        className="element-filters"
-        role="group"
-        aria-label={t('palette.filters')}
-      >
-        <button
-          className="button compact category-picker-button"
-          type="button"
-          aria-label={t('palette.chooseCategories')}
-          onClick={() => setCategoriesOpen(true)}
-        >
-          {t('palette.chooseCategories')}
-          <span className="category-picker-count" aria-hidden="true">
-            {categories.length}/{libraryCategories.length}
-          </span>
-        </button>
-        <button
-          className="button compact"
-          type="button"
-          onClick={() => setBrowserOpen(true)}
-        >
-          {t('palette.browseElements')}
-        </button>
-        <label>
-          {t('palette.search')}
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => updateFilters(categories, event.target.value)}
-          />
-        </label>
-        <label className="quick-library-filter">
-          {t('palette.quickCategory')}
-          <select
-            value={currentCategory}
-            onChange={(event) => {
-              setQuickCategory(event.target.value as LibraryCategory | 'all');
-              setPage(0);
+    <div
+      className="element-library compact-tool-ribbon"
+      ref={ribbon}
+      data-ribbon-mode={mode}
+      data-palette-measured={measured}
+      data-palette-capacity={capacity}
+      data-palette-page-size={pageSize}
+    >
+      <div className="ribbon-header">
+        {connectionTools && (
+          <div
+            className="ribbon-mode-tabs"
+            role="tablist"
+            aria-label={t('ribbon.heading')}
+            onKeyDown={(event) => {
+              if (
+                !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
+              )
+                return;
+              event.preventDefault();
+              const next =
+                event.key === 'Home'
+                  ? 'shapes'
+                  : event.key === 'End'
+                    ? 'connections'
+                    : mode === 'shapes'
+                      ? 'connections'
+                      : 'shapes';
+              setMode(next);
+              requestAnimationFrame(() =>
+                ribbon.current
+                  ?.querySelector<HTMLButtonElement>(
+                    `[data-ribbon-tab="${next}"]`,
+                  )
+                  ?.focus(),
+              );
             }}
           >
-            <option value="all">{t('palette.allEnabled')}</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {t(`palette.category.${category}`)}
-              </option>
+            {(['shapes', 'connections'] as const).map((value) => (
+              <button
+                type="button"
+                role="tab"
+                key={value}
+                data-ribbon-tab={value}
+                id={`${ribbonId}-${value}-tab`}
+                aria-controls={`${ribbonId}-${value}-panel`}
+                aria-selected={mode === value}
+                tabIndex={mode === value ? 0 : -1}
+                onClick={() => {
+                  setMode(value);
+                }}
+              >
+                {t(`ribbon.${value}`)}
+              </button>
             ))}
-          </select>
+          </div>
+        )}
+        <label className="ribbon-search">
+          <span className="sr-only">{t('palette.search')}</span>
+          <input
+            type="search"
+            value={mode === 'shapes' ? query : connectionQuery}
+            placeholder={t('palette.search')}
+            onChange={(event) => {
+              if (mode === 'connections')
+                setConnectionQuery(event.target.value);
+              else updateFilters(categories, event.target.value);
+            }}
+          />
         </label>
-        <span className="element-results" role="status">
-          {translate(locale, 'palette.results' as MessageKey, {
-            count: matches.length,
-          })}
-        </span>
-      </div>
-      <div className="palette-strip" ref={strip} title={t('palette.wheelHelp')}>
+        <div
+          ref={setConnectionActions}
+          className="ribbon-connection-actions"
+          hidden={mode !== 'connections'}
+        />
+        {mode === 'shapes' && connectionActive && (
+          <span className="ribbon-active-label" role="status">
+            {translate(locale, 'ribbon.activeTool' as MessageKey, {
+              tool: t(toolKey(tool)),
+            })}
+          </span>
+        )}
         <button
           type="button"
-          className="button palette-page-button"
-          aria-label={t('palette.previousPage')}
-          title={t('palette.previousPage')}
-          disabled={currentPage === 0}
-          onClick={() => setPage(currentPage - 1)}
+          className="button compact ribbon-filter-toggle"
+          hidden={inlineFilters || mode !== 'shapes'}
+          aria-label={t('ribbon.libraries')}
+          title={t('ribbon.libraries')}
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen((value) => !value)}
         >
-          {'‹'}
+          {'☷'}
         </button>
         <div
-          className="shape-palette"
-          role="toolbar"
-          aria-label={translate(locale, 'diagram.tools')}
-          onKeyDown={(event) => {
-            if (!PALETTE_KEYS.includes(event.key)) return;
-            event.preventDefault();
-            const buttons = [
-              ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
-                'button:not(:disabled)',
-              ),
-            ];
-            const index = buttons.indexOf(
-              document.activeElement as HTMLButtonElement,
-            );
-            const next =
-              event.key === 'Home'
-                ? 0
-                : event.key === 'End'
-                  ? buttons.length - 1
-                  : (index +
-                      (['ArrowLeft', 'ArrowUp'].includes(event.key) ? -1 : 1) +
-                      buttons.length) %
-                    buttons.length;
-            buttons[next]?.focus();
-            buttons[next]?.scrollIntoView({
-              block: 'nearest',
-              inline: 'nearest',
-            });
-          }}
+          className="element-filters ribbon-shape-filters"
+          hidden={mode !== 'shapes' || (!inlineFilters && !filtersOpen)}
+          role="group"
+          aria-label={t('palette.filters')}
         >
-          {tools.map((item) => {
-            const name = t(toolKey(item));
-            const path = isShapeKind(item)
-              ? isDrawing(item)
-                ? 'M 3 16 H 29'
-                : item === 'text'
-                  ? 'M 6 6 H 26 M 16 6 V 27 M 11 27 H 21'
-                  : shapeRegistry[item].path(26, 22, 5)
-              : icons[item];
-            return (
-              <button
-                key={item}
-                className="palette-tool"
-                data-library-kind={
-                  isShapeKind(item) || item === 'freehand' ? item : undefined
-                }
-                title={`${name} — ${translate(locale, item === 'freehand' ? 'freehand.help' : isDrawing(item) ? 'diagram.linkHelp' : item === 'select' ? 'diagram.selectHelp' : item === 'pan' ? 'diagram.panHelp' : 'diagram.toolHelp')}`}
-                aria-label={name}
-                aria-pressed={tool === item}
-                tabIndex={focusTool === item ? 0 : -1}
-                disabled={
-                  !writable && (isShapeKind(item) || item === 'freehand')
-                }
-                onClick={() => activate(item)}
-              >
-                <svg viewBox="0 0 32 32" aria-hidden="true">
-                  <path
-                    d={path}
-                    transform={
-                      isShapeKind(item) && !isDrawing(item) && item !== 'text'
-                        ? 'translate(3 5)'
-                        : undefined
-                    }
-                  />
-                  {item === 'arrow' && <path d={'M 22 10 L 29 16 L 22 22'} />}
-                </svg>
-                <span>{name}</span>
-              </button>
-            );
-          })}
+          <button
+            className="button compact category-picker-button"
+            type="button"
+            aria-label={t('palette.chooseCategories')}
+            onClick={() => setCategoriesOpen(true)}
+          >
+            {t('palette.chooseCategories')}
+            <span className="category-picker-count" aria-hidden="true">
+              {categories.length}/{libraryCategories.length}
+            </span>
+          </button>
+          <button
+            className="button compact"
+            type="button"
+            onClick={() => setBrowserOpen(true)}
+          >
+            {t('palette.browseElements')}
+          </button>
+          <label className="quick-library-filter">
+            {t('palette.quickCategory')}
+            <select
+              value={currentCategory}
+              onChange={(event) => {
+                setQuickCategory(event.target.value as LibraryCategory | 'all');
+                setPage(0);
+              }}
+            >
+              <option value="all">{t('palette.allEnabled')}</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {t(`palette.category.${category}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="element-results" role="status">
+            {translate(locale, 'palette.results' as MessageKey, {
+              count: matches.length,
+            })}
+          </span>
         </div>
-        <button
-          type="button"
-          className="button palette-page-button"
-          aria-label={t('palette.nextPage')}
-          title={t('palette.nextPage')}
-          disabled={currentPage + 1 >= pageCount}
-          onClick={() => setPage(currentPage + 1)}
-        >
-          {'›'}
-        </button>
       </div>
-      <p className="palette-page-status" role="status">
-        {translate(locale, 'palette.pageStatus' as MessageKey, {
-          start: matches.length ? pageStart + 1 : 0,
-          end: Math.min(pageStart + pageSize, matches.length),
-          count: matches.length,
-        })}
-      </p>
-      {!matches.length && (
+      <div
+        role={connectionTools ? 'tabpanel' : undefined}
+        id={`${ribbonId}-shapes-panel`}
+        aria-labelledby={connectionTools ? `${ribbonId}-shapes-tab` : undefined}
+        hidden={mode !== 'shapes'}
+      >
+        <div
+          className="palette-strip"
+          ref={strip}
+          title={t('palette.wheelHelp')}
+        >
+          <button
+            type="button"
+            className="button palette-page-button"
+            aria-label={t('palette.previousPage')}
+            title={t('palette.previousPage')}
+            disabled={currentPage === 0}
+            onClick={() => setPage(currentPage - 1)}
+          >
+            {'‹'}
+          </button>
+          <div
+            className="shape-palette"
+            role="toolbar"
+            aria-label={translate(locale, 'diagram.tools')}
+            onKeyDown={(event) => {
+              if (!PALETTE_KEYS.includes(event.key)) return;
+              event.preventDefault();
+              const buttons = [
+                ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                  'button:not(:disabled)',
+                ),
+              ];
+              const index = buttons.indexOf(
+                document.activeElement as HTMLButtonElement,
+              );
+              const next =
+                event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? buttons.length - 1
+                    : (index +
+                        (['ArrowLeft', 'ArrowUp'].includes(event.key)
+                          ? -1
+                          : 1) +
+                        buttons.length) %
+                      buttons.length;
+              buttons[next]?.focus();
+              buttons[next]?.scrollIntoView({
+                block: 'nearest',
+                inline: 'nearest',
+              });
+            }}
+          >
+            {tools.map((item) => {
+              const name = t(toolKey(item));
+              const path = isShapeKind(item)
+                ? isDrawing(item)
+                  ? 'M 3 16 H 29'
+                  : item === 'text'
+                    ? 'M 6 6 H 26 M 16 6 V 27 M 11 27 H 21'
+                    : shapeRegistry[item].path(26, 22, 5)
+                : icons[item];
+              return (
+                <button
+                  key={item}
+                  className="palette-tool"
+                  data-library-kind={
+                    isShapeKind(item) || item === 'freehand' ? item : undefined
+                  }
+                  title={`${name} — ${translate(locale, item === 'freehand' ? 'freehand.help' : isDrawing(item) ? 'diagram.linkHelp' : item === 'select' ? 'diagram.selectHelp' : item === 'pan' ? 'diagram.panHelp' : 'diagram.toolHelp')}`}
+                  aria-label={name}
+                  aria-pressed={tool === item}
+                  tabIndex={focusTool === item ? 0 : -1}
+                  disabled={
+                    !writable && (isShapeKind(item) || item === 'freehand')
+                  }
+                  onClick={() => activate(item)}
+                >
+                  <svg viewBox="0 0 32 32" aria-hidden="true">
+                    <path
+                      d={path}
+                      transform={
+                        isShapeKind(item) && !isDrawing(item) && item !== 'text'
+                          ? 'translate(3 5)'
+                          : undefined
+                      }
+                    />
+                    {item === 'arrow' && <path d={'M 22 10 L 29 16 L 22 22'} />}
+                  </svg>
+                  <span>{name}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="button palette-page-button"
+            aria-label={t('palette.nextPage')}
+            title={t('palette.nextPage')}
+            disabled={currentPage + 1 >= pageCount}
+            onClick={() => setPage(currentPage + 1)}
+          >
+            {'›'}
+          </button>
+        </div>
+        <p className="palette-page-status" role="status">
+          {translate(locale, 'palette.pageStatus' as MessageKey, {
+            start: matches.length ? pageStart + 1 : 0,
+            end: Math.min(pageStart + pageSize, matches.length),
+            count: matches.length,
+          })}
+        </p>
+      </div>
+      {connectionTools && (
+        <div
+          role="tabpanel"
+          id={`${ribbonId}-connections-panel`}
+          aria-labelledby={`${ribbonId}-connections-tab`}
+          hidden={mode !== 'connections'}
+        >
+          {connectionTools(connectionQuery, connectionActions)}
+        </div>
+      )}
+      {mode === 'shapes' && !matches.length && (
         <p className="element-empty">
           {t(categories.length ? 'palette.empty' : 'palette.noCategories')}
         </p>

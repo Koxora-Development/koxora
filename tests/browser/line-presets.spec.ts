@@ -29,13 +29,9 @@ test('line presets create routed free connections and preserve both arrowheads i
       buffer: Buffer.from(await exportProject(project)),
     });
   await expect(page.locator('.save-status')).toHaveText('Saved on this device');
-  await page
-    .getByRole('combobox', { name: 'Show library', exact: true })
-    .selectOption('drawing');
-  await page
-    .locator('.shape-palette')
-    .getByRole('button', { name: 'Line', exact: true })
-    .click();
+  await page.locator('[data-ribbon-tab="connections"]').click();
+  await page.locator('[data-connection-preset="straight-line"]').click();
+  await page.locator('[data-connection-options]').click();
   const presets = page.getByRole('combobox', {
     name: 'Line / arrow style',
     exact: true,

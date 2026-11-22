@@ -12,6 +12,33 @@ import {
 } from '../../packages/editor-core/src/index';
 const button = (p: Page, name: string) =>
   p.getByRole('button', { name, exact: true });
+async function chooseTool(p: Page, name: string) {
+  if (name === 'Line' || name === 'Arrow') {
+    await p.locator('[data-ribbon-tab="connections"]').click();
+    const previous = p.locator('.connection-page-button').first();
+    while (await previous.isEnabled()) await previous.click();
+    const tool = p.locator(
+      `[data-connection-preset="straight-${name === 'Line' ? 'line' : 'arrow'}"]`,
+    );
+    const next = p.locator('.connection-page-button').last();
+    while (!(await tool.count()) && (await next.isEnabled()))
+      await next.click();
+    await tool.click();
+  } else {
+    await p.locator('[data-ribbon-tab="shapes"]').click();
+    const tool = p
+      .locator('.shape-palette')
+      .getByRole('button', { name, exact: true });
+    if (!(await tool.count())) {
+      const previous = p.locator('.palette-page-button').first();
+      while (await previous.isEnabled()) await previous.click();
+      const next = p.locator('.palette-page-button').last();
+      while (!(await tool.count()) && (await next.isEnabled()))
+        await next.click();
+    }
+    await tool.click();
+  }
+}
 const canvas = (p: Page) =>
   p.getByRole('region', { name: 'Interactive canvas', exact: true });
 async function menu(page: Page, name: string) {
@@ -105,7 +132,7 @@ async function handleCenter(handle: Locator) {
   return center;
 }
 async function shape(p: Page, name: string, x: number, y: number) {
-  await button(p, name).click();
+  await chooseTool(p, name);
   await click(p, x, y);
 }
 async function exported(p: Page) {
@@ -193,7 +220,7 @@ test('shift and marquee selection move together, duplicate linked nodes, delete 
   await page.setViewportSize({ width: 1440, height: 1100 });
   await shape(page, 'Rectangle', -200, -50);
   await shape(page, 'Diamond', 100, -50);
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   await click(page, -200, -50);
   await click(page, 100, -50);
   await button(page, 'Select').click();
@@ -241,7 +268,7 @@ test('standalone arrows have editable endpoints, labels and heads and survive po
 }) => {
   await create(page);
   await page.setViewportSize({ width: 1440, height: 1100 });
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   await worldDrag(page, -160, -50, 80, 80);
   await expect(page.locator('[data-node-id]')).toHaveCount(1);
   await expect(page.locator('[data-connection-id]')).toHaveCount(0);
@@ -308,14 +335,14 @@ test('Escape, capture cancellation and blur discard previews; navigation never i
   await page.keyboard.press('Escape');
   await page.mouse.up();
   await expect.poll(() => selection(page).then((s) => s.length)).toBe(0);
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
   await page.keyboard.down('Space');
   // Layout changes cancel gestures, but must not forget a physically held key.
   await page.setViewportSize({ width: 1400, height: 1080 });
   await worldDrag(page, 200, 100, 250, 150);
   await page.keyboard.up('Space');
   await expect(node).toHaveCount(1);
-  await button(page, 'Rectangle').click();
+  await chooseTool(page, 'Rectangle');
   const center = await point(page, 0, 0);
   await page.mouse.move(center.x, center.y);
   await page.mouse.down();
@@ -499,8 +526,25 @@ test('hidden, locked and future elements stay protected and edge hit area is sel
       mimeType: 'application/zip',
       buffer: Buffer.from(await exportProject(project)),
     });
-  await button(page, 'Arrow').click();
-  await expect(page.locator('.connection-port')).toHaveCount(8);
+  await chooseTool(page, 'Arrow');
+  await expect
+    .poll(() =>
+      page
+        .locator('.connection-port')
+        .evaluateAll((buttons) =>
+          buttons.map(
+            (button) =>
+              `${button.getAttribute('data-port-node')}:${button.getAttribute('data-port-anchor')}`,
+          ),
+        ),
+    )
+    .toEqual(
+      expect.arrayContaining(
+        [ids[1], ids[2]].flatMap((id) =>
+          ['north', 'east', 'south', 'west'].map((anchor) => `${id}:${anchor}`),
+        ),
+      ),
+    );
   await expect(
     page.locator(
       `[data-port-node="${ids[0]}"], [data-port-node="${ids[3]}"], [data-port-node="${ids[4]}"]`,
@@ -541,7 +585,7 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
 }) => {
   await create(page);
   await page.setViewportSize({ width: 1440, height: 1100 });
-  await button(page, 'Rectangle').click();
+  await chooseTool(page, 'Rectangle');
   await page.getByLabel('Repeat insertion', { exact: true }).check();
   await shape(page, 'Rectangle', -220, -60);
   await click(page, 0, 20);
@@ -593,12 +637,12 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
         .fill(['Draft & review', 'Validate', 'Ready to ship'][i]);
       await page.locator('.interactive-canvas').focus();
     }
-    await button(page, 'Arrow').click();
+    await chooseTool(page, 'Arrow');
     for (let i = 0; i < 2; i++) {
       await click(page, centers[i].x, centers[i].y);
       await click(page, centers[i + 1].x, centers[i + 1].y);
     }
-    await button(page, 'Arrow').click();
+    await chooseTool(page, 'Arrow');
     await worldDrag(page, -150, 100, 150, 100);
     await button(page, 'Select').click();
     await click(page, centers[1].x, centers[1].y);
@@ -626,7 +670,8 @@ test('palette keyboard navigation, repeat insertion, alignment and localized nar
       ),
     ).toBe(true);
   }
-  await expect(button(page, 'Pfeil')).toBeVisible();
+  await chooseTool(page, 'Arrow');
+  await expect(button(page, 'Gerader Pfeil')).toBeVisible();
   await expect(
     page.getByRole('textbox', { name: 'Projektname', exact: true }),
   ).toBeVisible();

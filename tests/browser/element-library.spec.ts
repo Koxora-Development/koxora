@@ -49,7 +49,14 @@ async function transform(page: Page, label: string) {
   await page.getByRole('menuitem', { name: label, exact: true }).click();
 }
 
+async function revealLibraries(page: Page) {
+  await page.locator('[data-ribbon-tab="shapes"]').click();
+  if (!(await page.locator('.ribbon-shape-filters').isVisible()))
+    await page.locator('.ribbon-filter-toggle').click();
+}
+
 async function chooseCategories(page: Page, values: string[], locale = 'en') {
+  await revealLibraries(page);
   const messages: Record<string, string> = JSON.parse(
     readFileSync(`packages/i18n/src/locales/${locale}.json`, 'utf8'),
   );
@@ -232,6 +239,7 @@ for (const locale of ['en', 'de'])
       name: messages['palette.chooseCategories'],
       exact: true,
     });
+    await revealLibraries(page);
     await reachable(category);
     await chooseCategories(page, ['flowchart'], locale);
     await reachable(search);
@@ -276,6 +284,7 @@ test('category selection updates live, combines libraries and restores remembere
     palette(page).getByRole('button', { name: 'Rectangle', exact: true }),
   ).toHaveCount(1);
   // Enabled libraries span responsive pages; jump directly to Symbols.
+  await revealLibraries(page);
   await page
     .getByRole('combobox', { name: 'Show library', exact: true })
     .selectOption('symbols');
@@ -326,6 +335,7 @@ test('category selection updates live, combines libraries and restores remembere
   await page.reload();
   await page.getByRole('button', { name: 'Open project', exact: true }).click();
   // Enabled libraries span responsive pages; jump directly to Symbols.
+  await revealLibraries(page);
   await page
     .getByRole('combobox', { name: 'Show library', exact: true })
     .selectOption('symbols');

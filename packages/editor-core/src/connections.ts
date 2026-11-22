@@ -2,10 +2,21 @@ import {
   validConnectionPoint,
   isLineStyle,
   isEndpointMarker,
+  isConnectionAnchor,
   type LineStyle,
   type EndpointMarker,
   type Connection,
   type Node,
+} from '@koxora/project';
+export {
+  CONNECTION_PORTS_FEATURE,
+  LEGACY_CONNECTION_ANCHORS,
+  hasConnectionPorts,
+  isConnectionAnchor,
+  isNormalizedConnectionAnchor,
+  type ConnectionAnchor,
+  type LegacyConnectionAnchor,
+  type NormalizedConnectionAnchor,
 } from '@koxora/project';
 export {
   FLOATING_CONNECTIONS_FEATURE,
@@ -54,10 +65,7 @@ export const DEFAULT_CONNECTION: ConnectionOptions = {
 export function readConnection(edge: Connection): ConnectionOptions {
   const v = jsonObject(edge.extensions[CONNECTION_KEY]);
   const anchor = (value: unknown): Anchor =>
-    typeof value === 'string' &&
-    ['auto', 'north', 'east', 'south', 'west'].includes(value)
-      ? (value as Anchor)
-      : 'auto';
+    isConnectionAnchor(value) ? structuredClone(value) : 'auto';
   return {
     ...(v.version === 1 && isLineStyle(v.lineStyle)
       ? { lineStyle: v.lineStyle }

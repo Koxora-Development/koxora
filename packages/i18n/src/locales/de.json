@@ -884,5 +884,17 @@
   "line.filled-diamond": "Gefüllte Raute am Anfang",
   "line.circle-ends": "Kreise an beiden Enden",
   "line.bar-ends": "Querstriche an beiden Enden",
-  "line.dashed-open-arrow": "Gestrichelt mit offener Pfeilspitze"
+  "line.dashed-open-arrow": "Gestrichelt mit offener Pfeilspitze",
+  "ports.position": "{x}% von links, {y}% von oben",
+  "ports.center": "Mitte",
+  "shape.junction": "Verzweigung / Splitter",
+  "ribbon.heading": "Zeichenwerkzeuge",
+  "ribbon.shapes": "Formen",
+  "ribbon.connections": "Verbindungen",
+  "ribbon.libraries": "Bibliotheken…",
+  "ribbon.previousConnections": "Vorherige Verbindungen",
+  "ribbon.nextConnections": "Nächste Verbindungen",
+  "ribbon.connectionResults": "{start}–{end} von {count} Verbindungen",
+  "line.options": "Verbindungsoptionen…",
+  "ribbon.activeTool": "Aktiv: {tool}"
 }

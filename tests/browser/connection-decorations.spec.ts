@@ -62,7 +62,20 @@ for (const locale of ['en', 'de'])
         name: t['line.library'],
         exact: true,
       });
-    await expect(gallery.getByRole('button')).toHaveCount(20);
+    await page.locator('[data-ribbon-tab="connections"]').click();
+    await expect(
+      gallery.locator('[data-connection-preset]').first(),
+    ).toBeVisible();
+    const choose = async (preset: string) => {
+      const previous = page.locator('.connection-page-button').first();
+      while (await previous.isEnabled()) await previous.click();
+      const button = gallery.locator(`[data-connection-preset="${preset}"]`);
+      const next = page.locator('.connection-page-button').last();
+      while (!(await button.count()) && (await next.isEnabled()))
+        await next.click();
+      await button.click();
+      return button;
+    };
     const choices = [
       'dashed-open-arrow',
       'open-diamond',
@@ -72,8 +85,7 @@ for (const locale of ['en', 'de'])
       'dotted-arrow',
     ];
     for (const [index, preset] of choices.entries()) {
-      const button = gallery.locator(`[data-connection-preset="${preset}"]`);
-      await button.click();
+      const button = await choose(preset);
       await expect(button).toHaveAttribute('aria-pressed', 'true');
       await draw(page);
       await expect(page.locator('[data-connection-id]')).toHaveCount(index + 1);
@@ -121,7 +133,7 @@ for (const locale of ['en', 'de'])
       lineStyle: 'dotted',
     });
     // Choosing a plain preset clears custom options for the next line.
-    await gallery.locator('[data-connection-preset="straight-arrow"]').click();
+    await choose('straight-arrow');
     await draw(page);
     await expect(page.locator('[data-node-id]')).toHaveCount(1);
     await expect(
