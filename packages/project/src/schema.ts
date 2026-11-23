@@ -24,19 +24,34 @@ import {
   type ResourceLimits,
 } from './validation';
 import { safePath } from './zip';
+import {
+  CONNECTION_DECORATIONS_FEATURE,
+  hasConnectionDecorations,
+  validConnectionDecorations,
+} from './connection-decorations';
 import { FREEHAND_TEXT_FEATURE, FREEHAND_TEXT_KEY } from './editor-features';
 import {
   FLOATING_CONNECTIONS_FEATURE,
   validConnectionPoint,
 } from './connection-endpoints';
 import {
+  CONNECTION_PORTS_FEATURE,
+  hasConnectionPorts,
+  isConnectionAnchor,
+} from './connection-ports';
+import {
   isTextRegions,
   hasAdvancedTextRegions,
+  hasTableCalculations,
+  TABLE_CALCULATION_FEATURE,
   ADVANCED_TEXT_REGIONS_FEATURE,
   TEXT_REGIONS_KEY,
   TEXT_REGIONS_FEATURE,
 } from './text-regions';
 export const FEATURES = [
+  CONNECTION_PORTS_FEATURE,
+  CONNECTION_DECORATIONS_FEATURE,
+  TABLE_CALCULATION_FEATURE,
   'node-reflection-v1',
   FREEHAND_TEXT_FEATURE,
   FLOATING_CONNECTIONS_FEATURE,
@@ -356,6 +371,12 @@ export function validateProject(
         nodeIds.add(node.id);
         docNodes.add(node.id);
         text(node.kind, `${np}.kind`);
+        if (node.kind === 'junction')
+          check(
+            manifest.requiredFeatures.includes(CONNECTION_PORTS_FEATURE),
+            `${np}.kind`,
+            'feature',
+          );
         ref(node.layerId, layerIds, `${np}.layerId`);
         record(node.geometry, `${np}.geometry`);
         for (const key of ['x', 'y', 'rotation'] as const)
@@ -396,6 +417,12 @@ export function validateProject(
             `${np}.extensions.${TEXT_REGIONS_KEY}`,
             'feature',
           );
+          if (hasTableCalculations(regions))
+            check(
+              manifest.requiredFeatures.includes(TABLE_CALCULATION_FEATURE),
+              `${np}.extensions.${TEXT_REGIONS_KEY}`,
+              'feature',
+            );
           if (hasAdvancedTextRegions(regions))
             check(
               manifest.requiredFeatures.includes(ADVANCED_TEXT_REGIONS_FEATURE),
@@ -455,6 +482,45 @@ export function validateProject(
           }
         }
         const connection = edge.extensions['org.koxora.connection'];
+        if (
+          connection &&
+          typeof connection === 'object' &&
+          !Array.isArray(connection) &&
+          connection.version === 1
+        ) {
+          for (const key of ['sourceAnchor', 'targetAnchor'] as const)
+            check(
+              connection[key] === undefined ||
+                isConnectionAnchor(connection[key]),
+              `${ep}.extensions.org.koxora.connection.${key}`,
+              'connectionAnchor',
+            );
+          if (hasConnectionPorts(connection))
+            check(
+              manifest.requiredFeatures.includes(CONNECTION_PORTS_FEATURE),
+              `${ep}.extensions.org.koxora.connection`,
+              'feature',
+            );
+        }
+        if (
+          connection &&
+          typeof connection === 'object' &&
+          !Array.isArray(connection) &&
+          connection.version === 1 &&
+          hasConnectionDecorations(connection)
+        ) {
+          check(
+            manifest.requiredFeatures.includes(CONNECTION_DECORATIONS_FEATURE),
+            `${ep}.extensions.org.koxora.connection`,
+            'feature',
+          );
+          check(
+            validConnectionDecorations(connection),
+            `${ep}.extensions.org.koxora.connection`,
+            'connectionDecorations',
+          );
+        }
+
         if (
           connection &&
           typeof connection === 'object' &&

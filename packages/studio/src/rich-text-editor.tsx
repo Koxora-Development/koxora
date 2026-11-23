@@ -1,5 +1,6 @@
 import { InfoDisclosure } from './info-disclosure';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DOMParser } from 'prosemirror-model';
 import { EditorState, Plugin, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
@@ -26,6 +27,191 @@ import {
   parsePlainTextClipboard,
 } from './rich-text-schema';
 
+/** Remains within its editor's DOM ancestry while the top layer escapes scroll clipping. */
+export function FontPicker({
+  locale,
+  value,
+  onChange,
+}: {
+  locale: string;
+  value?: Appearance['fontFamily'];
+  onChange: (font: Appearance['fontFamily']) => void;
+}) {
+  const t = (key: MessageKey) => translate(locale, key);
+  const id = useId();
+  const details = useRef<HTMLDetailsElement>(null),
+    menu = useRef<HTMLDivElement>(null),
+    searchInput = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false),
+    [search, setSearch] = useState('');
+  function close() {
+    const element = menu.current;
+    if (element?.hidePopover && element.matches(':popover-open'))
+      element.hidePopover();
+    if (details.current) details.current.open = false;
+    setOpen(false);
+  }
+  useLayoutEffect(() => {
+    const element = menu.current;
+    if (!element || !open) return;
+    const position = () => {
+      const anchor = details.current
+        ?.querySelector('summary')
+        ?.getBoundingClientRect();
+      if (!anchor) return;
+      const viewport = window.visualViewport;
+      const left = (viewport?.offsetLeft ?? 0) + 8,
+        top = (viewport?.offsetTop ?? 0) + 8,
+        width = (viewport?.width ?? innerWidth) - 16,
+        height = (viewport?.height ?? innerHeight) - 16;
+      element.style.maxWidth = `${Math.max(1, width)}px`;
+      element.style.maxHeight = `${Math.max(1, height)}px`;
+      const rect = element.getBoundingClientRect();
+      const below = top + height - anchor.bottom,
+        above = anchor.top - top;
+      const y =
+        below >= rect.height || below >= above
+          ? anchor.bottom + 4
+          : anchor.top - rect.height - 4;
+      element.style.left = `${Math.max(left, Math.min(anchor.left, left + width - rect.width))}px`;
+      element.style.top = `${Math.max(top, Math.min(y, top + height - rect.height))}px`;
+    };
+    if (element.showPopover && !element.matches(':popover-open'))
+      element.showPopover();
+    position();
+    searchInput.current?.focus({ preventScroll: true });
+    const observer = new ResizeObserver(position);
+    observer.observe(element);
+    const outside = (event: PointerEvent) => {
+      if (!details.current?.contains(event.target as globalThis.Node)) close();
+    };
+    document.addEventListener('pointerdown', outside, true);
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', position, true);
+    window.visualViewport?.addEventListener('resize', position);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('pointerdown', outside, true);
+      window.removeEventListener('resize', position);
+      window.removeEventListener('scroll', position, true);
+      window.visualViewport?.removeEventListener('resize', position);
+    };
+  }, [open]);
+  return (
+    <details
+      className="font-picker"
+      ref={details}
+      open={open}
+      onToggle={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.currentTarget.open) {
+          setOpen(true);
+          setSearch('');
+        } else close();
+      }}
+    >
+      <summary
+        aria-label={t('text.family')}
+        aria-controls={id}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        style={{ fontFamily: value ? FONT_FAMILIES[value] : undefined }}
+      >
+        {value ? t(`text.family.${value}`) : t('format.mixed')}
+      </summary>
+      <div
+        id={id}
+        ref={menu}
+        className="font-menu"
+        popover="manual"
+        data-no-drag="true"
+        role="dialog"
+        aria-label={t('text.family')}
+        onToggle={(event) => {
+          if (
+            event.target === menu.current &&
+            (event.nativeEvent as ToggleEvent).newState === 'closed'
+          ) {
+            if (details.current) details.current.open = false;
+            setOpen(false);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+            details.current?.querySelector('summary')?.focus();
+          } else if (
+            ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) &&
+            (event.key.startsWith('Arrow') ||
+              event.target instanceof HTMLButtonElement)
+          ) {
+            event.preventDefault();
+            const buttons = [
+              ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                'button',
+              ),
+            ];
+            const index = buttons.indexOf(event.target as HTMLButtonElement);
+            const next =
+              event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? buttons.length - 1
+                  : index < 0
+                    ? event.key === 'ArrowUp'
+                      ? buttons.length - 1
+                      : 0
+                    : (index +
+                        (event.key === 'ArrowUp' ? -1 : 1) +
+                        buttons.length) %
+                      buttons.length;
+            buttons[next]?.focus();
+          }
+        }}
+      >
+        <input
+          ref={searchInput}
+          type="search"
+          aria-label={t('rich.searchFonts')}
+          placeholder={t('rich.searchFonts')}
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <div role="group" aria-label={t('text.family')}>
+          {(Object.keys(FONT_FAMILIES) as Appearance['fontFamily'][])
+            .filter((font) =>
+              t(`text.family.${font}`)
+                .toLocaleLowerCase()
+                .includes(search.toLocaleLowerCase()),
+            )
+            .map((font) => (
+              <button
+                type="button"
+                key={font}
+                style={{ fontFamily: FONT_FAMILIES[font] }}
+                aria-pressed={value === font}
+                onClick={() => {
+                  close();
+                  setSearch('');
+                  // Range controls keep a visible keyboard target; rich editors
+                  // can then return focus to their retained text selection.
+                  details.current
+                    ?.querySelector('summary')
+                    ?.focus({ preventScroll: true });
+                  onChange(font);
+                }}
+              >
+                {t(`text.family.${font}`)}
+              </button>
+            ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
 export function RichTextEditor({
   value,
   base,
@@ -35,6 +221,9 @@ export function RichTextEditor({
   onPreview,
   label,
   maxLength = 4096,
+  toolbarContainer,
+  embedded = false,
+  focusRequest,
 }: {
   value: RichText;
   base: Appearance;
@@ -44,6 +233,9 @@ export function RichTextEditor({
   onPreview?: (value: RichText) => void;
   label?: string;
   maxLength?: number;
+  toolbarContainer?: HTMLElement | null;
+  embedded?: boolean;
+  focusRequest?: { key: number; selection: 'all' | 'end' };
 }) {
   const t = (key: MessageKey) => translate(locale, key);
   const host = useRef<HTMLDivElement>(null),
@@ -51,6 +243,7 @@ export function RichTextEditor({
   const callback = useRef(onChange),
     preview = useRef(onPreview);
   const limit = useRef(maxLength);
+  const localAcknowledgements = useRef<string[]>([]);
   useEffect(() => {
     limit.current = maxLength;
   }, [maxLength]);
@@ -58,10 +251,19 @@ export function RichTextEditor({
     callback.current = onChange;
     preview.current = onPreview;
   }, [onChange, onPreview]);
-  const [initial] = useState({ value, base, autoFocus, locale, label });
+  const [initial] = useState({
+    value,
+    base,
+    autoFocus,
+    locale,
+    label,
+    embedded,
+  });
   const currentBase = useRef(base);
-  const [current, setCurrent] = useState<Partial<Appearance>>(base),
-    [search, setSearch] = useState(''),
+  const [current, setCurrent] = useState<Partial<Appearance>>({
+      ...base,
+      ...(!plainText(value) ? value.paragraphs[0]?.runs[0]?.style : {}),
+    }),
     [notice, setNotice] = useState<MessageKey | null>(null);
   function format(
     key: keyof TextStyle,
@@ -74,12 +276,12 @@ export function RichTextEditor({
       { from, to, empty } = state.selection;
     const mark = textSchema.marks[key].create({ value });
     const tr = empty
-      ? state.tr.addStoredMark(mark)
+      ? state.tr.addStoredMark(mark).setMeta('koxora.emptyStyle', true)
       : state.tr.addMark(from, to, mark);
     editor.dispatch(tr);
     if (focus) editor.focus();
   }
-  useEffect(() => {
+  useLayoutEffect(() => {
     const toggle =
       (
         key: 'fontWeight' | 'fontStyle' | 'textDecoration',
@@ -100,12 +302,24 @@ export function RichTextEditor({
           });
         editor.dispatch(
           empty
-            ? editor.state.tr.addStoredMark(mark)
+            ? editor.state.tr
+                .addStoredMark(mark)
+                .setMeta('koxora.emptyStyle', true)
             : editor.state.tr.addMark(from, to, mark),
         );
         return true;
       };
+    const emptyStyle = !plainText(initial.value)
+      ? initial.value.paragraphs[0]?.runs[0]?.style
+      : undefined;
     const state = EditorState.create({
+      storedMarks: emptyStyle
+        ? TEXT_ATTRIBUTES.map((key) =>
+            textSchema.marks[key].create({
+              value: emptyStyle[key] ?? initial.base[key],
+            }),
+          )
+        : undefined,
       doc: toTextDocument({
         ...initial.value,
         paragraphs: initial.value.paragraphs.map((p) => ({
@@ -131,6 +345,7 @@ export function RichTextEditor({
           'Shift-Mod-z': redo,
           'Mod-y': redo,
           'Shift-Enter': splitBlock,
+          ...(initial.embedded ? { 'Alt-Enter': splitBlock } : {}),
         }),
         keymap(baseKeymap),
         new Plugin({
@@ -161,10 +376,36 @@ export function RichTextEditor({
         tabindex: '0',
       },
       dispatchTransaction(tr) {
+        const previousMarks =
+          editor.state.storedMarks ?? editor.state.selection.$from.marks();
         const next = editor.state.apply(tr);
         editor.updateState(next);
-        if (tr.docChanged) {
+        if (
+          tr.docChanged ||
+          (tr.getMeta('koxora.emptyStyle') && !next.doc.textContent)
+        ) {
           const rich = fromTextDocument(next.doc);
+          if (!next.doc.textContent) {
+            const paragraph = rich.paragraphs[next.selection.$from.index(0)];
+            const marks = next.storedMarks ?? previousMarks;
+            if (paragraph && marks.length)
+              paragraph.runs = [
+                {
+                  text: '',
+                  style: Object.fromEntries(
+                    marks.map((mark) => [mark.type.name, mark.attrs.value]),
+                  ),
+                },
+              ];
+          }
+          // Controlled props may acknowledge an older transaction after native
+          // input has already advanced. Never rewind the newer editor state.
+          localAcknowledgements.current.push(JSON.stringify(rich));
+          if (localAcknowledgements.current.length > 64)
+            localAcknowledgements.current.splice(
+              0,
+              localAcknowledgements.current.length - 64,
+            );
           callback.current(rich);
           preview.current?.(rich);
         }
@@ -230,6 +471,20 @@ export function RichTextEditor({
       view.current = null;
     };
   }, [initial]);
+  useLayoutEffect(() => {
+    const editor = view.current;
+    if (!editor || !focusRequest) return;
+    const { doc, storedMarks } = editor.state;
+    const end = TextSelection.atEnd(doc).to;
+    const start =
+      focusRequest.selection === 'all' ? TextSelection.atStart(doc).from : end;
+    const tr = editor.state.tr.setSelection(
+      TextSelection.create(doc, start, end),
+    );
+    if (storedMarks) tr.setStoredMarks(storedMarks);
+    editor.dispatch(tr);
+    editor.focus();
+  }, [focusRequest]);
   useEffect(() => {
     const baseChanged =
       JSON.stringify(currentBase.current) !== JSON.stringify(base);
@@ -237,13 +492,36 @@ export function RichTextEditor({
     const editor = view.current;
     if (!editor) return;
     // Acknowledging our own transaction must preserve native line breaks, selection and undo.
-    if (
-      JSON.stringify(fromTextDocument(editor.state.doc)) ===
-      JSON.stringify(value)
-    ) {
+    const acknowledged = JSON.stringify(value);
+    const localIndex = localAcknowledgements.current.lastIndexOf(acknowledged);
+    if (localIndex >= 0) {
+      localAcknowledgements.current.splice(0, localIndex + 1);
       if (baseChanged) editor.dispatch(editor.state.tr);
       return;
     }
+    if (
+      !editor.state.doc.textContent &&
+      !value.paragraphs.some((paragraph) =>
+        paragraph.runs.some((run) => run.text),
+      )
+    ) {
+      const paragraph =
+        value.paragraphs[editor.state.selection.$from.index(0)] ??
+        value.paragraphs[0];
+      const seed = paragraph?.runs[0]?.style ?? {};
+      editor.dispatch(
+        editor.state.tr.setStoredMarks(
+          TEXT_ATTRIBUTES.map((key) =>
+            textSchema.marks[key].create({ value: seed[key] ?? base[key] }),
+          ),
+        ),
+      );
+    }
+    if (JSON.stringify(fromTextDocument(editor.state.doc)) === acknowledged) {
+      if (baseChanged) editor.dispatch(editor.state.tr);
+      return;
+    }
+    localAcknowledgements.current = [];
     const doc = toTextDocument({
       ...value,
       paragraphs: value.paragraphs.map((paragraph) => ({
@@ -259,7 +537,24 @@ export function RichTextEditor({
         })),
       })),
     });
-    if (editor.state.doc.eq(doc)) return;
+    if (editor.state.doc.eq(doc)) {
+      // Empty run style seeds are portable authoring data although ProseMirror
+      // omits their text nodes. Undo/Redo must also restore the typing marks.
+      if (!doc.textContent) {
+        const paragraph =
+          value.paragraphs[editor.state.selection.$from.index(0)] ??
+          value.paragraphs[0];
+        const seed = paragraph?.runs[0]?.style ?? {};
+        editor.dispatch(
+          editor.state.tr.setStoredMarks(
+            TEXT_ATTRIBUTES.map((key) =>
+              textSchema.marks[key].create({ value: seed[key] ?? base[key] }),
+            ),
+          ),
+        );
+      }
+      return;
+    }
     const { anchor, head } = editor.state.selection;
     const selection = TextSelection.between(
       doc.resolve(Math.min(anchor, doc.content.size)),
@@ -267,7 +562,22 @@ export function RichTextEditor({
     );
     // External undo and property edits replace the document, without echoing another edit.
     editor.updateState(
-      EditorState.create({ doc, selection, plugins: editor.state.plugins }),
+      EditorState.create({
+        doc,
+        selection,
+        plugins: editor.state.plugins,
+        ...(!doc.textContent
+          ? {
+              storedMarks: TEXT_ATTRIBUTES.map((key) =>
+                textSchema.marks[key].create({
+                  value:
+                    (value.paragraphs[selection.$from.index(0)]?.runs[0]
+                      ?.style ?? {})[key] ?? base[key],
+                }),
+              ),
+            }
+          : {}),
+      }),
     );
     editor.dispatch(editor.state.tr);
   }, [value, base]);
@@ -289,191 +599,148 @@ export function RichTextEditor({
     editor.dispatch(tr);
     editor.focus();
   }
-  return (
-    <div className="rich-text-editor">
-      <div
-        className="rich-toolbar"
-        role="group"
-        aria-label={t('text.formatting')}
+  const toolbar = (
+    <div
+      className="rich-toolbar"
+      role="group"
+      aria-label={t('text.formatting')}
+    >
+      <FontPicker
+        locale={locale}
+        value={current.fontFamily}
+        onChange={(font) => format('fontFamily', font)}
+      />
+      <label>
+        {t('diagram.fontSize')}
+        <input
+          type="number"
+          min={8}
+          max={96}
+          step="any"
+          aria-label={t('diagram.fontSize')}
+          placeholder={t('format.mixed')}
+          key={current.fontSize ?? 'mixed'}
+          defaultValue={current.fontSize ?? ''}
+          onBlur={(e) => {
+            const n = e.target.valueAsNumber;
+            if (n >= 8 && n <= 96) format('fontSize', n, false);
+          }}
+        />
+      </label>
+      {(['bold', 'italic', 'underline'] as const).map((style) => {
+        const key =
+          style === 'bold'
+            ? 'fontWeight'
+            : style === 'italic'
+              ? 'fontStyle'
+              : 'textDecoration';
+        const on =
+          style === 'bold' ? 700 : style === 'italic' ? 'italic' : 'underline';
+        const off =
+          style === 'bold' ? 400 : style === 'italic' ? 'normal' : 'none';
+        return (
+          <button
+            type="button"
+            key={style}
+            className={`button compact format-${style}`}
+            aria-label={t(`text.${style}`)}
+            aria-pressed={
+              current[key] === undefined ? 'mixed' : current[key] === on
+            }
+            title={t(`text.${style}`)}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => format(key, current[key] === on ? off : on)}
+          >
+            {t(`rich.${style}`)}
+          </button>
+        );
+      })}
+      <label>
+        {t('diagram.textColor')}
+        <input
+          type="color"
+          aria-label={t('diagram.textColor')}
+          value={
+            current.textColor?.startsWith('#') ? current.textColor : '#18243d'
+          }
+          onChange={(e) => format('textColor', e.target.value, false)}
+        />
+        {current.textColor === undefined && <span>{t('format.mixed')}</span>}
+      </label>
+      <button
+        type="button"
+        className="button compact"
+        aria-pressed={current.textColor === 'auto'}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => format('textColor', 'auto')}
       >
-        <details className="font-picker">
-          <summary
-            aria-label={t('text.family')}
-            style={{
-              fontFamily: current.fontFamily
-                ? FONT_FAMILIES[current.fontFamily]
-                : undefined,
-            }}
-          >
-            {current.fontFamily
-              ? t(`text.family.${current.fontFamily}`)
-              : t('format.mixed')}
-          </summary>
-          <div className="font-menu">
-            <input
-              type="search"
-              aria-label={t('rich.searchFonts')}
-              placeholder={t('rich.searchFonts')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <div role="group" aria-label={t('text.family')}>
-              {(Object.keys(FONT_FAMILIES) as Appearance['fontFamily'][])
-                .filter((f) =>
-                  t(`text.family.${f}`)
-                    .toLocaleLowerCase()
-                    .includes(search.toLocaleLowerCase()),
-                )
-                .map((f) => (
-                  <button
-                    type="button"
-                    key={f}
-                    style={{ fontFamily: FONT_FAMILIES[f] }}
-                    aria-pressed={current.fontFamily === f}
-                    onClick={(e) => {
-                      format('fontFamily', f);
-                      e.currentTarget
-                        .closest('details')
-                        ?.removeAttribute('open');
-                    }}
-                  >
-                    {t(`text.family.${f}`)}
-                  </button>
-                ))}
-            </div>
-          </div>
-        </details>
-        <label>
-          {t('diagram.fontSize')}
-          <input
-            type="number"
-            min={8}
-            max={96}
-            step="any"
-            aria-label={t('diagram.fontSize')}
-            placeholder={t('format.mixed')}
-            key={current.fontSize ?? 'mixed'}
-            defaultValue={current.fontSize ?? ''}
-            onBlur={(e) => {
-              const n = e.target.valueAsNumber;
-              if (n >= 8 && n <= 96) format('fontSize', n, false);
-            }}
-          />
-        </label>
-        {(['bold', 'italic', 'underline'] as const).map((style) => {
-          const key =
-            style === 'bold'
-              ? 'fontWeight'
-              : style === 'italic'
-                ? 'fontStyle'
-                : 'textDecoration';
-          const on =
-            style === 'bold'
-              ? 700
-              : style === 'italic'
-                ? 'italic'
-                : 'underline';
-          const off =
-            style === 'bold' ? 400 : style === 'italic' ? 'normal' : 'none';
-          return (
-            <button
-              type="button"
-              key={style}
-              className={`button compact format-${style}`}
-              aria-label={t(`text.${style}`)}
-              aria-pressed={
-                current[key] === undefined ? 'mixed' : current[key] === on
-              }
-              title={t(`text.${style}`)}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => format(key, current[key] === on ? off : on)}
-            >
-              {t(`rich.${style}`)}
-            </button>
-          );
-        })}
-        <label>
-          {t('diagram.textColor')}
-          <input
-            type="color"
-            aria-label={t('diagram.textColor')}
-            value={
-              current.textColor?.startsWith('#') ? current.textColor : '#18243d'
-            }
-            onChange={(e) => format('textColor', e.target.value, false)}
-          />
-          {current.textColor === undefined && <span>{t('format.mixed')}</span>}
-        </label>
-        <button
-          type="button"
-          className="button compact"
-          aria-pressed={current.textColor === 'auto'}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => format('textColor', 'auto')}
+        {t('text.autoColor')}
+      </button>
+      <label>
+        {t('diagram.align')}
+        <select
+          aria-label={t('diagram.align')}
+          value={current.align ?? ''}
+          onChange={(e) => align(e.target.value as Appearance['align'])}
         >
-          {t('text.autoColor')}
-        </button>
-        <label>
-          {t('diagram.align')}
-          <select
-            aria-label={t('diagram.align')}
-            value={current.align ?? ''}
-            onChange={(e) => align(e.target.value as Appearance['align'])}
-          >
-            <option value="" disabled>
-              {t('format.mixed')}
+          <option value="" disabled>
+            {t('format.mixed')}
+          </option>
+          {(['left', 'center', 'right'] as const).map((a) => (
+            <option key={a} value={a}>
+              {t(`align.${a}`)}
             </option>
-            {(['left', 'center', 'right'] as const).map((a) => (
-              <option key={a} value={a}>
-                {t(`align.${a}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="button compact"
-          onClick={() => {
-            const editor = view.current;
-            if (!editor) return;
-            const { from, to, empty } = editor.state.selection;
-            editor.dispatch(
-              empty
-                ? editor.state.tr.setStoredMarks([])
-                : editor.state.tr.removeMark(from, to),
-            );
-            editor.focus();
-          }}
-        >
-          {t('rich.clear')}
-        </button>
-        <button
-          type="button"
-          className="button compact"
-          aria-label={t('rich.undo')}
-          onClick={() => {
-            if (view.current) {
-              undo(view.current.state, view.current.dispatch);
-              view.current.focus();
-            }
-          }}
-        >
-          {'↶'}
-        </button>
-        <button
-          type="button"
-          className="button compact"
-          aria-label={t('rich.redo')}
-          onClick={() => {
-            if (view.current) {
-              redo(view.current.state, view.current.dispatch);
-              view.current.focus();
-            }
-          }}
-        >
-          {'↷'}
-        </button>
-      </div>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        className="button compact"
+        onClick={() => {
+          const editor = view.current;
+          if (!editor) return;
+          const { from, to, empty } = editor.state.selection;
+          editor.dispatch(
+            empty
+              ? editor.state.tr.setStoredMarks([])
+              : editor.state.tr.removeMark(from, to),
+          );
+          editor.focus();
+        }}
+      >
+        {t('rich.clear')}
+      </button>
+      <button
+        type="button"
+        className="button compact"
+        aria-label={t('rich.undo')}
+        onClick={() => {
+          if (view.current) {
+            undo(view.current.state, view.current.dispatch);
+            view.current.focus();
+          }
+        }}
+      >
+        {'↶'}
+      </button>
+      <button
+        type="button"
+        className="button compact"
+        aria-label={t('rich.redo')}
+        onClick={() => {
+          if (view.current) {
+            redo(view.current.state, view.current.dispatch);
+            view.current.focus();
+          }
+        }}
+      >
+        {'↷'}
+      </button>
+    </div>
+  );
+  return (
+    <div className="rich-text-editor" data-embedded={embedded || undefined}>
+      {toolbarContainer ? createPortal(toolbar, toolbarContainer) : toolbar}
       <div
         ref={host}
         className="rich-text-host"
@@ -495,14 +762,16 @@ export function RichTextEditor({
             base.textColor === 'none' ? '0 0 0 var(--ink)' : undefined,
         }}
       />
-      <InfoDisclosure
-        className="field-help compact-help"
-        title={t('controls.help')}
-      >
-        <p>
-          {t('rich.help')} {t('text.editContrast')}
-        </p>
-      </InfoDisclosure>
+      {!embedded && (
+        <InfoDisclosure
+          className="field-help compact-help"
+          title={t('controls.help')}
+        >
+          <p>
+            {t('rich.help')} {t('text.editContrast')}
+          </p>
+        </InfoDisclosure>
+      )}
       {notice && (
         <p role="status" className="field-help">
           {t(notice)}

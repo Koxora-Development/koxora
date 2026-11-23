@@ -39,18 +39,28 @@
   min-width: 135px;
 }
 .font-picker summary {
+  list-style: none;
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
 }
+.font-picker summary::marker,
+.font-picker summary::-webkit-details-marker {
+  display: none;
+  content: '';
+}
 .font-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 5;
+  cursor: default;
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  z-index: 100;
+  box-sizing: border-box;
   width: 240px;
+  overflow: auto;
+  color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line);
   padding: 8px;
@@ -59,6 +69,8 @@
 }
 .font-menu input {
   width: 100%;
+  min-width: 0;
+  margin-bottom: 8px;
 }
 .font-menu [role='group'] {
   max-height: 220px;
@@ -90,7 +102,8 @@
   min-height: 112px;
   padding: 16px;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
   line-height: 1.25;
   user-select: text;
   -webkit-user-select: text;
@@ -485,4 +498,33 @@
 }
 .element-links .field-help {
   white-space: normal;
+}
+
+.canvas-text-dialog {
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+}
+.floating-window-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: sticky;
+  top: -1px;
+  z-index: 2;
+  background: var(--surface);
+  padding-bottom: 8px;
+}
+.floating-window-handle {
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+  font-weight: 600;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
 }

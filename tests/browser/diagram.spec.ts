@@ -12,6 +12,33 @@ import {
   CONNECTION_KEY,
   ELEMENT_KEY,
 } from '../../packages/editor-core/src/index';
+async function chooseTool(p: Page, name: string) {
+  if (name === 'Line' || name === 'Arrow') {
+    await p.locator('[data-ribbon-tab="connections"]').click();
+    const previous = p.locator('.connection-page-button').first();
+    while (await previous.isEnabled()) await previous.click();
+    const tool = p.locator(
+      `[data-connection-preset="straight-${name === 'Line' ? 'line' : 'arrow'}"]`,
+    );
+    const next = p.locator('.connection-page-button').last();
+    while (!(await tool.count()) && (await next.isEnabled()))
+      await next.click();
+    await tool.click();
+  } else {
+    await p.locator('[data-ribbon-tab="shapes"]').click();
+    const tool = p
+      .locator('.shape-palette')
+      .getByRole('button', { name, exact: true });
+    if (!(await tool.count())) {
+      const previous = p.locator('.palette-page-button').first();
+      while (await previous.isEnabled()) await previous.click();
+      const next = p.locator('.palette-page-button').last();
+      while (!(await tool.count()) && (await next.isEnabled()))
+        await next.click();
+    }
+    await tool.click();
+  }
+}
 const canvas = (p: Page) =>
   p.getByRole('region', { name: 'Interactive canvas', exact: true });
 const button = (p: Page, name: string) =>
@@ -41,7 +68,7 @@ async function shape(p: Page, kind: string, x: number, y: number) {
     parallelogram: 'Parallelogram',
     container: 'Container',
   };
-  await button(p, names[kind]).click();
+  await chooseTool(p, names[kind]);
   await clickWorld(p, x, y);
 }
 async function edit(p: Page, id: string, label: string) {
@@ -99,7 +126,8 @@ test('a real flowchart supports labels, styling, arrows, native round trip and o
     }
     await page.locator('.interactive-canvas').focus();
   }
-  await button(page, 'Arrow').click();
+  await chooseTool(page, 'Arrow');
+  await page.locator('[data-connection-options]').click();
   await page.getByLabel('Repeat insertion', { exact: true }).check();
   await page
     .getByRole('combobox', { name: 'Connection path', exact: true })
@@ -224,7 +252,7 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
     await page.keyboard.press('Enter');
   }
   await expect(page.locator('[data-node-id]')).toHaveCount(8);
-  await button(page, 'Text').click();
+  await chooseTool(page, 'Text');
   await canvas(page).focus();
   await page.keyboard.press('Enter');
   await page
@@ -253,7 +281,7 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
       '.canvas-svg img,.canvas-svg foreignObject:not(.scene-rich-label),.canvas-svg script',
     ),
   ).toHaveCount(0);
-  await button(page, 'Rectangle').click();
+  await chooseTool(page, 'Rectangle');
   const box = (await canvas(page).boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
@@ -262,7 +290,7 @@ test('all shape tools, keyboard text, transformed snapping, cancellation and nav
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('[data-node-id]')).toHaveCount(10);
   await button(page, 'Expand canvas').click();
-  await button(page, 'Rectangle').click();
+  await chooseTool(page, 'Rectangle');
   await page.keyboard.press('Escape');
   await expect(page.locator('.canvas-expanded')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -366,6 +394,14 @@ test('untrusted optional fields render safely and oversized imported labels cann
     routing: { toString: null },
     sourceAnchor: { toString: null },
   };
+  await expect(exportProject(project)).rejects.toMatchObject({
+    reason: 'connectionAnchor',
+  });
+  // Known attachment fields now require a valid anchor before an archive opens.
+  // Keep the other untrusted optional values for the renderer-preservation checks.
+  (
+    model.connections[0].extensions[CONNECTION_KEY] as Record<string, unknown>
+  ).sourceAnchor = 'auto';
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');

@@ -103,7 +103,15 @@ for (const { width, height, radius } of [
             'viewBox',
             `${-padding} ${-padding} ${width + padding * 2} ${height + padding * 2}`,
           );
-          svg.append(group.cloneNode(true));
+          const clone = group.cloneNode(true) as Element;
+          // Empty HTML labels taint SVG-to-canvas reads in Chromium/WebKit.
+          // Assert they are blank before removing only these unpainted labels.
+          for (const label of clone.querySelectorAll('foreignObject')) {
+            if (label.textContent?.trim())
+              throw new Error(`Unexpected label in shape audit: ${node.kind}`);
+            label.remove();
+          }
+          svg.append(clone);
           const url = URL.createObjectURL(
             new Blob([new XMLSerializer().serializeToString(svg)], {
               type: 'image/svg+xml',
@@ -243,11 +251,18 @@ test('structured element text names use authoritative regions and plain containe
   await expect(page.locator(`[data-node-id="${table.id}"] > title`)).toHaveText(
     'Actual cell\tCurrent data',
   );
-  await page.getByRole('button', { name: 'Line', exact: true }).click();
+  await page.locator('[data-ribbon-tab="connections"]').click();
+  await page.locator('[data-connection-preset="straight-line"]').click();
   const tablePorts = page.locator(`[data-port-node="${table.id}"]`);
   const titlePorts = page.locator(`[data-port-node="${titleOnly.id}"]`);
-  await expect(tablePorts).toHaveCount(4);
-  await expect(titlePorts).toHaveCount(4);
+  for (const ports of [tablePorts, titlePorts])
+    await expect
+      .poll(() =>
+        ports.evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('data-port-anchor')),
+        ),
+      )
+      .toEqual(expect.arrayContaining(['north', 'east', 'south', 'west']));
   for (const port of await tablePorts.all()) {
     await expect(port).toHaveAttribute(
       'aria-label',

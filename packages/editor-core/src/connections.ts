@@ -1,11 +1,37 @@
 import {
   validConnectionPoint,
+  isLineStyle,
+  isEndpointMarker,
+  isConnectionAnchor,
+  type LineStyle,
+  type EndpointMarker,
   type Connection,
   type Node,
 } from '@koxora/project';
 export {
+  CONNECTION_PORTS_FEATURE,
+  LEGACY_CONNECTION_ANCHORS,
+  hasConnectionPorts,
+  isConnectionAnchor,
+  isNormalizedConnectionAnchor,
+  type ConnectionAnchor,
+  type LegacyConnectionAnchor,
+  type NormalizedConnectionAnchor,
+} from '@koxora/project';
+export {
   FLOATING_CONNECTIONS_FEATURE,
   validConnectionPoint,
+} from '@koxora/project';
+export {
+  CONNECTION_DECORATIONS_FEATURE,
+  LINE_STYLES,
+  ENDPOINT_MARKERS,
+  hasConnectionDecorations,
+  validConnectionDecorations,
+  isLineStyle,
+  isEndpointMarker,
+  type LineStyle,
+  type EndpointMarker,
 } from '@koxora/project';
 import {
   anchorPoint,
@@ -21,6 +47,9 @@ export interface ConnectionOptions {
   routing: Routing;
   arrow: boolean;
   startArrow?: boolean;
+  lineStyle?: LineStyle;
+  sourceMarker?: EndpointMarker;
+  targetMarker?: EndpointMarker;
   label: string;
   sourceAnchor: Anchor;
   targetAnchor: Anchor;
@@ -36,11 +65,17 @@ export const DEFAULT_CONNECTION: ConnectionOptions = {
 export function readConnection(edge: Connection): ConnectionOptions {
   const v = jsonObject(edge.extensions[CONNECTION_KEY]);
   const anchor = (value: unknown): Anchor =>
-    typeof value === 'string' &&
-    ['auto', 'north', 'east', 'south', 'west'].includes(value)
-      ? (value as Anchor)
-      : 'auto';
+    isConnectionAnchor(value) ? structuredClone(value) : 'auto';
   return {
+    ...(v.version === 1 && isLineStyle(v.lineStyle)
+      ? { lineStyle: v.lineStyle }
+      : {}),
+    ...(v.version === 1 && isEndpointMarker(v.sourceMarker)
+      ? { sourceMarker: v.sourceMarker }
+      : {}),
+    ...(v.version === 1 && isEndpointMarker(v.targetMarker)
+      ? { targetMarker: v.targetMarker }
+      : {}),
     routing:
       v.version === 1 &&
       typeof v.routing === 'string' &&

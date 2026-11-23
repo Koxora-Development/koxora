@@ -102,11 +102,53 @@ async function drag(
   await page.mouse.move(end.x, end.y, { steps: 8 });
   await page.mouse.up();
 }
-async function currentBox(locator: Locator) {
-  return locator.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-  });
+async function dragEndpoint(
+  page: Page,
+  handle: Locator,
+  destination: { x: number; y: number },
+) {
+  await canvas(page).scrollIntoViewIfNeeded();
+  await handle.click({ trial: true });
+  let gesture: {
+    start: { x: number; y: number };
+    end: { x: number; y: number };
+  } | null = null;
+  await expect
+    .poll(async () => {
+      gesture = await handle.evaluate((element, destination) => {
+        const svg = element as SVGGraphicsElement;
+        const matrix = svg.getScreenCTM();
+        if (!svg.isConnected || !matrix) return null;
+        const box = svg.getBBox();
+        const start = new DOMPoint(
+          box.x + box.width / 2,
+          box.y + box.height / 2,
+        ).matrixTransform(matrix);
+        if (!svg.contains(document.elementFromPoint(start.x, start.y)))
+          return null;
+        // Read both coordinates together after scrolling; selection overlays
+        // are replaced when layout or the camera changes.
+        const canvas = svg.closest('.interactive-canvas')!;
+        const bounds = canvas.getBoundingClientRect();
+        const camera = JSON.parse(canvas.getAttribute('data-camera')!);
+        return {
+          start: { x: start.x, y: start.y },
+          end: {
+            x:
+              bounds.x +
+              bounds.width / 2 +
+              (destination.x - camera.x) * camera.zoom,
+            y:
+              bounds.y +
+              bounds.height / 2 +
+              (destination.y - camera.y) * camera.zoom,
+          },
+        };
+      }, destination);
+      return gesture !== null;
+    })
+    .toBe(true);
+  await drag(page, gesture!.start, gesture!.end);
 }
 async function connect(
   page: Page,
@@ -114,9 +156,11 @@ async function connect(
   end: { x: number; y: number },
   kind = 'Arrow',
 ) {
+  await page.locator('[data-ribbon-tab="connections"]').click();
   await page
-    .getByRole('toolbar', { name: 'Diagram tools', exact: true })
-    .getByRole('button', { name: kind, exact: true })
+    .locator(
+      `[data-connection-preset="straight-${kind === 'Line' ? 'line' : 'arrow'}"]`,
+    )
     .click();
   await drag(
     page,
@@ -315,6 +359,9 @@ test('connectors can start or end in empty space, detach and reattach either end
   await expect(page.locator('[data-connection-id]')).toHaveCount(2);
   await connect(page, { x: -200, y: 0 }, { x: 200, y: 0 });
   await expect(page.locator('[data-connection-id]')).toHaveCount(3);
+  // Keep the distant free-line endpoints inside the working area with the connection strip visible.
+  await canvas(page).focus();
+  await page.keyboard.press('-');
   await connect(page, { x: -320, y: -240 }, { x: 320, y: -240 }, 'Line');
   await expect(page.locator('[data-node-id]')).toHaveCount(3);
   let result = await exported(page),
@@ -348,30 +395,14 @@ test('connectors can start or end in empty space, detach and reattach either end
       `[data-connection-endpoint-id="${edges[0].id}"][data-connection-endpoint="${end}"]`,
     );
   await expect(endpoint('source')).toBeVisible();
-  const sourceBox = await currentBox(endpoint('source'));
-  await drag(
-    page,
-    {
-      x: sourceBox.x + sourceBox.width / 2,
-      y: sourceBox.y + sourceBox.height / 2,
-    },
-    await point(page, -340, 180),
-  );
+  await dragEndpoint(page, endpoint('source'), { x: -340, y: 180 });
   result = await exported(page);
   edges = result.documents[0].pages[0].connections;
   expect(edges[0].sourceId).toBeUndefined();
   expect(edges[0].sourcePoint).toBeDefined();
   await selectProperties(page, edges[0].id, 'Format');
   await expect(endpoint('target')).toBeVisible();
-  const targetBox = await currentBox(endpoint('target'));
-  await drag(
-    page,
-    {
-      x: targetBox.x + targetBox.width / 2,
-      y: targetBox.y + targetBox.height / 2,
-    },
-    await point(page, 200, 0),
-  );
+  await dragEndpoint(page, endpoint('target'), { x: 200, y: 0 });
   result = await exported(page);
   edges = result.documents[0].pages[0].connections;
   expect(edges[0].targetId).toBe(target);
@@ -383,15 +414,7 @@ test('connectors can start or end in empty space, detach and reattach either end
   await expect(page.locator('[data-connection-id]')).toHaveCount(2);
   await selectProperties(page, edges[0].id, 'Format');
   await expect(endpoint('source')).toBeVisible();
-  const detachedBox = await currentBox(endpoint('source'));
-  await drag(
-    page,
-    {
-      x: detachedBox.x + detachedBox.width / 2,
-      y: detachedBox.y + detachedBox.height / 2,
-    },
-    await point(page, -200, 0),
-  );
+  await dragEndpoint(page, endpoint('source'), { x: -200, y: 0 });
   result = await exported(page);
   expect(result.documents[0].pages[0].connections[0]).toMatchObject({
     sourceId: source,

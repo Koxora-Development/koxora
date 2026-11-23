@@ -1,5 +1,7 @@
 import {
   anchorPoint,
+  connectionPortsForNode,
+  readConnection,
   isShapeKind,
   isDrawing,
   visibleBounds,
@@ -12,27 +14,49 @@ import {
   type Size,
 } from '@koxora/editor-core';
 import { translate, type MessageKey } from '@koxora/i18n';
+import type { Connection } from '@koxora/project';
+import { portAnchorId, portAnchorLabel } from './port-anchor';
 
 export interface Port {
   id: string;
   anchor: Anchor;
 }
 export const PORT_ANCHORS = ['north', 'east', 'south', 'west'] as const;
+export const MAX_VISIBLE_PORTS = 1024;
+const MAX_PORT_NODES = 256;
+const MAX_SAVED_PORTS_PER_NODE = 32;
 
 /** Stable HTML buttons keep keyboard focus while the SVG scene is redrawn. */
 export class ConnectionPorts {
   private buttons = new Map<string, HTMLButtonElement>();
-  private positions: { port: Port; point: Point }[] = [];
+  private positions: { port: Port; point: Point; order: number }[] = [];
+  private saved = new Map<string, Map<string, Anchor>>();
   constructor(
     private root: HTMLDivElement,
     private locale: string,
-  ) {}
+    connections: readonly Connection[] = [],
+  ) {
+    // Saved local anchors remain available when a resize reduces candidate density.
+    for (const edge of connections) {
+      const options = readConnection(edge);
+      for (const side of ['source', 'target'] as const) {
+        const id = edge[`${side}Id`];
+        const anchor = options[`${side}Anchor`];
+        if (!id || anchor === 'auto') continue;
+        if (!this.saved.has(id)) this.saved.set(id, new Map());
+        const anchors = this.saved.get(id)!;
+        if (anchors.size < MAX_SAVED_PORTS_PER_NODE)
+          anchors.set(portAnchorId(anchor), anchor);
+      }
+    }
+  }
   render(
     scene: Scene,
     state: CanvasState,
     size: Size,
     candidates: readonly string[],
     source: Port | null,
+    cursor?: Point | null,
   ) {
     const wanted = new Set<string>();
     const eligible = new Set(candidates);
@@ -43,10 +67,41 @@ export class ConnectionPorts {
       return;
     }
     const camera = state.camera;
-    for (const node of visibleScene(
-      scene,
-      visibleBounds(camera, size),
-    ).nodes.slice(0, 1500)) {
+    const focusedNode = (document.activeElement as HTMLElement | null)?.dataset
+      ?.portNode;
+    const nearby = cursor ?? { x: size.width / 2, y: size.height / 2 };
+    const nodes = visibleScene(scene, visibleBounds(camera, size))
+      .nodes.map((node, order) => {
+        const x =
+          (node.geometry.x + node.geometry.width / 2 - camera.x) * camera.zoom +
+          size.width / 2;
+        const y =
+          (node.geometry.y + node.geometry.height / 2 - camera.y) *
+            camera.zoom +
+          size.height / 2;
+        return {
+          node,
+          order,
+          distance: Math.hypot(x - nearby.x, y - nearby.y),
+        };
+      })
+      .filter(
+        ({ node }) =>
+          eligible.has(node.id) &&
+          node.editable &&
+          isShapeKind(node.kind) &&
+          !isDrawing(node.kind),
+      )
+      .sort((a, b) => {
+        const priority = (id: string) =>
+          id === source?.id ? 2 : id === focusedNode ? 1 : 0;
+        return (
+          priority(b.node.id) - priority(a.node.id) || a.distance - b.distance
+        );
+      })
+      .slice(0, MAX_PORT_NODES);
+    for (const { node, order } of nodes) {
+      if (wanted.size >= MAX_VISIBLE_PORTS) break;
       if (
         !eligible.has(node.id) ||
         !isShapeKind(node.kind) ||
@@ -54,13 +109,40 @@ export class ConnectionPorts {
         isDrawing(node.kind)
       )
         continue;
-      for (const anchor of PORT_ANCHORS) {
-        const p = anchorPoint(
-          node,
-          node.geometry,
-          anchor,
-          node.style.cornerRadius,
-        );
+      const candidates = new Map<string, { anchor: Anchor; point: Point }>();
+      if (
+        source?.id === node.id &&
+        (source.anchor !== 'auto' || node.kind === 'junction')
+      )
+        candidates.set(portAnchorId(source.anchor), {
+          anchor: source.anchor,
+          point: anchorPoint(
+            node,
+            node.geometry,
+            source.anchor,
+            node.style.cornerRadius,
+          ),
+        });
+      for (const port of connectionPortsForNode(node, node.style.cornerRadius))
+        candidates.set(portAnchorId(port.anchor), port);
+      const retained = [...(this.saved.get(node.id)?.values() ?? [])];
+      for (const anchor of retained) {
+        if (anchor === 'auto' && node.kind !== 'junction') continue;
+        const id = portAnchorId(anchor);
+        if (!candidates.has(id))
+          candidates.set(id, {
+            anchor,
+            point: anchorPoint(
+              node,
+              node.geometry,
+              anchor,
+              node.style.cornerRadius,
+            ),
+          });
+      }
+      const nodePoints: Point[] = [];
+      for (const { anchor, point: p } of candidates.values()) {
+        if (wanted.size >= MAX_VISIBLE_PORTS) break;
         const point = {
           x: (p.x - camera.x) * camera.zoom + size.width / 2,
           y: (p.y - camera.y) * camera.zoom + size.height / 2,
@@ -72,7 +154,17 @@ export class ConnectionPorts {
           point.y > size.height
         )
           continue;
-        const key = `${node.id}:${anchor}`;
+        // At distant zoom levels dense candidate markers obscure the whole shape.
+        if (
+          nodePoints.some(
+            (previous) =>
+              Math.hypot(point.x - previous.x, point.y - previous.y) < 18,
+          )
+        )
+          continue;
+        nodePoints.push(point);
+        const anchorId = portAnchorId(anchor);
+        const key = `${node.id}:${anchorId}`;
         wanted.add(key);
         let button = this.buttons.get(key);
         if (!button) {
@@ -80,7 +172,7 @@ export class ConnectionPorts {
           button.type = 'button';
           button.className = 'connection-port';
           button.dataset.portNode = node.id;
-          button.dataset.portAnchor = anchor;
+          button.dataset.portAnchor = anchorId;
           button.tabIndex = -1;
           this.buttons.set(key, button);
           this.root.append(button);
@@ -91,15 +183,20 @@ export class ConnectionPorts {
           name:
             sceneDisplayText(node) ||
             translate(this.locale, `shape.${node.kind}` as MessageKey),
-          anchor: translate(this.locale, `ports.${anchor}`),
+          anchor:
+            node.kind === 'junction'
+              ? translate(this.locale, 'ports.center')
+              : portAnchorLabel(this.locale, anchor),
         });
         button.setAttribute('aria-label', label);
         button.title = label;
         button.setAttribute(
           'aria-pressed',
-          String(source?.id === node.id && source.anchor === anchor),
+          String(
+            source?.id === node.id && portAnchorId(source.anchor) === anchorId,
+          ),
         );
-        this.positions.push({ port: { id: node.id, anchor }, point });
+        this.positions.push({ port: { id: node.id, anchor }, point, order });
       }
     }
     for (const [key, button] of this.buttons)
@@ -118,10 +215,12 @@ export class ConnectionPorts {
     // Nearest center resolves overlapping hit areas; ties prefer the topmost shape.
     let nearest: Port | undefined;
     let distance = 16;
+    let order = -1;
     for (const entry of this.positions) {
       const next = Math.hypot(entry.point.x - point.x, entry.point.y - point.y);
-      if (next <= distance) {
+      if (next < distance || (next === distance && entry.order >= order)) {
         distance = next;
+        order = entry.order;
         nearest = entry.port;
       }
     }

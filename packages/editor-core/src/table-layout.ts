@@ -22,6 +22,21 @@ export interface TableCellBox {
 
 type RegionNode = Pick<SceneNode, 'kind' | 'geometry' | 'textRegions'>;
 
+/** Positive portable weights scale with the table's outer geometry. */
+export function tableAxisOffsets(
+  weights: readonly number[] | undefined,
+  count: number,
+  size: number,
+): number[] {
+  const values = weights ?? Array.from({ length: count }, () => 100);
+  const total = values.reduce((sum, value) => sum + value, 0);
+  const offsets = [0];
+  for (const value of values)
+    offsets.push(offsets.at(-1)! + (value / total) * size);
+  offsets[offsets.length - 1] = size;
+  return offsets;
+}
+
 /** Visible anchor cells own the full rectangle of each rectangular merge. */
 export function tableCellBoxes(
   value: TableTextRegions,
@@ -30,6 +45,8 @@ export function tableCellBoxes(
 ): TableCellBox[] {
   const rows = value.cells.length,
     columns = value.cells[0].length;
+  const xs = tableAxisOffsets(value.columnWidths, columns, width),
+    ys = tableAxisOffsets(value.rowHeights, rows, height);
   const result: TableCellBox[] = [];
   for (let row = 0; row < rows; row++) {
     for (let column = 0; column < columns; column++) {
@@ -42,10 +59,10 @@ export function tableCellBoxes(
         rowSpan: span.rowSpan,
         columnSpan: span.columnSpan,
         box: {
-          x: (column * width) / columns,
-          y: (row * height) / rows,
-          width: (span.columnSpan * width) / columns,
-          height: (span.rowSpan * height) / rows,
+          x: xs[column],
+          y: ys[row],
+          width: xs[column + span.columnSpan] - xs[column],
+          height: ys[row + span.rowSpan] - ys[row],
         },
       });
     }
@@ -148,13 +165,18 @@ export function textRegionAt(
     };
   if (node.kind !== 'table' || node.textRegions?.type !== 'table') return null;
   const value = node.textRegions;
-  const row = Math.min(
-    value.cells.length - 1,
-    Math.floor((y / g.height) * value.cells.length),
-  );
-  const column = Math.min(
-    value.cells[0].length - 1,
-    Math.floor((x / g.width) * value.cells[0].length),
-  );
+  const xs = tableAxisOffsets(
+      value.columnWidths,
+      value.cells[0].length,
+      g.width,
+    ),
+    ys = tableAxisOffsets(value.rowHeights, value.cells.length, g.height);
+  const locate = (offsets: number[], point: number) =>
+    Math.min(
+      offsets.length - 2,
+      Math.max(0, offsets.findIndex((boundary) => boundary > point) - 1),
+    );
+  const row = y >= g.height ? value.cells.length - 1 : locate(ys, y),
+    column = x >= g.width ? value.cells[0].length - 1 : locate(xs, x);
   return { type: 'table-cell', ...tableCellAnchor(value, row, column) };
 }

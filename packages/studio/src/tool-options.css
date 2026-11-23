@@ -1,0 +1,56 @@
+.connection-options {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.tool-options-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(32px * var(--ui-scale, 1));
+  min-height: calc(32px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1));
+}
+.tool-options-trigger svg {
+  width: calc(22px * var(--ui-scale, 1));
+  height: calc(22px * var(--ui-scale, 1));
+}
+.tool-options-panel {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: min(calc(390px * var(--ui-scale, 1)), calc(100vw - 12px));
+  max-height: calc(100dvh - 12px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: calc(12px * var(--ui-scale, 1));
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 6px 20px #0004;
+  z-index: 20;
+  font-size: calc(12px * var(--ui-scale, 1));
+}
+.tool-options-panel > label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-block: 8px;
+  flex-wrap: wrap;
+}
+.tool-options-panel > label.checkbox-label {
+  justify-content: flex-start;
+}
+.tool-options-panel select {
+  min-width: 0;
+  max-width: 100%;
+}
+.tool-options-panel .tool-picker-content {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+}
+.tool-options-panel :is(input, select, button, summary):focus-visible {
+  outline-offset: -2px;
+}

@@ -180,7 +180,8 @@ describe('shape registry and geometry', () => {
       const bounds = geometryBounds(g, 2);
       expect(p.x).toBeGreaterThanOrEqual(bounds.x);
       expect(p.x).toBeLessThanOrEqual(bounds.x + bounds.width);
-      expect(anchorPoint(n, c, 'east').x).toBeGreaterThan(c.x);
+      if (kind === 'junction') expect(anchorPoint(n, c, 'east')).toEqual(c);
+      else expect(anchorPoint(n, c, 'east').x).toBeGreaterThan(c.x);
     },
   );
   it('matches ellipse, diamond, rotated and rounded boundary coordinates', () => {
@@ -543,7 +544,7 @@ it('handles hostile enum objects and bounds every emitted connection label/arrow
     arrow: true,
     style: { fontSize: 96, strokeWidth: 32 },
   };
-  validateProject(p);
+  expect(() => validateProject(p)).toThrow(/connectionAnchor/);
   const scene = buildScene(model),
     edge = scene.connections[0];
   expect(edge.path).not.toMatch(/NaN/);
@@ -734,4 +735,64 @@ it('resolves shared style chains once per scene', () => {
   }));
   expect(buildScene(page, styles).nodes).toHaveLength(1000);
   expect(reads).toBeLessThanOrEqual(1000);
+});
+
+it('keeps the expanded IT and arrow contours selectable through rotation/reflection and visible labels within their bodies', () => {
+  for (const kind of shapeKinds.slice(58)) {
+    const definition = shapeRegistry[kind];
+    const geometry = {
+      x: -120,
+      y: 32,
+      width: definition.width,
+      height: definition.height,
+      rotation: 37,
+      flipX: true,
+      flipY: true,
+    };
+    const center = shapeCenter(geometry);
+    for (let angle = 0; angle < 360; angle += 5) {
+      const direction = (angle * Math.PI) / 180;
+      const anchor = boundaryPoint(kind, geometry, {
+        x: center.x + Math.cos(direction) * 1000,
+        y: center.y + Math.sin(direction) * 1000,
+      });
+      const inside = {
+        x: center.x + (anchor.x - center.x) * 0.999,
+        y: center.y + (anchor.y - center.y) * 0.999,
+      };
+      const outside = {
+        x: center.x + (anchor.x - center.x) * 1.001,
+        y: center.y + (anchor.y - center.y) * 1.001,
+      };
+      expect(
+        containsShape(kind, geometry, inside),
+        `${kind} ray ${angle} inside`,
+      ).toBe(true);
+      for (const fraction of [1.01, 1.1, 1.3, 1.5, 2])
+        expect(
+          containsShape(kind, geometry, {
+            x: center.x + (anchor.x - center.x) * fraction,
+            y: center.y + (anchor.y - center.y) * fraction,
+          }),
+          `${kind} ray ${angle} cannot re-enter after its anchor`,
+        ).toBe(false);
+
+      expect(
+        containsShape(kind, geometry, outside),
+        `${kind} ray ${angle} outside`,
+      ).toBe(false);
+    }
+    const label = definition.labelBox!(definition.width, definition.height);
+    for (const x of [label.x, label.x + label.width])
+      for (const y of [label.y, label.y + label.height])
+        expect(
+          definition.contains(
+            { x, y },
+            definition.width,
+            definition.height,
+            16,
+          ),
+          `${kind} label`,
+        ).toBe(true);
+  }
 });

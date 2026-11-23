@@ -109,9 +109,20 @@ function regions(project: Project) {
 }
 const dialog = (page: Page) =>
   page.getByRole('dialog', { name: 'Edit text on canvas', exact: true });
+const directToolbar = (page: Page) => page.locator('.canvas-table-toolbar');
+const directEditor = (page: Page) =>
+  page.locator('.canvas-cell-input [contenteditable][role="textbox"]');
 const panel = (page: Page) =>
   page.getByRole('complementary', { name: 'Properties', exact: true });
 async function closeInline(page: Page) {
+  if (await directToolbar(page).isVisible()) {
+    await directToolbar(page)
+      .getByRole('button', { name: 'Finish table editing', exact: true })
+      .click();
+    await expect(directToolbar(page)).toHaveCount(0);
+    await saved(page);
+    return;
+  }
   await expect(
     dialog(page).getByRole('button', { name: 'Apply changes', exact: true }),
   ).toHaveCount(0);
@@ -214,8 +225,10 @@ async function properties(page: Page, id: string) {
     page,
     page.locator(`[data-node-id="${id}"] [data-text-region]`).first(),
   );
-  await expect(dialog(page)).toBeVisible();
-  await page.keyboard.press('Escape');
+  await expect(
+    page.locator('.canvas-text-dialog,.canvas-table-toolbar'),
+  ).toBeVisible();
+  await closeInline(page);
   if (!(await panel(page).isVisible()))
     await page.getByRole('button', { name: 'Properties', exact: true }).click();
   await panel(page).getByRole('tab', { name: 'Text', exact: true }).click();
@@ -313,13 +326,11 @@ test('table header is visibly distinguished and a cell click supports mixed rich
     expect(fill).not.toBe(fills.body);
   }
   await clickRegion(page, rendered.locator('[data-text-region="cell-1-0"]'));
-  await expect(dialog(page)).toBeVisible();
-  const editor = dialog(page).locator(
-    '[contenteditable="true"][role="textbox"]',
-  );
+  await expect(directToolbar(page)).toBeVisible();
+  const editor = directEditor(page);
   await expect(editor).toHaveText('Ada');
   await editor.fill('Plan carefully');
-  await richFormat(editor, dialog(page));
+  await richFormat(editor, page.locator('.canvas-table-rich-toolbar'));
   await closeInline(page);
   const result = await exported(page);
   expect(regions(result).cells).toEqual([
@@ -386,12 +397,10 @@ test('merging populated cells retains their text, splits without loss and surviv
   );
   await expect(rendered.locator('[data-table-cell="0-1"]')).toHaveCount(0);
   await clickRegion(page, rendered.locator('[data-text-region="cell-0-0"]'));
-  const editor = dialog(page).locator(
-    '[contenteditable="true"][role="textbox"]',
-  );
+  const editor = directEditor(page);
   await expect(editor).toContainText('Name');
   await expect(editor).toContainText('Role');
-  await page.keyboard.press('Escape');
+  await closeInline(page);
   await form.getByRole('button', { name: 'Split cell', exact: true }).click();
   await expect(
     form.getByRole('button', { name: 'Apply changes', exact: true }),
@@ -406,7 +415,7 @@ test('merging populated cells retains their text, splits without loss and surviv
   await page.getByRole('button', { name: 'Redo', exact: true }).click();
   expect((await exported(page)).documents).toEqual(split.documents);
   await clickRegion(page, rendered.locator('[data-text-region="cell-0-0"]'));
-  await page.keyboard.press('Escape');
+  await closeInline(page);
   await page
     .getByRole('region', { name: 'Interactive canvas', exact: true })
     .focus();
@@ -445,20 +454,16 @@ test('a blank table cell opens its own editor and closing retains live text chan
     bounds.x + (bounds.width * 5) / 6,
     bounds.y + (bounds.height * 5) / 6,
   );
-  await expect(dialog(page)).toBeVisible();
-  const editor = dialog(page).locator(
-    '[contenteditable="true"][role="textbox"]',
-  );
+  await expect(directToolbar(page)).toBeVisible();
+  const editor = directEditor(page);
   await expect(editor).toHaveText('');
   await editor.fill('Saved blank cell');
-  await page.keyboard.press('Escape');
+  await closeInline(page);
   expect((regions(await exported(page)).cells as string[][])[2][2]).toBe(
     'Saved blank cell',
   );
   await clickRegion(page, rendered.locator('[data-text-region="cell-2-2"]'));
-  await dialog(page)
-    .locator('[contenteditable="true"][role="textbox"]')
-    .fill('Last cell');
+  await directEditor(page).fill('Last cell');
   await closeInline(page);
   expect((regions(await exported(page)).cells as string[][])[2][2]).toBe(
     'Last cell',
@@ -568,6 +573,7 @@ test('dragging a table cell moves its element without opening or committing a te
   );
   await page.mouse.up();
   await expect(dialog(page)).toHaveCount(0);
+  await expect(directToolbar(page)).toHaveCount(0);
   const moved = await exported(page);
   expect(first(moved).geometry).not.toEqual(first(project).geometry);
   expect(regions(moved)).toEqual(regions(project));
@@ -598,24 +604,29 @@ for (const locale of ['en', 'de']) {
     await open(page, project, locale);
     const rendered = page.locator(`[data-node-id="${id}"]`);
     await clickRegion(page, rendered.locator('[data-text-region="cell-1-0"]'));
-    const inline = page.getByRole('dialog', {
-      name: messages['rich.inlineTitle'],
-      exact: true,
-    });
-    const editor = inline.locator('[contenteditable="true"][role="textbox"]');
+    const toolbar = page.locator('.canvas-table-toolbar');
+    const editor = directEditor(page);
     await reachable(editor);
     await editor.fill('Directly edited Ω');
     await editor.press('ControlOrMeta+a');
-    await editor.press('ControlOrMeta+i');
+    await page
+      .locator('.canvas-table-rich-toolbar')
+      .getByRole('button', { name: messages['text.italic'], exact: true })
+      .click();
     await expect(
-      inline.getByRole('button', {
-        name: messages['diagram.apply'],
+      rendered
+        .locator('[data-text-region="cell-1-0"] span')
+        .filter({ hasText: 'Directly edited Ω' }),
+    ).toHaveCSS('font-style', 'italic');
+    await toolbar
+      .getByRole('button', {
+        name: messages['directTable.finish'],
         exact: true,
-      }),
-    ).toHaveCount(0);
-    await page.keyboard.press('Escape');
-    await expect(inline).toHaveCount(0);
+      })
+      .click();
+    await expect(toolbar).toHaveCount(0);
     await clickRegion(page, rendered.locator('[data-text-region="cell-1-0"]'));
+    await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     const form = page.getByRole('complementary', {
       name: messages['office.properties'],

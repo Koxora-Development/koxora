@@ -5,6 +5,7 @@ import { ContextMenu } from './context-menu';
 import { Submenu } from './office-menu';
 import { menuAnchor, type MenuAnchor } from './menu-anchor';
 import { InlineText } from './inline-text';
+import { CanvasTableEditor } from './canvas-table-editor';
 import { FormatSelection } from './format-selection';
 import {
   useContext,
@@ -35,6 +36,7 @@ import {
   FREEHAND_KEY,
   ELEMENT_KEY,
   textRegionAt,
+  readTextRegions,
   type TextRegionTarget,
   freehandTextBox,
   rotatePoint,
@@ -60,6 +62,7 @@ import {
   connectionError,
   anchorPoint,
   readConnection,
+  hasConnectionDecorations,
   resolveAppearance,
   CONNECTION_KEY,
   type Anchor,
@@ -80,6 +83,7 @@ import {
 } from '@koxora/editor-core';
 import { SvgRenderer } from './svg-renderer';
 import { ConnectionPorts, type Port } from './connection-ports';
+import { parsePortAnchor } from './port-anchor';
 import { KeyboardShortcuts } from './keyboard-shortcuts';
 import {
   editingShortcut,
@@ -199,6 +203,21 @@ export function Canvas({
   const [inspectorOpen, setInspectorOpen] = useState(
     () => window.innerWidth >= 1000,
   );
+  useEffect(() => {
+    const shell = document.querySelector('.studio-shell');
+    if (!shell) return;
+    const collapse = () => {
+      if (shell.getAttribute('data-ui-narrow') === 'true')
+        setInspectorOpen(false);
+    };
+    collapse();
+    const observer = new MutationObserver(collapse);
+    observer.observe(shell, {
+      attributes: true,
+      attributeFilter: ['data-ui-narrow'],
+    });
+    return () => observer.disconnect();
+  }, []);
   const propertyDraft = useRef(false);
   const propertyRoot = useRef<HTMLElement>(null);
   const [propertyDirty, setPropertyDirty] = useState(false);
@@ -302,6 +321,11 @@ export function Canvas({
     [page.nodes, page.connections, page.layers, page.extensions, styles],
   );
   const scene = baseScene;
+  const directTable =
+    editing && inline
+      ? page.nodes.find((node) => node.id === editing && node.kind === 'table')
+      : undefined;
+  const directTableRegions = directTable ? readTextRegions(directTable) : null;
   function activate(next: DiagramTool) {
     if (propertyDraft.current && next !== 'pan') {
       prepare();
@@ -478,6 +502,22 @@ export function Canvas({
   }
   function act(point: Point, id?: string, geometry?: Geometry, snap?: boolean) {
     if (tool === 'freehand') return;
+    if (
+      isDrawing(tool) &&
+      (options.routing !== 'straight' || hasConnectionDecorations(options))
+    ) {
+      const endpoints = geometry
+        ? lineEndpoints(geometry)
+        : [
+            { x: point.x - 80, y: point.y },
+            { x: point.x + 80, y: point.y },
+          ];
+      connectEndpoints(
+        { point: endpoints[0], anchor: 'auto' },
+        { point: endpoints[1], anchor: 'auto' },
+      );
+      return;
+    }
     if (isShapeKind(tool)) {
       const id = crypto.randomUUID();
       if (
@@ -794,7 +834,11 @@ export function Canvas({
       gridRect.current!,
     );
 
-    const ports = new ConnectionPorts(portRoot.current!, locale);
+    const ports = new ConnectionPorts(
+      portRoot.current!,
+      locale,
+      content.connections,
+    );
     let cursorPoint: Point | null = null;
     const writableLayer = layerStates(content.layers).get(layerId)?.editable;
     const measure = () => {
@@ -866,6 +910,7 @@ export function Canvas({
             ? active.candidates
             : [],
         validSource ? pendingSource : null,
+        cursorPoint,
       );
       const nextLimited = renderer.render(
         preview,
@@ -972,6 +1017,7 @@ export function Canvas({
       return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
     const wheel = (event: WheelEvent) => {
+      if ((event.target as Element).closest('[data-direct-table]')) return;
       event.preventDefault();
       cancelGesture();
       const delta = wheelDelta(
@@ -1067,6 +1113,7 @@ export function Canvas({
       resetPreview();
     };
     const down = (event: PointerEvent) => {
+      if ((event.target as Element).closest('[data-direct-table]')) return;
       if (event.button !== 0 && event.button !== 1) return;
       event.preventDefault();
       element.focus({ preventScroll: true });
@@ -1612,6 +1659,7 @@ export function Canvas({
       }
     };
     const key = (event: KeyboardEvent) => {
+      if ((event.target as Element).closest('[data-direct-table]')) return;
       if (propertyDraft.current && event.key === 'Tab') return;
       if (
         propertyDraft.current &&
@@ -1636,7 +1684,7 @@ export function Canvas({
         event.preventDefault();
         active.link(
           event.target.dataset.portNode,
-          event.target.dataset.portAnchor as Anchor,
+          parsePortAnchor(event.target.dataset.portAnchor),
         );
         schedule();
         return;
@@ -1807,6 +1855,7 @@ export function Canvas({
       interaction.current.link(null);
     };
     const doubleClick = (event: MouseEvent) => {
+      if ((event.target as Element).closest('[data-direct-table]')) return;
       if (interaction.current.tool === 'select')
         interaction.current.act(
           world(local(event)),
@@ -1822,7 +1871,7 @@ export function Canvas({
       if (button && event.detail === 0)
         interaction.current.link(
           button.dataset.portNode!,
-          button.dataset.portAnchor as Anchor,
+          parsePortAnchor(button.dataset.portAnchor),
         );
     };
     element.addEventListener('click', portClick);
@@ -2351,7 +2400,7 @@ export function Canvas({
             {t(editError)}
           </p>
         )}
-        {editing && inline && editingItem && (
+        {editing && inline && editingItem && !directTable && (
           <InlineText
             key={`${editing}:${JSON.stringify(textRegion)}`}
             item={editingItem}
@@ -2361,6 +2410,24 @@ export function Canvas({
             region={textRegion}
             onApply={onEdit}
             onCancel={closeEditing}
+          />
+        )}
+        {directTable && directTableRegions?.type === 'table' && (
+          <CanvasTableEditor
+            key={directTable.id}
+            item={directTable}
+            value={directTableRegions}
+            base={resolveAppearance(directTable, styles)}
+            locale={locale}
+            host={host}
+            initialCell={
+              textRegion?.type === 'table-cell'
+                ? textRegion
+                : { row: 0, column: 0 }
+            }
+            onEdit={onEdit}
+            onClose={closeEditing}
+            onHistory={onHistory}
           />
         )}
         <div
@@ -2373,6 +2440,8 @@ export function Canvas({
             }
           }}
           onContextMenu={(event) => {
+            if ((event.target as Element).closest('[data-direct-table]'))
+              return;
             event.preventDefault();
             if (!prepare()) return;
             const id =

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { shapeKinds } from '@koxora/editor-core';
 import {
   libraryCategories,
+  libraryElementKinds,
   libraryPreferenceKey,
   readLibrarySelection,
   writeLibrarySelection,
@@ -100,4 +102,25 @@ describe('element library preferences', () => {
     expect(writeLibrarySelection(storage, ['basic'], true)).toBe(false);
     expect(writeLibrarySelection(storage, ['basic'], false)).toBe(false);
   });
+});
+
+it('categorizes shapes without duplicating tools from the connection gallery', () => {
+  const supported = new Set<string>([
+    ...shapeKinds.filter(
+      (kind) => !['line', 'arrow', 'junction'].includes(kind),
+    ),
+    'freehand',
+  ]);
+  const categorised = new Set<string>();
+  for (const category of libraryCategories) {
+    expect(libraryElementKinds[category].length).toBeGreaterThan(0);
+    expect(new Set(libraryElementKinds[category]).size).toBe(
+      libraryElementKinds[category].length,
+    );
+    for (const kind of libraryElementKinds[category]) {
+      expect(supported.has(kind), `${category}: ${kind}`).toBe(true);
+      categorised.add(kind);
+    }
+  }
+  expect(categorised).toEqual(supported);
 });
