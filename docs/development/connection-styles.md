@@ -1,6 +1,6 @@
 # Connection styles and the 2026-11-17 authoring feedback
 
-Status: Product Owner-assigned follow-up in unmerged PR #62. Requirements: EDIT-005/007/008 and CORE-003/005/006/007/008/015/016. Implementation does not authorize merge or publication. This extends [direct table editing](direct-table-editing.md) and the existing [shapes and connections](shapes-text-connections.md).
+Status: accepted and merged in [PR #62](https://github.com/Koxora-Development/koxora/pull/62) on 2026-11-23 (`27527a7`). Requirements: EDIT-005/007/008 and CORE-003/005/006/007/008/015/016. This extends [direct table editing](direct-table-editing.md) and the existing [shapes and connections](shapes-text-connections.md).
 
 The subsequent screenshot review requests a shared tabbed Shapes/Connections strip, width-based shape capacity, adaptive attachment ports and an explicit junction point. See [connection ports and junctions](connection-ports-junctions.md) for that additional contract and its separate acceptance cases.
 

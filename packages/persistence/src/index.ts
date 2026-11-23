@@ -174,20 +174,25 @@ export class ProjectRepository {
     return next;
   }
 }
-export class IndexedDbStore implements SnapshotStore {
-  constructor(private readonly factory: () => IDBFactory = () => indexedDB) {}
+class IndexedDbRecords {
+  constructor(
+    private readonly databaseName: string,
+    private readonly storeName: string,
+    private readonly factory: () => IDBFactory,
+  ) {}
+
   private open(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       let request: IDBOpenDBRequest;
       let blocked = false;
       try {
-        request = this.factory().open('koxora-projects', 1);
+        request = this.factory().open(this.databaseName, 1);
       } catch {
         reject(new ProjectError('storage'));
         return;
       }
       request.onupgradeneeded = () =>
-        request.result.createObjectStore('projects');
+        request.result.createObjectStore(this.storeName);
       request.onerror = () => reject(new ProjectError('storage'));
       request.onblocked = () => {
         blocked = true;
@@ -217,7 +222,7 @@ export class IndexedDbStore implements SnapshotStore {
       let conflict = false;
       let tx: IDBTransaction;
       try {
-        tx = db.transaction('projects', mode);
+        tx = db.transaction(this.storeName, mode);
         tx.oncomplete = () => {
           db.close();
           resolve(value);
@@ -227,7 +232,7 @@ export class IndexedDbStore implements SnapshotStore {
           reject(new ProjectError(conflict ? 'conflict' : 'storage'));
         };
         action(
-          tx.objectStore('projects'),
+          tx.objectStore(this.storeName),
           (next) => {
             value = next;
           },
@@ -255,8 +260,7 @@ export class IndexedDbStore implements SnapshotStore {
         done(request.result === undefined ? null : request.result);
     });
   }
-  async remove(id: string, expected: string): Promise<void> {
-    purgeable(id, expected);
+  protected async removeMatching(id: string, expected: string): Promise<void> {
     await this.transaction<void>('readwrite', (store, done, conflict) => {
       const request = store.get(id);
       request.onsuccess = () => {
@@ -292,6 +296,129 @@ export class IndexedDbStore implements SnapshotStore {
     });
   }
 }
+
+export class IndexedDbStore extends IndexedDbRecords implements SnapshotStore {
+  constructor(factory: () => IDBFactory = () => indexedDB) {
+    super('koxora-projects', 'projects', factory);
+  }
+
+  async remove(id: string, expected: string): Promise<void> {
+    purgeable(id, expected);
+    await this.removeMatching(id, expected);
+  }
+}
+
+type LocalTemplateStore = Required<
+  Pick<SnapshotStore, 'keys' | 'read' | 'write' | 'remove'>
+>;
+
+class IndexedDbTemplateStore
+  extends IndexedDbRecords
+  implements LocalTemplateStore
+{
+  constructor() {
+    super('koxora-local-templates', 'templates', () => indexedDB);
+  }
+
+  remove(id: string, expected: string): Promise<void> {
+    return this.removeMatching(id, expected);
+  }
+}
+
+export interface LocalTemplateSummary {
+  id: string;
+  title: string;
+  updatedAt: string;
+  documents: number;
+  pages: number;
+}
+
+interface LocalTemplateRecord {
+  summary: LocalTemplateSummary;
+  snapshot: string;
+}
+
+function templateRecord(raw: string, id: string): LocalTemplateRecord | null {
+  let data: Partial<LocalTemplateRecord> | null;
+  try {
+    data = JSON.parse(raw) as Partial<LocalTemplateRecord> | null;
+  } catch {
+    return null;
+  }
+  const summary = data?.summary;
+  if (
+    typeof data?.snapshot !== 'string' ||
+    !summary ||
+    summary.id !== id ||
+    typeof summary.title !== 'string' ||
+    !summary.title.trim() ||
+    summary.title.length > 4096 ||
+    typeof summary.updatedAt !== 'string' ||
+    !Number.isFinite(Date.parse(summary.updatedAt)) ||
+    !Number.isSafeInteger(summary.documents) ||
+    !Number.isSafeInteger(summary.pages) ||
+    summary.documents < 1 ||
+    summary.pages < summary.documents
+  )
+    return null;
+  return { summary, snapshot: data.snapshot };
+}
+
+export class LocalTemplateRepository {
+  constructor(
+    private readonly store: LocalTemplateStore = new IndexedDbTemplateStore(),
+  ) {}
+
+  async list(): Promise<LocalTemplateSummary[]> {
+    const items: LocalTemplateSummary[] = [];
+    for (const id of await this.store.keys()) {
+      const raw = await this.store.read(id);
+      if (raw === null) continue;
+      // Read the summary without decoding embedded project assets.
+      const record = templateRecord(raw, id);
+      if (record) items.push(record.summary);
+    }
+    return items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  async save(project: Project): Promise<LocalTemplateSummary> {
+    const summary: LocalTemplateSummary = {
+      id: project.manifest.projectId,
+      title: project.manifest.title,
+      updatedAt: project.manifest.updatedAt,
+      documents: project.documents.length,
+      pages: project.documents.reduce(
+        (count, doc) => count + doc.pages.length,
+        0,
+      ),
+    };
+    const snapshot = await serializeProject(project);
+    await this.store.write(
+      summary.id,
+      null,
+      JSON.stringify({ summary, snapshot }),
+    );
+    return summary;
+  }
+
+  async open(id: string): Promise<Project> {
+    if (!isId(id)) throw new ProjectError('invalid');
+    const raw = await this.store.read(id);
+    if (raw === null) throw new ProjectError('missing');
+    const record = templateRecord(raw, id);
+    if (!record) throw new ProjectError('invalid');
+    const project = await parseProject(record.snapshot);
+    if (project.manifest.projectId !== id) throw new ProjectError('invalid');
+    return project;
+  }
+
+  async remove(id: string): Promise<void> {
+    if (!isId(id)) throw new ProjectError('invalid');
+    const raw = await this.store.read(id);
+    if (raw !== null) await this.store.remove(id, raw);
+  }
+}
+
 export type Invoke = <T>(
   command: string,
   args?: Record<string, unknown>,

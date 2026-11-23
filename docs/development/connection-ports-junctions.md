@@ -1,6 +1,6 @@
 # Connection ports, junctions and the shared symbol strip
 
-Status: Product Owner-assigned follow-up to the 2026-11-17 screenshot review, extending the current unmerged PR #62 after its earlier review build. This document records the requested contract and acceptance cases; implementation and verification evidence are reported separately. It does not authorize merge, publication or deployment.
+Status: accepted and merged in [PR #62](https://github.com/Koxora-Development/koxora/pull/62) on 2026-11-23 (`27527a7`), following the 2026-11-17 screenshot review. Public release and deployment remain separate decisions.
 
 Relevant requirements are EDIT-003/005/007/008/015 and CORE-001–008/012/014/015/016. The existing [connection styles](connection-styles.md), [shape and connection authoring](shapes-text-connections.md), [element transforms](element-transforms.md) and [native preservation rules](../architecture/project-format.md) remain applicable.
 

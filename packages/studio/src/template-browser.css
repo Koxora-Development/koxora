@@ -44,10 +44,20 @@
   border-radius: calc(8px * var(--ui-scale, 1));
   background: var(--surface);
 }
-.template-card h2 {
+.template-card :is(h2, h3) {
   margin: calc(6px * var(--ui-scale, 1)) 0;
   font-size: calc(15px * var(--ui-scale, 1));
   overflow-wrap: anywhere;
+}
+.template-local > h2 {
+  margin: 0 0 calc(12px * var(--ui-scale, 1));
+  font-size: calc(16px * var(--ui-scale, 1));
+}
+.template-local + .template-grid:not(:empty) {
+  margin-top: calc(20px * var(--ui-scale, 1));
+}
+.template-local-meta {
+  color: var(--muted);
 }
 .template-card p {
   margin: 0 0 calc(12px * var(--ui-scale, 1));

@@ -1,6 +1,6 @@
 # Direct table editing and AppImage feedback
 
-Status: Product Owner-assigned extension of the active, unmerged [PR #62](https://github.com/Koxora-Development/koxora/pull/62), following review of its AppImage. The accepted prerequisite is PR #61, merged on 2026-11-15 (`7efb135`). The feature branch implements the behavior below; validation evidence remains distinct from merge and release acceptance. It does not authorize a merge or public release.
+Status: accepted and merged in [PR #62](https://github.com/Koxora-Development/koxora/pull/62) on 2026-11-23 (`27527a7`), following review of its AppImage. PR #61 supplied the accepted prerequisite on 2026-11-15 (`7efb135`). Public release remains a separate decision.
 
 Relevant requirements: EDIT-003/005/007/008/015; CORE-001–008/012/014/015/016; and the bounded clipboard/integrated-editor portion of DATA-005/006. The existing [table formula and size contract](table-calculations.md), [text-region preservation contract](element-text-regions.md) and [window/library/table operations](window-library-tables.md) remain applicable.
 
@@ -29,7 +29,6 @@ The catalog adds 40 original shapes (33 IT/network/storage/security/device symbo
 - Give focus indicators enough space around search fields, controls and adjacent status/help content. Preserve a visible keyboard focus indicator rather than removing it to hide overlap.
 - Present geometry values to at most two decimal places without rewriting stored precision merely by opening properties.
 - Compare browser-measured accessibility target bounds with a tiny numerical tolerance so a reported `43.999969` CSS pixels does not fail a true 44-pixel target. A tolerance must not conceal materially undersized controls.
-- Keep README, roadmap and development guides clear that PR #61 is accepted and merged, while PR #62 remains a separate active follow-up.
 
 ## Acceptance and evidence
 

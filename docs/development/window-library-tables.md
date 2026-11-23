@@ -1,6 +1,6 @@
 # Movable editing windows, expanded libraries and table operations
 
-Status: active, unmerged PR #62; Product Owner assignment of 2026-11-15 and subsequent AppImage feedback, based on accepted PR #61 (`7efb135`). Implementation and review do not authorize merge or publication. Relevant requirements: EDIT-003/005/007/008/015, CORE-001–008/012/014/015/016.
+Status: accepted and merged in [PR #62](https://github.com/Koxora-Development/koxora/pull/62) on 2026-11-23 (`27527a7`), following the 2026-11-15 Product Owner assignment and subsequent AppImage feedback. Relevant requirements: EDIT-003/005/007/008/015, CORE-001–008/012/014/015/016.
 
 ## Editing window
 
