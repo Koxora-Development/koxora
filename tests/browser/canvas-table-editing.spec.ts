@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { waitForCanvasLayout } from './canvas-layout';
 import {
   createProject,
   exportProject,
@@ -58,6 +59,7 @@ async function open(page: Page, transformed = false) {
   const region = page.locator(
     `[data-node-id="${id}"] [data-text-region="cell-0-0"]`,
   );
+  await waitForCanvasLayout(region);
   const point = await region.evaluate((el) => {
     const f = el as SVGForeignObjectElement;
     const p = new DOMPoint(
@@ -140,6 +142,7 @@ test('rotated reflected table resize follows its header and shrinking the window
   const { toolbar, grid, id } = await open(page, true);
   const divider = grid.locator('.canvas-table-resize.column').first();
   await expect(divider).toBeVisible();
+  await waitForCanvasLayout(divider);
   // Transform the header's local center through the rendered table geometry.
   // WebKit's transformed HTML bounds can include the wrong corner for this hit target.
   const { x, y } = await divider.evaluate((element, id) => {
@@ -151,6 +154,10 @@ test('rotated reflected table resize follows its header and shrinking the window
       handle.offsetLeft + handle.offsetWidth / 2,
       handle.offsetTop + handle.offsetHeight / 2,
     ).matrixTransform(table.getScreenCTM()!);
+    if (document.elementFromPoint(center.x, center.y) !== handle)
+      throw new Error(
+        'The projected column boundary must hit its resize handle',
+      );
     return { x: center.x, y: center.y };
   }, id);
   await page.mouse.move(x, y);
@@ -161,6 +168,7 @@ test('rotated reflected table resize follows its header and shrinking the window
     { steps: 5 },
   );
   await page.mouse.up();
+  await expect(divider).toHaveAttribute('aria-valuenow', '125');
   await page.screenshot({
     path: test.info().outputPath('direct-table-transformed.png'),
   });

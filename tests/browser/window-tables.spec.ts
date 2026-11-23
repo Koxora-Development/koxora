@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Locator } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { waitForCanvasLayout } from './canvas-layout';
 import {
   createProject,
   exportProject,
@@ -87,6 +88,7 @@ async function open(
       : `[data-node-id="${id}"] .scene-node`,
   );
   await region.scrollIntoViewIfNeeded();
+  await waitForCanvasLayout(region);
   const point = await region.evaluate((el) => {
     const element = el as SVGGraphicsElement;
     // WebKit can report foreignObject bounds at the origin instead of x/y.

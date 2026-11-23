@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { waitForCanvasLayout } from './canvas-layout';
 import {
   createProject,
   exportProject,
@@ -83,6 +84,7 @@ async function start(
     kind === 'table'
       ? rendered.locator('[data-table-cell="1-0"]')
       : rendered.locator('.scene-node');
+  await waitForCanvasLayout(target);
   const point = await target.evaluate((el) => {
     const region = el.querySelector('[data-text-region]') ?? el;
     const svg = region as SVGGraphicsElement;
@@ -255,11 +257,10 @@ for (const locale of ['en', 'de']) {
     // Reopening an empty formatted cell uses its saved font for new text.
     // An empty SVG text group has no painted hit target; click the actual
     // middle cell on the table body as a user would.
-    const bounds = (await rendered.locator('.scene-node').boundingBox())!;
-    await page.mouse.click(
-      bounds.x + bounds.width / 2,
-      bounds.y + bounds.height / 2,
-    );
+    // Locator clicks wait for the export notice's layout change to settle.
+    await waitForCanvasLayout(rendered.locator('.scene-node'));
+    await rendered.locator('.scene-node').click();
+    await expect(page.locator('.canvas-table-address')).toHaveText('B2');
     const editor = page.locator('.canvas-cell-input [contenteditable]');
     await expect(
       page.locator('.canvas-table-rich-toolbar .font-picker summary'),
@@ -278,13 +279,9 @@ for (const locale of ['en', 'de']) {
     expect(
       blankRegions.cellRichText![1][1]!.paragraphs[0].runs[0].style?.fontFamily,
     ).toBe('consolas');
-    const reopenedBounds = (await rendered
-      .locator('.scene-node')
-      .boundingBox())!;
-    await page.mouse.click(
-      reopenedBounds.x + reopenedBounds.width / 2,
-      reopenedBounds.y + reopenedBounds.height / 2,
-    );
+    await waitForCanvasLayout(rendered.locator('.scene-node'));
+    await rendered.locator('.scene-node').click();
+    await expect(page.locator('.canvas-table-address')).toHaveText('B2');
     await expect(richPicker.locator('summary')).toHaveText(
       t['text.family.consolas'],
     );
