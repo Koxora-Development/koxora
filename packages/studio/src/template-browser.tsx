@@ -8,6 +8,7 @@ import {
   type BuiltInTemplate,
   type TemplateCategory,
 } from '@koxora/editor-core';
+import type { LocalTemplateSummary } from '@koxora/persistence';
 import type { Node } from '@koxora/project';
 import { Dialog, Icon } from '@koxora/ui';
 import './template-browser.css';
@@ -146,30 +147,53 @@ function TemplatePreview({
 export function TemplateBrowser({
   locale,
   busy,
+  localTemplates,
+  localTemplatesLoading,
+  localTemplatesUnavailable,
   titleRef,
   onBack,
   onBlank,
   onUse,
+  onUseLocal,
+  onRemoveLocal,
 }: {
   locale: string;
   busy: boolean;
+  localTemplates: LocalTemplateSummary[];
+  localTemplatesLoading: boolean;
+  localTemplatesUnavailable: boolean;
   titleRef?: Ref<HTMLHeadingElement>;
   onBack: () => void;
   onBlank: () => void;
   onUse: (id: string, title: string) => void;
+  onUseLocal: (id: string) => void;
+  onRemoveLocal: (item: LocalTemplateSummary) => void;
 }) {
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
     translate(locale, key, values);
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<TemplateCategory | 'all'>('all');
+  const [category, setCategory] = useState<TemplateCategory | 'all' | 'local'>(
+    'all',
+  );
   const [preview, setPreview] = useState<BuiltInTemplate | null>(null);
+  const localHeading = useId();
   const categories = [
+    'local',
     'mindmap',
     'flowchart',
     'organization',
     'planning',
   ] as const;
   const search = query.trim().toLocaleLowerCase(locale);
+  const showLocalTemplates = category === 'all' || category === 'local';
+  const loading = showLocalTemplates && localTemplatesLoading;
+  const unavailable = showLocalTemplates && localTemplatesUnavailable;
+  const localMatches =
+    showLocalTemplates && !localTemplatesUnavailable
+      ? localTemplates.filter((item) =>
+          item.title.toLocaleLowerCase(locale).includes(search),
+        )
+      : [];
   const matches = templateCatalog.filter(
     (item) =>
       (category === 'all' || item.category === category) &&
@@ -184,6 +208,12 @@ export function TemplateBrowser({
             .includes(search),
         )),
   );
+  const matchCount = matches.length + localMatches.length;
+  const localEmpty = category === 'local' && !search && !localTemplates.length;
+  const formatSavedTime = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
   function applyTemplate(item: BuiltInTemplate) {
     setPreview(null);
     onUse(item.id, t(item.titleKey as MessageKey));
@@ -219,9 +249,7 @@ export function TemplateBrowser({
           {t('templates.category')}
           <select
             value={category}
-            onChange={(e) =>
-              setCategory(e.target.value as TemplateCategory | 'all')
-            }
+            onChange={(e) => setCategory(e.target.value as typeof category)}
           >
             <option value="all">{t('templates.category.all')}</option>
             {categories.map((value) => (
@@ -231,21 +259,73 @@ export function TemplateBrowser({
             ))}
           </select>
         </label>
-        <p role="status">{t('templates.results', { count: matches.length })}</p>
+        {!unavailable && (
+          <p role="status">
+            {loading
+              ? t('templates.loadingLocal')
+              : t('templates.results', { count: matchCount })}
+          </p>
+        )}
       </div>
-      {!matches.length && (
+      {!unavailable && !loading && !matchCount && (
         <div className="template-empty">
-          <p>{t('templates.empty')}</p>
-          <button
-            className="button"
-            onClick={() => {
-              setQuery('');
-              setCategory('all');
-            }}
-          >
-            {t('templates.clear')}
-          </button>
+          <p>{t(localEmpty ? 'templates.localEmpty' : 'templates.empty')}</p>
+          {!localEmpty && (
+            <button
+              className="button"
+              onClick={() => {
+                setQuery('');
+                setCategory('all');
+              }}
+            >
+              {t('templates.clear')}
+            </button>
+          )}
         </div>
+      )}
+      {localMatches.length > 0 && (
+        <section className="template-local" aria-labelledby={localHeading}>
+          <h2 id={localHeading}>{t('templates.category.local')}</h2>
+          <ul className="template-grid">
+            {localMatches.map((item) => (
+              <li className="template-card" key={item.id}>
+                <h3>{item.title}</h3>
+                <p className="template-local-meta">
+                  {t('project.structure', {
+                    documents: item.documents,
+                    pages: item.pages,
+                  })}
+                  <br />
+                  <time dateTime={item.updatedAt}>
+                    {t('templates.savedOn', {
+                      date: formatSavedTime.format(new Date(item.updatedAt)),
+                    })}
+                  </time>
+                </p>
+                <div className="template-card-actions">
+                  <button
+                    aria-label={t('templates.useNamed', { title: item.title })}
+                    className="button primary"
+                    disabled={busy || localTemplatesLoading}
+                    onClick={() => onUseLocal(item.id)}
+                  >
+                    {t('templates.use')}
+                  </button>
+                  <button
+                    aria-label={t('templates.removeNamed', {
+                      title: item.title,
+                    })}
+                    className="button"
+                    disabled={busy || localTemplatesLoading}
+                    onClick={() => onRemoveLocal(item)}
+                  >
+                    {t('templates.removeTitle')}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <ul className="template-grid">
         {matches.map((item) => {

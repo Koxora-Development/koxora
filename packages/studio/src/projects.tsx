@@ -29,6 +29,7 @@ import {
 } from './canvas';
 import {
   activePageId,
+  copyTemplateProject,
   createFromTemplate,
   shapeKinds,
   layerStates,
@@ -54,9 +55,11 @@ import {
 } from '@koxora/project';
 import {
   IndexedDbStore,
+  LocalTemplateRepository,
   NativeStore,
   ProjectRepository,
   type Invoke,
+  type LocalTemplateSummary,
   type ProjectSummary,
 } from '@koxora/persistence';
 const native = (
@@ -91,6 +94,16 @@ export function Projects({
       new ProjectRepository(
         native ? new NativeStore(native.invoke) : new IndexedDbStore(),
       ),
+  );
+  const [templateRepository] = useState(() => new LocalTemplateRepository());
+  const [localTemplates, setLocalTemplates] = useState<LocalTemplateSummary[]>(
+    [],
+  );
+  const [localTemplatesLoading, setLocalTemplatesLoading] = useState(false);
+  const [templateListFailed, setTemplateListFailed] = useState(false);
+  const [templateName, setTemplateName] = useState<string | null>(null);
+  const [templateSaveError, setTemplateSaveError] = useState<MessageKey | null>(
+    null,
   );
   const [project, setProjectState] = useState<Project | null>(null),
     [saved, setSaved] = useState<Project | null>(null),
@@ -169,6 +182,9 @@ export function Projects({
   const [confirmation, setConfirmation] = useState<{
     message: MessageKey;
     action: () => void;
+    title?: MessageKey;
+    confirmLabel?: MessageKey;
+    values?: Record<string, string>;
   } | null>(null);
   const [focusVersion, setFocusVersion] = useState(0);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -479,6 +495,7 @@ export function Projects({
       error ||
       confirmation ||
       importing ||
+      templateName !== null ||
       propertyDraft
     )
       return;
@@ -493,6 +510,7 @@ export function Projects({
     save,
     confirmation,
     importing,
+    templateName,
     propertyDraft,
   ]);
   function replace(action: () => void) {
@@ -530,8 +548,56 @@ export function Projects({
     if (canvasRef.current && !canvasRef.current.prepare()) return;
     snapshot();
     setView('templates');
+    void loadLocalTemplates();
     if (window.innerWidth < 1000 * (guiScale / 100)) setNavigatorVisible(false);
     setFocusVersion((n) => n + 1);
+  }
+  async function loadLocalTemplates() {
+    if (localTemplatesLoading) return;
+    setLocalTemplatesLoading(true);
+    setTemplateListFailed(false);
+    try {
+      setLocalTemplates(await templateRepository.list());
+    } catch {
+      setLocalTemplates([]);
+      setTemplateListFailed(true);
+    } finally {
+      setLocalTemplatesLoading(false);
+    }
+  }
+  function beginSaveTemplate() {
+    if (busy || propertyDraft || navigationLock.current) return;
+    if (canvasRef.current && !canvasRef.current.prepare()) return;
+    const current = snapshot();
+    if (!current) return;
+    setTemplateSaveError(null);
+    setTemplateName(current.manifest.title);
+  }
+  async function saveTemplate(name: string) {
+    if (busy) return;
+    const current = snapshot();
+    if (!current) return;
+    setOperation('saving');
+    setTemplateSaveError(null);
+    try {
+      const now = new Date().toISOString();
+      const renamed = renameProject(current, name, now);
+      await templateRepository.save(
+        copyTemplateProject(renamed, () => crypto.randomUUID(), now),
+      );
+      setTemplateName(null);
+      setNotice(t('templates.saved'));
+    } catch (error) {
+      setTemplateSaveError(
+        error instanceof EditError
+          ? 'editing.invalidName'
+          : error instanceof ProjectError && error.code === 'tooLarge'
+            ? 'project.error.tooLarge'
+            : 'templates.storageError',
+      );
+    } finally {
+      setOperation(null);
+    }
   }
   function createTemplate(id: string, title: string) {
     try {
@@ -548,6 +614,50 @@ export function Projects({
       setError(null);
     } catch (error) {
       report(error);
+    }
+  }
+  async function createLocalTemplate(id: string) {
+    setOperation('opening');
+    setError(null);
+    try {
+      const source = await templateRepository.open(id);
+      const next = copyTemplateProject(
+        source,
+        () => crypto.randomUUID(),
+        new Date().toISOString(),
+      );
+      enter(next);
+      setSaved(null);
+      setToken(null);
+    } catch (error) {
+      report(error);
+      if (error instanceof ProjectError && error.code === 'missing')
+        setLocalTemplates((items) => items.filter((item) => item.id !== id));
+    } finally {
+      setOperation(null);
+    }
+  }
+  function confirmRemoveTemplate(item: LocalTemplateSummary) {
+    setConfirmation({
+      title: 'templates.removeTitle',
+      message: 'templates.removeConfirm',
+      values: { title: item.title },
+      confirmLabel: 'templates.removeTitle',
+      action: () => void removeLocalTemplate(item.id),
+    });
+  }
+  async function removeLocalTemplate(id: string) {
+    setOperation('saving');
+    setError(null);
+    try {
+      await templateRepository.remove(id);
+      setLocalTemplates((items) => items.filter((item) => item.id !== id));
+      setNotice(t('templates.removed'));
+      setFocusVersion((n) => n + 1);
+    } catch (error) {
+      report(error);
+    } finally {
+      setOperation(null);
     }
   }
   async function open(id: string, previous = false) {
@@ -1079,6 +1189,11 @@ export function Projects({
           shortcut: 'Ctrl+S',
         },
         {
+          label: t('templates.saveAs'),
+          action: beginSaveTemplate,
+          disabled: !project || view !== 'workspace' || busy || propertyDraft,
+        },
+        {
           label: t(native ? 'export.saveAs' : 'project.export'),
           action: () => void exportFile(),
           disabled: unavailable || propertyDraft,
@@ -1460,6 +1575,7 @@ export function Projects({
             propertyDraft ||
             importing ||
             !!confirmation ||
+            templateName !== null ||
             navigationBusy ||
             settingsOpen ||
             missingTarget
@@ -1593,10 +1709,10 @@ export function Projects({
       >
         {confirmation && (
           <Dialog
-            title={t('confirmation.title')}
+            title={t(confirmation.title ?? 'confirmation.title')}
             onCancel={() => setConfirmation(null)}
           >
-            <p>{t(confirmation.message)}</p>
+            <p>{t(confirmation.message, confirmation.values)}</p>
             <div className="dialog-actions">
               <button className="button" onClick={() => setConfirmation(null)}>
                 {t('project.cancel')}
@@ -1609,9 +1725,64 @@ export function Projects({
                   action();
                 }}
               >
-                {t('project.confirm')}
+                {t(confirmation.confirmLabel ?? 'project.confirm')}
               </button>
             </div>
+          </Dialog>
+        )}
+        {templateName !== null && (
+          <Dialog
+            title={t('templates.saveTitle')}
+            onCancel={() => {
+              if (!busy) setTemplateName(null);
+            }}
+          >
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void saveTemplate(templateName);
+              }}
+            >
+              <label className="field-label">
+                {t('templates.saveName')}
+                <input
+                  value={templateName}
+                  maxLength={1024}
+                  disabled={busy}
+                  autoFocus
+                  aria-invalid={templateSaveError === 'editing.invalidName'}
+                  aria-describedby={
+                    templateSaveError ? 'template-save-error' : undefined
+                  }
+                  onChange={(event) => {
+                    setTemplateName(event.target.value);
+                    setTemplateSaveError(null);
+                  }}
+                />
+              </label>
+              {templateSaveError && (
+                <p id="template-save-error" role="alert">
+                  {t(templateSaveError)}
+                </p>
+              )}
+              <div className="dialog-actions">
+                <button
+                  className="button"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setTemplateName(null)}
+                >
+                  {t('project.cancel')}
+                </button>
+                <button
+                  className="button primary"
+                  disabled={busy}
+                  type="submit"
+                >
+                  {t('templates.save')}
+                </button>
+              </div>
+            </form>
           </Dialog>
         )}
         {importing && (
@@ -1697,17 +1868,35 @@ export function Projects({
           </div>
         )}
         {view === 'templates' ? (
-          <TemplateBrowser
-            locale={locale}
-            busy={busy || propertyDraft}
-            titleRef={titleRef}
-            onBack={() => {
-              setView('dashboard');
-              setFocusVersion((n) => n + 1);
-            }}
-            onBlank={() => replace(create)}
-            onUse={(id, title) => replace(() => createTemplate(id, title))}
-          />
+          <>
+            {templateListFailed && (
+              <div className="notification error" role="alert">
+                <span>{t('templates.storageError')}</span>
+                <button
+                  className="button"
+                  onClick={() => void loadLocalTemplates()}
+                >
+                  {t('templates.retry')}
+                </button>
+              </div>
+            )}
+            <TemplateBrowser
+              locale={locale}
+              busy={busy || propertyDraft}
+              titleRef={titleRef}
+              localTemplates={localTemplates}
+              localTemplatesLoading={localTemplatesLoading}
+              localTemplatesUnavailable={templateListFailed}
+              onBack={() => {
+                setView('dashboard');
+                setFocusVersion((n) => n + 1);
+              }}
+              onBlank={() => replace(create)}
+              onUse={(id, title) => replace(() => createTemplate(id, title))}
+              onUseLocal={(id) => replace(() => void createLocalTemplate(id))}
+              onRemoveLocal={confirmRemoveTemplate}
+            />
+          </>
         ) : view === 'dashboard' || !project ? (
           <StartPage
             project={project}

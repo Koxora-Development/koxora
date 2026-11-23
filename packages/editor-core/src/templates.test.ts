@@ -5,8 +5,14 @@ import {
   validateProject,
   type Project,
 } from '@koxora/project';
-import { templateCatalog, createFromTemplate } from './templates';
+import { richFixture } from '../../project/src/fixture';
+import {
+  copyTemplateProject,
+  createFromTemplate,
+  templateCatalog,
+} from './templates';
 import { applyEdit, copyElements } from './editing';
+import { elementLink, LINK_KEY } from './links';
 import { applyWorkbook } from './workbook';
 import { StudioHistory } from './studio-history';
 
@@ -221,5 +227,106 @@ describe('simple local drawing templates', () => {
         now,
       ),
     ).toThrow();
+  });
+});
+
+describe('local project template snapshots', () => {
+  const copiedAt = '2026-11-23T12:00:00.000Z';
+
+  it('copies the whole workbook and its opaque and binary data independently', async () => {
+    const source = await importProject(
+      await exportProject(await richFixture()),
+    );
+    const snapshot = copyTemplateProject(source, id, now);
+    const first = copyTemplateProject(snapshot, id, copiedAt);
+    const second = copyTemplateProject(snapshot, id, copiedAt);
+
+    expect(
+      new Set(
+        [source, snapshot, first, second].map((p) => p.manifest.projectId),
+      ).size,
+    ).toBe(4);
+    expect(first).toEqual({
+      ...source,
+      manifest: {
+        ...source.manifest,
+        projectId: first.manifest.projectId,
+        createdAt: copiedAt,
+        updatedAt: copiedAt,
+      },
+    });
+    expect(await importProject(await exportProject(first))).toEqual(first);
+
+    const asset = source.assets[0].path;
+    first.documents[0].pages[0].title = 'First copy only';
+    first.files[asset][0] = 0;
+    for (const unchanged of [snapshot, second]) {
+      expect(unchanged.documents).toEqual(source.documents);
+      expect(unchanged.files).toEqual(source.files);
+    }
+  });
+
+  it('rebases known self-project links and preserves foreign and opaque links', async () => {
+    const source = await richFixture();
+    const page = source.documents[1].pages[0];
+    const destination = source.documents[2].pages[0];
+    const [ambiguous, linkedNode] = page.nodes;
+    const target = {
+      type: 'project',
+      projectId: source.manifest.projectId,
+      pageId: destination.id,
+      elementId: destination.nodes[0].id,
+    } as const;
+    linkedNode.extensions[LINK_KEY] = { version: 2, ...target };
+    ambiguous.extensions[LINK_KEY] = { version: 2, ...target };
+    page.connections[0].extensions[LINK_KEY] = {
+      version: 2,
+      type: 'project',
+      projectId: source.manifest.projectId,
+    };
+    destination.nodes[1].extensions[LINK_KEY] = {
+      version: 2,
+      ...target,
+      projectId: id(),
+    };
+    destination.connections[0].extensions[LINK_KEY] = {
+      version: 2,
+      ...target,
+      future: true,
+    };
+    const embedded = source.templates[0].document.pages[0];
+    embedded.nodes = [
+      { ...linkedNode, id: id(), layerId: embedded.layers[0].id },
+    ];
+    const before = structuredClone(source);
+
+    const snapshot = copyTemplateProject(source, id, now);
+    const copy = copyTemplateProject(snapshot, id, copiedAt);
+    const projectId = copy.manifest.projectId;
+    expect(elementLink(copy, linkedNode.id)).toEqual({
+      state: 'ready',
+      target: { ...target, projectId },
+    });
+    expect(elementLink(copy, page.connections[0].id)).toEqual({
+      state: 'ready',
+      target: { type: 'project', projectId },
+    });
+    expect(
+      copy.templates[0].document.pages[0].nodes[0].extensions[LINK_KEY],
+    ).toEqual({ version: 2, ...target, projectId });
+    expect(copy.documents[1].pages[0].nodes[0]).toEqual(ambiguous);
+    expect(elementLink(copy, ambiguous.id)).toEqual({ state: 'unsupported' });
+    expect(copy.documents[2].pages[0]).toEqual(destination);
+    expect(source).toEqual(before);
+  });
+
+  it('rejects a generated ID already used by the source', () => {
+    const source = make('mindmap-study');
+    expect(() =>
+      copyTemplateProject(source, () => source.manifest.projectId, copiedAt),
+    ).toThrow('duplicateId');
+    expect(() =>
+      copyTemplateProject(source, () => source.documents[0].id, copiedAt),
+    ).toThrow('duplicateId');
   });
 });

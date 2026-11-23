@@ -12,6 +12,7 @@ import {
   TEXT_REGIONS_KEY,
   type RichText,
 } from '../../packages/editor-core/src/index';
+import { waitForCanvasLayout } from './canvas-layout';
 
 const now = '2026-11-14T18:00:00.000Z';
 function fixture(kind: 'container' | 'table') {
@@ -328,6 +329,12 @@ test('table header is visibly distinguished and a cell click supports mixed rich
   await clickRegion(page, rendered.locator('[data-text-region="cell-1-0"]'));
   await expect(directToolbar(page)).toBeVisible();
   const editor = directEditor(page);
+  // Firefox can enter the new overlay with the canvas click's buttons state.
+  await page.locator('[data-canvas-cell="0-0"]').dispatchEvent('pointerover', {
+    pointerId: 1,
+    pointerType: 'mouse',
+    buttons: 1,
+  });
   await expect(editor).toHaveText('Ada');
   await editor.fill('Plan carefully');
   await richFormat(editor, page.locator('.canvas-table-rich-toolbar'));
@@ -468,6 +475,47 @@ test('a blank table cell opens its own editor and closing retains live text chan
   expect((regions(await exported(page)).cells as string[][])[2][2]).toBe(
     'Last cell',
   );
+});
+
+test('dragging between grid cells selects a range until the pointer is released', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const { project, id } = fixture('table');
+  await open(page, project);
+  const label = page.locator(
+    `[data-node-id="${id}"] [data-text-region="cell-1-0"]`,
+  );
+  await waitForCanvasLayout(label);
+  await clickRegion(page, label);
+  await expect(directEditor(page)).toHaveText('Ada');
+  await page.keyboard.press('Escape');
+  await expect(directEditor(page)).toHaveCount(0);
+
+  const start = page.getByRole('gridcell', { name: 'A1: Name', exact: true });
+  const end = page.getByRole('gridcell', { name: 'B2: Lead', exact: true });
+  const startBox = (await start.boundingBox())!;
+  const endBox = (await end.boundingBox())!;
+  await page.mouse.move(
+    startBox.x + startBox.width / 2,
+    startBox.y + startBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    endBox.x + endBox.width / 2,
+    endBox.y + endBox.height / 2,
+  );
+  await page.mouse.up();
+
+  await expect(start).toHaveAttribute('aria-selected', 'true');
+  await expect(end).toHaveAttribute('aria-selected', 'true');
+  const outside = page.locator('[data-canvas-cell="2-2"]');
+  await outside.dispatchEvent('pointerover', {
+    pointerId: 1,
+    pointerType: 'mouse',
+    buttons: 1,
+  });
+  await expect(outside).toHaveAttribute('aria-selected', 'false');
 });
 
 test('keyboard focus can leave a live text editor and undo its changes without a stale editor', async ({

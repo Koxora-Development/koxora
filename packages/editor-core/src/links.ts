@@ -308,3 +308,37 @@ export function remapConnectionLink(
       }
     : remapElementLink(edge, ids);
 }
+
+/** Repoint supported self-project targets in an independent project copy. */
+export function rebaseSelfProjectLinks(copy: Project, sourceId: string): void {
+  const documents = [
+    ...copy.documents,
+    ...copy.templates.map((template) => template.document),
+  ];
+  const actionTargets = new Set<string>();
+  for (const document of documents)
+    for (const action of document.actions)
+      if (action.operation === 'url' || action.operation === 'navigate')
+        actionTargets.add(action.targetId);
+
+  function rebase(item: Node | Connection) {
+    const link = extendedLink(item.extensions[LINK_KEY]);
+    if (
+      link.state === 'ready' &&
+      link.target.type === 'project' &&
+      link.target.projectId === sourceId
+    )
+      item.extensions[LINK_KEY] = {
+        version: 2,
+        ...link.target,
+        projectId: copy.manifest.projectId,
+      };
+  }
+
+  for (const document of documents)
+    for (const page of document.pages) {
+      for (const node of page.nodes)
+        if (!actionTargets.has(node.id)) rebase(node);
+      for (const connection of page.connections) rebase(connection);
+    }
+}

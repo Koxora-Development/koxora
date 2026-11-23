@@ -77,6 +77,7 @@ export function CanvasTableEditor({
     selection: 'all' | 'end';
   }>({ key: 0, selection: 'all' });
   const pendingCellFocus = useRef<Cell | null>(null);
+  const selectionPointer = useRef<number | null>(null);
   const input = useRef<HTMLDivElement>(null),
     grid = useRef<HTMLDivElement>(null);
   const [richToolbar, setRichToolbar] = useState<HTMLDivElement | null>(null);
@@ -283,7 +284,12 @@ export function CanvasTableEditor({
     });
     const resize = new ResizeObserver(update);
     resize.observe(el);
+    const finishSelection = (event: PointerEvent) => {
+      if (selectionPointer.current === event.pointerId)
+        selectionPointer.current = null;
+    };
     const outside = (event: PointerEvent) => {
+      finishSelection(event);
       const target = event.target as globalThis.Node;
       if (
         !toolbar.current?.contains(target) &&
@@ -292,10 +298,14 @@ export function CanvasTableEditor({
         closeLatest.current();
     };
     document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('pointerup', finishSelection, true);
+    document.addEventListener('pointercancel', finishSelection, true);
     return () => {
       observer.disconnect();
       resize.disconnect();
       document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('pointerup', finishSelection, true);
+      document.removeEventListener('pointercancel', finishSelection, true);
       if (
         toolbarElement?.contains(document.activeElement) ||
         layerElement?.contains(document.activeElement) ||
@@ -514,10 +524,15 @@ export function CanvasTableEditor({
                   }}
                   onPointerDown={(e) => {
                     if (e.button !== 0) return;
+                    selectionPointer.current = e.pointerId;
                     choose(c, e.shiftKey);
                   }}
                   onPointerEnter={(e) => {
-                    if (e.buttons === 1) {
+                    // A canvas click can cross into the overlay while it mounts.
+                    if (
+                      e.pointerId === selectionPointer.current &&
+                      e.buttons === 1
+                    ) {
                       setEnd({ row: c.row, column: c.column });
                       setTyping(false);
                     }

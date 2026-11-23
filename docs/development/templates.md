@@ -43,7 +43,7 @@ Each application of a template creates fresh project, document, page, layer, ele
 
 Generated template content uses the portable project format and ordinary editor extensions. Applying a starter adds no special semantic domain model. Element-registry additions require their own verified compatibility behavior rather than silently rewriting imported content. Native export/import, save/reopen and offline editing must preserve the generated content as they do an ordinary project. Existing imported semantic models retain their established compatibility behavior; the template catalog does not reinterpret or rewrite them.
 
-User-saved custom templates, template import/export, sharing, public catalogs and marketplace distribution remain separate work. The current catalog is a first template foundation, not completion of all EDIT-012 acceptance criteria. More elaborate examples await the functions and element families needed to make their contents fully editable and useful.
+[User-saved local templates](local-templates.md) extend the catalog's EDIT-012 foundation. Template import/export, sharing, public catalogs and marketplace distribution remain future work. More elaborate examples await the functions and element families needed to make their contents fully editable and useful.
 
 ## Acceptance scenarios
 
@@ -90,8 +90,8 @@ Validation for this additional scope passed `pnpm check` with **657 unit/integra
 
 ## Remaining phase work
 
-The remaining Phase 2 semantic diagram workflows and user-saved local template management need separate implementation and acceptance. Phase 3 covers data/charts and standard/interactive exports; Phase 4 covers network/IT and broader specialist diagrams. The [design/template plan](../planning/studio-design-customization.md) and [network plan](../planning/network-it-diagrams.md) retain their longer-term requirements without promising unsupported detailed templates in the first catalog.
+The [roadmap](../roadmap.md) tracks user-saved templates and semantic diagram workflows as separate Phase 2 slices. Phase 3 covers data/charts and standard/interactive exports. Phase 4 covers network/IT and broader specialist diagrams. See the [design/template plan](../planning/studio-design-customization.md) and the [network plan](../planning/network-it-diagrams.md) for longer-term requirements.
 
-## Active follow-up
+## Follow-up in PR #62
 
-PR #62 remains unmerged and extends the accepted baseline with [window, library and table improvements](window-library-tables.md), [individual dimensions and formulas](table-calculations.md) and [direct canvas table editing and AppImage feedback](direct-table-editing.md). Its expanded symbol catalog does not change the simple-template contract or establish complete network-diagram semantics. Current follow-up checks, Product Owner acceptance and merge are separate from the historical PR #61 evidence above.
+[PR #62](https://github.com/Koxora-Development/koxora/pull/62), accepted and merged on 2026-11-23 (`27527a7`), extends the element catalog and adds [window, library and table improvements](window-library-tables.md), [individual dimensions and formulas](table-calculations.md), and [direct canvas table editing](direct-table-editing.md).

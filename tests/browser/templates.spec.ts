@@ -1,4 +1,10 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import {
+  expect,
+  test,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { importProject, type Project } from '../../packages/project/src/index';
 
@@ -38,6 +44,21 @@ function card(page: Page, title: string) {
   return page
     .locator('.template-card')
     .filter({ has: page.getByRole('heading', { name: title, exact: true }) });
+}
+async function restartOffline(page: Page, context: BrowserContext) {
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller)
+      await new Promise<void>((resolve) =>
+        navigator.serviceWorker.addEventListener(
+          'controllerchange',
+          () => resolve(),
+          { once: true },
+        ),
+      );
+  });
+  await context.setOffline(true);
+  await page.reload();
 }
 function identities(project: Project) {
   return [
@@ -245,19 +266,7 @@ test('templates and created diagrams remain available after an offline restart',
     .getByRole('button', { name: 'Use template', exact: true })
     .click();
   const initial = await exported(page);
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-    if (!navigator.serviceWorker.controller)
-      await new Promise<void>((resolve) =>
-        navigator.serviceWorker.addEventListener(
-          'controllerchange',
-          () => resolve(),
-          { once: true },
-        ),
-      );
-  });
-  await context.setOffline(true);
-  await page.reload();
+  await restartOffline(page, context);
   await page.getByRole('button', { name: 'Open project', exact: true }).click();
   expect((await exported(page)).documents).toEqual(initial.documents);
   await gallery(page);
@@ -272,6 +281,172 @@ test('templates and created diagrams remain available after an offline restart',
   expect(next.manifest.title).toBe('Small team');
   expect(next.manifest.projectId).not.toBe(initial.manifest.projectId);
   expect(next.documents[0].domainModels).toEqual([]);
+});
+
+test('a saved local template is an offline snapshot with independent projects and explicit removal', async ({
+  page,
+  context,
+}) => {
+  const title = 'Reusable design review';
+  const pages = page.getByRole('tablist', {
+    name: 'Diagram pages',
+    exact: true,
+  });
+  const addPage = page.getByRole('button', { name: 'Add page', exact: true });
+  const projectName = page.getByRole('textbox', {
+    name: 'Project name',
+    exact: true,
+  });
+  const local = card(page, title);
+  const useTemplate = local.getByRole('button', {
+    name: `Use template: ${title}`,
+    exact: true,
+  });
+
+  await page.goto('/');
+  await gallery(page);
+  await card(page, 'Simple process')
+    .getByRole('button', { name: 'Use template', exact: true })
+    .click();
+  await addPage.click();
+  await expect(pages.getByRole('tab')).toHaveCount(2);
+  await pages.getByRole('tab').first().click();
+  const original = await exported(page);
+  expect(original.documents[0].pages[0].connections.length).toBeGreaterThan(0);
+
+  await page
+    .getByRole('menubar')
+    .getByRole('menuitem', { name: 'File', exact: true })
+    .click();
+  await page.getByRole('menuitem', { name: /^Save as template/ }).click();
+  const saveDialog = page.getByRole('dialog', {
+    name: 'Save as template',
+    exact: true,
+  });
+  const templateName = saveDialog.getByRole('textbox', {
+    name: 'Template name',
+    exact: true,
+  });
+  await expect(templateName).toBeFocused();
+  await expect(templateName).toHaveValue('Simple process');
+  await templateName.fill(title);
+  await saveDialog.getByRole('button', { name: 'Save template' }).click();
+  await expect(saveDialog).toHaveCount(0);
+  await expect(projectName).toHaveValue('Simple process');
+
+  // Later edits to the source must not leak into the saved snapshot.
+  await addPage.click();
+  await expect(pages.getByRole('tab')).toHaveCount(3);
+  await saved(page);
+  await restartOffline(page, context);
+  await gallery(page);
+  await page
+    .getByRole('combobox', { name: 'Template category', exact: true })
+    .selectOption({ label: 'My templates' });
+  await expect(local).toBeVisible();
+  await expect(card(page, 'Simple process')).toHaveCount(0);
+  const search = page.getByRole('searchbox', { name: 'Search templates' });
+  await search.fill('does not match');
+  await expect(local).toHaveCount(0);
+  await search.fill('design review');
+  await useTemplate.click();
+
+  const first = await exported(page);
+  expect(first.manifest.title).toBe(title);
+  expect(first.manifest.projectId).not.toBe(original.manifest.projectId);
+  expect(first.documents).toEqual(original.documents);
+  await addPage.click();
+  await expect(pages.getByRole('tab')).toHaveCount(3);
+  await projectName.fill('Edited from template');
+  await projectName.press('Enter');
+  await saved(page);
+
+  await gallery(page);
+  await useTemplate.click();
+  const second = await exported(page);
+  expect(second.manifest.projectId).not.toBe(first.manifest.projectId);
+  expect(second.manifest.projectId).not.toBe(original.manifest.projectId);
+  expect(second.documents).toEqual(original.documents);
+
+  await gallery(page);
+  const remove = local.getByRole('button', {
+    name: `Delete template: ${title}`,
+    exact: true,
+  });
+  const confirmation = page.getByRole('dialog', {
+    name: 'Delete template',
+    exact: true,
+  });
+  await remove.click();
+  await expect(confirmation).toContainText(title);
+  await confirmation
+    .getByRole('button', { name: 'Cancel', exact: true })
+    .click();
+  await expect(local).toBeVisible();
+  await remove.click();
+  await confirmation
+    .getByRole('button', { name: 'Delete template', exact: true })
+    .click();
+  await expect(local).toHaveCount(0);
+  await page.getByRole('button', { name: 'Back to projects' }).click();
+  for (const name of ['Simple process', 'Edited from template', title])
+    await expect(
+      page.getByRole('heading', { name, exact: true }),
+    ).toBeVisible();
+});
+
+test('the German template flow captures edits even when project autosave fails', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'koxora.preferences.v1',
+      JSON.stringify({ locale: 'de' }),
+    );
+  });
+  await page.goto('/');
+  await page
+    .getByRole('button', { name: 'Neues Projekt', exact: true })
+    .click();
+  await expect(page.locator('.save-status')).toHaveText(
+    'Auf diesem Gerät gespeichert',
+  );
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (value, key) {
+      if (this.name === 'projects')
+        throw new DOMException('Project write failed', 'QuotaExceededError');
+      return put.call(this, value, key);
+    };
+  });
+  await page.getByRole('button', { name: 'Seite hinzufügen' }).click();
+  await expect(page.getByRole('alert')).toContainText('Lokaler Speicher');
+  await page.getByRole('menuitem', { name: 'Datei', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Als Vorlage speichern…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Als Vorlage speichern' });
+  const name = dialog.getByRole('textbox', { name: 'Vorlagenname' });
+  await name.fill('Teamplanung');
+  await name.press('Enter');
+  await expect(dialog).toHaveCount(0);
+
+  await page.getByRole('menuitem', { name: 'Datei', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Vorlagen', exact: true }).click();
+  await page
+    .getByRole('combobox', { name: 'Vorlagenkategorie' })
+    .selectOption('local');
+  const local = card(page, 'Teamplanung');
+  await expect(local).toContainText('Seiten: 2');
+  await local
+    .getByRole('button', { name: 'Vorlage verwenden: Teamplanung' })
+    .click();
+  await expect(page.getByRole('dialog')).toContainText(
+    'Ungespeicherte Änderungen',
+  );
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Abbrechen' })
+    .click();
+  await expect(local).toBeVisible();
 });
 
 for (const locale of ['en', 'de'])

@@ -135,4 +135,4 @@ Earlier template-build results are also a separate baseline. The Product Owner s
 
 ## Active follow-up
 
-The unmerged PR #62 adds [window, library and table operations](window-library-tables.md) and [individual table dimensions and formulas](table-calculations.md). Subsequent AppImage feedback requires [table authoring directly on the canvas](direct-table-editing.md), beyond opening a detached editor from a cell. That follow-up also improves window movement, quick symbol navigation and layout. The accepted PR #61 status above does not imply acceptance or merge of PR #62.
+[PR #62](https://github.com/Koxora-Development/koxora/pull/62), accepted and merged on 2026-11-23 (`27527a7`), adds [window, library and table operations](window-library-tables.md), [individual table dimensions and formulas](table-calculations.md), and [direct canvas table editing](direct-table-editing.md). The follow-up also improves window movement, quick symbol navigation and layout.

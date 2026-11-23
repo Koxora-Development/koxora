@@ -1,6 +1,6 @@
 # Independent table sizes and formulas
 
-Status: Product Owner follow-up on 2026-11-16, extending PR #62. Requirements: EDIT-007/008, CORE-003/005/006/007/008/012/015/016 and DATA-005/006 for clipboard and integrated table editing (partial implementation). No public release or merge is authorized by implementation.
+Status: accepted and merged in [PR #62](https://github.com/Koxora-Development/koxora/pull/62) on 2026-11-23 (`27527a7`), following the 2026-11-16 Product Owner assignment. Requirements: EDIT-007/008, CORE-003/005/006/007/008/012/015/016 and DATA-005/006 for clipboard and integrated table editing (partial implementation).
 
 ## Row and column sizes
 

@@ -1,4 +1,9 @@
-import { createProject, validateProject, type Project } from '@koxora/project';
+import {
+  createProject,
+  ProjectError,
+  validateProject,
+  type Project,
+} from '@koxora/project';
 import {
   CONNECTION_KEY,
   ELEMENT_KEY,
@@ -6,6 +11,7 @@ import {
   type ShapeKind,
 } from './shapes';
 import type { Routing } from './connections';
+import { rebaseSelfProjectLinks } from './links';
 
 export type TemplateCategory =
   'mindmap' | 'flowchart' | 'organization' | 'planning';
@@ -312,4 +318,24 @@ export function createFromTemplate(
   };
   validateProject(project);
   return project;
+}
+
+/** Snapshot the complete project while keeping IDs scoped to its workbook. */
+export function copyTemplateProject(
+  project: Project,
+  makeId: () => string,
+  now: string,
+): Project {
+  const { projectId: sourceId } = project.manifest;
+  const projectId = makeId();
+  if (projectId === sourceId)
+    throw new ProjectError('invalid', '$.manifest.projectId', 'duplicateId');
+
+  const copy = structuredClone(project);
+  copy.manifest.projectId = projectId;
+  copy.manifest.createdAt = now;
+  copy.manifest.updatedAt = now;
+  rebaseSelfProjectLinks(copy, sourceId);
+  validateProject(copy);
+  return copy;
 }
