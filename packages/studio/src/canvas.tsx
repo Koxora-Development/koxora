@@ -41,6 +41,7 @@ import {
   freehandTextBox,
   rotatePoint,
   alignedGeometries,
+  hierarchyGeometries,
   tidyGeometries,
   type StackAction,
   copyElements,
@@ -92,6 +93,7 @@ import {
   ZOOM_KEYS,
 } from './shortcuts';
 import { DiagramTools, ElementDialog, type DiagramTool } from './diagram-tools';
+type Arrangement = Alignment | 'tidy' | 'hierarchy';
 export type CanvasCommand =
   | TransformAction
   | 'selectAll'
@@ -104,14 +106,14 @@ export type CanvasCommand =
   | 'redo'
   | 'properties'
   | 'text'
-  | 'tidy'
   | 'forward'
   | 'backward'
   | 'front'
   | 'back'
-  | Alignment;
+  | Arrangement;
 export type CanvasCommandState = {
   selected: number;
+  selectedNodes: number;
   canPaste: boolean;
   propertiesVisible: boolean;
   objectsVisible: boolean;
@@ -127,7 +129,7 @@ export interface CanvasHandle {
   showHelp: () => void;
   toggleObjects: () => void;
   snapshot: () => CanvasState;
-  preview: (action: Alignment | 'tidy' | null) => void;
+  preview: (action: Arrangement | null) => void;
 }
 interface Props {
   project: Project;
@@ -555,11 +557,28 @@ export function Canvas({
       else if (node) pick(node.id, true, point);
     }
   }
-  const editableSelection = selected.filter((id) =>
-    [...scene.nodes, ...scene.connections].some(
-      (n) => n.id === id && n.editable,
-    ),
+  const editableNodeIds = useMemo(
+    () =>
+      new Set(
+        scene.nodes.filter((node) => node.editable).map((node) => node.id),
+      ),
+    [scene.nodes],
   );
+  const editableConnectionIds = useMemo(
+    () =>
+      new Set(
+        scene.connections
+          .filter((edge) => edge.editable)
+          .map((edge) => edge.id),
+      ),
+    [scene.connections],
+  );
+  const canEditSelected = (id: string) =>
+    editableNodeIds.has(id) || editableConnectionIds.has(id);
+  const editableSelection = selected.filter(canEditSelected);
+  const selectedNodes = editableSelection.filter((id) =>
+    editableNodeIds.has(id),
+  ).length;
   const propertyId =
     !inline && editableSelection.length === 1 ? editableSelection[0] : null;
   const propertyItem = [...page.nodes, ...page.connections].find(
@@ -568,6 +587,7 @@ export function Canvas({
   useEffect(() => {
     onCommandState({
       selected: editableSelection.length,
+      selectedNodes,
       canPaste: hasClipboard,
       propertiesVisible: inspectorOpen,
       objectsVisible: objects,
@@ -575,6 +595,7 @@ export function Canvas({
   }, [
     onCommandState,
     editableSelection.length,
+    selectedNodes,
     hasClipboard,
     inspectorOpen,
     objects,
@@ -655,16 +676,25 @@ export function Canvas({
     controls.current?.refresh();
   }, [descriptions, locale]);
   const previewing = useRef(false);
-  function previewArrangement(action: Alignment | 'tidy' | null) {
-    previewing.current = action !== null;
-    const geometries =
-      action === null
-        ? null
-        : action === 'tidy'
-          ? tidyGeometries(scene, selection.current)
-          : alignedGeometries(scene, selection.current, action);
+  function previewArrangement(action: Arrangement | null) {
+    if (action === null && !previewing.current) return;
+    let geometries: Record<string, Geometry> | null = null;
+    if (action === 'hierarchy') {
+      const result = hierarchyGeometries(scene, page, selection.current);
+      if (result.ok && Object.keys(result.geometries).length)
+        geometries = result.geometries;
+    } else if (action === 'tidy') {
+      geometries = tidyGeometries(scene, selection.current);
+    } else if (action !== null) {
+      geometries = alignedGeometries(scene, selection.current, action);
+    }
+    previewing.current = geometries !== null;
     controls.current?.preview(geometries);
-    setFeedback(action ? 'editing.preview' : null);
+    if (geometries) setFeedback('editing.preview');
+    else
+      setFeedback((current) =>
+        current === 'editing.preview' ? null : current,
+      );
   }
   function command(action: CanvasCommand) {
     if (propertyDraft.current && action !== 'properties') {
@@ -678,11 +708,7 @@ export function Canvas({
     setSource(null);
     setContextMenu(null);
     setFeedback(null);
-    const ids = selection.current.filter((id) =>
-      [...scene.nodes, ...scene.connections].some(
-        (n) => n.id === id && n.editable,
-      ),
-    );
+    const ids = selection.current.filter(canEditSelected);
     try {
       if (transformActions.includes(action as TransformAction)) {
         const nodes = page.nodes.filter((n) => ids.includes(n.id));
@@ -749,6 +775,12 @@ export function Canvas({
           select(
             [...content.nodes, ...content.connections].map((n) => idMap[n.id]),
           );
+      } else if (action === 'hierarchy') {
+        const result = hierarchyGeometries(scene, page, selection.current);
+        if (!result.ok) setFeedback(`arrange.hierarchy.${result.reason}`);
+        else if (Object.keys(result.geometries).length)
+          onEdit({ type: 'transform', geometries: result.geometries });
+        else setFeedback('arrange.hierarchy.unchanged');
       } else {
         const geometries =
           action === 'tidy'
@@ -2249,9 +2281,7 @@ export function Canvas({
           >
             {t('editing.paste')}
           </button>
-          {editableSelection.filter((id) =>
-            scene.nodes.some((n) => n.id === id),
-          ).length >= 2 && (
+          {selectedNodes >= 2 && (
             <details
               className="selection-align"
               onToggle={(e) => {
@@ -2293,11 +2323,7 @@ export function Canvas({
                     <button
                       key={mode}
                       className="button compact"
-                      disabled={
-                        editableSelection.filter((id) =>
-                          scene.nodes.some((n) => n.id === id),
-                        ).length < 3
-                      }
+                      disabled={selectedNodes < 3}
                       onMouseEnter={() => previewArrangement(mode)}
                       onMouseLeave={() => previewArrangement(null)}
                       onFocus={() => previewArrangement(mode)}
@@ -2320,6 +2346,20 @@ export function Canvas({
                     onClick={() => command('tidy')}
                   >
                     {t('arrange.tidy')}
+                  </button>
+                </fieldset>
+                <fieldset>
+                  <legend>{t('arrange.hierarchy')}</legend>
+                  <p className="arrange-help">{t('arrange.hierarchyHelp')}</p>
+                  <button
+                    className="button compact"
+                    onMouseEnter={() => previewArrangement('hierarchy')}
+                    onMouseLeave={() => previewArrangement(null)}
+                    onFocus={() => previewArrangement('hierarchy')}
+                    onBlur={() => previewArrangement(null)}
+                    onClick={() => command('hierarchy')}
+                  >
+                    {t('arrange.hierarchy')}
                   </button>
                 </fieldset>
               </div>
@@ -2601,9 +2641,7 @@ export function Canvas({
                 )}
               </Submenu>
             )}
-            {editableSelection.filter((id) =>
-              scene.nodes.some((n) => n.id === id),
-            ).length >= 2 && (
+            {selectedNodes >= 2 && (
               <button role="menuitem" onClick={() => command('tidy')}>
                 {t('arrange.tidy')}
               </button>

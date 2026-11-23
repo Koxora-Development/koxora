@@ -62,4 +62,6 @@ The remaining editor project/element navigation from Issue #24 was accepted and 
 
 [PR #62](https://github.com/Koxora-Development/koxora/pull/62) was accepted and merged on 2026-11-23 (`27527a7`). It adds [movable editing windows, expanded element libraries and table operations](docs/development/window-library-tables.md), [table dimensions and local formulas](docs/development/table-calculations.md), [direct canvas table editing](docs/development/direct-table-editing.md), and [adaptive connection ports and branching junctions](docs/development/connection-ports-junctions.md) in a compact Shapes/Connections ribbon. Public release and deployment remain separate decisions.
 
-The next Phase 2 slice implements [user-saved local templates](docs/development/local-templates.md) for EDIT-012. Studio can save the active project as a reusable snapshot and create independent projects from My templates. Product Owner acceptance is pending.
+[PR #64](https://github.com/Koxora-Development/koxora/pull/64) was accepted and merged on 2026-11-23 (`ba11a90`). Studio can save the active project as a reusable snapshot and create independent projects from My templates. See [user-saved local templates](docs/development/local-templates.md).
+
+The next Phase 2 slice adds [hierarchy layout](docs/development/hierarchy-layout.md). Studio can preview and arrange a selected tree of connected shapes, for example an organization chart. Product Owner acceptance is pending.

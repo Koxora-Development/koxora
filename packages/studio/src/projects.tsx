@@ -154,6 +154,7 @@ export function Projects({
   const [propertyDraft, setPropertyDraft] = useState(false);
   const [commandState, setCommandState] = useState<CanvasCommandState>(() => ({
     selected: 0,
+    selectedNodes: 0,
     canPaste: false,
     propertiesVisible: window.innerWidth >= 1000,
     objectsVisible: false,
@@ -1397,6 +1398,14 @@ export function Projects({
           preview: (active) =>
             canvasRef.current?.preview(active ? 'tidy' : null),
           disabled: unavailable || selected < 2 || propertyDraft,
+        },
+        {
+          label: t('arrange.hierarchy'),
+          action: command('hierarchy'),
+          preview: (active) =>
+            canvasRef.current?.preview(active ? 'hierarchy' : null),
+          disabled:
+            unavailable || commandState.selectedNodes < 2 || propertyDraft,
         },
       ],
     },

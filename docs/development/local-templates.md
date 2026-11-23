@@ -1,6 +1,6 @@
 # User-saved local templates
 
-This Phase 2 slice implements local save and apply for [EDIT-012](../product/feature-catalog.md). It extends the [built-in starter catalog](templates.md). Product Owner acceptance is pending.
+The Product Owner accepted this Phase 2 slice and it was merged in [PR #64](https://github.com/Koxora-Development/koxora/pull/64) on 2026-11-23 (`ba11a90`). It implements local save and apply for [EDIT-012](../product/feature-catalog.md) and extends the [built-in starter catalog](templates.md).
 
 ## Workflow
 
