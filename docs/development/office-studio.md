@@ -18,7 +18,7 @@ The Product Owner follow-up in [PR #65](https://github.com/Koxora-Development/ko
 
 Escape from the chooser returns focus to Insert. Choosing a shape arms its tool and moves focus to the canvas for placement. Insert is available in the editing workspace. Its commands require an editable layer and a property editor state that permits switching tools.
 
-Verify the menu in English and German with the keyboard. Open the chooser with Enter, search and filter for a shape from a library hidden in the ribbon, cancel with Escape, then reopen it and place the chosen shape from the canvas. Exercise Text, Table and Freehand pen, and check that Connections opens with the search focused. Check command availability from the project library, on a page with all layers locked and while a property draft blocks tool changes. Use Format to preview and apply an automatic layout. See [Automatic layout for hierarchies and flowcharts](hierarchy-layout.md).
+Verify the menu in English and German with the keyboard. Open the chooser with Enter, search and filter for a shape from a library hidden in the ribbon, cancel with Escape, then reopen it and place the chosen shape from the canvas. At 390 × 650 and 200% interface scale, scroll the results and check that the filters and Close remain accessible. Exercise Text, Table and Freehand pen, and check that Connections opens with the search focused. Check command availability from the project library, on a page with all layers locked and while a property draft blocks tool changes. Use Format to preview and apply an automatic layout. See [Automatic layout for hierarchies and flowcharts](hierarchy-layout.md).
 
 ## Transformation follow-up
 

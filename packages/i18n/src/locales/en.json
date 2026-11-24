@@ -720,7 +720,6 @@
   "palette.browseTitle": "Element library",
   "palette.browseDescription": "Choose an element from your visible categories. Search by name to find it quickly.",
   "palette.fullCatalogTitle": "Shapes and symbols",
-  "palette.fullCatalogDescription": "Choose a shape or symbol, then place it on the canvas.",
   "palette.fullCatalogLibrary": "Library",
   "palette.allLibraries": "All libraries",
   "palette.fullCatalogEmpty": "No matching shapes or symbols.",

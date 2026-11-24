@@ -2,21 +2,29 @@ import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { importProject } from '../../packages/project/src/index';
 
-async function openProject(page: Page, locale: 'en' | 'de', width: number) {
+async function openProject(
+  page: Page,
+  locale: 'en' | 'de',
+  viewport: { width: number; height: number },
+  guiScale = 100,
+) {
   const messages: Record<string, string> = JSON.parse(
     readFileSync(`packages/i18n/src/locales/${locale}.json`, 'utf8'),
   );
-  await page.addInitScript((language) => {
-    localStorage.setItem(
-      'koxora.preferences.v1',
-      JSON.stringify({ locale: language }),
-    );
-    localStorage.setItem(
-      'koxora.element-libraries.v1',
-      JSON.stringify({ version: 1, selected: ['basic'] }),
-    );
-  }, locale);
-  await page.setViewportSize({ width, height: 840 });
+  await page.addInitScript(
+    (preferences) => {
+      localStorage.setItem(
+        'koxora.preferences.v1',
+        JSON.stringify(preferences),
+      );
+      localStorage.setItem(
+        'koxora.element-libraries.v1',
+        JSON.stringify({ version: 1, selected: ['basic'] }),
+      );
+    },
+    { locale, guiScale },
+  );
+  await page.setViewportSize(viewport);
   await page.goto('/');
   await page
     .locator('.start-actions')
@@ -59,7 +67,7 @@ test('compact Insert chooses a shape outside the enabled libraries without chang
   const { messages, canvas, insert, menu, choose } = await openProject(
     page,
     'en',
-    1440,
+    { width: 1440, height: 840 },
   );
   await insert.press('Enter');
   await expect(menu.getByRole('menuitem')).toHaveText([
@@ -149,7 +157,8 @@ test('German Insert reaches the existing connection search and places quick tool
   const { messages, canvas, insert, choose } = await openProject(
     page,
     'de',
-    390,
+    { width: 390, height: 650 },
+    200,
   );
   const ribbon = page.locator('.compact-tool-ribbon');
   const search = ribbon.getByRole('searchbox', {
@@ -164,15 +173,20 @@ test('German Insert reaches the existing connection search and places quick tool
   });
   const catalogSearch = dialog.getByRole('searchbox');
   await expect(catalogSearch).toBeFocused();
+  const close = dialog.getByRole('button', {
+    name: messages['office.close'],
+    exact: true,
+  });
+  await expect(close).toBeInViewport({ ratio: 1 });
   const heptagon = dialog.getByRole('button', {
     name: 'Siebeneck',
     exact: true,
   });
   for (const query of ['siebeneck', 'heptagon']) {
     await catalogSearch.fill(query);
-    await expect(heptagon).toBeVisible();
+    await expect(heptagon).toBeInViewport({ ratio: 0.5 });
   }
-  await page.keyboard.press('Escape');
+  await close.click();
   await expect(insert).toBeFocused();
 
   await search.fill('rectangle');

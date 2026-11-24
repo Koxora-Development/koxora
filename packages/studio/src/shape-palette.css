@@ -203,6 +203,32 @@
   width: min(calc(850px * var(--ui-scale, 1)), calc(100vw - 24px));
   max-width: calc(100vw - 24px);
 }
+.studio-dialog.full-catalog-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  padding: calc(10px * var(--ui-scale, 1));
+}
+.full-catalog-dialog > :not(.element-browser-results) {
+  flex: none;
+}
+.full-catalog-dialog > h2 {
+  margin-bottom: calc(6px * var(--ui-scale, 1));
+}
+.full-catalog-dialog > .category-selection-description {
+  margin-block: calc(6px * var(--ui-scale, 1));
+}
+.element-browser-results {
+  min-height: min(24dvh, calc(68px * var(--ui-scale, 1)));
+  overflow-y: auto;
+}
+.element-browser-results .element-browser-grid {
+  margin-top: 0;
+}
+.studio-dialog.full-catalog-dialog > .dialog-actions {
+  position: static;
+  margin: calc(5px * var(--ui-scale, 1)) 0 0;
+  padding: calc(6px * var(--ui-scale, 1)) 0 0;
+}
 .element-browser-filters {
   display: grid;
   grid-template-columns: repeat(
@@ -210,10 +236,12 @@
     minmax(min(100%, calc(180px * var(--ui-scale, 1))), 1fr)
   );
   align-items: end;
-  gap: calc(10px * var(--ui-scale, 1));
+  gap: calc(6px * var(--ui-scale, 1));
 }
 .element-browser-filters .element-browser-search {
   margin: 0;
+  padding: 0;
+  gap: calc(3px * var(--ui-scale, 1));
 }
 .element-browser-search {
   display: grid;
