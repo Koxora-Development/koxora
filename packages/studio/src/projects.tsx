@@ -27,6 +27,7 @@ import {
   type CanvasCommand,
   type CanvasCommandState,
 } from './canvas';
+import { automaticLayoutActions } from './automatic-layout-actions';
 import {
   activePageId,
   copyTemplateProject,
@@ -1400,12 +1401,15 @@ export function Projects({
           disabled: unavailable || selected < 2 || propertyDraft,
         },
         {
-          label: t('arrange.hierarchy'),
-          action: command('hierarchy'),
-          preview: (active) =>
-            canvasRef.current?.preview(active ? 'hierarchy' : null),
+          label: t('arrange.automatic'),
           disabled:
             unavailable || commandState.selectedNodes < 2 || propertyDraft,
+          children: automaticLayoutActions.map((action) => ({
+            label: t(`arrange.${action}`),
+            action: command(action),
+            preview: (active) =>
+              canvasRef.current?.preview(active ? action : null),
+          })),
         },
       ],
     },

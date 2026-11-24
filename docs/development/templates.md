@@ -2,7 +2,7 @@
 
 **Status: accepted by the Product Owner and merged in [PR #61](https://github.com/Koxora-Development/koxora/pull/61) on 2026-11-15 (`7efb135`), resolving the corrected [Issue #60](https://github.com/Koxora-Development/koxora/issues/60) scope. Public release remains a separate decision.** The Product Owner requested a shared template selection with several simple mind-map layouts and other small starters. More detailed templates must follow the availability of additional editor functions and a broader element library.
 
-Relevant requirements are the initial built-in portion of EDIT-012 (template management), EDIT-015 (element libraries), EDIT-003/004/005/007/008 (ordinary elements, editing, connections and styles), and CORE-001/002/003/005/006/008/015/016 (shared local-first editing, portability, history and localization). The examples contribute starter content for DIAG-001/003/005/007; they do not establish complete semantic diagram engines or automatic hierarchy layout. The full [catalog](../product/feature-catalog.md) and [phase table](../roadmap.md) remain unchanged.
+Relevant requirements are the initial built-in portion of EDIT-012 (template management), EDIT-015 (element libraries), EDIT-003/004/005/007/008 (ordinary elements, editing, connections and styles), and CORE-001/002/003/005/006/008/015/016 (shared local-first editing, portability, history and localization). The examples contribute editable starter content for DIAG-001/003/005/007. See the [feature catalog](../product/feature-catalog.md) and the [phase table](../roadmap.md).
 
 ## User flow
 
@@ -12,16 +12,16 @@ Choosing a template creates a separate ordinary editable project with fresh iden
 
 The generated shapes, text and connections use the same tools as a blank project: selection, movement, resizing, text/style changes, copy/duplicate/delete and undo/redo. Users can extend a starter with any existing palette element. No special mind-map authoring panel, hierarchy commands or additional copying/deletion restrictions are introduced by these templates.
 
-## Initial catalog
+## Built-in catalog
 
-| Category     | Simple starters                                         |
+| Category     | Starters                                                |
 | ------------ | ------------------------------------------------------- |
 | Mind maps    | Radial brainstorming, a branching tree, and a study map |
-| Flowcharts   | A linear process and a small decision flow              |
-| Organization | A small team chart                                      |
+| Flowcharts   | Simple process, Decision flow, and Approval and rework  |
+| Organization | Small team                                              |
 | Planning     | A weekly plan and a goals board                         |
 
-The initial catalog deliberately uses supported shapes, text and ordinary connections. Different geometry, palettes and example labels provide useful starting points without implying unsupported features. A team chart is editable example content, not evidence that automatic organization-chart layout is implemented. A planning board does not imply task scheduling, live data or a domain-specific board engine.
+The initial eight starters use supported shapes, text and ordinary connections. The automatic layout package adds **Approval and rework** as the ninth starter. It models a change request, alternative review paths that rejoin at an approval decision, and a return connection for resubmitting a revised request. Use it to try the flowchart layout in both directions. See [Automatic layout](hierarchy-layout.md).
 
 Previews come from the same trusted declarative content as generated projects. They should accurately represent each starter's geometry, labels, colors and connections. Content is bundled with the application; no account, remote template service, downloaded artwork or runtime icon/font request is needed. UI labels and example starter text use English/German resources. Changing the interface language after creation does not translate or mutate a user's document.
 
@@ -48,7 +48,7 @@ Generated template content uses the portable project format and ordinary editor 
 ## Acceptance scenarios
 
 1. Open Templates from the library and application menu. Check search, category filtering, preview selection, an empty search result and returning to the library. Confirm a blank project can still be created.
-2. Inspect all eight simple starters, including all three mind-map layouts. Check that each preview represents the project that is created and that all labels are readable.
+2. Inspect all nine built-in starters, including all three mind-map layouts. Check that each preview represents the project that is created and that all labels are readable. Verify that **Approval and rework** includes the joined review paths and the rework connection.
 3. Create two projects from the same starter. Rename and edit one, then open the other and create a third. Confirm the catalog and other projects are unchanged and generated identities/references are independent.
 4. Edit text, move and resize elements, change colors, find and insert a shape through palette categories/search, copy/duplicate/delete and undo/redo. Ordinary editor commands remain available for every starter, including mind-map examples.
 5. Save and reopen offline, export `.koxora`, import it as another project and continue editing. Check positions, text, styles and attached connections. Cancel a template creation while protecting unsaved work and verify the original project remains intact.

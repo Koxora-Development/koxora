@@ -64,4 +64,4 @@ The remaining editor project/element navigation from Issue #24 was accepted and 
 
 [PR #64](https://github.com/Koxora-Development/koxora/pull/64) was accepted and merged on 2026-11-23 (`ba11a90`). Studio can save the active project as a reusable snapshot and create independent projects from My templates. See [user-saved local templates](docs/development/local-templates.md).
 
-The next Phase 2 slice adds [hierarchy layout](docs/development/hierarchy-layout.md). Studio can preview and arrange a selected tree of connected shapes, for example an organization chart. Product Owner acceptance is pending.
+The next Phase 2 package adds [automatic layout for hierarchies and flowcharts](docs/development/hierarchy-layout.md). Studio can preview and arrange connected selections from top to bottom or left to right, including process branches, joins and rework loops. An approval-process starter demonstrates the workflow. Product Owner acceptance is pending.

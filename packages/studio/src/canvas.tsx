@@ -8,6 +8,11 @@ import { InlineText } from './inline-text';
 import { CanvasTableEditor } from './canvas-table-editor';
 import { FormatSelection } from './format-selection';
 import {
+  automaticLayoutActions,
+  isAutomaticLayoutAction,
+  type AutomaticLayoutAction,
+} from './automatic-layout-actions';
+import {
   useContext,
   useCallback,
   useEffect,
@@ -42,6 +47,7 @@ import {
   rotatePoint,
   alignedGeometries,
   hierarchyGeometries,
+  flowGeometries,
   tidyGeometries,
   type StackAction,
   copyElements,
@@ -93,7 +99,7 @@ import {
   ZOOM_KEYS,
 } from './shortcuts';
 import { DiagramTools, ElementDialog, type DiagramTool } from './diagram-tools';
-type Arrangement = Alignment | 'tidy' | 'hierarchy';
+type Arrangement = Alignment | 'tidy' | AutomaticLayoutAction;
 export type CanvasCommand =
   | TransformAction
   | 'selectAll'
@@ -675,18 +681,27 @@ export function Canvas({
     );
     controls.current?.refresh();
   }, [descriptions, locale]);
+  function automaticLayout(action: AutomaticLayoutAction) {
+    const arrange = action.startsWith('hierarchy.')
+      ? hierarchyGeometries
+      : flowGeometries;
+    const direction = action.endsWith('left-right') ? 'left-right' : 'top-down';
+    return arrange(scene, page, selection.current, direction);
+  }
   const previewing = useRef(false);
   function previewArrangement(action: Arrangement | null) {
     if (action === null && !previewing.current) return;
     let geometries: Record<string, Geometry> | null = null;
-    if (action === 'hierarchy') {
-      const result = hierarchyGeometries(scene, page, selection.current);
-      if (result.ok && Object.keys(result.geometries).length)
-        geometries = result.geometries;
-    } else if (action === 'tidy') {
-      geometries = tidyGeometries(scene, selection.current);
-    } else if (action !== null) {
-      geometries = alignedGeometries(scene, selection.current, action);
+    if (action !== null) {
+      if (isAutomaticLayoutAction(action)) {
+        const result = automaticLayout(action);
+        if (result.ok && Object.keys(result.geometries).length)
+          geometries = result.geometries;
+      } else if (action === 'tidy') {
+        geometries = tidyGeometries(scene, selection.current);
+      } else {
+        geometries = alignedGeometries(scene, selection.current, action);
+      }
     }
     previewing.current = geometries !== null;
     controls.current?.preview(geometries);
@@ -775,12 +790,19 @@ export function Canvas({
           select(
             [...content.nodes, ...content.connections].map((n) => idMap[n.id]),
           );
-      } else if (action === 'hierarchy') {
-        const result = hierarchyGeometries(scene, page, selection.current);
-        if (!result.ok) setFeedback(`arrange.hierarchy.${result.reason}`);
+      } else if (isAutomaticLayoutAction(action)) {
+        const result = automaticLayout(action);
+        if (!result.ok)
+          setFeedback(
+            result.reason === 'structure'
+              ? action.startsWith('hierarchy.')
+                ? 'arrange.hierarchy.structure'
+                : 'arrange.flow.structure'
+              : `arrange.automatic.${result.reason}`,
+          );
         else if (Object.keys(result.geometries).length)
           onEdit({ type: 'transform', geometries: result.geometries });
-        else setFeedback('arrange.hierarchy.unchanged');
+        else setFeedback('arrange.automatic.unchanged');
       } else {
         const geometries =
           action === 'tidy'
@@ -2349,18 +2371,21 @@ export function Canvas({
                   </button>
                 </fieldset>
                 <fieldset>
-                  <legend>{t('arrange.hierarchy')}</legend>
-                  <p className="arrange-help">{t('arrange.hierarchyHelp')}</p>
-                  <button
-                    className="button compact"
-                    onMouseEnter={() => previewArrangement('hierarchy')}
-                    onMouseLeave={() => previewArrangement(null)}
-                    onFocus={() => previewArrangement('hierarchy')}
-                    onBlur={() => previewArrangement(null)}
-                    onClick={() => command('hierarchy')}
-                  >
-                    {t('arrange.hierarchy')}
-                  </button>
+                  <legend>{t('arrange.automatic')}</legend>
+                  <p className="arrange-help">{t('arrange.automaticHelp')}</p>
+                  {automaticLayoutActions.map((action) => (
+                    <button
+                      key={action}
+                      className="button compact"
+                      onMouseEnter={() => previewArrangement(action)}
+                      onMouseLeave={() => previewArrangement(null)}
+                      onFocus={() => previewArrangement(action)}
+                      onBlur={() => previewArrangement(null)}
+                      onClick={() => command(action)}
+                    >
+                      {t(`arrange.${action}`)}
+                    </button>
+                  ))}
                 </fieldset>
               </div>
             </details>
@@ -2554,7 +2579,10 @@ export function Canvas({
           <ContextMenu
             anchor={contextMenu}
             label={t('editing.actions')}
-            onClose={() => setContextMenu(null)}
+            onClose={() => {
+              previewArrangement(null);
+              setContextMenu(null);
+            }}
           >
             {!editableSelection.length && (
               <button
@@ -2642,9 +2670,26 @@ export function Canvas({
               </Submenu>
             )}
             {selectedNodes >= 2 && (
-              <button role="menuitem" onClick={() => command('tidy')}>
-                {t('arrange.tidy')}
-              </button>
+              <>
+                <button role="menuitem" onClick={() => command('tidy')}>
+                  {t('arrange.tidy')}
+                </button>
+                <Submenu label={t('arrange.automatic')}>
+                  {automaticLayoutActions.map((action) => (
+                    <button
+                      key={action}
+                      role="menuitem"
+                      onMouseEnter={() => previewArrangement(action)}
+                      onMouseLeave={() => previewArrangement(null)}
+                      onFocus={() => previewArrangement(action)}
+                      onBlur={() => previewArrangement(null)}
+                      onClick={() => command(action)}
+                    >
+                      {t(`arrange.${action}`)}
+                    </button>
+                  ))}
+                </Submenu>
+              </>
             )}
           </ContextMenu>
         )}

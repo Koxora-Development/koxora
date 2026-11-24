@@ -98,7 +98,7 @@ test('templates have real previews, category/search filtering and cancellation d
     page.getByRole('button', { name: 'New mind map', exact: true }),
   ).toHaveCount(0);
   await gallery(page);
-  await expect(page.locator('.template-card')).toHaveCount(8);
+  await expect(page.locator('.template-card')).toHaveCount(9);
   await page
     .getByRole('combobox', { name: 'Template category', exact: true })
     .selectOption('mindmap');
@@ -160,7 +160,7 @@ test('templates have real previews, category/search filtering and cancellation d
   await page
     .getByRole('button', { name: 'Clear filters', exact: true })
     .click();
-  await expect(page.locator('.template-card')).toHaveCount(8);
+  await expect(page.locator('.template-card')).toHaveCount(9);
   await page
     .getByRole('button', { name: 'Back to projects', exact: true })
     .click();

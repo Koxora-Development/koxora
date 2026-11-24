@@ -6,6 +6,8 @@ export * from './connections';
 export * from './editing';
 export * from './interaction';
 export * from './hierarchy-layout';
+export * from './flow-layout';
+export type { DiagramLayoutResult, LayoutDirection } from './layout-geometry';
 export * from './history';
 export * from './rich-text';
 export * from './workbook';

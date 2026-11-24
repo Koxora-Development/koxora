@@ -195,6 +195,66 @@ describe('selected hierarchy layout', () => {
     );
   });
 
+  it('aligns mixed and rotated shapes in left-to-right ranks with vertical sibling order', () => {
+    const { project, document, page, root, left, right } = fixture();
+    root.geometry.rotation = 25;
+    right.geometry.rotation = 45;
+    right.geometry.x = left.geometry.x - 100;
+    const leaf = addNode(page, {
+      x: 100,
+      y: 475,
+      width: 180,
+      height: 25,
+      rotation: 14,
+    });
+    connect(page, root.id, right.id);
+    connect(page, root.id, left.id);
+    connect(page, left.id, leaf.id);
+    const selection = page.nodes.map(({ id }) => id);
+    const result = hierarchyGeometries(
+      buildScene(page),
+      page,
+      selection,
+      'left-right',
+    );
+    if (!result.ok) throw new Error(result.reason);
+
+    expect(result.geometries).not.toHaveProperty(root.id);
+    expect(result.geometries[right.id]).toMatchObject({
+      width: 110,
+      height: 60,
+      rotation: 45,
+    });
+    const changed = applyEdit(
+      project,
+      document.id,
+      page.id,
+      { type: 'transform', geometries: result.geometries },
+      now,
+    );
+    const updatedPage = changed.documents[0].pages[0];
+    const scene = buildScene(updatedPage);
+    const bounds = (id: string) =>
+      scene.nodes.find((node) => node.id === id)!.bounds;
+    const rootBox = bounds(root.id);
+    const topSibling = bounds(left.id);
+    const bottomSibling = bounds(right.id);
+    expect(topSibling.x).toBeCloseTo(bottomSibling.x);
+    expect(topSibling.x).toBeGreaterThan(rootBox.x + rootBox.width);
+    expect(topSibling.y + topSibling.height).toBeLessThan(bottomSibling.y);
+    expect(bounds(leaf.id).x).toBeGreaterThan(
+      bottomSibling.x + bottomSibling.width,
+    );
+    expect(
+      hierarchyGeometries(scene, updatedPage, selection, 'left-right'),
+    ).toEqual({ ok: true, geometries: {} });
+
+    addNode(page, { ...result.geometries[right.id] });
+    expect(
+      hierarchyGeometries(buildScene(page), page, selection, 'left-right'),
+    ).toEqual({ ok: false, reason: 'occupied' });
+  });
+
   it('ignores floating, crossing, locked, hidden, and unsupported edges', () => {
     const { page, root, left, right } = fixture();
     const locked = { ...page.layers[0], id: id(), locked: true };

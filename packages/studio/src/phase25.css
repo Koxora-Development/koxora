@@ -159,6 +159,8 @@
   gap: 5px;
   width: 300px;
   max-width: 80vw;
+  max-height: min(420px, 55dvh);
+  overflow-y: auto;
   padding: 10px;
   background: var(--surface);
   border: 1px solid var(--line);

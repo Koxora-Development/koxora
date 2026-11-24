@@ -1,16 +1,17 @@
 import type { Page } from '@koxora/project';
-import { readConnectionEndpoints } from './connections';
-import { isDrawing } from './interaction';
-import { unionBounds, type Scene, type SceneNode } from './scene';
-import { geometryBounds, shapeCenter, type Geometry } from './shapes';
-import { intersects, MAX_COORDINATE, type Bounds } from './viewport';
+import {
+  finishLayout,
+  layoutAxes,
+  readLayoutSelection,
+  type DiagramLayoutResult,
+  type LayoutDirection,
+  type LayoutPlacement,
+} from './layout-geometry';
+import type { Scene, SceneNode } from './scene';
+import { shapeCenter } from './shapes';
 
-export type HierarchyLayoutResult =
-  | { ok: true; geometries: Record<string, Geometry> }
-  | { ok: false; reason: 'selection' | 'structure' | 'occupied' | 'bounds' };
-
-const horizontalGap = 48;
-const verticalGap = 64;
+const siblingGap = 48;
+const rankGap = 64;
 
 interface Branch {
   node: SceneNode;
@@ -18,46 +19,7 @@ interface Branch {
   depth: number;
   span: number;
   childSpan: number;
-  centerX: number;
-}
-
-function firstMatching<T>(items: readonly T[], matches: (item: T) => boolean) {
-  let start = 0;
-  let end = items.length;
-  while (start < end) {
-    const middle = Math.floor((start + end) / 2);
-    if (matches(items[middle])) end = middle;
-    else start = middle + 1;
-  }
-  return start;
-}
-
-function blocked(rows: Bounds[][], obstacles: SceneNode[]) {
-  const rowBounds = rows.map((row) => unionBounds(row)!);
-  const layout = unionBounds(rowBounds)!;
-  return obstacles.some(({ bounds }) => {
-    if (!intersects(layout, bounds)) return false;
-    const firstRow = firstMatching(
-      rowBounds,
-      (row) => row.y + row.height >= bounds.y,
-    );
-    for (let depth = firstRow; depth < rows.length; depth++) {
-      const row = rowBounds[depth];
-      if (row.y > bounds.y + bounds.height) break;
-      if (!intersects(row, bounds)) continue;
-      const boxes = rows[depth];
-      const firstBox = firstMatching(
-        boxes,
-        (box) => box.x + box.width >= bounds.x,
-      );
-      for (let i = firstBox; i < boxes.length; i++) {
-        const box = boxes[i];
-        if (box.x > bounds.x + bounds.width) break;
-        if (intersects(box, bounds)) return true;
-      }
-    }
-    return false;
-  });
+  crossCenter: number;
 }
 
 /** Propose a geometry-only layout for one selected, directed tree. */
@@ -65,46 +27,29 @@ export function hierarchyGeometries(
   scene: Scene,
   page: Pick<Page, 'connections'>,
   selectedIds: readonly string[],
-): HierarchyLayoutResult {
-  const selected = new Set(selectedIds);
-  for (const edge of page.connections) selected.delete(edge.id);
+  direction: LayoutDirection = 'top-down',
+): DiagramLayoutResult {
+  const selection = readLayoutSelection(scene, page, selectedIds);
+  if (!selection) return { ok: false, reason: 'selection' };
+  const { crossAxis, crossSize, rankAxis, rankSize } = layoutAxes(direction);
   const branches = new Map<string, Branch>();
-  const obstacles: SceneNode[] = [];
-  for (const node of scene.nodes) {
-    if (!selected.has(node.id)) {
-      obstacles.push(node);
-      continue;
-    }
-    if (!node.editable || isDrawing(node.kind) || node.kind === 'freehand')
-      return { ok: false, reason: 'selection' };
+  for (const node of selection.nodes.values()) {
     branches.set(node.id, {
       node,
       children: [],
       depth: 0,
-      span: node.bounds.width,
+      span: node.bounds[crossSize],
       childSpan: 0,
-      centerX: shapeCenter(node.geometry).x,
+      crossCenter: shapeCenter(node.geometry)[crossAxis],
     });
   }
-  if (branches.size < 2 || branches.size !== selected.size)
-    return { ok: false, reason: 'selection' };
 
-  const editableEdges = new Set(
-    scene.connections.filter((edge) => edge.editable).map((edge) => edge.id),
-  );
   const hasParent = new Set<string>();
-  for (const edge of page.connections) {
-    if (!editableEdges.has(edge.id)) continue;
-    const ends = readConnectionEndpoints(edge);
-    if (!ends || !('nodeId' in ends.source) || !('nodeId' in ends.target))
-      continue;
-    const from = branches.get(ends.source.nodeId);
-    const to = branches.get(ends.target.nodeId);
-    if (!from || !to) continue;
-    if (from === to || hasParent.has(to.node.id))
+  for (const { sourceId, targetId } of selection.edges) {
+    if (sourceId === targetId || hasParent.has(targetId))
       return { ok: false, reason: 'structure' };
-    from.children.push(to);
-    hasParent.add(to.node.id);
+    branches.get(sourceId)!.children.push(branches.get(targetId)!);
+    hasParent.add(targetId);
   }
   const roots = [...branches.values()].filter(
     ({ node }) => !hasParent.has(node.id),
@@ -113,12 +58,13 @@ export function hierarchyGeometries(
 
   const [root] = roots;
   const ordered = [root];
-  const heights: number[] = [];
+  const rankSizes: number[] = [];
   for (let i = 0; i < ordered.length; i++) {
     const { children, depth, node } = ordered[i];
-    heights[depth] = Math.max(heights[depth] ?? 0, node.bounds.height);
+    rankSizes[depth] = Math.max(rankSizes[depth] ?? 0, node.bounds[rankSize]);
     children.sort(
-      (a, b) => a.centerX - b.centerX || (a.node.id < b.node.id ? -1 : 1),
+      (a, b) =>
+        a.crossCenter - b.crossCenter || (a.node.id < b.node.id ? -1 : 1),
     );
     for (const child of children) {
       child.depth = depth + 1;
@@ -128,44 +74,33 @@ export function hierarchyGeometries(
   if (ordered.length !== branches.size)
     return { ok: false, reason: 'structure' };
 
-  // Reserve one horizontal interval for each whole subtree, even for mixed sizes.
+  // Reserve space for each whole subtree, including divisions with mixed sizes.
   for (let i = ordered.length - 1; i >= 0; i--) {
     const branch = ordered[i];
     if (!branch.children.length) continue;
     branch.childSpan =
       branch.children.reduce((sum, child) => sum + child.span, 0) +
-      (branch.children.length - 1) * horizontalGap;
+      (branch.children.length - 1) * siblingGap;
     branch.span = Math.max(branch.span, branch.childSpan);
   }
 
-  const top = [root.node.bounds.y];
-  const rows: Bounds[][] = [[root.node.bounds]];
-  for (let depth = 1; depth < heights.length; depth++) {
-    top.push(top[depth - 1] + heights[depth - 1] + verticalGap);
-    rows.push([]);
-  }
-  const changes: [string, Geometry][] = [];
+  const rankStarts = [root.node.bounds[rankAxis]];
+  for (let depth = 1; depth < rankSizes.length; depth++)
+    rankStarts.push(rankStarts[depth - 1] + rankSizes[depth - 1] + rankGap);
+  const rows = rankSizes.map((): LayoutPlacement[] => []);
   for (const branch of ordered) {
-    let left = branch.centerX - branch.childSpan / 2;
-    for (const child of branch.children) {
-      child.centerX = left + child.span / 2;
-      left += child.span + horizontalGap;
+    const { node, depth, crossCenter, childSpan, children } = branch;
+    rows[depth].push({
+      node,
+      crossCenter,
+      rankStart: rankStarts[depth],
+      anchored: branch === root,
+    });
+    let cursor = crossCenter - childSpan / 2;
+    for (const child of children) {
+      child.crossCenter = cursor + child.span / 2;
+      cursor += child.span + siblingGap;
     }
-    if (branch === root) continue;
-    const { node, depth, centerX } = branch;
-    const x = centerX - node.geometry.width / 2;
-    const y = top[depth] + (node.bounds.height - node.geometry.height) / 2;
-    if (
-      ![x, y].every(
-        (value) => Number.isFinite(value) && Math.abs(value) <= MAX_COORDINATE,
-      )
-    )
-      return { ok: false, reason: 'bounds' };
-    const geometry = { ...node.geometry, x, y };
-    rows[depth].push(geometryBounds(geometry, node.style.strokeWidth / 2));
-    if (x !== node.geometry.x || y !== node.geometry.y)
-      changes.push([node.id, geometry]);
   }
-  if (blocked(rows, obstacles)) return { ok: false, reason: 'occupied' };
-  return { ok: true, geometries: Object.fromEntries(changes) };
+  return finishLayout(rows, selection.obstacles, direction);
 }

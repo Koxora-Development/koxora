@@ -12,6 +12,7 @@ import {
   templateCatalog,
 } from './templates';
 import { applyEdit, copyElements } from './editing';
+import { connectionPath, readConnection } from './connections';
 import { elementLink, LINK_KEY } from './links';
 import { applyWorkbook } from './workbook';
 import { StudioHistory } from './studio-history';
@@ -101,6 +102,49 @@ describe('simple local drawing templates', () => {
         }
     },
   );
+
+  it('creates a directed approval process with converging reviews and a clear rework return', () => {
+    const page = make('flowchart-approval').documents[0].pages[0];
+    const nodes = new Map(page.nodes.map((node) => [node.id, node]));
+    const edges = page.connections.map((edge) => {
+      const source = nodes.get(edge.sourceId!)!;
+      const target = nodes.get(edge.targetId!)!;
+      const options = readConnection(edge);
+      expect(options.arrow).toBe(true);
+      return [source.content.text, target.content.text, options.label];
+    });
+    expect(edges).toEqual([
+      ['Example approvalSubmit', 'Example approvalRisk', ''],
+      ['Example approvalRisk', 'Example approvalScope', 'Example no'],
+      ['Example approvalRisk', 'Example approvalAssess', 'Example yes'],
+      ['Example approvalScope', 'Example approvalDecision', ''],
+      ['Example approvalAssess', 'Example approvalDecision', ''],
+      ['Example approvalDecision', 'Example approvalRecord', 'Example yes'],
+      ['Example approvalDecision', 'Example approvalRevise', 'Example no'],
+      [
+        'Example approvalRevise',
+        'Example approvalRisk',
+        'Example approvalResubmit',
+      ],
+    ]);
+
+    const back = page.connections.at(-1)!;
+    const revise = nodes.get(back.sourceId!)!;
+    const risk = nodes.get(back.targetId!)!;
+    const assessment = page.nodes.find(
+      (node) => node.content.text === 'Example approvalAssess',
+    )!;
+    const [, firstTurn, secondTurn] = connectionPath(
+      revise,
+      risk,
+      readConnection(back),
+    ).points;
+    expect(firstTurn.x).toBe(secondTurn.x);
+    expect(firstTurn.x).toBeGreaterThan(
+      assessment.geometry.x + assessment.geometry.width,
+    );
+    expect(firstTurn.x).toBeLessThan(revise.geometry.x);
+  });
 
   it('keeps template drawings unrestricted by special topic commands', () => {
     const project = make('mindmap-radial'),
