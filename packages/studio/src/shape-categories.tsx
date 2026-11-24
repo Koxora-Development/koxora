@@ -43,6 +43,7 @@ export function BrowseElements({
   initialQuery,
   active,
   writable,
+  fullCatalog = false,
   onCancel,
   onChoose,
 }: {
@@ -51,47 +52,57 @@ export function BrowseElements({
   initialQuery: string;
   active: string;
   writable: boolean;
+  fullCatalog?: boolean;
   onCancel: () => void;
   onChoose: (kind: LibraryElement) => void;
 }) {
   const t = (key: MessageKey, values: Record<string, string | number> = {}) =>
     translate(locale, key, values);
   const [query, setQuery] = useState(initialQuery);
+  const [category, setCategory] = useState<LibraryCategory | 'all'>('all');
   const [limit, setLimit] = useState(48);
   const grid = useRef<HTMLUListElement>(null);
+  const resultsScroll = useRef<HTMLDivElement>(null);
   const search = normalize(query.trim());
+  const library =
+    fullCatalog && category !== 'all' ? libraryElementKinds[category] : null;
   const matches = tools.filter(
     (kind) =>
-      !search ||
-      normalize(
-        `${t(`shape.${kind}` as MessageKey)} ${translate('en', `shape.${kind}` as MessageKey)} ${kind}`,
-      ).includes(search),
+      (!library || library.includes(kind)) &&
+      (!search ||
+        normalize(
+          `${t(`shape.${kind}` as MessageKey)} ${translate('en', `shape.${kind}` as MessageKey)} ${kind}`,
+        ).includes(search)),
   );
-  return (
-    <Dialog
-      className="element-browser-dialog"
-      title={t('palette.browseTitle')}
-      onCancel={onCancel}
-    >
-      <p className="category-selection-description">
-        {t('palette.browseDescription')}
-      </p>
-      <label className="element-browser-search">
-        {t('palette.search')}
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setLimit(48);
-          }}
-        />
-      </label>
-      <p role="status" className="category-selection-description">
-        {t('palette.results', { count: matches.length })}
-      </p>
+  function resetResults() {
+    setLimit(48);
+    if (resultsScroll.current) resultsScroll.current.scrollTop = 0;
+  }
+  const searchField = (
+    <label className="element-browser-search">
+      {t('palette.search')}
+      <input
+        type="search"
+        value={query}
+        onChange={(event) => {
+          setQuery(event.currentTarget.value);
+          resetResults();
+        }}
+      />
+    </label>
+  );
+  const results = (
+    <>
       {!matches.length && (
-        <p>{t(tools.length ? 'palette.empty' : 'palette.noCategories')}</p>
+        <p>
+          {t(
+            fullCatalog
+              ? 'palette.fullCatalogEmpty'
+              : tools.length
+                ? 'palette.empty'
+                : 'palette.noCategories',
+          )}
+        </p>
       )}
       <ul className="element-browser-grid" ref={grid}>
         {matches.slice(0, limit).map((kind) => (
@@ -127,6 +138,61 @@ export function BrowseElements({
         >
           {t('palette.showMoreElements', { count: matches.length - limit })}
         </button>
+      )}
+    </>
+  );
+  return (
+    <Dialog
+      className={`element-browser-dialog${fullCatalog ? ' full-catalog-dialog' : ''}`}
+      title={t(
+        fullCatalog ? 'palette.fullCatalogTitle' : 'palette.browseTitle',
+      )}
+      onCancel={onCancel}
+    >
+      {!fullCatalog && (
+        <p className="category-selection-description">
+          {t('palette.browseDescription')}
+        </p>
+      )}
+      {fullCatalog ? (
+        <div className="element-browser-filters">
+          {searchField}
+          <label className="element-browser-search">
+            {t('palette.fullCatalogLibrary')}
+            <select
+              value={category}
+              onChange={(event) => {
+                setCategory(
+                  event.currentTarget.value as LibraryCategory | 'all',
+                );
+                resetResults();
+              }}
+            >
+              <option value="all">{t('palette.allLibraries')}</option>
+              {libraryCategories
+                .filter((id) =>
+                  tools.some((kind) => libraryElementKinds[id].includes(kind)),
+                )
+                .map((id) => (
+                  <option value={id} key={id}>
+                    {t(`palette.category.${id}`)}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </div>
+      ) : (
+        searchField
+      )}
+      <p role="status" className="category-selection-description">
+        {t('palette.results', { count: matches.length })}
+      </p>
+      {fullCatalog ? (
+        <div className="element-browser-results" ref={resultsScroll}>
+          {results}
+        </div>
+      ) : (
+        results
       )}
       <div className="dialog-actions">
         <button className="button" type="button" onClick={onCancel}>

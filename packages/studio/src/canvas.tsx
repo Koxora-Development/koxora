@@ -8,6 +8,11 @@ import { InlineText } from './inline-text';
 import { CanvasTableEditor } from './canvas-table-editor';
 import { FormatSelection } from './format-selection';
 import {
+  automaticLayoutActions,
+  isAutomaticLayoutAction,
+  type AutomaticLayoutAction,
+} from './automatic-layout-actions';
+import {
   useContext,
   useCallback,
   useEffect,
@@ -41,6 +46,8 @@ import {
   freehandTextBox,
   rotatePoint,
   alignedGeometries,
+  hierarchyGeometries,
+  flowGeometries,
   tidyGeometries,
   type StackAction,
   copyElements,
@@ -92,6 +99,8 @@ import {
   ZOOM_KEYS,
 } from './shortcuts';
 import { DiagramTools, ElementDialog, type DiagramTool } from './diagram-tools';
+import type { ShapePaletteHandle } from './shape-palette';
+type Arrangement = Alignment | 'tidy' | AutomaticLayoutAction;
 export type CanvasCommand =
   | TransformAction
   | 'selectAll'
@@ -104,14 +113,14 @@ export type CanvasCommand =
   | 'redo'
   | 'properties'
   | 'text'
-  | 'tidy'
   | 'forward'
   | 'backward'
   | 'front'
   | 'back'
-  | Alignment;
+  | Arrangement;
 export type CanvasCommandState = {
   selected: number;
+  selectedNodes: number;
   canPaste: boolean;
   propertiesVisible: boolean;
   objectsVisible: boolean;
@@ -122,12 +131,13 @@ export interface CanvasHandle {
   prepare: () => boolean;
   run: (action: CanvasCommand) => void;
   tool: (tool: DiagramTool) => void;
+  browseInsert: ShapePaletteHandle['browse'];
   zoom: (action: 'in' | 'out' | 'reset' | 'fit') => void;
   toggleProperties: () => void;
   showHelp: () => void;
   toggleObjects: () => void;
   snapshot: () => CanvasState;
-  preview: (action: Alignment | 'tidy' | null) => void;
+  preview: (action: Arrangement | null) => void;
 }
 interface Props {
   project: Project;
@@ -189,6 +199,8 @@ export function Canvas({
     preview: (geometries: Record<string, Geometry> | null) => void;
     focus: () => void;
   } | null>(null);
+  const palette = useRef<ShapePaletteHandle>(null);
+  const focusCanvas = () => controls.current?.focus();
   const [tool, setTool] = useState<DiagramTool>('select');
   const [repeat, setRepeat] = useState(false);
   const [ink, setInk] = useState({ stroke: '#7c3aed', strokeWidth: 3 });
@@ -332,6 +344,7 @@ export function Canvas({
       return;
     }
     cancelInput.current();
+    if (next !== 'select' && next !== 'pan') closeEditing();
     setTool(next);
     if (isDrawing(next))
       setOptions((previous) => ({ ...previous, arrow: next === 'arrow' }));
@@ -555,11 +568,28 @@ export function Canvas({
       else if (node) pick(node.id, true, point);
     }
   }
-  const editableSelection = selected.filter((id) =>
-    [...scene.nodes, ...scene.connections].some(
-      (n) => n.id === id && n.editable,
-    ),
+  const editableNodeIds = useMemo(
+    () =>
+      new Set(
+        scene.nodes.filter((node) => node.editable).map((node) => node.id),
+      ),
+    [scene.nodes],
   );
+  const editableConnectionIds = useMemo(
+    () =>
+      new Set(
+        scene.connections
+          .filter((edge) => edge.editable)
+          .map((edge) => edge.id),
+      ),
+    [scene.connections],
+  );
+  const canEditSelected = (id: string) =>
+    editableNodeIds.has(id) || editableConnectionIds.has(id);
+  const editableSelection = selected.filter(canEditSelected);
+  const selectedNodes = editableSelection.filter((id) =>
+    editableNodeIds.has(id),
+  ).length;
   const propertyId =
     !inline && editableSelection.length === 1 ? editableSelection[0] : null;
   const propertyItem = [...page.nodes, ...page.connections].find(
@@ -568,6 +598,7 @@ export function Canvas({
   useEffect(() => {
     onCommandState({
       selected: editableSelection.length,
+      selectedNodes,
       canPaste: hasClipboard,
       propertiesVisible: inspectorOpen,
       objectsVisible: objects,
@@ -575,6 +606,7 @@ export function Canvas({
   }, [
     onCommandState,
     editableSelection.length,
+    selectedNodes,
     hasClipboard,
     inspectorOpen,
     objects,
@@ -654,17 +686,35 @@ export function Canvas({
     );
     controls.current?.refresh();
   }, [descriptions, locale]);
+  function automaticLayout(action: AutomaticLayoutAction) {
+    const arrange = action.startsWith('hierarchy.')
+      ? hierarchyGeometries
+      : flowGeometries;
+    const direction = action.endsWith('left-right') ? 'left-right' : 'top-down';
+    return arrange(scene, page, selection.current, direction);
+  }
   const previewing = useRef(false);
-  function previewArrangement(action: Alignment | 'tidy' | null) {
-    previewing.current = action !== null;
-    const geometries =
-      action === null
-        ? null
-        : action === 'tidy'
-          ? tidyGeometries(scene, selection.current)
-          : alignedGeometries(scene, selection.current, action);
+  function previewArrangement(action: Arrangement | null) {
+    if (action === null && !previewing.current) return;
+    let geometries: Record<string, Geometry> | null = null;
+    if (action !== null) {
+      if (isAutomaticLayoutAction(action)) {
+        const result = automaticLayout(action);
+        if (result.ok && Object.keys(result.geometries).length)
+          geometries = result.geometries;
+      } else if (action === 'tidy') {
+        geometries = tidyGeometries(scene, selection.current);
+      } else {
+        geometries = alignedGeometries(scene, selection.current, action);
+      }
+    }
+    previewing.current = geometries !== null;
     controls.current?.preview(geometries);
-    setFeedback(action ? 'editing.preview' : null);
+    if (geometries) setFeedback('editing.preview');
+    else
+      setFeedback((current) =>
+        current === 'editing.preview' ? null : current,
+      );
   }
   function command(action: CanvasCommand) {
     if (propertyDraft.current && action !== 'properties') {
@@ -678,11 +728,7 @@ export function Canvas({
     setSource(null);
     setContextMenu(null);
     setFeedback(null);
-    const ids = selection.current.filter((id) =>
-      [...scene.nodes, ...scene.connections].some(
-        (n) => n.id === id && n.editable,
-      ),
-    );
+    const ids = selection.current.filter(canEditSelected);
     try {
       if (transformActions.includes(action as TransformAction)) {
         const nodes = page.nodes.filter((n) => ids.includes(n.id));
@@ -749,6 +795,19 @@ export function Canvas({
           select(
             [...content.nodes, ...content.connections].map((n) => idMap[n.id]),
           );
+      } else if (isAutomaticLayoutAction(action)) {
+        const result = automaticLayout(action);
+        if (!result.ok)
+          setFeedback(
+            result.reason === 'structure'
+              ? action.startsWith('hierarchy.')
+                ? 'arrange.hierarchy.structure'
+                : 'arrange.flow.structure'
+              : `arrange.automatic.${result.reason}`,
+          );
+        else if (Object.keys(result.geometries).length)
+          onEdit({ type: 'transform', geometries: result.geometries });
+        else setFeedback('arrange.automatic.unchanged');
       } else {
         const geometries =
           action === 'tidy'
@@ -816,7 +875,14 @@ export function Canvas({
     snapshot: () => state.current,
     prepare,
     run: command,
-    tool: activate,
+    tool: (next) => {
+      if (!prepare()) return;
+      activate(next);
+      focusCanvas();
+    },
+    browseInsert: (mode) => {
+      if (prepare()) palette.current?.browse(mode);
+    },
     zoom: (action) => controls.current?.camera(action),
     toggleProperties: () => {
       if (prepare()) setInspectorOpen((open) => !open);
@@ -2142,6 +2208,8 @@ export function Canvas({
           </div>
         </div>
         <DiagramTools
+          paletteRef={palette}
+          focusCanvas={focusCanvas}
           page={page}
           locale={locale}
           tool={tool}
@@ -2249,9 +2317,7 @@ export function Canvas({
           >
             {t('editing.paste')}
           </button>
-          {editableSelection.filter((id) =>
-            scene.nodes.some((n) => n.id === id),
-          ).length >= 2 && (
+          {selectedNodes >= 2 && (
             <details
               className="selection-align"
               onToggle={(e) => {
@@ -2293,11 +2359,7 @@ export function Canvas({
                     <button
                       key={mode}
                       className="button compact"
-                      disabled={
-                        editableSelection.filter((id) =>
-                          scene.nodes.some((n) => n.id === id),
-                        ).length < 3
-                      }
+                      disabled={selectedNodes < 3}
                       onMouseEnter={() => previewArrangement(mode)}
                       onMouseLeave={() => previewArrangement(null)}
                       onFocus={() => previewArrangement(mode)}
@@ -2321,6 +2383,23 @@ export function Canvas({
                   >
                     {t('arrange.tidy')}
                   </button>
+                </fieldset>
+                <fieldset>
+                  <legend>{t('arrange.automatic')}</legend>
+                  <p className="arrange-help">{t('arrange.automaticHelp')}</p>
+                  {automaticLayoutActions.map((action) => (
+                    <button
+                      key={action}
+                      className="button compact"
+                      onMouseEnter={() => previewArrangement(action)}
+                      onMouseLeave={() => previewArrangement(null)}
+                      onFocus={() => previewArrangement(action)}
+                      onBlur={() => previewArrangement(null)}
+                      onClick={() => command(action)}
+                    >
+                      {t(`arrange.${action}`)}
+                    </button>
+                  ))}
                 </fieldset>
               </div>
             </details>
@@ -2514,7 +2593,10 @@ export function Canvas({
           <ContextMenu
             anchor={contextMenu}
             label={t('editing.actions')}
-            onClose={() => setContextMenu(null)}
+            onClose={() => {
+              previewArrangement(null);
+              setContextMenu(null);
+            }}
           >
             {!editableSelection.length && (
               <button
@@ -2601,12 +2683,27 @@ export function Canvas({
                 )}
               </Submenu>
             )}
-            {editableSelection.filter((id) =>
-              scene.nodes.some((n) => n.id === id),
-            ).length >= 2 && (
-              <button role="menuitem" onClick={() => command('tidy')}>
-                {t('arrange.tidy')}
-              </button>
+            {selectedNodes >= 2 && (
+              <>
+                <button role="menuitem" onClick={() => command('tidy')}>
+                  {t('arrange.tidy')}
+                </button>
+                <Submenu label={t('arrange.automatic')}>
+                  {automaticLayoutActions.map((action) => (
+                    <button
+                      key={action}
+                      role="menuitem"
+                      onMouseEnter={() => previewArrangement(action)}
+                      onMouseLeave={() => previewArrangement(null)}
+                      onFocus={() => previewArrangement(action)}
+                      onBlur={() => previewArrangement(null)}
+                      onClick={() => command(action)}
+                    >
+                      {t(`arrange.${action}`)}
+                    </button>
+                  ))}
+                </Submenu>
+              </>
             )}
           </ContextMenu>
         )}

@@ -27,11 +27,11 @@ import {
   type CanvasCommand,
   type CanvasCommandState,
 } from './canvas';
+import { automaticLayoutActions } from './automatic-layout-actions';
 import {
   activePageId,
   copyTemplateProject,
   createFromTemplate,
-  shapeKinds,
   layerStates,
   buildScene,
   type LinkTarget,
@@ -154,6 +154,7 @@ export function Projects({
   const [propertyDraft, setPropertyDraft] = useState(false);
   const [commandState, setCommandState] = useState<CanvasCommandState>(() => ({
     selected: 0,
+    selectedNodes: 0,
     canPaste: false,
     propertiesVisible: window.innerWidth >= 1000,
     objectsVisible: false,
@@ -1140,6 +1141,13 @@ export function Projects({
   );
   const unavailable =
     !project || navigationBusy || (busy && operation !== 'saving');
+  const insertDisabled =
+    unavailable ||
+    propertyDraft ||
+    !activePage ||
+    ![...layerStates(activePage.layers).values()].some(
+      (layer) => layer.editable,
+    );
   const selected = commandState.selected;
   const command = (action: CanvasCommand) => () =>
     canvasRef.current?.run(action);
@@ -1318,18 +1326,35 @@ export function Projects({
     },
     {
       label: t('office.menu.insert'),
-      disabled: !project,
-      items: [...shapeKinds, 'freehand' as const].map((kind) => ({
-        label: t(`shape.${kind}`),
-        action: () => canvasRef.current?.tool(kind),
-        disabled:
-          unavailable ||
-          propertyDraft ||
-          !activePage ||
-          !activePage.layers.some(
-            (layer) => layerStates(activePage.layers).get(layer.id)?.editable,
-          ),
-      })),
+      disabled: view !== 'workspace' || !project,
+      items: [
+        {
+          label: t('office.menu.insertShapes'),
+          action: () => canvasRef.current?.browseInsert('shapes'),
+          disabled: insertDisabled,
+        },
+        {
+          label: t('shape.text'),
+          action: () => canvasRef.current?.tool('text'),
+          disabled: insertDisabled,
+        },
+        {
+          label: t('shape.table'),
+          action: () => canvasRef.current?.tool('table'),
+          disabled: insertDisabled,
+        },
+        { label: '', separator: true },
+        {
+          label: t('office.menu.insertConnections'),
+          action: () => canvasRef.current?.browseInsert('connections'),
+          disabled: insertDisabled,
+        },
+        {
+          label: t('shape.freehand'),
+          action: () => canvasRef.current?.tool('freehand'),
+          disabled: insertDisabled,
+        },
+      ],
     },
     {
       label: t('office.menu.format'),
@@ -1397,6 +1422,17 @@ export function Projects({
           preview: (active) =>
             canvasRef.current?.preview(active ? 'tidy' : null),
           disabled: unavailable || selected < 2 || propertyDraft,
+        },
+        {
+          label: t('arrange.automatic'),
+          disabled:
+            unavailable || commandState.selectedNodes < 2 || propertyDraft,
+          children: automaticLayoutActions.map((action) => ({
+            label: t(`arrange.${action}`),
+            action: command(action),
+            preview: (active) =>
+              canvasRef.current?.preview(active ? action : null),
+          })),
         },
       ],
     },

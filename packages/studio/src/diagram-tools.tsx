@@ -4,7 +4,7 @@ import {
   normalizedRotation,
   groupEdit,
 } from '@koxora/editor-core';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type Ref } from 'react';
 import {
   type Page,
   type Style,
@@ -41,7 +41,7 @@ import {
   type Geometry,
   connectionPortsForNode,
 } from '@koxora/editor-core';
-import { ShapePalette } from './shape-palette';
+import { ShapePalette, type ShapePaletteHandle } from './shape-palette';
 import { ConnectionPalette, ConnectionStyleFields } from './connection-palette';
 import {
   connectionPresets as linePresets,
@@ -54,6 +54,8 @@ import { ToolOptions } from './tool-options';
 import { parsePortAnchor, portAnchorId, portAnchorLabel } from './port-anchor';
 export type DiagramTool = 'select' | 'pan' | 'freehand' | ShapeKind;
 interface Props {
+  paletteRef: Ref<ShapePaletteHandle>;
+  focusCanvas: () => void;
   ink: { stroke: string; strokeWidth: number };
   setInk: (ink: { stroke: string; strokeWidth: number }) => void;
   page: Page;
@@ -72,6 +74,8 @@ interface Props {
 }
 
 export function DiagramTools({
+  paletteRef,
+  focusCanvas,
   ink,
   setInk,
   page,
@@ -232,6 +236,8 @@ export function DiagramTools({
   return (
     <>
       <ShapePalette
+        ref={paletteRef}
+        focusCanvas={focusCanvas}
         locale={locale}
         tool={tool}
         activate={activate}
