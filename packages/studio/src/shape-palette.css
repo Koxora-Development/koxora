@@ -203,13 +203,25 @@
   width: min(calc(850px * var(--ui-scale, 1)), calc(100vw - 24px));
   max-width: calc(100vw - 24px);
 }
+.element-browser-filters {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, calc(180px * var(--ui-scale, 1))), 1fr)
+  );
+  align-items: end;
+  gap: calc(10px * var(--ui-scale, 1));
+}
+.element-browser-filters .element-browser-search {
+  margin: 0;
+}
 .element-browser-search {
   display: grid;
   gap: calc(6px * var(--ui-scale, 1));
   max-width: 100%;
   font-size: calc(12px * var(--ui-scale, 1));
 }
-.element-browser-search input {
+.element-browser-search :is(input, select) {
   width: 100%;
   min-width: 0;
   max-width: 100%;

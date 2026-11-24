@@ -1,10 +1,12 @@
 import {
   useEffect,
   useId,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
+  type Ref,
 } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
 import {
@@ -36,9 +38,19 @@ const toolKey = (item: DiagramTool) =>
   (isShapeKind(item) || item === 'freehand'
     ? `shape.${item}`
     : `diagram.${item}`) as MessageKey;
+const catalogTools: LibraryElement[] = [
+  ...shapeKinds,
+  'freehand' as const,
+].filter((kind) => !isDrawing(kind) && kind !== 'junction');
+type PaletteMode = 'shapes' | 'connections';
+export interface ShapePaletteHandle {
+  browse: (mode: PaletteMode) => void;
+}
 
 /** Categories filter the shared registry; imported kind strings never load assets or code. */
 export function ShapePalette({
+  ref,
+  focusCanvas,
   locale,
   tool,
   activate,
@@ -46,6 +58,8 @@ export function ShapePalette({
   connectionTools,
   connectionActive = false,
 }: {
+  ref: Ref<ShapePaletteHandle>;
+  focusCanvas: () => void;
   locale: string;
   tool: DiagramTool;
   activate: (tool: DiagramTool) => void;
@@ -65,11 +79,11 @@ export function ShapePalette({
   );
   const [remember, setRemember] = useState(sessionRemember);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
-  const [browserOpen, setBrowserOpen] = useState(false);
+  const [browser, setBrowser] = useState<'enabled' | 'catalog' | null>(null);
   const [storageFailed, setStorageFailed] = useState(false);
   const [query, setQuery] = useState('');
   const [connectionQuery, setConnectionQuery] = useState('');
-  const [mode, setMode] = useState<'shapes' | 'connections'>(
+  const [mode, setMode] = useState<PaletteMode>(
     connectionActive ? 'connections' : 'shapes',
   );
   const [seenTool, setSeenTool] = useState(tool);
@@ -85,6 +99,22 @@ export function ShapePalette({
   const [inlineFilters, setInlineFilters] = useState(false);
   const ribbonId = useId();
   const ribbon = useRef<HTMLDivElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  useImperativeHandle(
+    ref,
+    () => ({
+      browse: (next) => {
+        if (!writable) return;
+        if (next === 'shapes') setBrowser('catalog');
+        else {
+          setMode('connections');
+          setConnectionQuery('');
+          searchInput.current?.focus();
+        }
+      },
+    }),
+    [writable],
+  );
   const [quickCategory, setQuickCategory] = useState<LibraryCategory | 'all'>(
     'all',
   );
@@ -127,16 +157,14 @@ export function ShapePalette({
     const allowed = new Set(
       selected.flatMap((category) => [...libraryElementKinds[category]]),
     );
-    const entries = [...shapeKinds, 'freehand' as const].filter(
-      (kind) => allowed.has(kind) && !isDrawing(kind) && kind !== 'junction',
-    );
     const search = normalize(nextQuery.trim());
-    return entries.filter(
+    return catalogTools.filter(
       (item) =>
-        !search ||
-        normalize(
-          `${t(toolKey(item))} ${translate('en', toolKey(item))} ${item}`,
-        ).includes(search),
+        allowed.has(item) &&
+        (!search ||
+          normalize(
+            `${t(toolKey(item))} ${translate('en', toolKey(item))} ${item}`,
+          ).includes(search)),
     );
   };
   const currentCategory = categories.includes(quickCategory as LibraryCategory)
@@ -344,6 +372,7 @@ export function ShapePalette({
         <label className="ribbon-search">
           <span className="sr-only">{t('palette.search')}</span>
           <input
+            ref={searchInput}
             type="search"
             value={mode === 'shapes' ? query : connectionQuery}
             placeholder={t('palette.search')}
@@ -397,7 +426,7 @@ export function ShapePalette({
           <button
             className="button compact"
             type="button"
-            onClick={() => setBrowserOpen(true)}
+            onClick={() => setBrowser('enabled')}
           >
             {t('palette.browseElements')}
           </button>
@@ -559,19 +588,26 @@ export function ShapePalette({
           {t('palette.rememberFailed')}
         </p>
       )}
-      {browserOpen && (
+      {browser && (
         <BrowseElements
           locale={locale}
-          tools={filtered(categories, '') as LibraryElement[]}
-          initialQuery={query}
+          tools={
+            browser === 'catalog' ? catalogTools : filtered(categories, '')
+          }
+          initialQuery={browser === 'catalog' ? '' : query}
+          fullCatalog={browser === 'catalog'}
           active={tool}
           writable={writable}
-          onCancel={() => setBrowserOpen(false)}
+          onCancel={() => setBrowser(null)}
           onChoose={(kind) => {
             const index = matches.indexOf(kind);
             if (index >= 0) setPage(Math.floor(index / pageSize));
             activate(kind);
-            setBrowserOpen(false);
+            setBrowser(null);
+            if (browser === 'catalog') {
+              setMode('shapes');
+              requestAnimationFrame(focusCanvas);
+            }
           }}
         />
       )}

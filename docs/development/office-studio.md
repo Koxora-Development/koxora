@@ -12,6 +12,14 @@ Settings use a category list and one content area. General preferences work in b
 
 Context menus expose short action groups and nested stacking/alignment commands. The menubar has roving keyboard focus, arrow/Home/End navigation and Escape/Tab dismissal. Nested menus retain keyboard focus during pointer movement. Panels can be hidden; narrow windows overlay them rather than squeezing the document. Light/dark and EN/DE share the same structure; no online service is introduced.
 
+## Compact Insert menu
+
+The Product Owner follow-up in [PR #65](https://github.com/Koxora-Development/koxora/pull/65) gives **Insert** a short list of commands. **Shapes and symbols…** opens a visual chooser with search and a library filter across the shape catalog, including libraries hidden from the ribbon. **Text**, **Table** and **Freehand pen** arm their tools directly. **Connections…** switches to the ribbon's Connections tab and focuses its search field. These entry points cover EDIT-003/005/015 and CORE-012/014/015 in the [feature catalog](../product/feature-catalog.md).
+
+Escape from the chooser returns focus to Insert. Choosing a shape arms its tool and moves focus to the canvas for placement. Insert is available in the editing workspace. Its commands require an editable layer and a property editor state that permits switching tools.
+
+Verify the menu in English and German with the keyboard. Open the chooser with Enter, search and filter for a shape from a library hidden in the ribbon, cancel with Escape, then reopen it and place the chosen shape from the canvas. Exercise Text, Table and Freehand pen, and check that Connections opens with the search focused. Check command availability from the project library, on a page with all layers locked and while a property draft blocks tool changes. Use Format to preview and apply an automatic layout. See [Automatic layout for hierarchies and flowcharts](hierarchy-layout.md).
+
 ## Transformation follow-up
 
 [Issue #57](https://github.com/Koxora-Development/koxora/issues/57) adds rotation and horizontal/vertical mirror authoring as a separate editing block after the Office layout. The [transform contract](element-transforms.md) documents single/multiple selection, pivot and text behavior, history, compatibility, anchors and required acceptance. Interactive exports remain deferred. Additional design presets, local templates and interface customization are [future planning](../planning/studio-design-customization.md).

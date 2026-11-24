@@ -32,7 +32,6 @@ import {
   activePageId,
   copyTemplateProject,
   createFromTemplate,
-  shapeKinds,
   layerStates,
   buildScene,
   type LinkTarget,
@@ -1142,6 +1141,13 @@ export function Projects({
   );
   const unavailable =
     !project || navigationBusy || (busy && operation !== 'saving');
+  const insertDisabled =
+    unavailable ||
+    propertyDraft ||
+    !activePage ||
+    ![...layerStates(activePage.layers).values()].some(
+      (layer) => layer.editable,
+    );
   const selected = commandState.selected;
   const command = (action: CanvasCommand) => () =>
     canvasRef.current?.run(action);
@@ -1320,18 +1326,35 @@ export function Projects({
     },
     {
       label: t('office.menu.insert'),
-      disabled: !project,
-      items: [...shapeKinds, 'freehand' as const].map((kind) => ({
-        label: t(`shape.${kind}`),
-        action: () => canvasRef.current?.tool(kind),
-        disabled:
-          unavailable ||
-          propertyDraft ||
-          !activePage ||
-          !activePage.layers.some(
-            (layer) => layerStates(activePage.layers).get(layer.id)?.editable,
-          ),
-      })),
+      disabled: view !== 'workspace' || !project,
+      items: [
+        {
+          label: t('office.menu.insertShapes'),
+          action: () => canvasRef.current?.browseInsert('shapes'),
+          disabled: insertDisabled,
+        },
+        {
+          label: t('shape.text'),
+          action: () => canvasRef.current?.tool('text'),
+          disabled: insertDisabled,
+        },
+        {
+          label: t('shape.table'),
+          action: () => canvasRef.current?.tool('table'),
+          disabled: insertDisabled,
+        },
+        { label: '', separator: true },
+        {
+          label: t('office.menu.insertConnections'),
+          action: () => canvasRef.current?.browseInsert('connections'),
+          disabled: insertDisabled,
+        },
+        {
+          label: t('shape.freehand'),
+          action: () => canvasRef.current?.tool('freehand'),
+          disabled: insertDisabled,
+        },
+      ],
     },
     {
       label: t('office.menu.format'),

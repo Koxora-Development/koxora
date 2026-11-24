@@ -99,6 +99,7 @@ import {
   ZOOM_KEYS,
 } from './shortcuts';
 import { DiagramTools, ElementDialog, type DiagramTool } from './diagram-tools';
+import type { ShapePaletteHandle } from './shape-palette';
 type Arrangement = Alignment | 'tidy' | AutomaticLayoutAction;
 export type CanvasCommand =
   | TransformAction
@@ -130,6 +131,7 @@ export interface CanvasHandle {
   prepare: () => boolean;
   run: (action: CanvasCommand) => void;
   tool: (tool: DiagramTool) => void;
+  browseInsert: ShapePaletteHandle['browse'];
   zoom: (action: 'in' | 'out' | 'reset' | 'fit') => void;
   toggleProperties: () => void;
   showHelp: () => void;
@@ -197,6 +199,8 @@ export function Canvas({
     preview: (geometries: Record<string, Geometry> | null) => void;
     focus: () => void;
   } | null>(null);
+  const palette = useRef<ShapePaletteHandle>(null);
+  const focusCanvas = () => controls.current?.focus();
   const [tool, setTool] = useState<DiagramTool>('select');
   const [repeat, setRepeat] = useState(false);
   const [ink, setInk] = useState({ stroke: '#7c3aed', strokeWidth: 3 });
@@ -340,6 +344,7 @@ export function Canvas({
       return;
     }
     cancelInput.current();
+    if (next !== 'select' && next !== 'pan') closeEditing();
     setTool(next);
     if (isDrawing(next))
       setOptions((previous) => ({ ...previous, arrow: next === 'arrow' }));
@@ -870,7 +875,14 @@ export function Canvas({
     snapshot: () => state.current,
     prepare,
     run: command,
-    tool: activate,
+    tool: (next) => {
+      if (!prepare()) return;
+      activate(next);
+      focusCanvas();
+    },
+    browseInsert: (mode) => {
+      if (prepare()) palette.current?.browse(mode);
+    },
     zoom: (action) => controls.current?.camera(action),
     toggleProperties: () => {
       if (prepare()) setInspectorOpen((open) => !open);
@@ -2196,6 +2208,8 @@ export function Canvas({
           </div>
         </div>
         <DiagramTools
+          paletteRef={palette}
+          focusCanvas={focusCanvas}
           page={page}
           locale={locale}
           tool={tool}
