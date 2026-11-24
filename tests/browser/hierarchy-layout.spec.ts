@@ -133,7 +133,12 @@ async function layoutMenu(
   await page
     .getByRole('menuitem', { name: messages['arrange.automatic'], exact: true })
     .press('ArrowRight');
-  return page.getByRole('menuitem', { name: messages[command], exact: true });
+  const menu = page.getByRole('menu', {
+    name: messages['arrange.automatic'],
+    exact: true,
+  });
+  await expect(menu.getByRole('menuitem').first()).toBeFocused();
+  return menu.getByRole('menuitem', { name: messages[command], exact: true });
 }
 
 async function exportedPage(page: Page, name: string) {
@@ -329,9 +334,22 @@ test('flowchart layout keeps the approval branches, rejoin and rework loop in bo
   const horizontal = await download();
   expectFlowDirection(horizontal, 'x');
   expectTranslatedDiagram(horizontal, original);
-  await (
-    await layoutMenu(page, messages, 'arrange.flow.top-down')
-  ).press('Enter');
+  // Menu opening must hand off focus before any deferred animation frame.
+  await page.clock.install();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
+  try {
+    const verticalAction = await layoutMenu(
+      page,
+      messages,
+      'arrange.flow.top-down',
+    );
+    await verticalAction.focus();
+    await page.clock.runFor(32);
+    await expect(verticalAction).toBeFocused();
+  } finally {
+    await page.clock.resume();
+  }
+  await page.keyboard.press('Enter');
   const vertical = await download();
   expectFlowDirection(vertical, 'y');
   expectTranslatedDiagram(vertical, original);

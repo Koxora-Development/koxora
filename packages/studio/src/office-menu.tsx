@@ -39,11 +39,13 @@ export function Submenu({
   const [position, setPosition] = useState({ left: 0, top: 0 });
   const trigger = useRef<HTMLButtonElement>(null),
     panel = useRef<HTMLDivElement>(null);
+  const focusOnOpen = useRef(false);
   const id = useId();
   useLayoutEffect(() => {
     if (!open) return;
+    const menu = panel.current!;
     const a = trigger.current!.getBoundingClientRect(),
-      b = panel.current!.getBoundingClientRect();
+      b = menu.getBoundingClientRect();
     setPosition({
       left: Math.max(
         6,
@@ -54,12 +56,23 @@ export function Submenu({
       ),
       top: Math.max(6, Math.min(a.top, innerHeight - b.height - 6)),
     });
+    // Hand off focus when the menu opens so it cannot interrupt the next key.
+    if (focusOnOpen.current) {
+      focusOnOpen.current = false;
+      menuItems(menu)[0]?.focus();
+    }
   }, [open]);
   function enter() {
+    if (open) {
+      menuItems(panel.current!)[0]?.focus();
+      return;
+    }
+    focusOnOpen.current = true;
     setOpen(true);
-    requestAnimationFrame(() => {
-      if (panel.current) menuItems(panel.current)[0]?.focus();
-    });
+  }
+  function close() {
+    focusOnOpen.current = false;
+    setOpen(false);
   }
   return (
     <div
@@ -68,7 +81,7 @@ export function Submenu({
         if (event.pointerType === 'mouse' && !disabled) setOpen(true);
       }}
       onPointerLeave={() => {
-        if (!panel.current?.contains(document.activeElement)) setOpen(false);
+        if (!panel.current?.contains(document.activeElement)) close();
       }}
     >
       <button
@@ -103,7 +116,7 @@ export function Submenu({
           if (['ArrowLeft', 'Escape'].includes(event.key)) {
             event.preventDefault();
             event.stopPropagation();
-            setOpen(false);
+            close();
             trigger.current?.focus();
           } else if (
             ['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)
