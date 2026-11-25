@@ -1,6 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { importProject } from '../../packages/project/src/index';
+import {
+  applyEdit,
+  DEFAULT_CONNECTION,
+} from '../../packages/editor-core/src/index';
+import {
+  createProject,
+  exportProject,
+  importProject,
+} from '../../packages/project/src/index';
 
 function messagesFor(locale: 'en' | 'de'): Record<string, string> {
   return JSON.parse(
@@ -71,6 +79,195 @@ async function exported(page: Page, messages: Record<string, string>) {
   await expect(button(page, messages['project.export'])).toBeEnabled();
   return { bytes, project, sheet: project.documents[0].pages[0] };
 }
+
+test('dragging a blank lane body snaps its heading and adjacent seam while foreground objects remain selectable', async ({
+  page,
+}) => {
+  const messages = messagesFor('en');
+  const now = '2026-11-25T16:00:00.000Z';
+  const makeId = () => crypto.randomUUID();
+  let project = createProject('Lane snapping', makeId, now);
+  const document = project.documents[0];
+  const sheet = document.pages[0];
+  sheet.viewport = { x: 0, y: 0, zoom: 2 };
+  const layerId = sheet.layers[0].id;
+  const createNodes = [
+    { kind: 'swimlane-horizontal', x: -216, y: -112, width: 430, height: 104 },
+    { kind: 'swimlane-horizontal', x: -148, y: 32, width: 430, height: 104 },
+    { kind: 'rectangle', x: -90, y: -82, width: 72, height: 45 },
+    { kind: 'rectangle', x: 42, y: -82, width: 72, height: 45 },
+  ] as const;
+  const ids = createNodes.map(() => makeId());
+  const [fixedId, movingId, stepId, otherStepId] = ids;
+  const edgeId = makeId();
+  for (const [index, { kind, ...bounds }] of createNodes.entries())
+    project = applyEdit(
+      project,
+      document.id,
+      sheet.id,
+      {
+        type: 'insert',
+        id: ids[index],
+        kind,
+        layerId,
+        position: { x: bounds.x, y: bounds.y },
+        geometry: { ...bounds, rotation: 0 },
+      },
+      now,
+    );
+  project = applyEdit(
+    project,
+    document.id,
+    sheet.id,
+    { type: 'format', ids: [fixedId, movingId], patch: { fill: '#eff6ff' } },
+    now,
+  );
+  project = applyEdit(
+    project,
+    document.id,
+    sheet.id,
+    {
+      type: 'connect',
+      id: edgeId,
+      layerId,
+      sourceId: stepId,
+      targetId: otherStepId,
+      options: DEFAULT_CONNECTION,
+    },
+    now,
+  );
+  const original = project.documents[0].pages[0];
+  const [fixed, moving, step] = original.nodes;
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/');
+  await button(page, messages['project.import']).click();
+  await page
+    .getByRole('dialog')
+    .getByLabel(messages['project.import'], { exact: true })
+    .setInputFiles({
+      name: 'lane-snapping.koxora',
+      mimeType: 'application/zip',
+      buffer: Buffer.from(await exportProject(project)),
+    });
+  await saved(page, messages);
+  const canvas = canvasFor(page, messages);
+  await expect(canvas).toHaveAttribute('data-camera', /"zoom":2\b/);
+  await expect(button(page, messages['canvas.snap'])).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  const drawing = canvas.locator('svg.canvas-svg > g');
+  const screenPoint = (x: number, y: number) =>
+    drawing.evaluate(
+      (element, point) => {
+        const p = new DOMPoint(point.x, point.y).matrixTransform(
+          (element as SVGGraphicsElement).getScreenCTM()!,
+        );
+        return { x: p.x, y: p.y };
+      },
+      { x, y },
+    );
+
+  const stepPoint = await screenPoint(
+    step.geometry.x + 20,
+    step.geometry.y + 20,
+  );
+  await page.mouse.click(stepPoint.x, stepPoint.y);
+  await expect(canvas).toHaveAttribute(
+    'data-selection',
+    JSON.stringify([stepId]),
+  );
+  const edgePoint = await canvas
+    .locator(`[data-connection-id="${edgeId}"] .scene-connection`)
+    .evaluate((element) => {
+      const path = element as SVGPathElement;
+      const p = path
+        .getPointAtLength(path.getTotalLength() / 2)
+        .matrixTransform(path.getScreenCTM()!);
+      return { x: p.x, y: p.y };
+    });
+  await page.mouse.click(edgePoint.x, edgePoint.y);
+  await expect(canvas).toHaveAttribute(
+    'data-selection',
+    JSON.stringify([edgeId]),
+  );
+  const empty = await screenPoint(0, 0);
+  await page.mouse.click(empty.x, empty.y);
+  const marqueeStart = await screenPoint(-100, -96);
+  const marqueeEnd = await screenPoint(-57, -48);
+  await page.keyboard.down('Shift');
+  try {
+    await page.mouse.move(marqueeStart.x, marqueeStart.y);
+    await page.mouse.down();
+    await page.mouse.move(marqueeEnd.x, marqueeEnd.y, { steps: 8 });
+    await page.mouse.up();
+  } finally {
+    await page.keyboard.up('Shift');
+  }
+  await expect(canvas).toHaveAttribute(
+    'data-selection',
+    JSON.stringify([stepId]),
+  );
+
+  const body = { x: moving.geometry.x + 210, y: moving.geometry.y + 50 };
+  const bodyPoint = await screenPoint(body.x, body.y);
+  await page.mouse.click(bodyPoint.x, bodyPoint.y);
+  await expect(canvas).toHaveAttribute(
+    'data-selection',
+    JSON.stringify([movingId]),
+  );
+
+  // At 200% canvas zoom, the pointer lands six CSS pixels from either target.
+  const seam = fixed.geometry.y + fixed.geometry.height;
+  const near = { x: fixed.geometry.x + 3, y: seam + 3 };
+  async function dragLaneBody(target = near) {
+    const from = await screenPoint(body.x, body.y);
+    const to = await screenPoint(
+      body.x + target.x - moving.geometry.x,
+      body.y + target.y - moving.geometry.y,
+    );
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 8 });
+    await page.mouse.up();
+  }
+  await page.keyboard.down('Alt');
+  try {
+    await dragLaneBody();
+  } finally {
+    await page.keyboard.up('Alt');
+  }
+  const free = (await exported(page, messages)).sheet.nodes.find(
+    (node) => node.id === movingId,
+  )!;
+  expect(free.geometry.x).toBeCloseTo(near.x, 0);
+  expect(free.geometry.y).toBeCloseTo(near.y, 0);
+  const undo = button(page, messages['editing.undo']);
+  await undo.press('Enter');
+  expect((await exported(page, messages)).sheet.nodes).toEqual(original.nodes);
+
+  await dragLaneBody();
+  const snapped = (await exported(page, messages)).sheet;
+  expect(snapped.nodes).toEqual(
+    original.nodes.map((node) =>
+      node.id === movingId
+        ? {
+            ...node,
+            geometry: { ...node.geometry, x: fixed.geometry.x, y: seam },
+          }
+        : node,
+    ),
+  );
+  expect(snapped.connections).toEqual(original.connections);
+  await undo.press('Enter');
+  expect((await exported(page, messages)).sheet.nodes).toEqual(original.nodes);
+  const gridSnap = button(page, messages['canvas.snap']);
+  await gridSnap.press('Enter');
+  await expect(gridSnap).toHaveAttribute('aria-pressed', 'true');
+  await dragLaneBody({ x: fixed.geometry.x, y: seam });
+  expect((await exported(page, messages)).sheet.nodes).toEqual(snapped.nodes);
+});
 
 test('German catalog places both swimlane orientations and groups a step by its position at 200% scale', async ({
   page,

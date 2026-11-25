@@ -395,6 +395,7 @@ function renderNode(node: SceneNode): SVGElement {
     transform: `translate(${g.flipX === true ? g.width : 0} ${g.flipY === true ? g.height : 0}) scale(${g.flipX === true ? -1 : 1} ${g.flipY === true ? -1 : 1})`,
     class: 'scene-node',
     fill,
+    ...(laneHeader ? { 'pointer-events': 'all' } : {}),
     stroke:
       node.kind === 'text' || node.textRegions?.type === 'table'
         ? 'none'

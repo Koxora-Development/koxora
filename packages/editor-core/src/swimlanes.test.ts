@@ -146,7 +146,7 @@ describe('swimlane geometry', () => {
     expect(swimlaneContents(scene, lane.id)).toEqual(['process']);
   });
 
-  it('keeps a newly drawn lane behind the process and leaves its body available for selection', () => {
+  it('keeps a newly drawn lane behind the process and picks its empty body', () => {
     const page = {
       layers: [layer('main')],
       connections: [],
@@ -164,7 +164,7 @@ describe('swimlane geometry', () => {
     ]);
     expect(pickNode(scene, { x: 30, y: 60 })?.id).toBe('lane');
     expect(pickNode(scene, { x: 200, y: 60 })?.id).toBe('first');
-    expect(pickNode(scene, { x: 300, y: 60 })).toBeUndefined();
+    expect(pickNode(scene, { x: 300, y: 60 })?.id).toBe('lane');
     expect(
       marqueeSelection(scene, { x: 160, y: 25, width: 120, height: 85 }),
     ).toEqual(['first']);

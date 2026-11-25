@@ -14,7 +14,6 @@ import {
   segmentDistance,
 } from './interaction';
 import { jsonObject } from './shapes';
-import { isSwimlane } from './swimlanes';
 import type { Node, Page, Style } from '@koxora/project';
 import { intersects, type Bounds, type Point } from './viewport';
 import {
@@ -23,10 +22,6 @@ import {
   layerStates,
   MAX_TEXT,
   appearanceResolver,
-  reflectPoint,
-  rotatePoint,
-  shapeCenter,
-  swimlaneHeaderBox,
   CONNECTION_KEY,
   type Appearance,
   type Geometry,
@@ -250,25 +245,6 @@ export function visibleScene(scene: Scene, viewport: Bounds): Scene {
     ),
   };
 }
-/** Leave the interior free for marquee selection and select a lane at its heading or border. */
-function containsSwimlaneHandle(
-  node: SceneNode,
-  point: Point,
-  tolerance: number,
-) {
-  if (!isSwimlane(node.kind)) return false;
-  const g = node.geometry;
-  const local = reflectPoint(
-    rotatePoint(point, shapeCenter(g), -g.rotation),
-    g,
-  );
-  const x = local.x - g.x;
-  const y = local.y - g.y;
-  const border = Math.min(x, y, g.width - x, g.height - y);
-  if (border < -tolerance) return false;
-  const header = swimlaneHeaderBox(node.kind, g.width, g.height);
-  return border <= tolerance || (x <= header.width && y <= header.height);
-}
 /** Topmost actual contour wins; locked/hidden layers cannot become editing targets. */
 export function pickNode(
   scene: Scene,
@@ -283,26 +259,24 @@ export function pickNode(
       (n) =>
         (!editableOnly || n.editable) &&
         (!filter || filter(n)) &&
-        (isSwimlane(n.kind)
-          ? containsSwimlaneHandle(n, point, tolerance)
-          : n.kind === 'freehand' && n.strokePoints
-            ? freehandContains(
-                n.strokePoints,
-                n.geometry,
+        (n.kind === 'freehand' && n.strokePoints
+          ? freehandContains(
+              n.strokePoints,
+              n.geometry,
+              point,
+              tolerance + n.style.strokeWidth / 2,
+            ) ||
+            (!!n.label &&
+              containsShape(
+                'rectangle',
+                freehandTextGeometry(n.geometry),
                 point,
-                tolerance + n.style.strokeWidth / 2,
-              ) ||
-              (!!n.label &&
-                containsShape(
-                  'rectangle',
-                  freehandTextGeometry(n.geometry),
-                  point,
-                  0,
-                ))
-            : isDrawing(n.kind)
-              ? segmentDistance(point, ...lineEndpoints(n.geometry)) <=
-                tolerance + n.style.strokeWidth / 2
-              : containsShape(n.kind, n.geometry, point, n.style.cornerRadius)),
+                0,
+              ))
+          : isDrawing(n.kind)
+            ? segmentDistance(point, ...lineEndpoints(n.geometry)) <=
+              tolerance + n.style.strokeWidth / 2
+            : containsShape(n.kind, n.geometry, point, n.style.cornerRadius)),
     );
 }
 

@@ -32,6 +32,7 @@ import {
   rotatedGeometries,
   shapeCenter,
   isSwimlane,
+  snapSwimlaneMove,
   swimlaneContents,
   type TransformAction,
   elementLink,
@@ -1245,18 +1246,18 @@ export function Canvas({
           n.id === rotationHandle?.getAttribute('data-rotate-id') && n.editable,
       );
       let node = pickNode(scene, start, 6 / state.current.camera.zoom);
-      const labelId = target
+      const targetNodeId = target
         .closest('[data-node-id]')
         ?.getAttribute('data-node-id');
-      const labelNode = scene.nodes.find(
-        (entry) => entry.id === labelId && entry.editable,
+      const targetNode = scene.nodes.find(
+        (entry) => entry.id === targetNodeId && entry.editable,
       );
       if (
-        labelNode &&
-        target.closest('text,foreignObject') &&
-        (!node || labelNode.paintOrder > node.paintOrder)
+        targetNode &&
+        (isSwimlane(targetNode.kind) || target.closest('text,foreignObject')) &&
+        (!node || targetNode.paintOrder > node.paintOrder)
       )
-        node = labelNode;
+        node = targetNode;
       const selectedFreehandField = scene.nodes.find(
         (entry) =>
           entry.editable &&
@@ -1270,6 +1271,7 @@ export function Canvas({
       const edge = scene.connections.find((e) => e.id === edgeId && e.editable);
       if (edge && node && edge.paintOrder > node.paintOrder) node = undefined;
       const hit = node?.id ?? edge?.id;
+      const laneMarquee = event.shiftKey && !!node && isSwimlane(node.kind);
       const port = isDrawing(active.tool) ? ports.hit(point) : undefined;
       const drawingHit = isDrawing(active.tool)
         ? connectionNodeAt(start)
@@ -1281,7 +1283,7 @@ export function Canvas({
             ? 'link'
             : isShapeKind(active.tool)
               ? 'insert'
-              : hit
+              : hit && !laneMarquee
                 ? 'move'
                 : 'marquee';
       let originals: Node[] = [];
@@ -1304,7 +1306,7 @@ export function Canvas({
             kind = 'resize';
             originals = [n];
           }
-        } else if (hit) {
+        } else if (hit && !laneMarquee) {
           if (event.shiftKey)
             active.select(toggleSelection(selection.current, hit, true));
           else if (!selection.current.includes(hit)) active.select([hit]);
@@ -1341,7 +1343,7 @@ export function Canvas({
         linkStart:
           port ??
           (drawingHit ? { id: drawingHit.id, anchor: 'auto' } : undefined),
-        single: !event.shiftKey ? hit : undefined,
+        single: !event.shiftKey || laneMarquee ? hit : undefined,
         editText:
           !event.shiftKey &&
           !event.ctrlKey &&
@@ -1479,14 +1481,40 @@ export function Canvas({
             styles,
           );
         }
-      } else if (gesture.kind === 'move')
+      } else if (gesture.kind === 'move') {
+        const delta = {
+          x: raw.x - gesture.start.x,
+          y: raw.y - gesture.start.y,
+        };
+        const join =
+          !event.altKey &&
+          gesture.originals.some((node) => isSwimlane(node.kind));
         gesture.geometries = movedGeometries(
           gesture.originals,
-          { x: raw.x - gesture.start.x, y: raw.y - gesture.start.y },
+          delta,
           grid.spacing,
-          snap,
+          snap && !join,
         );
-      else if (gesture.kind === 'rotate' && gesture.pivot) {
+        if (join) {
+          // Judge the seam from the pointer's proposed placement, before grid rounding.
+          const joined = snapSwimlaneMove(
+            scene,
+            gesture.geometries,
+            8 / state.current.camera.zoom,
+          );
+          if (joined) {
+            gesture.geometries = joined;
+            snapping = true;
+          } else if (snap) {
+            gesture.geometries = movedGeometries(
+              gesture.originals,
+              delta,
+              grid.spacing,
+              true,
+            );
+          }
+        }
+      } else if (gesture.kind === 'rotate' && gesture.pivot) {
         const c = gesture.pivot;
         let degrees =
           ((Math.atan2(raw.y - c.y, raw.x - c.x) -
@@ -1697,14 +1725,19 @@ export function Canvas({
             type: 'transform',
             geometries: done.geometries,
           });
-        else if (done.kind === 'marquee' && done.moved && selectionBounds)
-          interaction.current.select([
-            ...new Set([
-              ...done.base,
-              ...marqueeSelection(scene, selectionBounds),
-            ]),
-          ]);
-        else if (done.kind === 'move' && !done.moved && done.single) {
+        else if (done.kind === 'marquee') {
+          if (done.moved && selectionBounds)
+            interaction.current.select([
+              ...new Set([
+                ...done.base,
+                ...marqueeSelection(scene, selectionBounds),
+              ]),
+            ]);
+          else if (!done.moved && done.single)
+            interaction.current.select(
+              toggleSelection(done.base, done.single, true),
+            );
+        } else if (done.kind === 'move' && !done.moved && done.single) {
           interaction.current.select([done.single]);
           if (done.editText)
             interaction.current.editText(done.single, world(local(event)));
