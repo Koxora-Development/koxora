@@ -251,12 +251,14 @@ export function pickNode(
   point: Point,
   tolerance = 6,
   editableOnly = true,
+  filter?: (node: SceneNode) => boolean,
 ): SceneNode | undefined {
   return [...scene.nodes]
     .reverse()
     .find(
       (n) =>
         (!editableOnly || n.editable) &&
+        (!filter || filter(n)) &&
         (n.kind === 'freehand' && n.strokePoints
           ? freehandContains(
               n.strokePoints,

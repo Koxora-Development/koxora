@@ -29,7 +29,12 @@ import {
   hasConnectionDecorations,
   validConnectionDecorations,
 } from './connection-decorations';
-import { FREEHAND_TEXT_FEATURE, FREEHAND_TEXT_KEY } from './editor-features';
+import {
+  FREEHAND_TEXT_FEATURE,
+  FREEHAND_TEXT_KEY,
+  isSwimlaneKind,
+  SWIMLANES_FEATURE,
+} from './editor-features';
 import {
   FLOATING_CONNECTIONS_FEATURE,
   validConnectionPoint,
@@ -49,6 +54,7 @@ import {
   TEXT_REGIONS_FEATURE,
 } from './text-regions';
 export const FEATURES = [
+  SWIMLANES_FEATURE,
   CONNECTION_PORTS_FEATURE,
   CONNECTION_DECORATIONS_FEATURE,
   TABLE_CALCULATION_FEATURE,
@@ -374,6 +380,12 @@ export function validateProject(
         if (node.kind === 'junction')
           check(
             manifest.requiredFeatures.includes(CONNECTION_PORTS_FEATURE),
+            `${np}.kind`,
+            'feature',
+          );
+        if (isSwimlaneKind(node.kind))
+          check(
+            manifest.requiredFeatures.includes(SWIMLANES_FEATURE),
             `${np}.kind`,
             'feature',
           );

@@ -2,6 +2,7 @@ import {
   createProject,
   ProjectError,
   validateProject,
+  withSwimlaneFeature,
   type Project,
 } from '@koxora/project';
 import {
@@ -244,6 +245,73 @@ export const templateCatalog: readonly BuiltInTemplate[] = Object.freeze([
     ],
   ),
   template(
+    'swimlane-service-request',
+    'flowchart',
+    [
+      node(
+        'requester',
+        'swimlaneRequester',
+        32,
+        36,
+        960,
+        176,
+        '#f8fafc',
+        'swimlane-horizontal',
+      ),
+      node(
+        'service-desk',
+        'swimlaneServiceDesk',
+        32,
+        212,
+        960,
+        176,
+        '#eff6ff',
+        'swimlane-horizontal',
+      ),
+      node(
+        'fulfillment',
+        'swimlaneFulfillment',
+        32,
+        388,
+        960,
+        176,
+        '#f0fdfa',
+        'swimlane-horizontal',
+      ),
+      node(
+        'submit',
+        'swimlaneSubmit',
+        184,
+        88,
+        172,
+        72,
+        colors.green,
+        'ellipse',
+      ),
+      node('triage', 'swimlaneTriage', 380, 264, 176, 72, colors.blue),
+      node('assign', 'swimlaneAssign', 380, 440, 176, 72, colors.teal),
+      node('resolve', 'swimlaneResolve', 600, 440, 154, 72, colors.teal),
+      node('notify', 'swimlaneNotify', 782, 264, 176, 72, colors.blue),
+      node(
+        'confirm',
+        'swimlaneConfirm',
+        782,
+        88,
+        176,
+        72,
+        colors.green,
+        'ellipse',
+      ),
+    ],
+    [
+      link('submit', 'triage', 'orthogonal', true),
+      link('triage', 'assign', 'straight', true),
+      link('assign', 'resolve', 'straight', true),
+      link('resolve', 'notify', 'orthogonal', true),
+      link('notify', 'confirm', 'straight', true),
+    ],
+  ),
+  template(
     'organization-team',
     'organization',
     [
@@ -366,8 +434,9 @@ export function createFromTemplate(
     y: (top + bottom) / 2,
     zoom: Math.min(1, 800 / (right - left + 100), 500 / (bottom - top + 100)),
   };
-  validateProject(project);
-  return project;
+  const result = withSwimlaneFeature(project);
+  validateProject(result);
+  return result;
 }
 
 /** Snapshot the complete project while keeping IDs scoped to its workbook. */

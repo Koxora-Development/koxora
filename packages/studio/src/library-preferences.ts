@@ -110,6 +110,8 @@ export const libraryElementKinds: Readonly<
     'chevron',
     'text',
     'table',
+    'swimlane-horizontal',
+    'swimlane-vertical',
   ],
   symbols: ['cloud', 'note', 'cross'],
   drawing: ['freehand'],

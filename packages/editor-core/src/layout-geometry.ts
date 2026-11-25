@@ -1,4 +1,4 @@
-import type { Page } from '@koxora/project';
+import { isSwimlaneKind, type Page } from '@koxora/project';
 import { readConnectionEndpoints } from './connections';
 import { isDrawing } from './interaction';
 import { unionBounds, type Scene, type SceneNode } from './scene';
@@ -8,7 +8,10 @@ import { intersects, MAX_COORDINATE, type Bounds } from './viewport';
 export type LayoutDirection = 'top-down' | 'left-right';
 export type DiagramLayoutResult =
   | { ok: true; geometries: Record<string, Geometry> }
-  | { ok: false; reason: 'selection' | 'structure' | 'occupied' | 'bounds' };
+  | {
+      ok: false;
+      reason: 'selection' | 'structure' | 'occupied' | 'bounds' | 'swimlane';
+    };
 
 export interface LayoutPlacement {
   node: SceneNode;
@@ -37,25 +40,44 @@ export function readLayoutSelection(
   scene: Scene,
   page: Pick<Page, 'connections'>,
   selectedIds: readonly string[],
-): {
-  nodes: Map<string, SceneNode>;
-  edges: { sourceId: string; targetId: string }[];
-  obstacles: Bounds[];
-} | null {
+):
+  | { ok: false; reason: 'selection' | 'swimlane' }
+  | {
+      ok: true;
+      nodes: Map<string, SceneNode>;
+      edges: { sourceId: string; targetId: string }[];
+      obstacles: Bounds[];
+    } {
   const selected = new Set(selectedIds);
   for (const edge of page.connections) selected.delete(edge.id);
   const nodes = new Map<string, SceneNode>();
   const obstacles: Bounds[] = [];
+  const lanes: Bounds[] = [];
   for (const node of scene.nodes) {
     if (!selected.has(node.id)) {
       obstacles.push(node.bounds);
+      if (isSwimlaneKind(node.kind)) lanes.push(node.bounds);
       continue;
     }
+    if (isSwimlaneKind(node.kind)) return { ok: false, reason: 'swimlane' };
     if (!node.editable || isDrawing(node.kind) || node.kind === 'freehand')
-      return null;
+      return { ok: false, reason: 'selection' };
     nodes.set(node.id, node);
   }
-  if (nodes.size < 2 || nodes.size !== selected.size) return null;
+  if (nodes.size < 2 || nodes.size !== selected.size)
+    return { ok: false, reason: 'selection' };
+  if (lanes.length) {
+    const boxes = [...nodes.values()].map((node) => node.bounds);
+    const selectionBounds = unionBounds(boxes)!;
+    if (
+      lanes.some(
+        (lane) =>
+          intersects(lane, selectionBounds) &&
+          boxes.some((box) => intersects(lane, box)),
+      )
+    )
+      return { ok: false, reason: 'swimlane' };
+  }
 
   const editableEdges = new Set(
     scene.connections.filter((edge) => edge.editable).map((edge) => edge.id),
@@ -71,7 +93,7 @@ export function readLayoutSelection(
     if (nodes.has(sourceId) && nodes.has(targetId))
       edges.push({ sourceId, targetId });
   }
-  return { nodes, edges, obstacles };
+  return { ok: true, nodes, edges, obstacles };
 }
 
 function firstMatching<T>(items: readonly T[], matches: (item: T) => boolean) {

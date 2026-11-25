@@ -31,6 +31,9 @@ import {
   transformedGeometry,
   rotatedGeometries,
   shapeCenter,
+  isSwimlane,
+  snapSwimlaneMove,
+  swimlaneContents,
   type TransformAction,
   elementLink,
   elementDisplayText,
@@ -104,6 +107,7 @@ type Arrangement = Alignment | 'tidy' | AutomaticLayoutAction;
 export type CanvasCommand =
   | TransformAction
   | 'selectAll'
+  | 'selectLaneContents'
   | 'followLink'
   | 'delete'
   | 'duplicate'
@@ -121,6 +125,7 @@ export type CanvasCommand =
 export type CanvasCommandState = {
   selected: number;
   selectedNodes: number;
+  selectedLane: boolean;
   canPaste: boolean;
   propertiesVisible: boolean;
   objectsVisible: boolean;
@@ -496,6 +501,7 @@ export function Canvas({
           n.editable &&
           !isDrawing(n.kind) &&
           n.kind !== 'freehand' &&
+          !isSwimlane(n.kind) &&
           !excluded.has(n.id),
       )
       .map((n) => n.id);
@@ -542,7 +548,11 @@ export function Canvas({
           layerId,
           geometry,
           snap,
-          text: tool === 'text' ? t('diagram.newText') : '',
+          text: isSwimlane(tool)
+            ? t('swimlane.newTitle')
+            : tool === 'text'
+              ? t('diagram.newText')
+              : '',
           ...(isDrawing(tool)
             ? {
                 startArrow: options.startArrow ?? false,
@@ -587,6 +597,11 @@ export function Canvas({
   const canEditSelected = (id: string) =>
     editableNodeIds.has(id) || editableConnectionIds.has(id);
   const editableSelection = selected.filter(canEditSelected);
+  const selectedLane =
+    editableSelection.length === 1 &&
+    scene.nodes.some(
+      (n) => n.id === editableSelection[0] && isSwimlane(n.kind),
+    );
   const selectedNodes = editableSelection.filter((id) =>
     editableNodeIds.has(id),
   ).length;
@@ -599,6 +614,7 @@ export function Canvas({
     onCommandState({
       selected: editableSelection.length,
       selectedNodes,
+      selectedLane,
       canPaste: hasClipboard,
       propertiesVisible: inspectorOpen,
       objectsVisible: objects,
@@ -607,6 +623,7 @@ export function Canvas({
     onCommandState,
     editableSelection.length,
     selectedNodes,
+    selectedLane,
     hasClipboard,
     inspectorOpen,
     objects,
@@ -748,6 +765,11 @@ export function Canvas({
             .filter((item) => item.editable)
             .map((item) => item.id),
         );
+      } else if (action === 'selectLaneContents') {
+        if (ids.length !== 1) return;
+        const steps = swimlaneContents(scene, ids[0]);
+        if (steps.length) select([ids[0], ...steps]);
+        else setFeedback('swimlane.noContents');
       } else if (action === 'followLink') {
         if (selection.current.length === 1) followLink(selection.current[0]);
       } else if (action === 'undo' || action === 'redo') {
@@ -1140,10 +1162,18 @@ export function Canvas({
     let gesture: Gesture | null = null;
     let keyboardStroke: Point[] | null = null;
     const world = (p: Point) => screenToWorld(p, state.current.camera, size);
+    const connectionNodeAt = (point: Point) =>
+      pickNode(
+        scene,
+        point,
+        6 / state.current.camera.zoom,
+        false,
+        (node) => !isSwimlane(node.kind),
+      );
     const endpointAt = (screen: Point, raw = world(screen)): LinkEndpoint => {
       const port = ports.hit(screen);
       if (port) return { ...port };
-      const node = pickNode(scene, raw, 6 / state.current.camera.zoom, false);
+      const node = connectionNodeAt(raw);
       return node
         ? { id: node.id, anchor: 'auto' }
         : { point: raw, anchor: 'auto' };
@@ -1216,18 +1246,18 @@ export function Canvas({
           n.id === rotationHandle?.getAttribute('data-rotate-id') && n.editable,
       );
       let node = pickNode(scene, start, 6 / state.current.camera.zoom);
-      const labelId = target
+      const targetNodeId = target
         .closest('[data-node-id]')
         ?.getAttribute('data-node-id');
-      const labelNode = scene.nodes.find(
-        (entry) => entry.id === labelId && entry.editable,
+      const targetNode = scene.nodes.find(
+        (entry) => entry.id === targetNodeId && entry.editable,
       );
       if (
-        labelNode &&
-        target.closest('text,foreignObject') &&
-        (!node || labelNode.paintOrder > node.paintOrder)
+        targetNode &&
+        (isSwimlane(targetNode.kind) || target.closest('text,foreignObject')) &&
+        (!node || targetNode.paintOrder > node.paintOrder)
       )
-        node = labelNode;
+        node = targetNode;
       const selectedFreehandField = scene.nodes.find(
         (entry) =>
           entry.editable &&
@@ -1241,9 +1271,10 @@ export function Canvas({
       const edge = scene.connections.find((e) => e.id === edgeId && e.editable);
       if (edge && node && edge.paintOrder > node.paintOrder) node = undefined;
       const hit = node?.id ?? edge?.id;
+      const laneMarquee = event.shiftKey && !!node && isSwimlane(node.kind);
       const port = isDrawing(active.tool) ? ports.hit(point) : undefined;
       const drawingHit = isDrawing(active.tool)
-        ? pickNode(scene, start, 6 / state.current.camera.zoom, false)
+        ? connectionNodeAt(start)
         : undefined;
       let kind: Gesture['kind'] =
         active.tool === 'freehand'
@@ -1252,7 +1283,7 @@ export function Canvas({
             ? 'link'
             : isShapeKind(active.tool)
               ? 'insert'
-              : hit
+              : hit && !laneMarquee
                 ? 'move'
                 : 'marquee';
       let originals: Node[] = [];
@@ -1275,7 +1306,7 @@ export function Canvas({
             kind = 'resize';
             originals = [n];
           }
-        } else if (hit) {
+        } else if (hit && !laneMarquee) {
           if (event.shiftKey)
             active.select(toggleSelection(selection.current, hit, true));
           else if (!selection.current.includes(hit)) active.select([hit]);
@@ -1312,7 +1343,7 @@ export function Canvas({
         linkStart:
           port ??
           (drawingHit ? { id: drawingHit.id, anchor: 'auto' } : undefined),
-        single: !event.shiftKey ? hit : undefined,
+        single: !event.shiftKey || laneMarquee ? hit : undefined,
         editText:
           !event.shiftKey &&
           !event.ctrlKey &&
@@ -1450,14 +1481,40 @@ export function Canvas({
             styles,
           );
         }
-      } else if (gesture.kind === 'move')
+      } else if (gesture.kind === 'move') {
+        const delta = {
+          x: raw.x - gesture.start.x,
+          y: raw.y - gesture.start.y,
+        };
+        const join =
+          !event.altKey &&
+          gesture.originals.some((node) => isSwimlane(node.kind));
         gesture.geometries = movedGeometries(
           gesture.originals,
-          { x: raw.x - gesture.start.x, y: raw.y - gesture.start.y },
+          delta,
           grid.spacing,
-          snap,
+          snap && !join,
         );
-      else if (gesture.kind === 'rotate' && gesture.pivot) {
+        if (join) {
+          // Judge the seam from the pointer's proposed placement, before grid rounding.
+          const joined = snapSwimlaneMove(
+            scene,
+            gesture.geometries,
+            8 / state.current.camera.zoom,
+          );
+          if (joined) {
+            gesture.geometries = joined;
+            snapping = true;
+          } else if (snap) {
+            gesture.geometries = movedGeometries(
+              gesture.originals,
+              delta,
+              grid.spacing,
+              true,
+            );
+          }
+        }
+      } else if (gesture.kind === 'rotate' && gesture.pivot) {
         const c = gesture.pivot;
         let degrees =
           ((Math.atan2(raw.y - c.y, raw.x - c.x) -
@@ -1521,16 +1578,21 @@ export function Canvas({
               };
           if (event.shiftKey && !isDrawing(tool))
             gesture.geometry.height = gesture.geometry.width;
+          const lane = isSwimlane(tool);
           const temporary: Node = {
             id: 'preview',
             kind: tool,
             layerId,
             geometry: gesture.geometry,
-            content: {},
+            content: lane
+              ? { text: translate(locale, 'swimlane.newTitle') }
+              : {},
             metadata: {},
             assetIds: [],
             dataBindings: [],
-            extensions: {},
+            extensions: lane
+              ? { [ELEMENT_KEY]: { version: 1, style: { fill: 'none' } } }
+              : {},
           };
           const addition = buildScene(
             { ...content, nodes: [temporary], connections: [] },
@@ -1546,7 +1608,13 @@ export function Canvas({
                   Math.max(
                     -1,
                     ...[...scene.nodes, ...scene.connections]
-                      .filter((item) => item.layerOrder <= n.layerOrder)
+                      .filter(
+                        (item) =>
+                          item.layerOrder < n.layerOrder ||
+                          (item.layerOrder === n.layerOrder &&
+                            (!lane ||
+                              ('kind' in item && isSwimlane(item.kind)))),
+                      )
                       .map((item) => item.paintOrder),
                   ) + 0.5,
               })),
@@ -1657,14 +1725,19 @@ export function Canvas({
             type: 'transform',
             geometries: done.geometries,
           });
-        else if (done.kind === 'marquee' && done.moved && selectionBounds)
-          interaction.current.select([
-            ...new Set([
-              ...done.base,
-              ...marqueeSelection(scene, selectionBounds),
-            ]),
-          ]);
-        else if (done.kind === 'move' && !done.moved && done.single) {
+        else if (done.kind === 'marquee') {
+          if (done.moved && selectionBounds)
+            interaction.current.select([
+              ...new Set([
+                ...done.base,
+                ...marqueeSelection(scene, selectionBounds),
+              ]),
+            ]);
+          else if (!done.moved && done.single)
+            interaction.current.select(
+              toggleSelection(done.base, done.single, true),
+            );
+        } else if (done.kind === 'move' && !done.moved && done.single) {
           interaction.current.select([done.single]);
           if (done.editText)
             interaction.current.editText(done.single, world(local(event)));
@@ -2628,6 +2701,14 @@ export function Canvas({
             {editableSelection.length === 1 && (
               <button role="menuitem" onClick={() => command('text')}>
                 {t('rich.edit')}
+              </button>
+            )}
+            {selectedLane && (
+              <button
+                role="menuitem"
+                onClick={() => command('selectLaneContents')}
+              >
+                {t('swimlane.selectContents')}
               </button>
             )}
             {(['properties', 'duplicate', 'delete', 'copy', 'paste'] as const)

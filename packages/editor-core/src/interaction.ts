@@ -1,4 +1,4 @@
-import type { Node, Page } from '@koxora/project';
+import { isSwimlaneKind, type Node, type Page } from '@koxora/project';
 import { type Bounds, type Point, snapPoint, intersects } from './viewport';
 import {
   reflectPoint,
@@ -110,7 +110,18 @@ export function segmentDistance(p: Point, a: Point, b: Point): number {
 }
 export function marqueeSelection(scene: Scene, box: Bounds): string[] {
   return [...scene.nodes, ...scene.connections]
-    .filter((n) => n.editable && intersects(n.bounds, box))
+    .filter((n) => {
+      if (!n.editable) return false;
+      const b = n.bounds;
+      if ('kind' in n && isSwimlaneKind(n.kind))
+        return (
+          b.x >= box.x &&
+          b.y >= box.y &&
+          b.x + b.width <= box.x + box.width &&
+          b.y + b.height <= box.y + box.height
+        );
+      return intersects(b, box);
+    })
     .map((n) => n.id);
 }
 export function toggleSelection(
