@@ -68,7 +68,7 @@ export function flowGeometries(
   direction: LayoutDirection = 'top-down',
 ): DiagramLayoutResult {
   const selection = readLayoutSelection(scene, page, ids);
-  if (!selection) return { ok: false, reason: 'selection' };
+  if (!selection.ok) return selection;
   const { crossAxis, rankAxis, crossSize, rankSize } = layoutAxes(direction);
   const byId = new Map<string, Step>(
     [...selection.nodes].map(([id, node]) => [

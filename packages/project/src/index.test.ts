@@ -10,8 +10,10 @@ import {
   parseProject,
   serializeProject,
   sha256,
+  SWIMLANES_FEATURE,
   synchronizeIndexes,
   validateProject,
+  withSwimlaneFeature,
   type Project,
 } from './index';
 import { canonical } from './validation';
@@ -23,8 +25,9 @@ const golden = new Uint8Array(
 );
 async function modifiedManifest(
   change: (manifest: Project['manifest']) => void,
+  archive: Uint8Array = golden,
 ) {
-  const files = await readZip(golden, DEFAULT_LIMITS);
+  const files = await readZip(archive, DEFAULT_LIMITS);
   const manifest = JSON.parse(new TextDecoder().decode(files['manifest.json']));
   change(manifest);
   files['manifest.json'] = encoder.encode(JSON.stringify(manifest));
@@ -54,6 +57,63 @@ it('matches a deterministic golden archive and preserves every collection and bi
   expect(await exportProject(project)).toEqual(golden);
   expect(await parseProject(await serializeProject(project))).toEqual(project);
 });
+it.each([
+  ['swimlane-horizontal', 'document'],
+  ['swimlane-vertical', 'template'],
+] as const)(
+  'requires a portable feature for %s in a %s',
+  async (kind, location) => {
+    const project = await richFixture();
+    expect(withSwimlaneFeature(project)).toBe(project);
+    const document = (p: Project) =>
+      location === 'template' ? p.templates[0].document : p.documents[0];
+    const page = document(project).pages[0];
+    const lane = {
+      id: '90000000-0000-4000-8000-000000000000',
+      kind,
+      layerId: page.layers[0].id,
+      geometry: { x: 20, y: 40, width: 200, height: 180, rotation: 0 },
+      content: { text: 'Service desk 世界' },
+      metadata: {},
+      assetIds: [],
+      dataBindings: [],
+      extensions: { 'org.example.swimlane': { preserve: true } },
+    };
+    page.nodes.push(lane);
+    await expect(exportProject(project)).rejects.toMatchObject({
+      code: 'invalid',
+      reason: 'feature',
+    });
+
+    const marked = withSwimlaneFeature(project);
+    expect(project.manifest.requiredFeatures).not.toContain(SWIMLANES_FEATURE);
+    expect(marked.manifest.requiredFeatures).toContain(SWIMLANES_FEATURE);
+    expect(withSwimlaneFeature(marked)).toBe(marked);
+    const archive = await exportProject(marked);
+    const reopened = await importProject(archive);
+    expect(document(reopened).pages[0].nodes).toContainEqual(lane);
+    expect(await exportProject(reopened)).toEqual(archive);
+
+    const withoutFeature = await modifiedManifest((manifest) => {
+      manifest.requiredFeatures = manifest.requiredFeatures.filter(
+        (feature) => feature !== SWIMLANES_FEATURE,
+      );
+    }, archive);
+    await expect(importProject(withoutFeature)).rejects.toMatchObject({
+      code: 'invalid',
+      reason: 'feature',
+    });
+    const withFutureFeature = await modifiedManifest((manifest) => {
+      manifest.requiredFeatures = manifest.requiredFeatures.map((feature) =>
+        feature === SWIMLANES_FEATURE ? 'swimlanes-v2' : feature,
+      );
+    }, archive);
+    await expect(importProject(withFutureFeature)).rejects.toMatchObject({
+      code: 'unsupported',
+      reason: 'feature',
+    });
+  },
+);
 it('preserves future compatible versions, optional keys, index metadata and opaque resources', async () => {
   const bytes = await modifiedManifest((m) => {
     m.formatVersion = '1.3.4';
@@ -293,6 +353,20 @@ it('explicitly migrates the unreleased JSON draft, preserving IDs and unknown so
   expect(await parseProject(source)).toEqual(migrated);
   await expect(importProject(encoder.encode(source))).rejects.toMatchObject({
     code: 'invalid',
+  });
+});
+it('retains a legacy kind that now has a swimlane representation', async () => {
+  const source = JSON.parse(
+    readFileSync('packages/project/fixtures/legacy-rich-v1.json', 'utf8'),
+  );
+  const lane = source.pages[0].nodes[0];
+  lane.kind = 'swimlane-horizontal';
+  const migrated = await parseProject(JSON.stringify(source));
+  expect(migrated.manifest.requiredFeatures).toContain(SWIMLANES_FEATURE);
+  expect(migrated.documents[0].pages[0].nodes[0]).toMatchObject({
+    id: lane.id,
+    kind: lane.kind,
+    extensions: { 'org.koxora.legacy-node': lane },
   });
 });
 it('migration copies input and fails on missing or cyclic routes', async () => {

@@ -1,6 +1,6 @@
 # Automatic layout for hierarchies and flowcharts
 
-This Phase 2 package adds explicit layout commands for connected shapes, organization charts and process diagrams. It addresses EDIT-006 (automatic layout), EDIT-007 (manual editing), DIAG-005 (flowchart layout) and DIAG-007 (organization chart layout) in the [feature catalog](../product/feature-catalog.md). Product Owner acceptance is pending. Swimlane authoring remains a separate workflow.
+The Product Owner accepted this Phase 2 package, and it was merged in [PR #65](https://github.com/Koxora-Development/koxora/pull/65) on 2026-11-24 (`10baa38`). It adds layout commands for connected shapes, organization charts and process diagrams and addresses EDIT-006, EDIT-007, DIAG-005 and DIAG-007. [Feature catalog](../product/feature-catalog.md)
 
 ## Workflow
 
@@ -16,6 +16,8 @@ Select two or more visible editable diagram shapes, text elements or junctions. 
 - **Flowchart** accepts one connected process graph with branches, joins, multiple starts and return paths. Studio uses the diagram's stacking order to decide which connections set the stages and preserves every return connection in the diagram. The first start across the layout direction anchors the result. In a flow without a start, the first shape across the calculated opening stage anchors it. Applying the same layout again keeps the same stages.
 
 Both layouts use rendered bounds to space nodes. Studio reports an invalid selection, an overlap with an unselected visible shape or drawing, or a position beyond the supported canvas limits before applying an edit.
+
+Swimlanes protect occupied lane bounds during automatic layout so the layout does not move steps across roles. Use the swimlane tools to organize a flow by role. [Swimlane authoring](swimlanes.md)
 
 The committed layout updates the affected positions through the existing project format. It preserves dimensions, rotation, styles, connection waypoints, layers and links. Browser and desktop Studio share the workflow in English and German. The German menu is **Format → Automatische Anordnung**.
 

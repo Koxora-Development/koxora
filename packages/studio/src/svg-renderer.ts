@@ -24,6 +24,8 @@ import {
   type Bounds,
   shapeRegistry,
   containerTextBoxes,
+  isSwimlane,
+  swimlaneHeaderBox,
   sceneDisplayText,
   isShapeKind,
   type SceneNode,
@@ -361,16 +363,17 @@ function renderNode(node: SceneNode): SVGElement {
     group.setAttribute('data-node-id', node.id);
     return group;
   }
-  const g = node.geometry,
-    s = {
-      ...node.style,
-      textColor: textColor(
-        node.style.textColor,
-        ['text', 'freehand', 'line', 'arrow'].includes(node.kind)
-          ? 'none'
-          : node.style.fill,
-      ),
-    };
+  const g = node.geometry;
+  const fill =
+    node.kind === 'text' || node.kind === 'freehand' ? 'none' : node.style.fill;
+  const laneHeader = isSwimlane(node.kind)
+    ? mirroredTextBox(node, swimlaneHeaderBox(node.kind, g.width, g.height))
+    : null;
+  const labelBackground = laneHeader ? headerTintedFill(fill) : fill;
+  const s = {
+    ...node.style,
+    textColor: textColor(node.style.textColor, labelBackground),
+  };
   const group = svg('g', {
     'data-node-id': node.id,
     transform: `translate(${g.x} ${g.y}) rotate(${g.rotation} ${g.width / 2} ${g.height / 2})`,
@@ -391,7 +394,7 @@ function renderNode(node: SceneNode): SVGElement {
     'stroke-linejoin': 'round',
     transform: `translate(${g.flipX === true ? g.width : 0} ${g.flipY === true ? g.height : 0}) scale(${g.flipX === true ? -1 : 1} ${g.flipY === true ? -1 : 1})`,
     class: 'scene-node',
-    fill: node.kind === 'text' || node.kind === 'freehand' ? 'none' : s.fill,
+    fill,
     stroke:
       node.kind === 'text' || node.textRegions?.type === 'table'
         ? 'none'
@@ -400,6 +403,18 @@ function renderNode(node: SceneNode): SVGElement {
     opacity: s.opacity,
   });
   group.append(path);
+  if (laneHeader) {
+    group.append(
+      svg('rect', {
+        ...laneHeader,
+        'data-swimlane-header': '',
+        fill: /^#[0-9a-f]{6}$/i.test(fill)
+          ? contrastingColor(fill)
+          : 'var(--ink)',
+        opacity: s.opacity * 0.14,
+      }),
+    );
+  }
   if (node.kind === 'freehand') {
     const hit = path.cloneNode() as SVGElement;
     hit.setAttribute('stroke', 'transparent');
@@ -417,7 +432,7 @@ function renderNode(node: SceneNode): SVGElement {
       ys = tableAxisOffsets(regions.rowHeights, rows, g.height);
     const calculated = evaluateTable(regions);
     const visibleCells = tableCellBoxes(regions, g.width, g.height);
-    const headerFill = tableHeaderFill(s.fill);
+    const headerFill = headerTintedFill(s.fill);
     for (const cell of visibleCells) {
       if (!headerRow || cell.row !== 0) continue;
       const box = mirroredTextBox(node, cell.box);
@@ -531,12 +546,7 @@ function renderNode(node: SceneNode): SVGElement {
       labelBox.width,
       labelBox.height,
       true,
-      textColor(
-        'auto',
-        ['text', 'freehand', 'line', 'arrow'].includes(node.kind)
-          ? 'none'
-          : node.style.fill,
-      ),
+      textColor('auto', labelBackground),
     );
     rich.setAttribute('data-text-region', 'body');
     group.append(rich);
@@ -560,7 +570,7 @@ function renderNode(node: SceneNode): SVGElement {
   clip.append(
     svg(
       'rect',
-      node.kind === 'container' || node.kind === 'freehand'
+      node.kind === 'container' || node.kind === 'freehand' || laneHeader
         ? {
             x: labelBox.x,
             y: labelBox.y,
@@ -842,7 +852,7 @@ function arrowhead(
 }
 
 /** Keep an empty header visible against both light and dark authored fills. */
-function tableHeaderFill(background: string): string {
+function headerTintedFill(background: string): string {
   if (!/^#[0-9a-f]{6}$/i.test(background)) return 'var(--surface-muted)';
   const target = contrastingColor(background);
   return (

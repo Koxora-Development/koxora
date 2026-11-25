@@ -64,4 +64,6 @@ The remaining editor project/element navigation from Issue #24 was accepted and 
 
 [PR #64](https://github.com/Koxora-Development/koxora/pull/64) was accepted and merged on 2026-11-23 (`ba11a90`). Studio can save the active project as a reusable snapshot and create independent projects from My templates. See [user-saved local templates](docs/development/local-templates.md).
 
-The next Phase 2 package adds [automatic layout for hierarchies and flowcharts](docs/development/hierarchy-layout.md). Studio can preview and arrange connected selections from top to bottom or left to right, including process branches, joins and rework loops. An approval-process starter demonstrates the workflow. Product Owner acceptance is pending.
+[PR #65](https://github.com/Koxora-Development/koxora/pull/65) was accepted and merged on 2026-11-24 (`10baa38`). Studio can preview and arrange hierarchies and flowcharts in one step, and the Insert menu offers a visual shape chooser and direct access to common tools. See the [automatic layout guide](docs/development/hierarchy-layout.md) and [workbench guide](docs/development/office-studio.md#compact-insert-menu).
+
+The active Phase 2 package adds [horizontal and vertical swimlanes](docs/development/swimlanes.md). Named lane shapes organize process steps by role, and the service-request starter demonstrates a flow across three lanes.

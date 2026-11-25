@@ -1,9 +1,11 @@
-import type {
-  Json,
-  Node,
-  Layer,
-  Style,
-  ConnectionAnchor,
+import {
+  isSwimlaneKind,
+  type Json,
+  type Node,
+  type Layer,
+  type Style,
+  type ConnectionAnchor,
+  type SwimlaneKind,
 } from '@koxora/project';
 import type { Bounds, Point } from './viewport';
 
@@ -110,6 +112,8 @@ export const shapeKinds = [
   'striped-arrow',
   'wide-chevron',
   'junction',
+  'swimlane-horizontal',
+  'swimlane-vertical',
 ] as const;
 export type ShapeKind = (typeof shapeKinds)[number];
 export type Geometry = Node['geometry'];
@@ -421,6 +425,46 @@ const box = polygon([
   { x: 1, y: 1 },
   { x: 0, y: 1 },
 ]);
+/** The left or top heading shares its boundary with the process area. */
+export function swimlaneHeaderBox(
+  kind: SwimlaneKind,
+  width: number,
+  height: number,
+): Bounds {
+  return kind === 'swimlane-horizontal'
+    ? { x: 0, y: 0, width: Math.min(144, width * 0.24), height }
+    : { x: 0, y: 0, width, height: Math.min(54, height * 0.22) };
+}
+function swimlane(
+  kind: SwimlaneKind,
+  width: number,
+  height: number,
+): ShapeDefinition {
+  return {
+    ...box,
+    width,
+    height,
+    path(w, h) {
+      const header = swimlaneHeaderBox(kind, w, h);
+      const divider =
+        kind === 'swimlane-horizontal'
+          ? `M ${header.width} 0 V ${h}`
+          : `M 0 ${header.height} H ${w}`;
+      return `${box.path(w, h, 0)} ${divider}`;
+    },
+    labelBox(w, h) {
+      const header = swimlaneHeaderBox(kind, w, h);
+      const x = Math.min(10, header.width * 0.1);
+      const y = Math.min(6, header.height * 0.1);
+      return {
+        x,
+        y,
+        width: header.width - 2 * x,
+        height: header.height - 2 * y,
+      };
+    },
+  };
+}
 const rounded: Pick<ShapeDefinition, 'path' | 'contains'> = {
   path(w, h, r) {
     r = Math.min(r, w / 2, h / 2);
@@ -2032,6 +2076,8 @@ export const shapeRegistry: Readonly<Record<ShapeKind, ShapeDefinition>> = {
       return `${rounded.path(w, h, radius)} M ${inset} ${y} H ${w - inset}`;
     },
   },
+  'swimlane-horizontal': swimlane('swimlane-horizontal', 720, 160),
+  'swimlane-vertical': swimlane('swimlane-vertical', 200, 550),
   table: {
     width: 360,
     height: 210,
@@ -2327,7 +2373,11 @@ export function connectionPortsForNode(
 ): ConnectionPort[] {
   const center = shapeCenter(node.geometry);
   if (node.kind === 'junction') return [{ anchor: 'auto', point: center }];
-  if (['line', 'arrow', 'freehand'].includes(node.kind)) return [];
+  if (
+    isSwimlaneKind(node.kind) ||
+    ['line', 'arrow', 'freehand'].includes(node.kind)
+  )
+    return [];
   const anchors: Anchor[] = ['north', 'east', 'south', 'west'];
   const { width, height } = node.geometry;
   if (node.kind === 'triangle') {

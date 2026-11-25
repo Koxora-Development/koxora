@@ -28,6 +28,8 @@ import {
   CONNECTION_PORTS_FEATURE,
   hasConnectionPorts,
   isConnectionAnchor,
+  isSwimlaneKind,
+  withSwimlaneFeature,
   type Project,
   type Node,
   type Connection,
@@ -304,7 +306,12 @@ export function connectionError(
     (id): id is string => id !== undefined && id !== null,
   )) {
     const node = page.nodes.find((n) => n.id === id);
-    if (!node || isDrawing(node.kind) || node.kind === 'freehand')
+    if (
+      !node ||
+      isDrawing(node.kind) ||
+      node.kind === 'freehand' ||
+      isSwimlaneKind(node.kind)
+    )
       return 'endpoint';
     if (!layers.get(node.layerId)?.editable) return 'layer';
     try {
@@ -638,6 +645,11 @@ export function applyEdit(
       created.extensions[ELEMENT_KEY] = {
         version: 1,
         style: { fill: DEFAULT_APPEARANCE.stroke },
+      };
+    if (isSwimlaneKind(command.kind))
+      created.extensions[ELEMENT_KEY] = {
+        version: 1,
+        style: { fill: 'none' },
       };
     if (
       isDrawing(command.kind) &&
@@ -1251,6 +1263,12 @@ export function applyEdit(
       },
     };
   }
+  if (
+    (command.type === 'insert' && isSwimlaneKind(command.kind)) ||
+    (command.type === 'paste' &&
+      command.nodes.some((node) => isSwimlaneKind(node.kind)))
+  )
+    next = withSwimlaneFeature(next);
   validateProject(next);
   return next;
 }

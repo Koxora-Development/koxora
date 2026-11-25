@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   exportProject,
   importProject,
+  isSwimlaneKind,
+  SWIMLANES_FEATURE,
   validateProject,
   type Project,
 } from '@koxora/project';
@@ -16,6 +18,8 @@ import { connectionPath, readConnection } from './connections';
 import { elementLink, LINK_KEY } from './links';
 import { applyWorkbook } from './workbook';
 import { StudioHistory } from './studio-history';
+import { buildScene } from './scene';
+import { swimlaneContents } from './swimlanes';
 
 const now = '2026-11-13T12:00:00.000Z';
 const id = () => crypto.randomUUID();
@@ -87,12 +91,15 @@ describe('simple local drawing templates', () => {
   });
 
   it.each(templateCatalog)(
-    'starts $id with non-overlapping drawing elements',
+    'starts $id with non-overlapping foreground elements',
     (source) => {
-      for (let i = 0; i < source.nodes.length; i++)
-        for (let j = i + 1; j < source.nodes.length; j++) {
-          const a = source.nodes[i],
-            b = source.nodes[j];
+      const foreground = source.nodes.filter(
+        (node) => !isSwimlaneKind(node.kind),
+      );
+      for (let i = 0; i < foreground.length; i++)
+        for (let j = i + 1; j < foreground.length; j++) {
+          const a = foreground[i],
+            b = foreground[j];
           expect(
             a.x + a.width <= b.x ||
               b.x + b.width <= a.x ||
@@ -102,6 +109,48 @@ describe('simple local drawing templates', () => {
         }
     },
   );
+
+  it('creates three unambiguous process lanes with cross-lane handoffs', () => {
+    const project = make('swimlane-service-request');
+    expect(project.manifest.requiredFeatures).toContain(SWIMLANES_FEATURE);
+    const page = project.documents[0].pages[0];
+    const scene = buildScene(page);
+    const lanes = page.nodes.filter((node) => isSwimlaneKind(node.kind));
+    expect(lanes.map((lane) => lane.content.text)).toEqual([
+      'Example swimlaneRequester',
+      'Example swimlaneServiceDesk',
+      'Example swimlaneFulfillment',
+    ]);
+    for (const [index, lane] of lanes.slice(1).entries()) {
+      const previous = lanes[index].geometry;
+      expect(lane.geometry.y).toBeGreaterThanOrEqual(
+        previous.y + previous.height,
+      );
+    }
+
+    const byId = new Map(page.nodes.map((node) => [node.id, node]));
+    const ownership = new Map<string, string>();
+    expect(
+      lanes.map((lane) =>
+        swimlaneContents(scene, lane.id).map((id) => {
+          ownership.set(id, lane.id);
+          return byId.get(id)!.content.text;
+        }),
+      ),
+    ).toEqual([
+      ['Example swimlaneSubmit', 'Example swimlaneConfirm'],
+      ['Example swimlaneTriage', 'Example swimlaneNotify'],
+      ['Example swimlaneAssign', 'Example swimlaneResolve'],
+    ]);
+    expect(
+      page.connections.map((edge) => {
+        expect(readConnection(edge).arrow).toBe(true);
+        expect(ownership.has(edge.sourceId!)).toBe(true);
+        expect(ownership.has(edge.targetId!)).toBe(true);
+        return ownership.get(edge.sourceId!) !== ownership.get(edge.targetId!);
+      }),
+    ).toEqual([true, true, false, true, true]);
+  });
 
   it('creates a directed approval process with converging reviews and a clear rework return', () => {
     const page = make('flowchart-approval').documents[0].pages[0];

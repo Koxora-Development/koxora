@@ -24,6 +24,7 @@ import {
   type ResourceLimits,
 } from './validation';
 import { validateProject } from './schema';
+import { withSwimlaneFeature } from './editor-features';
 import { readZip, writeZip } from './zip';
 export * from './connection-endpoints';
 export * from './connection-decorations';
@@ -485,7 +486,7 @@ export async function importLegacyJson(source: string): Promise<Project> {
             };
           }),
         );
-        return synchronizeIndexes(project);
+        return synchronizeIndexes(withSwimlaneFeature(project));
       },
     },
   ]);

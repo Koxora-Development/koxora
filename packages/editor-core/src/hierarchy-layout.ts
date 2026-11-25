@@ -30,7 +30,7 @@ export function hierarchyGeometries(
   direction: LayoutDirection = 'top-down',
 ): DiagramLayoutResult {
   const selection = readLayoutSelection(scene, page, selectedIds);
-  if (!selection) return { ok: false, reason: 'selection' };
+  if (!selection.ok) return selection;
   const { crossAxis, crossSize, rankAxis, rankSize } = layoutAxes(direction);
   const branches = new Map<string, Branch>();
   for (const node of selection.nodes.values()) {

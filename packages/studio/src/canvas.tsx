@@ -31,6 +31,8 @@ import {
   transformedGeometry,
   rotatedGeometries,
   shapeCenter,
+  isSwimlane,
+  swimlaneContents,
   type TransformAction,
   elementLink,
   elementDisplayText,
@@ -104,6 +106,7 @@ type Arrangement = Alignment | 'tidy' | AutomaticLayoutAction;
 export type CanvasCommand =
   | TransformAction
   | 'selectAll'
+  | 'selectLaneContents'
   | 'followLink'
   | 'delete'
   | 'duplicate'
@@ -121,6 +124,7 @@ export type CanvasCommand =
 export type CanvasCommandState = {
   selected: number;
   selectedNodes: number;
+  selectedLane: boolean;
   canPaste: boolean;
   propertiesVisible: boolean;
   objectsVisible: boolean;
@@ -496,6 +500,7 @@ export function Canvas({
           n.editable &&
           !isDrawing(n.kind) &&
           n.kind !== 'freehand' &&
+          !isSwimlane(n.kind) &&
           !excluded.has(n.id),
       )
       .map((n) => n.id);
@@ -542,7 +547,11 @@ export function Canvas({
           layerId,
           geometry,
           snap,
-          text: tool === 'text' ? t('diagram.newText') : '',
+          text: isSwimlane(tool)
+            ? t('swimlane.newTitle')
+            : tool === 'text'
+              ? t('diagram.newText')
+              : '',
           ...(isDrawing(tool)
             ? {
                 startArrow: options.startArrow ?? false,
@@ -587,6 +596,11 @@ export function Canvas({
   const canEditSelected = (id: string) =>
     editableNodeIds.has(id) || editableConnectionIds.has(id);
   const editableSelection = selected.filter(canEditSelected);
+  const selectedLane =
+    editableSelection.length === 1 &&
+    scene.nodes.some(
+      (n) => n.id === editableSelection[0] && isSwimlane(n.kind),
+    );
   const selectedNodes = editableSelection.filter((id) =>
     editableNodeIds.has(id),
   ).length;
@@ -599,6 +613,7 @@ export function Canvas({
     onCommandState({
       selected: editableSelection.length,
       selectedNodes,
+      selectedLane,
       canPaste: hasClipboard,
       propertiesVisible: inspectorOpen,
       objectsVisible: objects,
@@ -607,6 +622,7 @@ export function Canvas({
     onCommandState,
     editableSelection.length,
     selectedNodes,
+    selectedLane,
     hasClipboard,
     inspectorOpen,
     objects,
@@ -748,6 +764,11 @@ export function Canvas({
             .filter((item) => item.editable)
             .map((item) => item.id),
         );
+      } else if (action === 'selectLaneContents') {
+        if (ids.length !== 1) return;
+        const steps = swimlaneContents(scene, ids[0]);
+        if (steps.length) select([ids[0], ...steps]);
+        else setFeedback('swimlane.noContents');
       } else if (action === 'followLink') {
         if (selection.current.length === 1) followLink(selection.current[0]);
       } else if (action === 'undo' || action === 'redo') {
@@ -1140,10 +1161,18 @@ export function Canvas({
     let gesture: Gesture | null = null;
     let keyboardStroke: Point[] | null = null;
     const world = (p: Point) => screenToWorld(p, state.current.camera, size);
+    const connectionNodeAt = (point: Point) =>
+      pickNode(
+        scene,
+        point,
+        6 / state.current.camera.zoom,
+        false,
+        (node) => !isSwimlane(node.kind),
+      );
     const endpointAt = (screen: Point, raw = world(screen)): LinkEndpoint => {
       const port = ports.hit(screen);
       if (port) return { ...port };
-      const node = pickNode(scene, raw, 6 / state.current.camera.zoom, false);
+      const node = connectionNodeAt(raw);
       return node
         ? { id: node.id, anchor: 'auto' }
         : { point: raw, anchor: 'auto' };
@@ -1243,7 +1272,7 @@ export function Canvas({
       const hit = node?.id ?? edge?.id;
       const port = isDrawing(active.tool) ? ports.hit(point) : undefined;
       const drawingHit = isDrawing(active.tool)
-        ? pickNode(scene, start, 6 / state.current.camera.zoom, false)
+        ? connectionNodeAt(start)
         : undefined;
       let kind: Gesture['kind'] =
         active.tool === 'freehand'
@@ -1521,16 +1550,21 @@ export function Canvas({
               };
           if (event.shiftKey && !isDrawing(tool))
             gesture.geometry.height = gesture.geometry.width;
+          const lane = isSwimlane(tool);
           const temporary: Node = {
             id: 'preview',
             kind: tool,
             layerId,
             geometry: gesture.geometry,
-            content: {},
+            content: lane
+              ? { text: translate(locale, 'swimlane.newTitle') }
+              : {},
             metadata: {},
             assetIds: [],
             dataBindings: [],
-            extensions: {},
+            extensions: lane
+              ? { [ELEMENT_KEY]: { version: 1, style: { fill: 'none' } } }
+              : {},
           };
           const addition = buildScene(
             { ...content, nodes: [temporary], connections: [] },
@@ -1546,7 +1580,13 @@ export function Canvas({
                   Math.max(
                     -1,
                     ...[...scene.nodes, ...scene.connections]
-                      .filter((item) => item.layerOrder <= n.layerOrder)
+                      .filter(
+                        (item) =>
+                          item.layerOrder < n.layerOrder ||
+                          (item.layerOrder === n.layerOrder &&
+                            (!lane ||
+                              ('kind' in item && isSwimlane(item.kind)))),
+                      )
                       .map((item) => item.paintOrder),
                   ) + 0.5,
               })),
@@ -2628,6 +2668,14 @@ export function Canvas({
             {editableSelection.length === 1 && (
               <button role="menuitem" onClick={() => command('text')}>
                 {t('rich.edit')}
+              </button>
+            )}
+            {selectedLane && (
+              <button
+                role="menuitem"
+                onClick={() => command('selectLaneContents')}
+              >
+                {t('swimlane.selectContents')}
               </button>
             )}
             {(['properties', 'duplicate', 'delete', 'copy', 'paste'] as const)

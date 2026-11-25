@@ -7,11 +7,67 @@ import {
   DEFAULT_CONNECTION,
   type BuiltInTemplate,
   type TemplateCategory,
+  type TemplateNode,
 } from '@koxora/editor-core';
 import type { LocalTemplateSummary } from '@koxora/persistence';
-import type { Node } from '@koxora/project';
+import { isSwimlaneKind, type Node } from '@koxora/project';
 import { Dialog, Icon } from '@koxora/ui';
 import './template-browser.css';
+
+function previewNode(node: TemplateNode, locale: string) {
+  const definition = shapeRegistry[node.kind];
+  const box = definition.labelBox?.(node.width, node.height) ?? {
+    x: 12,
+    y: 8,
+    width: node.width - 24,
+    height: node.height - 16,
+  };
+  const label = translate(locale, node.textKey as MessageKey);
+  const maxChars = Math.max(1, Math.floor(box.width / 9));
+  const lines: string[] = [];
+  for (const paragraph of label.split('\n')) {
+    const wrapped: string[] = [];
+    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+      const last = wrapped.at(-1);
+      if (last && last.length + word.length + 1 <= maxChars)
+        wrapped[wrapped.length - 1] += ` ${word}`;
+      else wrapped.push(word);
+    }
+    lines.push(...(wrapped.length ? wrapped : ['']));
+  }
+  return (
+    <g key={node.id} transform={`translate(${node.x} ${node.y})`}>
+      <path
+        d={definition.path(node.width, node.height, 14)}
+        fill={node.kind === 'text' ? 'none' : node.fill}
+        stroke={node.kind === 'text' ? 'none' : '#64748b'}
+        strokeWidth={2}
+      />
+      <text
+        textAnchor="middle"
+        fill="#172033"
+        fontFamily="sans-serif"
+        fontSize={16}
+        fontWeight={isSwimlaneKind(node.kind) ? 700 : undefined}
+      >
+        {lines.slice(0, 4).map((line, i) => (
+          <tspan
+            key={i}
+            x={box.x + box.width / 2}
+            y={
+              box.y +
+              box.height / 2 +
+              (i - (Math.min(4, lines.length) - 1) / 2) * 19 +
+              5
+            }
+          >
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+}
 
 /** Previews use the same trusted shape and connection geometry as the editor. */
 function TemplatePreview({
@@ -58,6 +114,9 @@ function TemplatePreview({
           <path d="M 0 0 L 8 4 L 0 8 Z" fill="#64748b" />
         </marker>
       </defs>
+      {template.nodes
+        .filter((node) => isSwimlaneKind(node.kind))
+        .map((node) => previewNode(node, locale))}
       {template.connections.map((edge, i) => {
         const path = connectionPath(
           byId.get(edge.source)!,
@@ -87,59 +146,9 @@ function TemplatePreview({
           </g>
         );
       })}
-      {template.nodes.map((node) => {
-        const definition = shapeRegistry[node.kind];
-        const box = definition.labelBox?.(node.width, node.height) ?? {
-          x: 12,
-          y: 8,
-          width: node.width - 24,
-          height: node.height - 16,
-        };
-        const label = translate(locale, node.textKey as MessageKey);
-        const maxChars = Math.max(1, Math.floor(box.width / 9));
-        const lines: string[] = [];
-        for (const paragraph of label.split('\n')) {
-          const wrapped: string[] = [];
-          for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-            const last = wrapped.at(-1);
-            if (last && last.length + word.length + 1 <= maxChars)
-              wrapped[wrapped.length - 1] += ` ${word}`;
-            else wrapped.push(word);
-          }
-          lines.push(...(wrapped.length ? wrapped : ['']));
-        }
-        return (
-          <g key={node.id} transform={`translate(${node.x} ${node.y})`}>
-            <path
-              d={definition.path(node.width, node.height, 14)}
-              fill={node.kind === 'text' ? 'none' : node.fill}
-              stroke={node.kind === 'text' ? 'none' : '#64748b'}
-              strokeWidth={2}
-            />
-            <text
-              textAnchor="middle"
-              fill="#172033"
-              fontFamily="sans-serif"
-              fontSize={16}
-            >
-              {lines.slice(0, 4).map((line, i) => (
-                <tspan
-                  key={i}
-                  x={box.x + box.width / 2}
-                  y={
-                    box.y +
-                    box.height / 2 +
-                    (i - (Math.min(4, lines.length) - 1) / 2) * 19 +
-                    5
-                  }
-                >
-                  {line}
-                </tspan>
-              ))}
-            </text>
-          </g>
-        );
-      })}
+      {template.nodes
+        .filter((node) => !isSwimlaneKind(node.kind))
+        .map((node) => previewNode(node, locale))}
     </svg>
   );
 }

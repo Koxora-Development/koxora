@@ -155,6 +155,7 @@ export function Projects({
   const [commandState, setCommandState] = useState<CanvasCommandState>(() => ({
     selected: 0,
     selectedNodes: 0,
+    selectedLane: false,
     canPaste: false,
     propertiesVisible: window.innerWidth >= 1000,
     objectsVisible: false,
@@ -1270,6 +1271,15 @@ export function Projects({
           disabled: unavailable || propertyDraft,
           shortcut: 'Ctrl+A',
         },
+        ...(view === 'workspace' && commandState.selectedLane
+          ? [
+              {
+                label: t('swimlane.selectContents'),
+                action: command('selectLaneContents'),
+                disabled: unavailable || propertyDraft,
+              },
+            ]
+          : []),
       ],
     },
     {
