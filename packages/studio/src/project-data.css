@@ -1,0 +1,163 @@
+.studio-dialog.project-data-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  width: min(calc(860px * var(--ui-scale, 1)), calc(100vw - 24px));
+  padding: calc(12px * var(--ui-scale, 1));
+  overflow: hidden;
+}
+
+.project-data-dialog > h2 {
+  flex: none;
+  margin-bottom: calc(8px * var(--ui-scale, 1));
+}
+
+.project-data-switch,
+.project-data-pages,
+.project-data-remove {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale, 1));
+}
+
+.project-data-switch {
+  flex: none;
+  padding: calc(2px * var(--ui-scale, 1)) 0 calc(8px * var(--ui-scale, 1));
+  border-bottom: 1px solid var(--line);
+}
+
+.project-data-switch .button[aria-pressed='true'] {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.project-data-body {
+  display: grid;
+  gap: calc(8px * var(--ui-scale, 1));
+  min-height: 0;
+  min-width: 0;
+  padding: calc(8px * var(--ui-scale, 1)) calc(3px * var(--ui-scale, 1));
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.project-data-fields {
+  display: grid;
+  gap: calc(8px * var(--ui-scale, 1));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, calc(180px * var(--ui-scale, 1))), 1fr)
+  );
+}
+
+.project-data-field,
+.project-data-preview {
+  display: grid;
+  min-width: 0;
+  gap: calc(4px * var(--ui-scale, 1));
+}
+
+.project-data-field > :is(input, select) {
+  width: 100%;
+}
+
+.project-data-file {
+  font-size: calc(0.75rem * var(--ui-scale, 1));
+}
+
+.project-data-file .button {
+  justify-self: start;
+}
+
+.project-data-meta,
+.project-data-pages {
+  color: var(--muted);
+  font-size: var(--ui-font-size);
+}
+
+.project-data-table-scroll {
+  max-height: min(42dvh, calc(300px * var(--ui-scale, 1)));
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+}
+
+.project-data-table-scroll:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.project-data-table-scroll table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--ui-font-size);
+  text-align: start;
+}
+
+.project-data-table-scroll :is(th, td) {
+  min-width: calc(96px * var(--ui-scale, 1));
+  max-width: calc(240px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+  border-block-end: 1px solid var(--line);
+  border-inline-end: 1px solid var(--line);
+  text-align: start;
+  vertical-align: top;
+}
+
+.project-data-table-scroll th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-muted);
+}
+
+.project-data-table-scroll th > :is(span, small) {
+  display: block;
+}
+
+.project-data-table-scroll th > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.project-data-table-scroll th small {
+  color: var(--muted);
+}
+
+.project-data-table-scroll th select {
+  width: 100%;
+  margin-top: calc(3px * var(--ui-scale, 1));
+  font-weight: normal;
+}
+
+.project-data-table-scroll td {
+  white-space: pre-wrap;
+}
+
+.project-data-remove > p {
+  flex-basis: 100%;
+}
+
+.project-data-error,
+.project-data-working {
+  flex: none;
+  max-height: 22dvh;
+  overflow: auto;
+  margin-block: calc(6px * var(--ui-scale, 1));
+}
+
+.studio-dialog.project-data-dialog > .dialog-actions {
+  position: static;
+  flex: none;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: calc(8px * var(--ui-scale, 1)) 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.project-data-dialog .button {
+  max-width: 100%;
+  white-space: normal;
+}
