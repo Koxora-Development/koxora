@@ -11,6 +11,7 @@ import type { GuiScale, Theme } from './preferences';
 import { NativeOpen } from './native-open';
 import { NavigationContext } from './navigation-context';
 import { ProjectTree, type ProjectAction } from './project-tree';
+import { ProjectData } from './project-data';
 import {
   useCallback,
   useEffect,
@@ -134,6 +135,7 @@ export function Projects({
   const [dropCopy, setDropCopy] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
+  const [dataProjectId, setDataProjectId] = useState<string | null>(null);
   const [navigatorVisible, setNavigatorVisible] = useState(
     () => window.innerWidth >= 1000,
   );
@@ -294,6 +296,50 @@ export function Projects({
       );
       setErrorPath(null);
       return false;
+    }
+  }
+  async function updateProjectData(
+    update: (
+      current: Project,
+      now: string,
+      canCommit: () => boolean,
+    ) => Project | Promise<Project>,
+  ): Promise<MessageKey | null> {
+    if (
+      !dataProjectId ||
+      projectRef.current?.manifest.projectId !== dataProjectId ||
+      view !== 'workspace' ||
+      navigationLock.current ||
+      session.current !== loadVersion ||
+      (canvasRef.current && !canvasRef.current.prepare())
+    )
+      return 'data.error.project';
+    try {
+      const current = snapshot();
+      if (!current) return 'data.error.project';
+      const canCommit = () =>
+        projectRef.current === current &&
+        !navigationLock.current &&
+        session.current === loadVersion;
+      const next = await update(current, new Date().toISOString(), canCommit);
+      if (!canCommit()) return 'data.error.project';
+      if (next !== current) {
+        setProject(next);
+        setError(null);
+        setErrorPath(null);
+        setPendingNavigation(false);
+      }
+      return null;
+    } catch (error) {
+      if (error instanceof WorkbookError) {
+        if (error.code === 'historyLimit') return 'data.error.historyLimit';
+        if (error.code === 'references') return 'data.error.inUse';
+      }
+      if (error instanceof ProjectError && error.reason === 'datasetReference')
+        return 'data.error.inUse';
+      if (error instanceof ProjectError && error.code === 'tooLarge')
+        return 'data.error.limit';
+      return 'data.error.project';
     }
   }
   function travel(direction: 'undo' | 'redo'): boolean {
@@ -1182,6 +1228,14 @@ export function Projects({
           disabled: busy || propertyDraft,
         },
         {
+          label: t('data.menu'),
+          action: () => {
+            if (project && canvasRef.current?.prepare())
+              setDataProjectId(project.manifest.projectId);
+          },
+          disabled: unavailable || propertyDraft || view !== 'workspace',
+        },
+        {
           label: t('office.recent'),
           children: items.slice(0, 12).map((item) => ({
             label: item.title ?? t('project.unreadable'),
@@ -1480,6 +1534,12 @@ export function Projects({
       onDrop={(event) => {
         if (native || !event.dataTransfer.files.length) return;
         event.preventDefault();
+        if (
+          view === 'workspace' &&
+          project &&
+          dataProjectId === project.manifest.projectId
+        )
+          return;
         const files = Array.from(event.dataTransfer.files);
         if (dropped.length + files.length > 32) {
           setError('opening.tooMany');
@@ -2084,6 +2144,25 @@ export function Projects({
           </>
         )}
       </main>
+      {project &&
+        view === 'workspace' &&
+        dataProjectId === project.manifest.projectId && (
+          <ProjectData
+            locale={locale}
+            datasets={project.datasets}
+            onAdd={(dataset) =>
+              updateProjectData((current, now, canCommit) =>
+                history.addDataset(current, dataset, now, canCommit),
+              )
+            }
+            onRemove={(id) =>
+              updateProjectData((current, now) =>
+                history.removeDataset(current, id, now),
+              )
+            }
+            onClose={() => setDataProjectId(null)}
+          />
+        )}
       {settingsOpen && (
         <OfficeSettings
           localePreference={localePreference}

@@ -66,4 +66,6 @@ The remaining editor project/element navigation from Issue #24 was accepted and 
 
 [PR #65](https://github.com/Koxora-Development/koxora/pull/65) was accepted and merged on 2026-11-24 (`10baa38`). Studio can preview and arrange hierarchies and flowcharts in one step, and the Insert menu offers a visual shape chooser and direct access to common tools. See the [automatic layout guide](docs/development/hierarchy-layout.md) and [workbench guide](docs/development/office-studio.md#compact-insert-menu).
 
-The active Phase 2 package adds [horizontal and vertical swimlanes](docs/development/swimlanes.md). Named lane shapes organize process steps by role, and the service-request starter demonstrates a flow across three lanes.
+[PR #66](https://github.com/Koxora-Development/koxora/pull/66) was accepted and merged on 2026-11-25 (`1b123b8`). Named lane shapes organize process steps by role, and the service-request starter demonstrates a flow across three lanes. See [swimlane authoring](docs/development/swimlanes.md).
+
+The first Phase 3 package adds [local CSV and TSV import](docs/development/delimited-data-import.md). Review a bounded preview, confirm the header and column types, and inspect the imported dataset in the project after reopening.

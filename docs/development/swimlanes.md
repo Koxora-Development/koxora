@@ -1,6 +1,6 @@
 # Swimlane authoring
 
-This Phase 2 package implements the named lanes portion of DIAG-005. It uses the existing shared editor, editing history and project format. Product Owner acceptance is pending. [Feature catalog](../product/feature-catalog.md)
+The Product Owner accepted this Phase 2 package, and it was merged in [PR #66](https://github.com/Koxora-Development/koxora/pull/66) on 2026-11-25 (`1b123b8`). It implements the named lanes portion of DIAG-005. [Feature catalog](../product/feature-catalog.md)
 
 ## Create a cross-functional flow
 

@@ -25,3 +25,4 @@ export * from './table-layout';
 export * from './table-operations';
 
 export * from './table-formulas';
+export * from './delimited-data';
