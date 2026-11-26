@@ -1,12 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  chartFields,
   createDelimitedDataset,
   DelimitedDataError,
   describeDelimited,
   MAX_DELIMITED_BYTES,
   parseDelimited,
-  type ChartSettings,
   type DelimitedSheet,
   type Delimiter,
   type EditableType,
@@ -14,7 +12,6 @@ import {
 import { translate, type MessageKey } from '@koxora/i18n';
 import type { Dataset, Field, Json } from '@koxora/project';
 import { Dialog } from '@koxora/ui';
-import { ChartSettingsForm } from './chart-settings';
 import './project-data.css';
 
 const typeOptions = ['string', 'number', 'boolean', 'date'] as const;
@@ -184,14 +181,12 @@ export function ProjectData({
   datasets,
   onAdd,
   onRemove,
-  onCreateChart,
   onClose,
 }: {
   locale: string;
   datasets: readonly Dataset[];
   onAdd: (dataset: Dataset) => Promise<MessageKey | null>;
   onRemove: (id: string) => Promise<MessageKey | null>;
-  onCreateChart: (settings: ChartSettings) => boolean;
   onClose: () => void;
 }) {
   const t = (key: MessageKey, values?: Record<string, string | number>) =>
@@ -200,7 +195,6 @@ export function ProjectData({
     datasets.length ? 'saved' : 'import',
   );
   const [selectedId, setSelectedId] = useState(datasets[0]?.id ?? '');
-  const [chartDatasetId, setChartDatasetId] = useState<string | null>(null);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [source, setSource] = useState<{
     generation: number;
@@ -219,9 +213,8 @@ export function ProjectData({
   const request = useRef(0);
   const filePicker = useRef<HTMLInputElement>(null);
   const transaction = useRef(false);
-  const nextFocus = useRef<'saved' | 'remove' | 'chart' | null>(null);
+  const nextFocus = useRef<'saved' | 'remove' | null>(null);
   const savedTab = useRef<HTMLButtonElement>(null);
-  const chartButton = useRef<HTMLButtonElement>(null);
   const removeButton = useRef<HTMLButtonElement>(null);
   const cancelRemove = useRef<HTMLButtonElement>(null);
   useEffect(
@@ -234,14 +227,12 @@ export function ProjectData({
     if (saving) return;
     if (nextFocus.current === 'saved') savedTab.current?.focus();
     else if (nextFocus.current === 'remove') removeButton.current?.focus();
-    else if (nextFocus.current === 'chart') chartButton.current?.focus();
     else if (removeId) cancelRemove.current?.focus();
     nextFocus.current = null;
-  }, [chartDatasetId, removeId, saving]);
+  }, [removeId, saving]);
 
   const selected =
     datasets.find((dataset) => dataset.id === selectedId) ?? datasets[0];
-  const canChart = selected && chartFields(selected).categories.length > 0;
   const parsed = useMemo<{
     sheet: DelimitedSheet | null;
     issue: Issue | null;
@@ -351,32 +342,6 @@ export function ProjectData({
 
   function close() {
     if (!transaction.current) onClose();
-  }
-
-  if (chartDatasetId) {
-    const back = () => {
-      nextFocus.current = 'chart';
-      setChartDatasetId(null);
-    };
-    return (
-      <Dialog
-        title={t('chart.create')}
-        onCancel={back}
-        className="project-data-dialog chart-settings-dialog"
-      >
-        <ChartSettingsForm
-          locale={locale}
-          datasets={datasets}
-          datasetId={chartDatasetId}
-          onConfirm={(settings) => {
-            if (!onCreateChart(settings)) return false;
-            onClose();
-            return true;
-          }}
-          onCancel={back}
-        />
-      </Dialog>
-    );
   }
 
   return (
@@ -546,19 +511,6 @@ export function ProjectData({
                 ))}
               </select>
             </label>
-            {canChart ? (
-              <button
-                type="button"
-                ref={chartButton}
-                className="button project-data-chart"
-                disabled={saving}
-                onClick={() => setChartDatasetId(selected.id)}
-              >
-                {t('chart.create')}
-              </button>
-            ) : (
-              <p className="project-data-meta">{t('chart.noFields')}</p>
-            )}
             <DatasetTable
               key={selected.id}
               locale={locale}

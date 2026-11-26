@@ -12,7 +12,7 @@ import { NativeOpen } from './native-open';
 import { NavigationContext } from './navigation-context';
 import { ProjectTree, type ProjectAction } from './project-tree';
 import { ProjectData } from './project-data';
-import { ChartSettingsDialog } from './chart-settings';
+import { ChartInsertDialog, ChartSettingsDialog } from './chart-settings';
 import {
   useCallback,
   useEffect,
@@ -211,6 +211,10 @@ export function Projects({
     nonce: number;
     selectOnly?: boolean;
   } | null>(null);
+  const [chartInsertTarget, setChartInsertTarget] = useState<{
+    pageId: string;
+    loadVersion: number;
+  } | null>(null);
   const [chartEditor, setChartEditor] = useState<{
     nodeId: string;
     pageId: string;
@@ -228,6 +232,10 @@ export function Projects({
   const activePage =
     activeDocument?.pages.find((page) => page.id === pageId) ??
     activeDocument?.pages[0];
+  const insertingChart =
+    view === 'workspace' &&
+    chartInsertTarget?.loadVersion === loadVersion &&
+    chartInsertTarget.pageId === activePage?.id;
   const editingChartNode =
     view === 'workspace' &&
     chartEditor?.loadVersion === loadVersion &&
@@ -315,15 +323,14 @@ export function Projects({
       return false;
     }
   }
+  function openProjectData() {
+    if (!project || !canvasRef.current?.prepare()) return;
+    setChartInsertTarget(null);
+    setDataProjectId(project.manifest.projectId);
+  }
   function createChart(settings: ChartSettings): boolean {
     const canvas = canvasRef.current;
-    if (
-      !canvas ||
-      !canvas.prepare() ||
-      view !== 'workspace' ||
-      projectRef.current?.manifest.projectId !== dataProjectId
-    )
-      return false;
+    if (!insertingChart || !canvas?.prepare()) return false;
     const { x, y } = canvas.snapshot().camera;
     const id = crypto.randomUUID();
     if (
@@ -611,6 +618,7 @@ export function Projects({
   }
   function enter(next: Project) {
     setFocusTarget(null);
+    setChartInsertTarget(null);
     history.clear();
     session.current += 1;
     setLoadVersion(session.current);
@@ -1270,10 +1278,7 @@ export function Projects({
         },
         {
           label: t('data.menu'),
-          action: () => {
-            if (project && canvasRef.current?.prepare())
-              setDataProjectId(project.manifest.projectId);
-          },
+          action: openProjectData,
           disabled: unavailable || propertyDraft || view !== 'workspace',
         },
         {
@@ -1446,6 +1451,14 @@ export function Projects({
         {
           label: t('shape.table'),
           action: () => canvasRef.current?.tool('table'),
+          disabled: insertDisabled,
+        },
+        {
+          label: t('chart.insert'),
+          action: () => {
+            if (activePage && canvasRef.current?.prepare())
+              setChartInsertTarget({ pageId: activePage.id, loadVersion });
+          },
           disabled: insertDisabled,
         },
         { label: '', separator: true },
@@ -2198,7 +2211,6 @@ export function Projects({
           <ProjectData
             locale={locale}
             datasets={project.datasets}
-            onCreateChart={createChart}
             onAdd={(dataset) =>
               updateProjectData((current, now, canCommit) =>
                 history.addDataset(current, dataset, now, canCommit),
@@ -2212,6 +2224,15 @@ export function Projects({
             onClose={() => setDataProjectId(null)}
           />
         )}
+      {project && insertingChart && (
+        <ChartInsertDialog
+          locale={locale}
+          datasets={project.datasets}
+          onConfirm={createChart}
+          onClose={() => setChartInsertTarget(null)}
+          onOpenProjectData={openProjectData}
+        />
+      )}
       {project && editingChart && editingChartNode && (
         <ChartSettingsDialog
           locale={locale}

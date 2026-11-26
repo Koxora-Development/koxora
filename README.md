@@ -70,4 +70,4 @@ The remaining editor project/element navigation from Issue #24 was accepted and 
 
 [PR #67](https://github.com/Koxora-Development/koxora/pull/67) was accepted and merged on 2026-11-26 (`4e6f0fd`). Review a bounded preview, confirm the header and column types, and inspect the imported dataset after reopening the project. See [local CSV and TSV import](docs/development/delimited-data-import.md).
 
-The active Phase 3 package adds [column and line charts from saved datasets](docs/development/data-charts.md). Studio suggests a chart from the selected column types and lets you confirm the title, fields and colors.
+The active Phase 3 package adds [column and line charts from saved datasets](docs/development/data-charts.md). Choose **Insert → Chart…** to insert a suggested chart, then double-click it to edit its fields, title or colors.

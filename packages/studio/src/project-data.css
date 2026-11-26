@@ -168,10 +168,6 @@
   min-height: 0;
 }
 
-.project-data-chart {
-  justify-self: start;
-}
-
 .chart-palette-preview {
   display: flex;
   gap: calc(4px * var(--ui-scale, 1));

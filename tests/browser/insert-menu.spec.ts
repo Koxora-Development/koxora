@@ -74,6 +74,7 @@ test('compact Insert chooses a shape outside the enabled libraries without chang
     'Shapes and symbols…',
     'Text',
     'Table',
+    'Chart…',
     'Connections…',
     'Freehand pen',
   ]);

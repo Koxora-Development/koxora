@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   CHART_PALETTES,
   MAX_CHART_ROWS,
@@ -8,99 +8,208 @@ import {
   type ChartSettings,
 } from '@koxora/editor-core';
 import { translate, type MessageKey } from '@koxora/i18n';
-import { chartPalettes, chartTypes, type Dataset } from '@koxora/project';
+import {
+  chartPalettes,
+  chartTypes,
+  type Dataset,
+  type Field,
+} from '@koxora/project';
 import { Dialog } from '@koxora/ui';
 import './project-data.css';
 
-export function ChartSettingsForm({
-  locale,
-  datasets,
-  datasetId,
-  initial,
-  onConfirm,
-  onCancel,
-}: {
-  locale: string;
-  datasets: readonly Dataset[];
-  datasetId: string;
-  initial?: ChartSettings;
-  onConfirm: (settings: ChartSettings) => boolean;
-  onCancel: () => void;
-}) {
-  const t = (key: MessageKey, values?: Record<string, string | number>) =>
-    translate(locale, key, values);
-  const [selection, setSelection] = useState({
-    datasetId,
-    categoryFieldId: initial?.categoryFieldId ?? '',
-    valueFieldId: initial?.valueFieldId ?? '',
-    type: initial?.type ?? null,
-    palette: initial?.palette ?? 'studio',
-    title: initial?.title ?? null,
+function eligibleDatasets(datasets: readonly Dataset[]) {
+  return datasets.flatMap((dataset) => {
+    const { categories, values } = chartFields(dataset);
+    return categories.length && values.length
+      ? [{ dataset, categories, values }]
+      : [];
   });
-  const [failed, setFailed] = useState(false);
-  const datasetInput = useRef<HTMLSelectElement>(null);
-  useLayoutEffect(() => datasetInput.current?.focus(), []);
+}
 
-  const eligible = useMemo(
-    () =>
-      datasets.flatMap((dataset) => {
-        const { categories, values } = chartFields(dataset);
-        return categories.length && values.length
-          ? [{ dataset, categories, values }]
-          : [];
-      }),
-    [datasets],
-  );
-  const selected =
-    eligible.find(({ dataset }) => dataset.id === selection.datasetId) ??
-    eligible[0];
+function chartColumns(
+  selected: ReturnType<typeof eligibleDatasets>[number] | undefined,
+  categoryFieldId?: string,
+  valueFieldId?: string,
+) {
   const category =
-    selected?.categories.find(
-      (field) => field.id === selection.categoryFieldId,
-    ) ??
+    selected?.categories.find((field) => field.id === categoryFieldId) ??
     selected?.categories.find((field) => field.type === 'date') ??
     selected?.categories.find((field) => field.type === 'string') ??
     selected?.categories[0];
   const valueOptions =
     selected?.values.filter((field) => field.id !== category?.id) ?? [];
   const value =
-    valueOptions.find((field) => field.id === selection.valueFieldId) ??
-    valueOptions[0];
-  const type =
-    selection.type ?? (category ? suggestChartType(category) : 'column');
+    valueOptions.find((field) => field.id === valueFieldId) ?? valueOptions[0];
+  return { category, value, valueOptions };
+}
+
+function chartTitle(locale: string, category: Field, value: Field) {
+  return translate(locale, 'chart.suggestedTitle', {
+    category: category.name,
+    value: value.name,
+  })
+    .replace(/[\p{Cc}\s]+/gu, ' ')
+    .trim()
+    .slice(0, MAX_TEXT);
+}
+
+export function ChartInsertDialog({
+  locale,
+  datasets,
+  onConfirm,
+  onClose,
+  onOpenProjectData,
+}: {
+  locale: string;
+  datasets: readonly Dataset[];
+  onConfirm: (settings: ChartSettings) => boolean;
+  onClose: () => void;
+  onOpenProjectData: () => void;
+}) {
+  const t = (key: MessageKey) => translate(locale, key);
+  const [datasetId, setDatasetId] = useState('');
+  const [failed, setFailed] = useState(false);
+  const eligible = useMemo(() => eligibleDatasets(datasets), [datasets]);
+  const selected =
+    eligible.find(({ dataset }) => dataset.id === datasetId) ?? eligible[0];
+  const { category, value } = chartColumns(selected);
+  const settings: ChartSettings | null =
+    selected && category && value
+      ? {
+          datasetId: selected.dataset.id,
+          categoryFieldId: category.id,
+          valueFieldId: value.id,
+          type: suggestChartType(category),
+          palette: 'studio',
+          title: chartTitle(locale, category, value),
+        }
+      : null;
+
+  return (
+    <Dialog
+      title={t('chart.insertTitle')}
+      className="project-data-dialog chart-settings-dialog"
+      onCancel={onClose}
+    >
+      <form
+        className="chart-settings-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!settings) return;
+          if (onConfirm(settings)) onClose();
+          else setFailed(true);
+        }}
+      >
+        <div className="project-data-body">
+          {settings ? (
+            <>
+              <label className="project-data-field">
+                {t('data.selected')}
+                <select
+                  value={settings.datasetId}
+                  onChange={(event) => {
+                    setDatasetId(event.currentTarget.value);
+                    setFailed(false);
+                  }}
+                >
+                  {eligible.map(({ dataset }) => (
+                    <option key={dataset.id} value={dataset.id}>
+                      {dataset.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="project-data-meta">
+                {translate(locale, 'chart.insertSuggestion', {
+                  title: settings.title,
+                  type: t(`chart.type.${settings.type}`),
+                })}
+              </p>
+            </>
+          ) : (
+            <p>{t(datasets.length ? 'chart.noFields' : 'data.noDatasets')}</p>
+          )}
+        </div>
+        {failed && (
+          <p className="error project-data-error" role="alert">
+            {t('chart.error.save')}
+          </p>
+        )}
+        <div className="dialog-actions">
+          <button type="button" className="button" onClick={onClose}>
+            {t('project.cancel')}
+          </button>
+          {settings ? (
+            <button type="submit" className="button primary">
+              {t('chart.insertConfirm')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="button primary"
+              onClick={onOpenProjectData}
+            >
+              {t('chart.openProjectData')}
+            </button>
+          )}
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+export function ChartSettingsDialog({
+  locale,
+  datasets,
+  initial,
+  onConfirm,
+  onClose,
+}: {
+  locale: string;
+  datasets: readonly Dataset[];
+  initial: ChartSettings;
+  onConfirm: (settings: ChartSettings) => boolean;
+  onClose: () => void;
+}) {
+  const t = (key: MessageKey, values?: Record<string, string | number>) =>
+    translate(locale, key, values);
+  const [selection, setSelection] = useState(initial);
+  const [failed, setFailed] = useState(false);
+  const eligible = useMemo(() => eligibleDatasets(datasets), [datasets]);
+  const selected =
+    eligible.find(({ dataset }) => dataset.id === selection.datasetId) ??
+    eligible[0];
+  const { category, value, valueOptions } = chartColumns(
+    selected,
+    selection.categoryFieldId,
+    selection.valueFieldId,
+  );
   const suggestedTitle =
-    category && value
-      ? t('chart.suggestedTitle', {
-          category: category.name,
-          value: value.name,
-        })
-          .replace(/[\p{Cc}\s]+/gu, ' ')
-          .trim()
-          .slice(0, MAX_TEXT)
-      : '';
-  const title = selection.title ?? suggestedTitle;
+    category && value ? chartTitle(locale, category, value) : '';
 
   function change(patch: Partial<typeof selection>) {
     setSelection((current) => ({ ...current, ...patch }));
     setFailed(false);
   }
 
-  return (
+  const form = (
     <form
       className="chart-settings-form"
       onSubmit={(event) => {
         event.preventDefault();
         if (!selected || !category || !value) return;
-        setFailed(
-          !onConfirm({
+        if (
+          onConfirm({
             datasetId: selected.dataset.id,
             categoryFieldId: category.id,
             valueFieldId: value.id,
-            type,
+            type: selection.type,
             palette: selection.palette,
-            title: title.trim() || suggestedTitle,
-          }),
-        );
+            title: selection.title.trim() || suggestedTitle,
+          })
+        )
+          onClose();
+        else setFailed(true);
       }}
     >
       <div className="project-data-body">
@@ -109,7 +218,6 @@ export function ChartSettingsForm({
             <label className="project-data-field">
               {t('data.selected')}
               <select
-                ref={datasetInput}
                 value={selected.dataset.id}
                 onChange={(event) =>
                   change({
@@ -162,7 +270,7 @@ export function ChartSettingsForm({
               <label className="project-data-field">
                 {t('chart.type')}
                 <select
-                  value={type}
+                  value={selection.type}
                   onChange={(event) =>
                     change({
                       type: event.currentTarget.value as ChartSettings['type'],
@@ -204,7 +312,7 @@ export function ChartSettingsForm({
               {t('chart.title')}
               <input
                 type="text"
-                value={title}
+                value={selection.title}
                 placeholder={suggestedTitle}
                 maxLength={MAX_TEXT}
                 onChange={(event) =>
@@ -231,52 +339,26 @@ export function ChartSettingsForm({
         </p>
       )}
       <div className="dialog-actions">
-        <button type="button" className="button" onClick={onCancel}>
-          {t(initial ? 'project.cancel' : 'chart.back')}
+        <button type="button" className="button" onClick={onClose}>
+          {t('project.cancel')}
         </button>
         <button
           type="submit"
           className="button primary"
           disabled={!selected || !category || !value}
         >
-          {t(initial ? 'chart.apply' : 'chart.confirm')}
+          {t('chart.apply')}
         </button>
       </div>
     </form>
   );
-}
-
-export function ChartSettingsDialog({
-  locale,
-  datasets,
-  initial,
-  onConfirm,
-  onClose,
-}: {
-  locale: string;
-  datasets: readonly Dataset[];
-  initial: ChartSettings;
-  onConfirm: (settings: ChartSettings) => boolean;
-  onClose: () => void;
-}) {
   return (
     <Dialog
-      title={translate(locale, 'chart.edit')}
+      title={t('chart.edit')}
       className="project-data-dialog chart-settings-dialog"
       onCancel={onClose}
     >
-      <ChartSettingsForm
-        locale={locale}
-        datasets={datasets}
-        datasetId={initial.datasetId}
-        initial={initial}
-        onConfirm={(settings) => {
-          if (!onConfirm(settings)) return false;
-          onClose();
-          return true;
-        }}
-        onCancel={onClose}
-      />
+      {form}
     </Dialog>
   );
 }
