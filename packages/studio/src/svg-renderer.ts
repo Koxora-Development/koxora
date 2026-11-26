@@ -1,4 +1,5 @@
 import { connectionMarkerGeometry } from './connection-marker';
+import { appendDataChart } from './data-chart-svg';
 import {
   gridStep,
   rotatePoint,
@@ -48,6 +49,7 @@ export class SvgRenderer {
     private root: SVGGElement,
     private pattern: SVGPatternElement,
     private grid: SVGRectElement,
+    private locale = 'en',
   ) {}
   render(
     scene: Scene,
@@ -124,7 +126,7 @@ export class SvgRenderer {
         key: `node:${node.id}`,
         model: node,
         order: node.paintOrder,
-        create: () => renderNode(node),
+        create: () => renderNode(node, this.locale),
       })),
     ].sort((a, b) => a.order - b.order);
     for (const entry of entries) add(entry.key, entry.model, entry.create);
@@ -347,7 +349,7 @@ function textLines(label: string, width: number, fontSize: number): string[] {
   }
   return lines;
 }
-function renderNode(node: SceneNode): SVGElement {
+function renderNode(node: SceneNode, locale: string): SVGElement {
   if (isDrawing(node.kind)) {
     const [a, b] = lineEndpoints(node.geometry);
     const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
@@ -404,6 +406,11 @@ function renderNode(node: SceneNode): SVGElement {
     opacity: s.opacity,
   });
   group.append(path);
+  if (node.chart) {
+    path.style.pointerEvents = 'all';
+    appendDataChart(group, node.chart, g.width, g.height, s, locale, svg);
+    return group;
+  }
   if (laneHeader) {
     group.append(
       svg('rect', {

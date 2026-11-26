@@ -29,6 +29,7 @@ import { readZip, writeZip } from './zip';
 export * from './connection-endpoints';
 export * from './connection-decorations';
 export * from './connection-ports';
+export * from './data-charts';
 export * from './editor-features';
 import { parseProject as parseLegacy } from './legacy';
 export * from './types';

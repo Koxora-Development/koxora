@@ -12,6 +12,7 @@ import { NativeOpen } from './native-open';
 import { NavigationContext } from './navigation-context';
 import { ProjectTree, type ProjectAction } from './project-tree';
 import { ProjectData } from './project-data';
+import { ChartSettingsDialog } from './chart-settings';
 import {
   useCallback,
   useEffect,
@@ -35,6 +36,8 @@ import {
   createFromTemplate,
   layerStates,
   buildScene,
+  readChartSettings,
+  type ChartSettings,
   type LinkTarget,
   StudioHistory,
   WorkbookError,
@@ -158,6 +161,7 @@ export function Projects({
     selected: 0,
     selectedNodes: 0,
     selectedLane: false,
+    selectedChart: false,
     canPaste: false,
     propertiesVisible: window.innerWidth >= 1000,
     objectsVisible: false,
@@ -205,6 +209,12 @@ export function Projects({
   const [focusTarget, setFocusTarget] = useState<{
     id: string;
     nonce: number;
+    selectOnly?: boolean;
+  } | null>(null);
+  const [chartEditor, setChartEditor] = useState<{
+    nodeId: string;
+    pageId: string;
+    loadVersion: number;
   } | null>(null);
   const [missingTarget, setMissingTarget] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(false);
@@ -218,6 +228,13 @@ export function Projects({
   const activePage =
     activeDocument?.pages.find((page) => page.id === pageId) ??
     activeDocument?.pages[0];
+  const editingChartNode =
+    view === 'workspace' &&
+    chartEditor?.loadVersion === loadVersion &&
+    chartEditor.pageId === activePage?.id
+      ? activePage?.nodes.find((node) => node.id === chartEditor.nodeId)
+      : undefined;
+  const editingChart = editingChartNode && readChartSettings(editingChartNode);
   const styleSources = [
     ...(project?.themes.map((theme) => theme.styles) ?? []),
     ...(project?.documents.map((doc) => doc.styles) ?? []),
@@ -297,6 +314,30 @@ export function Projects({
       setErrorPath(null);
       return false;
     }
+  }
+  function createChart(settings: ChartSettings): boolean {
+    const canvas = canvasRef.current;
+    if (
+      !canvas ||
+      !canvas.prepare() ||
+      view !== 'workspace' ||
+      projectRef.current?.manifest.projectId !== dataProjectId
+    )
+      return false;
+    const { x, y } = canvas.snapshot().camera;
+    const id = crypto.randomUUID();
+    if (
+      !edit({
+        type: 'insertChart',
+        id,
+        layerId: canvas.insertionLayer(),
+        position: { x, y },
+        settings,
+      })
+    )
+      return false;
+    setFocusTarget({ id, nonce: Date.now(), selectOnly: true });
+    return true;
   }
   async function updateProjectData(
     update: (
@@ -1430,7 +1471,7 @@ export function Projects({
           disabled: unavailable || !selected,
         },
         {
-          label: t('rich.edit'),
+          label: t(commandState.selectedChart ? 'chart.edit' : 'rich.edit'),
           action: command('text'),
           disabled: unavailable || selected !== 1 || propertyDraft,
         },
@@ -2067,6 +2108,13 @@ export function Projects({
                       onCommandState={setCommandState}
                       focusTarget={navigationBusy ? null : focusTarget}
                       onTargetApplied={() => setFocusTarget(null)}
+                      onEditChart={(nodeId) =>
+                        setChartEditor({
+                          nodeId,
+                          pageId: activePage.id,
+                          loadVersion,
+                        })
+                      }
                       onFollowPage={(id) => {
                         const doc = projectRef.current?.documents.find((d) =>
                           d.pages.some((p) => p.id === id),
@@ -2150,6 +2198,7 @@ export function Projects({
           <ProjectData
             locale={locale}
             datasets={project.datasets}
+            onCreateChart={createChart}
             onAdd={(dataset) =>
               updateProjectData((current, now, canCommit) =>
                 history.addDataset(current, dataset, now, canCommit),
@@ -2163,6 +2212,17 @@ export function Projects({
             onClose={() => setDataProjectId(null)}
           />
         )}
+      {project && editingChart && editingChartNode && (
+        <ChartSettingsDialog
+          locale={locale}
+          datasets={project.datasets}
+          initial={editingChart}
+          onConfirm={(settings) =>
+            edit({ type: 'updateChart', id: editingChartNode.id, settings })
+          }
+          onClose={() => setChartEditor(null)}
+        />
+      )}
       {settingsOpen && (
         <OfficeSettings
           localePreference={localePreference}
