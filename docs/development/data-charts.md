@@ -6,7 +6,7 @@ This Phase 3 package implements the first column and line chart workflows for DA
 
 1. Open **File → Project data… → Saved datasets**, select a dataset and choose **Create chart…**. A text or boolean category suggests a column chart. A date or number category suggests a line chart.
 2. Review the suggested type and title. Choose a category column, a separate numeric value column, a chart type and a **Studio**, **Ocean** or **Warm** color palette. The starting title combines the selected field names. Edit it before choosing **Create chart**.
-3. Select the chart on the canvas and choose **Edit chart…** from the contextual toolbar or selection menu. Change the dataset, fields, type, title or palette and choose **Apply**. Move and resize the chart using the ordinary canvas tools.
+3. Double-click the chart on the canvas or choose **Edit chart…** from its selection menu. Change the dataset, fields, type, title or palette and choose **Apply**. Move and resize the chart using the ordinary canvas tools.
 
 Studio draws from the first 100 input rows in source order. Empty category values have no label, and missing numeric values leave gaps. Studio reports the displayed count when the dataset exceeds that limit.
 
