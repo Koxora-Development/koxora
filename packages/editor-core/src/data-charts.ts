@@ -107,11 +107,12 @@ function buildPieChart(rows: ChartRow[]): PieChartData {
   }
   if (maximum === 0) return { status: 'empty' };
 
-  // Scale before summing so several maximum-sized values still have finite weights.
+  // Sum unscaled values unless scaling is needed to avoid overflow.
+  const divisor = maximum > Number.MAX_VALUE / (rows.length + 1) ? maximum : 1;
   const weights = new Map<Json, number>();
   for (const { category, value } of rows) {
     if (value === null || value === 0) continue;
-    weights.set(category, (weights.get(category) ?? 0) + value / maximum);
+    weights.set(category, (weights.get(category) ?? 0) + value / divisor);
   }
   // Stable sort preserves source order for categories with equal weights.
   const ranked = [...weights].sort(([, first], [, second]) => second - first);

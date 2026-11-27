@@ -318,6 +318,23 @@ describe('additional chart data projection', () => {
     });
   });
 
+  it('preserves original category order for equal aggregated integer totals', () => {
+    const result = pie([
+      ['B', 3],
+      ['A', 1],
+      ['A', 2],
+      ['C', 5],
+    ])?.pie;
+    expect(result).toEqual({
+      status: 'ready',
+      slices: [
+        { label: 'C', share: 5 / 11 },
+        { label: 'B', share: 3 / 11 },
+        { label: 'A', share: 3 / 11 },
+      ],
+    });
+  });
+
   it('reports unplottable pie data and only considers the displayed rows', () => {
     expect(pie([])?.pie).toEqual({ status: 'empty' });
     expect(
