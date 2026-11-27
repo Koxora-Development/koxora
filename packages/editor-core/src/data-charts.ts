@@ -13,6 +13,7 @@ import {
 
 export const MAX_CHART_ROWS = 100;
 const MAX_CATEGORY_LABEL_LENGTH = 256;
+const MAX_PIE_SLICES = 6;
 
 export const CHART_PALETTES: Readonly<Record<ChartPalette, readonly string[]>> =
   {
@@ -28,12 +29,22 @@ export interface ChartSettings extends ChartConfig {
   title: string;
 }
 
+interface PieSlice {
+  label: string;
+  share: number;
+  grouped?: true;
+}
+
+export type PieChartData =
+  { status: 'negative' | 'empty' } | { status: 'ready'; slices: PieSlice[] };
+
 export interface DataChart extends ChartConfig {
   title: string;
   categoryLabel: string;
   valueLabel: string;
   points: { label: string; value: number | null }[];
   rowCount: number;
+  pie?: PieChartData;
 }
 
 export function readChartSettings(node: Node): ChartSettings | null {
@@ -68,7 +79,7 @@ export function suggestChartType(category: Field): ChartType {
     : 'column';
 }
 
-function categoryLabel(value: Json | undefined): string {
+function categoryLabel(value: Json): string {
   if (typeof value === 'string') {
     if (value.length <= MAX_CATEGORY_LABEL_LENGTH) return value;
     const prefix = Array.from(value.slice(0, MAX_CATEGORY_LABEL_LENGTH))
@@ -80,6 +91,46 @@ function categoryLabel(value: Json | undefined): string {
     (typeof value === 'number' && Number.isFinite(value))
     ? String(value)
     : '';
+}
+
+interface ChartRow {
+  category: Json;
+  value: number | null;
+}
+
+function buildPieChart(rows: ChartRow[]): PieChartData {
+  let maximum = 0;
+  for (const { value } of rows) {
+    if (value === null) continue;
+    if (value < 0) return { status: 'negative' };
+    maximum = Math.max(maximum, value);
+  }
+  if (maximum === 0) return { status: 'empty' };
+
+  // Scale before summing so several maximum-sized values still have finite weights.
+  const weights = new Map<Json, number>();
+  for (const { category, value } of rows) {
+    if (value === null || value === 0) continue;
+    weights.set(category, (weights.get(category) ?? 0) + value / maximum);
+  }
+  // Stable sort preserves source order for categories with equal weights.
+  const ranked = [...weights].sort(([, first], [, second]) => second - first);
+  const total = ranked.reduce((sum, [, weight]) => sum + weight, 0);
+  const shown =
+    ranked.length > MAX_PIE_SLICES ? MAX_PIE_SLICES - 1 : ranked.length;
+  const slices: PieSlice[] = ranked
+    .slice(0, shown)
+    .map(([category, weight]) => ({
+      label: categoryLabel(category),
+      share: weight / total,
+    }));
+  if (shown < ranked.length) {
+    const remainder = ranked
+      .slice(shown)
+      .reduce((sum, [, weight]) => sum + weight, 0);
+    slices.push({ label: '', share: remainder / total, grouped: true });
+  }
+  return { status: 'ready', slices };
 }
 
 /** The saved chart holds field references; visible rows always come from the dataset. */
@@ -101,20 +152,24 @@ export function buildDataChart(
     value?.type !== 'number'
   )
     return null;
+  const rows: ChartRow[] = dataset.rows.slice(0, MAX_CHART_ROWS).map((row) => {
+    const entry = row[value.id];
+    return {
+      category: row[category.id] ?? null,
+      value: typeof entry === 'number' && Number.isFinite(entry) ? entry : null,
+    };
+  });
   return {
     type: settings.type,
     palette: settings.palette,
     title: settings.title,
     categoryLabel: category.name,
     valueLabel: value.name,
-    points: dataset.rows.slice(0, MAX_CHART_ROWS).map((row) => {
-      const entry = row[value.id];
-      return {
-        label: categoryLabel(row[category.id]),
-        value:
-          typeof entry === 'number' && Number.isFinite(entry) ? entry : null,
-      };
-    }),
+    points: rows.map(({ category, value }) => ({
+      label: categoryLabel(category),
+      value,
+    })),
     rowCount: dataset.rows.length,
+    ...(settings.type === 'pie' ? { pie: buildPieChart(rows) } : {}),
   };
 }

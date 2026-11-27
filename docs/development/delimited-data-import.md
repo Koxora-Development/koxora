@@ -10,6 +10,14 @@ The Product Owner accepted this Phase 3 package, and it was merged in [PR #67](h
 
 Studio parses the file locally and commits the dataset when the import is confirmed. The preview is bounded, and invalid or oversized data produces feedback before changing the project. Browser and desktop Studio share this workflow in English and German.
 
+## Edit a saved value
+
+Open **File → Project data… → Saved datasets**, select a dataset and click a cell. With the keyboard, Tab into the table, move with the arrow keys and press Enter or Space. Enter a **Cell value** and choose **Save value**. Studio checks the value against the existing text, number, date or boolean column type. Escape or Cancel returns focus to the cell.
+
+For columns that allow missing values, choose **Clear value** and then **Save value** to store null. An empty text string remains a text value. JSON cells are read-only. Changes to row and column structure are separate work.
+
+A changed value is one Undo/Redo step. Dataset and field IDs stay stable, so bound charts update from the changed row. Save and reopen the project to recover the edited value from its stored snapshot. [Charts from project data](data-charts.md)
+
 ## Input and storage
 
 The importer reads UTF-8 with or without a BOM and UTF-16LE or UTF-16BE with a BOM. It falls back to Windows-1252 when an unmarked file fails UTF-8 decoding. Automatic delimiter detection compares comma, semicolon and tab. Quoted delimiters, multiline values and doubled quotes are supported. Rows with inconsistent field counts or malformed quotes produce feedback.
@@ -18,7 +26,7 @@ Column suggestions recognize strict decimal numbers, `true` and `false`, and dat
 
 Stored rows and column definitions use the existing `.koxora` dataset schema. Source metadata records the format, encoding, delimiter and header choice. Save and reopen or export and import the project to inspect the same data independently of its source file. Removal checks for declared references across documents and templates, including bindings, filter actions and domain model references. [Project format](../architecture/project-format.md)
 
-To visualize a saved dataset, use the [column and line chart workflow](data-charts.md). Spreadsheet formats and diagram exports are tracked in the [roadmap](../roadmap.md).
+To visualize a saved dataset, use the [chart workflow](data-charts.md). Spreadsheet formats and diagram exports are tracked in the [roadmap](../roadmap.md).
 
 ## Acceptance scenarios
 
@@ -34,3 +42,4 @@ Request ID,Amount,Received,Resolved
 - Try malformed and oversized files and incompatible column types. Cancel one preview and confirm another. Verify that the dataset list only changes after a successful confirmation.
 - Inspect a dataset with more than one page of rows. Undo and redo the import, then save and reopen the project offline without the source file. Export and reopen a `.koxora` archive, and check the column types and row values.
 - Remove an unreferenced dataset and undo the removal. Verify that a dataset referenced by existing project content is protected. Repeat the primary workflow with the keyboard in English and German.
+- Edit a typed cell used by a chart. Try an invalid value and cancel once, then confirm a valid edit. Verify the cell and chart after Undo, Redo and offline reopening.

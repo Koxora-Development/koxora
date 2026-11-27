@@ -10,12 +10,62 @@ import {
   DelimitedDataError,
   describeDelimited,
   MAX_DELIMITED_BYTES,
+  parseDatasetCellInput,
   parseDelimited,
 } from './delimited-data';
 
 const encode = (text: string) => new TextEncoder().encode(text);
 const fallbackName = (index: number) => `Column ${index + 1}`;
 const makeId = () => crypto.randomUUID();
+
+describe('explicit typed cell edits', () => {
+  it('recognizes alternative decimal separators with the same safe number rules', () => {
+    const field = { type: 'number', nullable: false } as const;
+    expect(parseDatasetCellInput(field, '12.50')).toBe(12.5);
+    expect(parseDatasetCellInput(field, '12,50')).toBe(12.5);
+    expect(parseDatasetCellInput(field, '1,25e2')).toBe(125);
+    expect(parseDatasetCellInput(field, '-0')).toBe(0);
+    for (const input of [
+      '1,234.56',
+      '1.234,56',
+      '1 234',
+      '0007',
+      '9007199254740993',
+      '1e-400',
+      '',
+    ])
+      expect(() => parseDatasetCellInput(field, input)).toThrow(
+        expect.objectContaining({ code: 'value' }),
+      );
+  });
+
+  it('keeps text, empty text and missing values distinct and rejects unsupported fields', () => {
+    const text = { type: 'string', nullable: true } as const;
+    expect(parseDatasetCellInput(text, ' =SUM(1, 2) ')).toBe(' =SUM(1, 2) ');
+    expect(parseDatasetCellInput(text, '')).toBe('');
+    expect(parseDatasetCellInput(text, null)).toBeNull();
+    expect(() =>
+      parseDatasetCellInput({ ...text, nullable: false }, null),
+    ).toThrow(DelimitedDataError);
+    expect(() =>
+      parseDatasetCellInput({ type: 'json', nullable: true }, null),
+    ).toThrow(DelimitedDataError);
+  });
+
+  it('requires explicit booleans and canonical, possible ISO dates', () => {
+    const boolean = { type: 'boolean', nullable: false } as const;
+    expect(parseDatasetCellInput(boolean, ' False ')).toBe(false);
+    expect(() => parseDatasetCellInput(boolean, '1')).toThrow(
+      DelimitedDataError,
+    );
+    const date = { type: 'date', nullable: false } as const;
+    expect(parseDatasetCellInput(date, '2024-02-29')).toBe('2024-02-29');
+    for (const input of ['2026-02-29', '2026-1-01', '2026/01/01', '10/11/26'])
+      expect(() => parseDatasetCellInput(date, input)).toThrow(
+        DelimitedDataError,
+      );
+  });
+});
 
 describe('local delimited files', () => {
   it('detects a semicolon-delimited file and preserves quoting, newlines and trailing cells', () => {

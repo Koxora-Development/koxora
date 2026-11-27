@@ -50,6 +50,8 @@ import {
   DATA_CHART_FEATURE,
   DATA_CHART_KEY,
   DATA_CHART_KIND,
+  DATA_CHART_TYPES_FEATURE,
+  hasExpandedChartProfile,
   isChartCategoryField,
   readChartBindings,
   readChartConfig,
@@ -65,6 +67,7 @@ import {
 } from './text-regions';
 export const FEATURES = [
   DATA_CHART_FEATURE,
+  DATA_CHART_TYPES_FEATURE,
   SWIMLANES_FEATURE,
   CONNECTION_PORTS_FEATURE,
   CONNECTION_DECORATIONS_FEATURE,
@@ -360,8 +363,15 @@ export function validateProject(
       `${profilePath}.version`,
       'chartVersion',
     );
-    // Future positive profile versions remain opaque under the known marker.
-    if (profile.version !== 1) return;
+    if (profile.version !== 1) {
+      // Preserve unrecognized profiles even in projects with expanded charts.
+      if (!hasExpandedChartProfile(node)) return;
+      check(
+        manifest.requiredFeatures.includes(DATA_CHART_TYPES_FEATURE),
+        profilePath,
+        'feature',
+      );
+    }
     check(readChartConfig(node), profilePath, 'chartConfig');
     text(node.content.text, `${path}.content.text`);
     const bindingsPath = `${path}.dataBindings`;

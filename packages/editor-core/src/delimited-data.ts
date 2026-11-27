@@ -2,7 +2,7 @@ import {
   CURRENT_VERSION,
   DEFAULT_LIMITS,
   type Dataset,
-  type Json,
+  type Field,
 } from '@koxora/project';
 
 export const MAX_DELIMITED_BYTES = 2 * 1024 * 1024;
@@ -190,34 +190,37 @@ export function parseDelimited(
 const decimal = /^[+-]?(?:(?:0|[1-9]\d*)(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?$/i;
 const groupedComma = /^[+-]?[1-9]\d{0,2},\d{3}$/;
 
-function parseNumber(value: string, delimiter: Delimiter): number | undefined {
-  let normalized = value;
-  if (value.includes(',')) {
-    if (delimiter === ',' || value.includes('.') || groupedComma.test(value))
-      return undefined;
-    normalized = value.replace(',', '.');
-  }
-  if (!decimal.test(normalized)) return undefined;
-  const number = Number(normalized);
+function parseDecimal(value: string): number | undefined {
+  if (!decimal.test(value)) return undefined;
+  const number = Number(value);
   if (
     !Number.isFinite(number) ||
     (Number.isInteger(number) && !Number.isSafeInteger(number))
   )
     return undefined;
-  const significant = normalized
+  const significant = value
     .split(/e/i)[0]
     .replace(/[^0-9]/g, '')
     .replace(/^0+|0+$/g, '');
   if (number === 0 && significant) return undefined;
-  if (significant.length > 15 && /[.e]/i.test(normalized)) return undefined;
+  if (significant.length > 15 && /[.e]/i.test(value)) return undefined;
   return number === 0 ? 0 : number;
+}
+
+function parseNumber(value: string, delimiter: Delimiter): number | undefined {
+  if (
+    value.includes(',') &&
+    (delimiter === ',' || value.includes('.') || groupedComma.test(value))
+  )
+    return undefined;
+  return parseDecimal(value.replace(',', '.'));
 }
 
 function typedValue(
   raw: string,
   type: EditableType,
   delimiter: Delimiter,
-): Json | undefined {
+): string | number | boolean | null | undefined {
   if (raw === '') return null;
   if (type === 'string') return raw;
   const value = raw.trim();
@@ -233,6 +236,26 @@ function typedValue(
       return value;
   }
   return undefined;
+}
+
+/** Parse explicit edits without inferring a column type or conflating null and text. */
+export function parseDatasetCellInput(
+  field: Pick<Field, 'type' | 'nullable'>,
+  input: string | null,
+): string | number | boolean | null {
+  if (field.type === 'json') throw new DelimitedDataError('value');
+  if (input === null) {
+    if (!field.nullable) throw new DelimitedDataError('value');
+    return null;
+  }
+  if (field.type === 'string') return input;
+  const value =
+    field.type === 'number'
+      ? parseDecimal(input.trim().replace(',', '.'))
+      : typedValue(input, field.type, ',');
+  if (value === undefined || value === null)
+    throw new DelimitedDataError('value');
+  return value;
 }
 
 function inferType(

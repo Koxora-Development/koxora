@@ -33,6 +33,9 @@ import {
   withSwimlaneFeature,
   DATA_CHART_KIND,
   DATA_CHART_KEY,
+  chartTypes,
+  chartPalettes,
+  chartProfileVersion,
   readChartConfig,
   withDataChartFeature,
   type Project,
@@ -614,6 +617,8 @@ export function applyEdit(
   } else if (command.type === 'insertChart' || command.type === 'updateChart') {
     const { datasetId, categoryFieldId, valueFieldId, title, type, palette } =
       command.settings;
+    if (!chartTypes.includes(type) || !chartPalettes.includes(palette))
+      throw new EditError('invalid');
     text(title);
     let chart: Node;
     if (command.type === 'insertChart') {
@@ -662,7 +667,7 @@ export function applyEdit(
         ...chart.extensions,
         [DATA_CHART_KEY]: {
           ...jsonObject(chart.extensions[DATA_CHART_KEY]),
-          version: 1,
+          version: chartProfileVersion(type),
           type,
           palette,
         },
@@ -1352,6 +1357,7 @@ export function applyEdit(
     next = withSwimlaneFeature(next);
   if (
     command.type === 'insertChart' ||
+    command.type === 'updateChart' ||
     (command.type === 'paste' &&
       command.nodes.some((node) => node.kind === DATA_CHART_KIND))
   )

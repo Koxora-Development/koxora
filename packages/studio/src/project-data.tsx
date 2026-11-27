@@ -1,10 +1,20 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type RefObject,
+} from 'react';
 import {
   createDelimitedDataset,
   DelimitedDataError,
   describeDelimited,
   MAX_DELIMITED_BYTES,
   parseDelimited,
+  type DatasetCellEdit,
   type DelimitedSheet,
   type Delimiter,
   type EditableType,
@@ -12,6 +22,7 @@ import {
 import { translate, type MessageKey } from '@koxora/i18n';
 import type { Dataset, Field, Json } from '@koxora/project';
 import { Dialog } from '@koxora/ui';
+import { DatasetCellEditor } from './dataset-cell-editor';
 import './project-data.css';
 
 const typeOptions = ['string', 'number', 'boolean', 'date'] as const;
@@ -29,6 +40,8 @@ type Issue = {
   row?: number;
   column?: number;
 };
+
+type CellPosition = { row: number; column: number };
 
 function importIssue(error: unknown): Issue {
   return error instanceof DelimitedDataError
@@ -49,6 +62,7 @@ function DatasetTable({
   rowCount,
   cell,
   onTypeChange,
+  editing,
   busy = false,
 }: {
   locale: string;
@@ -56,10 +70,24 @@ function DatasetTable({
   rowCount: number;
   cell: (row: number, column: number) => Json | undefined;
   onTypeChange?: (column: number, type: EditableType) => void;
+  editing?: {
+    fields: readonly Field[];
+    cancelButton: RefObject<HTMLButtonElement | null>;
+    onSave: (
+      row: number,
+      fieldId: string,
+      value: DatasetCellEdit['value'],
+    ) => Promise<MessageKey | null>;
+  };
   busy?: boolean;
 }) {
   const [rowPage, setRowPage] = useState(0);
   const [columnPage, setColumnPage] = useState(0);
+  const [cursor, setCursor] = useState<CellPosition | null>(null);
+  const [editingCell, setEditingCell] = useState<CellPosition | null>(null);
+  const tableBody = useRef<HTMLTableSectionElement>(null);
+  const restoreFocus = useRef<CellPosition | null>(null);
+  const helpId = useId();
   const t = (key: MessageKey, values?: Record<string, string | number>) =>
     translate(locale, key, values);
   const rowStart = rowPage * rowsPerPage;
@@ -67,20 +95,106 @@ function DatasetTable({
   const columnStart = columnPage * columnsPerPage;
   const columnEnd = Math.min(columnStart + columnsPerPage, columns.length);
   const visibleColumns = columns.slice(columnStart, columnEnd);
+  const editableColumns = editing
+    ? visibleColumns.flatMap(({ type }, index) =>
+        type === 'json' ? [] : [columnStart + index],
+      )
+    : [];
+  const tabStop =
+    cursor &&
+    cursor.row >= rowStart &&
+    cursor.row < rowEnd &&
+    editableColumns.includes(cursor.column)
+      ? cursor
+      : { row: rowStart, column: editableColumns[0] };
+  const hasEditableCells = rowCount > 0 && editableColumns.length > 0;
+  const editingField = editingCell && editing?.fields[editingCell.column];
+  const navigationDisabled = busy || !!editingCell;
+
+  function focusCell({ row, column }: CellPosition) {
+    tableBody.current
+      ?.querySelector<HTMLTableCellElement>(
+        `[data-edit-row="${row}"][data-edit-column="${column}"]`,
+      )
+      ?.focus();
+  }
+
+  useLayoutEffect(() => {
+    if (busy || editingCell || !restoreFocus.current) return;
+    focusCell(restoreFocus.current);
+    restoreFocus.current = null;
+  }, [busy, editingCell]);
+
+  function finishEditing() {
+    restoreFocus.current = editingCell;
+    setEditingCell(null);
+  }
+
+  function startEditing(position: CellPosition) {
+    if (navigationDisabled) return;
+    setCursor(position);
+    setEditingCell(position);
+  }
+
+  function onCellKeyDown(
+    event: KeyboardEvent<HTMLTableCellElement>,
+    row: number,
+    column: number,
+  ) {
+    if (navigationDisabled || event.altKey || event.ctrlKey || event.metaKey)
+      return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      startEditing({ row, column });
+      return;
+    }
+    const index = editableColumns.indexOf(column);
+    let target: CellPosition;
+    switch (event.key) {
+      case 'ArrowLeft':
+        target = { row, column: editableColumns[Math.max(index - 1, 0)] };
+        break;
+      case 'ArrowRight':
+        target = {
+          row,
+          column:
+            editableColumns[Math.min(index + 1, editableColumns.length - 1)],
+        };
+        break;
+      case 'ArrowUp':
+        target = { row: Math.max(row - 1, rowStart), column };
+        break;
+      case 'ArrowDown':
+        target = { row: Math.min(row + 1, rowEnd - 1), column };
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    focusCell(target);
+  }
 
   return (
     <div className="project-data-preview">
       <p className="project-data-meta" role="status">
         {t('data.summary', { rows: rowCount, columns: columns.length })}
       </p>
+      {hasEditableCells && (
+        <p id={helpId} className="project-data-meta">
+          {t('data.cellHelp')}
+        </p>
+      )}
       {!!columns.length && (
         <div
           className="project-data-table-scroll"
-          tabIndex={0}
+          tabIndex={hasEditableCells ? -1 : 0}
           role="region"
           aria-label={t('data.preview')}
         >
-          <table aria-label={t('data.preview')}>
+          <table
+            aria-label={t('data.preview')}
+            aria-describedby={hasEditableCells ? helpId : undefined}
+          >
             <thead>
               <tr>
                 {visibleColumns.map((column, index) => (
@@ -111,19 +225,80 @@ function DatasetTable({
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {Array.from({ length: rowEnd - rowStart }, (_, row) => (
-                <tr key={rowStart + row}>
-                  {visibleColumns.map((_, index) => (
-                    <td key={columnStart + index}>
-                      {displayCell(cell(rowStart + row, columnStart + index))}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+            <tbody ref={tableBody}>
+              {Array.from({ length: rowEnd - rowStart }, (_, offset) => {
+                const row = rowStart + offset;
+                return (
+                  <tr key={row}>
+                    {visibleColumns.map((_, index) => {
+                      const column = columnStart + index;
+                      const value = cell(row, column);
+                      const content =
+                        editing && value === null ? (
+                          <span className="project-data-null">
+                            {t('data.cellNull')}
+                          </span>
+                        ) : (
+                          displayCell(value)
+                        );
+                      if (!editableColumns.includes(column))
+                        return <td key={column}>{content}</td>;
+                      return (
+                        <td
+                          key={column}
+                          data-edit-row={row}
+                          data-edit-column={column}
+                          data-editing={
+                            editingCell?.row === row &&
+                            editingCell.column === column
+                              ? true
+                              : undefined
+                          }
+                          tabIndex={
+                            !navigationDisabled &&
+                            row === tabStop.row &&
+                            column === tabStop.column
+                              ? 0
+                              : -1
+                          }
+                          onFocus={() => {
+                            if (!navigationDisabled) setCursor({ row, column });
+                          }}
+                          onClick={() => startEditing({ row, column })}
+                          onKeyDown={(event) =>
+                            onCellKeyDown(event, row, column)
+                          }
+                        >
+                          {content}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+      )}
+      {editing && editingCell && editingField && (
+        <DatasetCellEditor
+          locale={locale}
+          rowIndex={editingCell.row}
+          field={editingField}
+          value={cell(editingCell.row, editingCell.column)}
+          busy={busy}
+          cancelButton={editing.cancelButton}
+          onCancel={finishEditing}
+          onSave={async (value) => {
+            const failure = await editing.onSave(
+              editingCell.row,
+              editingField.id,
+              value,
+            );
+            if (!failure) finishEditing();
+            return failure;
+          }}
+        />
       )}
       {!rowCount && <p className="project-data-meta">{t('data.noRows')}</p>}
       {rowCount > rowsPerPage && (
@@ -131,7 +306,7 @@ function DatasetTable({
           <button
             type="button"
             className="button"
-            disabled={!rowPage}
+            disabled={navigationDisabled || !rowPage}
             onClick={() => setRowPage(rowPage - 1)}
           >
             {t('data.previousRows')}
@@ -142,7 +317,7 @@ function DatasetTable({
           <button
             type="button"
             className="button"
-            disabled={rowEnd === rowCount}
+            disabled={navigationDisabled || rowEnd === rowCount}
             onClick={() => setRowPage(rowPage + 1)}
           >
             {t('data.nextRows')}
@@ -154,7 +329,7 @@ function DatasetTable({
           <button
             type="button"
             className="button"
-            disabled={!columnPage}
+            disabled={navigationDisabled || !columnPage}
             onClick={() => setColumnPage(columnPage - 1)}
           >
             {t('data.previousColumns')}
@@ -165,7 +340,7 @@ function DatasetTable({
           <button
             type="button"
             className="button"
-            disabled={columnEnd === columns.length}
+            disabled={navigationDisabled || columnEnd === columns.length}
             onClick={() => setColumnPage(columnPage + 1)}
           >
             {t('data.nextColumns')}
@@ -181,12 +356,14 @@ export function ProjectData({
   datasets,
   onAdd,
   onRemove,
+  onEditCell,
   onClose,
 }: {
   locale: string;
   datasets: readonly Dataset[];
   onAdd: (dataset: Dataset) => Promise<MessageKey | null>;
   onRemove: (id: string) => Promise<MessageKey | null>;
+  onEditCell: (change: DatasetCellEdit) => Promise<MessageKey | null>;
   onClose: () => void;
 }) {
   const t = (key: MessageKey, values?: Record<string, string | number>) =>
@@ -213,6 +390,7 @@ export function ProjectData({
   const request = useRef(0);
   const filePicker = useRef<HTMLInputElement>(null);
   const transaction = useRef(false);
+  const cancelCellEdit = useRef<HTMLButtonElement>(null);
   const nextFocus = useRef<'saved' | 'remove' | null>(null);
   const savedTab = useRef<HTMLButtonElement>(null);
   const removeButton = useRef<HTMLButtonElement>(null);
@@ -301,16 +479,22 @@ export function ProjectData({
     }
   }
 
-  async function changeDataset(update: () => Promise<MessageKey | null>) {
-    if (transaction.current) return;
+  async function changeDataset(
+    update: () => Promise<MessageKey | null>,
+    showIssue = true,
+  ): Promise<MessageKey | null> {
+    if (transaction.current) return 'data.error.project';
     transaction.current = true;
     setSaving(true);
     setIssue(null);
     try {
       const failure = await update();
-      if (failure) setIssue({ key: failure });
+      if (failure && showIssue) setIssue({ key: failure });
+      return failure;
     } catch (error) {
-      setIssue(importIssue(error));
+      const failure = importIssue(error);
+      if (showIssue) setIssue(failure);
+      return failure.key;
     } finally {
       transaction.current = false;
       setSaving(false);
@@ -344,10 +528,16 @@ export function ProjectData({
     if (!transaction.current) onClose();
   }
 
+  function cancelDialog() {
+    if (transaction.current) return;
+    if (cancelCellEdit.current) cancelCellEdit.current.click();
+    else close();
+  }
+
   return (
     <Dialog
       title={t('data.title')}
-      onCancel={close}
+      onCancel={cancelDialog}
       className="project-data-dialog"
     >
       <div
@@ -519,6 +709,22 @@ export function ProjectData({
               cell={(row, column) =>
                 selected.rows[row]?.[selected.fields[column].id]
               }
+              busy={saving}
+              editing={{
+                fields: selected.fields,
+                cancelButton: cancelCellEdit,
+                onSave: (rowIndex, fieldId, value) =>
+                  changeDataset(
+                    () =>
+                      onEditCell({
+                        datasetId: selected.id,
+                        rowIndex,
+                        fieldId,
+                        value,
+                      }),
+                    false,
+                  ),
+              }}
             />
             <div className="project-data-remove">
               {removeId === selected.id ? (
@@ -560,6 +766,7 @@ export function ProjectData({
                   type="button"
                   className="button"
                   ref={removeButton}
+                  disabled={saving}
                   onClick={() => {
                     setRemoveId(selected.id);
                     setIssue(null);

@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  chartProfileVersion,
   createProject,
   DATA_CHART_FEATURE,
   DATA_CHART_KEY,
   exportProject,
   importProject,
   synchronizeIndexes,
+  type ChartType,
   type Dataset,
   type Field,
+  type Json,
   type Node,
 } from '@koxora/project';
 import {
@@ -31,7 +34,10 @@ function field(name: string, type: Field['type']): Field {
   };
 }
 
-function fixture(categoryType: Field['type'] = 'string') {
+function fixture(
+  categoryType: Field['type'] = 'string',
+  type: ChartType = 'line',
+) {
   const category = field('Month', categoryType);
   const value = field('Orders', 'number');
   const dataset: Dataset = {
@@ -56,7 +62,11 @@ function fixture(categoryType: Field['type'] = 'string') {
       fieldId: id,
     })),
     extensions: {
-      [DATA_CHART_KEY]: { version: 1, type: 'line', palette: 'ocean' },
+      [DATA_CHART_KEY]: {
+        version: chartProfileVersion(type),
+        type,
+        palette: 'ocean',
+      },
     },
   };
   return { dataset, category, value, node };
@@ -200,6 +210,146 @@ describe('chart data projection', () => {
   });
 });
 
+describe('additional chart data projection', () => {
+  function pie(rows: [Json, number | null][]) {
+    const { dataset, node, category, value } = fixture('string', 'pie');
+    dataset.rows = rows.map(([label, amount]) => ({
+      [category.id]: label,
+      [value.id]: amount,
+    }));
+    return buildDataChart(node, [dataset]);
+  }
+
+  it('keeps signed values and gaps for area charts', () => {
+    const { dataset, node, category, value } = fixture('string', 'area');
+    dataset.rows = [
+      { [category.id]: 'September', [value.id]: 3 },
+      { [category.id]: 'October', [value.id]: null },
+      { [category.id]: 'November', [value.id]: -5 },
+    ];
+    const chart = buildDataChart(node, [dataset]);
+    expect(chart?.type).toBe('area');
+    expect(chart?.points).toEqual([
+      { label: 'September', value: 3 },
+      { label: 'October', value: null },
+      { label: 'November', value: -5 },
+    ]);
+    expect(chart?.pie).toBeUndefined();
+  });
+
+  it('groups repeat categories and maintains finite pie shares for extreme values', () => {
+    const max = Number.MAX_VALUE;
+    expect(
+      pie([
+        ['Web', max],
+        ['Desktop', max],
+        ['Web', max],
+        ['Zero', 0],
+        ['Tiny', Number.MIN_VALUE],
+        ['Invalid', Infinity],
+        ['Empty', null],
+        [null, max / 2],
+      ])?.pie,
+    ).toEqual({
+      status: 'ready',
+      slices: [
+        { label: 'Web', share: 4 / 7 },
+        { label: 'Desktop', share: 2 / 7 },
+        { label: '', share: 1 / 7 },
+        { label: 'Tiny', share: 0 },
+      ],
+    });
+    expect(pie([['Small', Number.MIN_VALUE]])?.pie).toEqual({
+      status: 'ready',
+      slices: [{ label: 'Small', share: 1 }],
+    });
+  });
+
+  it('ranks pie categories with stable ties and collects the tail in one slice', () => {
+    const rows: [string, number][] = [
+      ['Z', 1],
+      ['X', 7],
+      ['Y', 7],
+      ['M', 6],
+      ['N', 4],
+      ['O', 3],
+      ['P', 2],
+      ['Z', 2],
+    ];
+    const result = pie(rows)?.pie;
+    expect(result?.status).toBe('ready');
+    if (result?.status !== 'ready') throw new Error('Missing pie slices');
+    expect(result.slices.map(({ label }) => label)).toEqual([
+      'X',
+      'Y',
+      'M',
+      'N',
+      'Z',
+      '',
+    ]);
+    expect(result.slices.at(-1)).toEqual({
+      label: '',
+      grouped: true,
+      share: expect.closeTo(5 / 32),
+    });
+    expect(
+      result.slices.reduce((sum, { share }) => sum + share, 0),
+    ).toBeCloseTo(1);
+
+    const six = pie(rows.slice(0, 6))?.pie;
+    expect(
+      six?.status === 'ready' && six.slices.map(({ grouped }) => grouped),
+    ).toEqual(Array.from({ length: 6 }));
+  });
+
+  it('keeps distinct categories whose shortened pie labels coincide', () => {
+    const prefix = 'a'.repeat(255);
+    expect(
+      pie([
+        [`${prefix} first`, 3],
+        [`${prefix} second`, 2],
+      ])?.pie,
+    ).toEqual({
+      status: 'ready',
+      slices: [
+        { label: `${prefix}…`, share: expect.closeTo(0.6) },
+        { label: `${prefix}…`, share: expect.closeTo(0.4) },
+      ],
+    });
+  });
+
+  it('reports unplottable pie data and only considers the displayed rows', () => {
+    expect(pie([])?.pie).toEqual({ status: 'empty' });
+    expect(
+      pie([
+        ['None', null],
+        ['Zero', 0],
+      ])?.pie,
+    ).toEqual({ status: 'empty' });
+    expect(
+      pie([
+        ['Positive', 9],
+        ['Negative', -1],
+      ])?.pie,
+    ).toEqual({
+      status: 'negative',
+    });
+    const bounded = pie([
+      ...Array.from({ length: MAX_CHART_ROWS }, (): [string, number] => [
+        'Web',
+        1,
+      ]),
+      ['Not shown', -1],
+    ]);
+    expect(bounded?.points).toHaveLength(MAX_CHART_ROWS);
+    expect(bounded?.rowCount).toBe(MAX_CHART_ROWS + 1);
+    expect(bounded?.pie).toEqual({
+      status: 'ready',
+      slices: [{ label: 'Web', share: 1 }],
+    });
+  });
+});
+
 describe('chart editor commands', () => {
   const now = '2026-11-26T12:00:00.000Z';
 
@@ -314,6 +464,21 @@ describe('chart editor commands', () => {
           settings: {
             ...insert.settings,
             categoryFieldId: insert.settings.valueFieldId,
+          },
+        },
+        now,
+      ),
+    ).toThrow();
+    expect(() =>
+      history.execute(
+        project,
+        document.id,
+        page.id,
+        {
+          ...insert,
+          settings: {
+            ...insert.settings,
+            type: 'unknown' as typeof insert.settings.type,
           },
         },
         now,

@@ -68,6 +68,104 @@ describe('native data chart SVG', () => {
     ).toHaveLength(3);
   });
 
+  it('closes each signed area run against the same baseline', () => {
+    const { content } = chartSvg([4, -2, null, -3, -1], { type: 'area' });
+    const area = content.find(({ attrs }) => 'data-chart-area' in attrs)!;
+    const runs = String(area.attrs.d).match(/M [^M]+? Z/g)!;
+    const heights = runs.map((run) =>
+      [...run.matchAll(/[ML] \S+ (\S+)/g)].map(([, y]) => Number(y)),
+    );
+    expect(heights).toHaveLength(2);
+    const baseline = heights[0][0];
+    expect(heights[0][1]).toBeLessThan(baseline);
+    expect(heights[0][2]).toBeGreaterThan(baseline);
+    expect(heights[1][1]).toBeGreaterThan(baseline);
+    for (const run of heights) {
+      expect(run[0]).toBe(baseline);
+      expect(run.at(-1)).toBe(baseline);
+    }
+  });
+
+  it('draws a full pie for one positive category and localizes its blank label', () => {
+    const { content } = chartSvg(
+      [null, 0, Number.MAX_VALUE],
+      {
+        type: 'pie',
+        pie: { status: 'ready', slices: [{ label: '', share: 1 }] },
+      },
+      'de',
+    );
+    expect(content.find(({ attrs }) => 'data-chart-slice' in attrs)?.tag).toBe(
+      'circle',
+    );
+    expect(
+      content.find(({ attrs }) => 'data-chart-pie-label' in attrs)?.textContent,
+    ).toBe('Leere Kategorie');
+    const percent = content.find(
+      ({ attrs }) => 'data-chart-pie-share' in attrs,
+    )?.textContent;
+    expect(percent?.replace(/\s+/gu, '')).toBe('100%');
+    expect(content.some(({ attrs }) => 'data-chart-axis' in attrs)).toBe(false);
+  });
+
+  it('matches each pie segment to its legend color and labels grouped slices and truncation', () => {
+    const { content } = chartSvg([1, 2, 3], {
+      type: 'pie',
+      rowCount: 120,
+      pie: {
+        status: 'ready',
+        slices: [
+          { label: 'Big category', share: 0.99999 },
+          { label: '', share: 0.00001, grouped: true },
+        ],
+      },
+    });
+    const segments = content.filter(({ attrs }) => 'data-chart-slice' in attrs);
+    expect(segments).toHaveLength(2);
+    expect(String(segments[0].attrs.d).match(/A/g)).toHaveLength(2);
+    expect(
+      segments.every(({ attrs }) => !/NaN|Infinity/.test(String(attrs.d))),
+    ).toBe(true);
+    expect(segments.map(({ attrs }) => attrs.fill)).toEqual(
+      content
+        .filter(({ attrs }) => 'data-chart-pie-swatch' in attrs)
+        .map(({ attrs }) => attrs.fill),
+    );
+    expect(
+      content.find(({ attrs }) => 'data-chart-pie-grouped' in attrs)
+        ?.textContent,
+    ).toBe('Other categories');
+    expect(
+      content
+        .filter(({ attrs }) => 'data-chart-pie-share' in attrs)
+        .map(({ textContent }) => textContent),
+    ).toEqual(['> 99.9%', '< 0.1%']);
+    expect(
+      content.find(({ attrs }) => 'data-chart-preview' in attrs)?.textContent,
+    ).toBe('Showing 3 of 120 rows');
+  });
+
+  it.each([
+    ['negative', [-1, 10], 'Pie charts require nonnegative values'],
+    ['empty', [0, null], 'No positive values'],
+  ] as const)(
+    'shows a notice for %s pies and omits wedges',
+    (status, values, notice) => {
+      const { description, content } = chartSvg([...values], {
+        type: 'pie',
+        pie: { status },
+      });
+      expect(content.some(({ attrs }) => 'data-chart-slice' in attrs)).toBe(
+        false,
+      );
+      expect(
+        content.find(({ attrs }) => attrs['data-chart-pie-status'] === status)
+          ?.textContent,
+      ).toBe(notice);
+      expect(description.textContent).toContain(notice);
+    },
+  );
+
   it('draws finite coordinates for signed extremes, subnormals and zeroes', () => {
     for (const values of [
       [-Number.MAX_VALUE, Number.MAX_VALUE],

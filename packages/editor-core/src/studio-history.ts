@@ -22,13 +22,25 @@ interface DocumentEntry {
   afterPage: string;
   bytes: number;
 }
-interface DatasetDelta {
+interface DatasetMembershipDelta {
   operation: 'add' | 'remove';
   index: number;
   dataset: Dataset;
   indexItem?: Index['items'][number];
   resource?: Resource;
 }
+export interface DatasetCellEdit {
+  datasetId: string;
+  fieldId: string;
+  rowIndex: number;
+  value: string | number | boolean | null;
+}
+interface DatasetCellDelta extends Omit<DatasetCellEdit, 'value'> {
+  operation: 'cell';
+  before: DatasetCellEdit['value'];
+  after: DatasetCellEdit['value'];
+}
+type DatasetDelta = DatasetMembershipDelta | DatasetCellDelta;
 type Entry = DocumentEntry | { dataset: DatasetDelta; bytes: number };
 interface EditGroup {
   id: string;
@@ -38,12 +50,45 @@ interface EditGroup {
 }
 export type GroupedEditCommand = EditCommand & { historyGroup?: string };
 
+function updatedAt(project: Project, now: string) {
+  return new Date(
+    Math.max(Date.parse(now), Date.parse(project.manifest.updatedAt)),
+  ).toISOString();
+}
+
+function applyDatasetCellDelta(
+  project: Project,
+  change: DatasetCellDelta,
+  undo: boolean,
+  now: string,
+): Project {
+  const { datasetId, fieldId, rowIndex } = change;
+  const index = project.datasets.findIndex((item) => item.id === datasetId);
+  const dataset = project.datasets[index];
+  const row = dataset?.rows[rowIndex];
+  if (!row || row[fieldId] !== (undo ? change.after : change.before))
+    throw new ProjectError('conflict');
+  const rows = [...dataset.rows];
+  rows[rowIndex] = { ...row, [fieldId]: undo ? change.before : change.after };
+  const datasets = [...project.datasets];
+  datasets[index] = { ...dataset, rows };
+  const next = {
+    ...project,
+    datasets,
+    manifest: { ...project.manifest, updatedAt: updatedAt(project, now) },
+  };
+  validateProject(next);
+  return next;
+}
+
 function applyDatasetDelta(
   project: Project,
   change: DatasetDelta,
   undo: boolean,
   now: string,
 ): Project {
+  if (change.operation === 'cell')
+    return applyDatasetCellDelta(project, change, undo, now);
   const { dataset, index, indexItem, resource } = change;
   const path = `datasets/${dataset.id}.json`;
   const add = (change.operation === 'add') !== undo;
@@ -83,9 +128,7 @@ function applyDatasetDelta(
     manifest: {
       ...project.manifest,
       resources,
-      updatedAt: new Date(
-        Math.max(Date.parse(now), Date.parse(project.manifest.updatedAt)),
-      ).toISOString(),
+      updatedAt: updatedAt(project, now),
     },
   });
   try {
@@ -241,17 +284,12 @@ export class StudioHistory {
       activePageId(next),
     );
   }
-  async addDataset(
+  private async preflightDatasetChange(
     project: Project,
-    dataset: Dataset,
+    change: DatasetDelta,
     now: string,
     canCommit?: () => boolean,
   ): Promise<Project> {
-    const change: DatasetDelta = {
-      operation: 'add',
-      index: project.datasets.length,
-      dataset: structuredClone(dataset),
-    };
     const next = applyDatasetDelta(project, change, false, now);
     const entry: Entry = {
       dataset: change,
@@ -263,10 +301,61 @@ export class StudioHistory {
     this.append(project.manifest.projectId, entry);
     return next;
   }
+  async addDataset(
+    project: Project,
+    dataset: Dataset,
+    now: string,
+    canCommit?: () => boolean,
+  ): Promise<Project> {
+    return this.preflightDatasetChange(
+      project,
+      {
+        operation: 'add',
+        index: project.datasets.length,
+        dataset: structuredClone(dataset),
+      },
+      now,
+      canCommit,
+    );
+  }
+  async editDatasetCell(
+    project: Project,
+    edit: DatasetCellEdit,
+    now: string,
+    canCommit?: () => boolean,
+  ): Promise<Project> {
+    const { datasetId, fieldId, rowIndex, value: after } = edit;
+    const dataset = project.datasets.find((item) => item.id === datasetId);
+    const field = dataset?.fields.find((item) => item.id === fieldId);
+    const before = dataset?.rows[rowIndex]?.[fieldId];
+    if (
+      !Number.isInteger(rowIndex) ||
+      rowIndex < 0 ||
+      !field ||
+      field.type === 'json' ||
+      before === undefined ||
+      (typeof before === 'object' && before !== null)
+    )
+      throw new WorkbookError('invalid');
+    if (before === after) return project;
+    return this.preflightDatasetChange(
+      project,
+      {
+        operation: 'cell',
+        datasetId,
+        fieldId,
+        rowIndex,
+        before,
+        after,
+      },
+      now,
+      canCommit,
+    );
+  }
   removeDataset(project: Project, id: string, now: string): Project {
     const index = project.datasets.findIndex((dataset) => dataset.id === id);
     if (index === -1) return project;
-    const change: DatasetDelta = {
+    const change: DatasetMembershipDelta = {
       operation: 'remove',
       index,
       dataset: project.datasets[index],
@@ -329,9 +418,7 @@ export class StudioHistory {
       documents,
       manifest: {
         ...project.manifest,
-        updatedAt: new Date(
-          Math.max(Date.parse(now), Date.parse(project.manifest.updatedAt)),
-        ).toISOString(),
+        updatedAt: updatedAt(project, now),
       },
     });
     const pageId = direction === 'undo' ? entry.beforePage : entry.afterPage;
