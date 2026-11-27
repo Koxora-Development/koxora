@@ -6,6 +6,7 @@ import {
 } from '@koxora/editor-core';
 import { useEffect, useId, useState, type Ref } from 'react';
 import {
+  DATA_CHART_KIND,
   type Page,
   type Style,
   type Project,
@@ -487,9 +488,11 @@ export function ElementDialog({
   onApply,
   panel = false,
   onDraftChange,
+  onEditChart,
 }: {
   panel?: boolean;
   onDraftChange?: (dirty: boolean) => void;
+  onEditChart: () => void;
   project: Project;
   page: Page;
   styles: Style[];
@@ -501,6 +504,7 @@ export function ElementDialog({
   const t = (key: MessageKey) => translate(locale, key);
   const node = page.nodes.find((n) => n.id === id),
     edge = page.connections.find((e) => e.id === id);
+  const chart = node?.kind === DATA_CHART_KIND;
   const [tab, setTab] = useState(
     node && ['container', 'table'].includes(node.kind) ? 'text' : 'format',
   );
@@ -702,7 +706,11 @@ export function ElementDialog({
                 tabIndex={tab === value ? 0 : -1}
                 onClick={() => setTab(value)}
               >
-                {t(`office.property.${value}` as MessageKey)}
+                {t(
+                  value === 'text' && chart
+                    ? 'chart.title'
+                    : (`office.property.${value}` as MessageKey),
+                )}
               </button>
             ))}
           </div>
@@ -735,7 +743,16 @@ export function ElementDialog({
               }}
             />
           )}
-          {node?.kind !== 'table' && (
+          {chart && (
+            <button
+              type="button"
+              className="button compact"
+              onClick={onEditChart}
+            >
+              {t('chart.edit')}
+            </button>
+          )}
+          {!chart && node?.kind !== 'table' && (
             <fieldset className="label-editor">
               <legend>
                 {t(

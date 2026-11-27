@@ -1,6 +1,6 @@
 # Local CSV and TSV import
 
-This Phase 3 package adds local delimited import for DATA-001, with initial column type detection for DATA-007 and portable source snapshots for DATA-016. Product Owner acceptance is pending. [Feature catalog](../product/feature-catalog.md)
+The Product Owner accepted this Phase 3 package, and it was merged in [PR #67](https://github.com/Koxora-Development/koxora/pull/67) on 2026-11-26 (`4e6f0fd`). It adds local delimited import for DATA-001, with initial column type detection for DATA-007 and portable source snapshots for DATA-016. [Feature catalog](../product/feature-catalog.md)
 
 ## Import and inspect data
 
@@ -18,7 +18,7 @@ Column suggestions recognize strict decimal numbers, `true` and `false`, and dat
 
 Stored rows and column definitions use the existing `.koxora` dataset schema. Source metadata records the format, encoding, delimiter and header choice. Save and reopen or export and import the project to inspect the same data independently of its source file. Removal checks for declared references across documents and templates, including bindings, filter actions and domain model references. [Project format](../architecture/project-format.md)
 
-Spreadsheet formats, dataset bindings, charts and diagram exports are planned separately. [Roadmap](../roadmap.md)
+To visualize a saved dataset, use the [column and line chart workflow](data-charts.md). Spreadsheet formats and diagram exports are tracked in the [roadmap](../roadmap.md).
 
 ## Acceptance scenarios
 

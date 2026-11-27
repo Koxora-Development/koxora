@@ -26,3 +26,4 @@ export * from './table-operations';
 
 export * from './table-formulas';
 export * from './delimited-data';
+export * from './data-charts';

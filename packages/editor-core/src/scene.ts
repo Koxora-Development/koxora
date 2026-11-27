@@ -14,7 +14,14 @@ import {
   segmentDistance,
 } from './interaction';
 import { jsonObject } from './shapes';
-import type { Node, Page, Style } from '@koxora/project';
+import {
+  DATA_CHART_KIND,
+  type Dataset,
+  type Node,
+  type Page,
+  type Style,
+} from '@koxora/project';
+import { buildDataChart, type DataChart } from './data-charts';
 import { intersects, type Bounds, type Point } from './viewport';
 import {
   containsShape,
@@ -42,6 +49,7 @@ export interface SceneNode {
   label: string;
   richText?: RichText;
   textRegions?: TextRegions;
+  chart?: DataChart;
   style: Appearance;
   editable: boolean;
   layerOrder: number;
@@ -109,6 +117,7 @@ export function buildScene(
   page: Pick<Page, 'nodes' | 'connections' | 'layers'> &
     Partial<Pick<Page, 'extensions'>>,
   styles: Style[] = [],
+  datasets: readonly Dataset[] = [],
 ): Scene {
   const layers = layerStates(page.layers);
   const appearance = appearanceResolver(styles);
@@ -125,6 +134,8 @@ export function buildScene(
       )
         return [];
       const style = appearance(node);
+      const chart =
+        node.kind === DATA_CHART_KIND ? buildDataChart(node, datasets) : null;
       return [
         {
           id: node.id,
@@ -157,6 +168,7 @@ export function buildScene(
               ? node.content.text.slice(0, MAX_TEXT)
               : node.kind.slice(0, 120),
           textRegions: readTextRegions(node) ?? undefined,
+          ...(chart ? { chart } : {}),
           style,
           editable: layer.editable && supported(node),
           layerOrder: layer.order,

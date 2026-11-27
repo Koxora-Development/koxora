@@ -68,4 +68,6 @@ The remaining editor project/element navigation from Issue #24 was accepted and 
 
 [PR #66](https://github.com/Koxora-Development/koxora/pull/66) was accepted and merged on 2026-11-25 (`1b123b8`). Named lane shapes organize process steps by role, and the service-request starter demonstrates a flow across three lanes. See [swimlane authoring](docs/development/swimlanes.md).
 
-The first Phase 3 package adds [local CSV and TSV import](docs/development/delimited-data-import.md). Review a bounded preview, confirm the header and column types, and inspect the imported dataset in the project after reopening.
+[PR #67](https://github.com/Koxora-Development/koxora/pull/67) was accepted and merged on 2026-11-26 (`4e6f0fd`). Review a bounded preview, confirm the header and column types, and inspect the imported dataset after reopening the project. See [local CSV and TSV import](docs/development/delimited-data-import.md).
+
+The active Phase 3 package adds [column and line charts from saved datasets](docs/development/data-charts.md). Choose **Insert → Chart…** to insert a suggested chart, then double-click it to edit its fields, title or colors.

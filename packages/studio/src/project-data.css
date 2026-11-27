@@ -148,13 +148,35 @@
   margin-block: calc(6px * var(--ui-scale, 1));
 }
 
-.studio-dialog.project-data-dialog > .dialog-actions {
+:is(.studio-dialog.project-data-dialog, .chart-settings-form)
+  > .dialog-actions {
   position: static;
   flex: none;
   flex-wrap: wrap;
   margin: 0;
   padding: calc(8px * var(--ui-scale, 1)) 0 0;
   border-top: 1px solid var(--line);
+}
+
+.studio-dialog.chart-settings-dialog[open] {
+  width: min(calc(550px * var(--ui-scale, 1)), calc(100vw - 24px));
+}
+
+.chart-settings-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chart-palette-preview {
+  display: flex;
+  gap: calc(4px * var(--ui-scale, 1));
+}
+
+.chart-palette-preview > span {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(8px * var(--ui-scale, 1));
+  border-radius: calc(2px * var(--ui-scale, 1));
 }
 
 .project-data-dialog .button {

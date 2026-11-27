@@ -25,7 +25,13 @@ import {
   type ReactNode,
 } from 'react';
 import { translate, type MessageKey } from '@koxora/i18n';
-import type { Page, Style, Node, Project } from '@koxora/project';
+import {
+  DATA_CHART_KIND,
+  type Page,
+  type Style,
+  type Node,
+  type Project,
+} from '@koxora/project';
 import {
   transformActions,
   transformedGeometry,
@@ -126,6 +132,7 @@ export type CanvasCommandState = {
   selected: number;
   selectedNodes: number;
   selectedLane: boolean;
+  selectedChart: boolean;
   canPaste: boolean;
   propertiesVisible: boolean;
   objectsVisible: boolean;
@@ -142,11 +149,12 @@ export interface CanvasHandle {
   showHelp: () => void;
   toggleObjects: () => void;
   snapshot: () => CanvasState;
+  insertionLayer: () => string;
   preview: (action: Arrangement | null) => void;
 }
 interface Props {
   project: Project;
-  focusTarget?: { id: string; nonce: number } | null;
+  focusTarget?: { id: string; nonce: number; selectOnly?: boolean } | null;
   onTargetApplied: () => void;
   onFollowPage: (pageId: string) => boolean;
   onNavigate: () => void;
@@ -156,6 +164,7 @@ interface Props {
   page: Page;
   styles: Style[];
   onEdit: (command: EditCommand) => boolean;
+  onEditChart: (id: string) => void;
   history: { undo: number; redo: number };
   onHistory: (direction: 'undo' | 'redo') => boolean;
   documentTitle: string;
@@ -179,6 +188,7 @@ export function Canvas({
   page,
   styles,
   onEdit: commitEdit,
+  onEditChart,
   history,
   onHistory,
   documentTitle,
@@ -334,8 +344,16 @@ export function Canvas({
           extensions: page.extensions,
         },
         styles,
+        project.datasets,
       ),
-    [page.nodes, page.connections, page.layers, page.extensions, styles],
+    [
+      page.nodes,
+      page.connections,
+      page.layers,
+      page.extensions,
+      styles,
+      project.datasets,
+    ],
   );
   const scene = baseScene;
   const directTable =
@@ -376,6 +394,12 @@ export function Canvas({
     }
     setEditError(null);
     select([id]);
+    if (direct && item.kind === DATA_CHART_KIND) {
+      closeEditing();
+      setContextMenu(null);
+      onEditChart(id);
+      return;
+    }
     const structured = item.kind === 'container' || item.kind === 'table';
     const sceneNode = scene.nodes.find((n) => n.id === id);
     setTextRegion(
@@ -602,6 +626,11 @@ export function Canvas({
     scene.nodes.some(
       (n) => n.id === editableSelection[0] && isSwimlane(n.kind),
     );
+  const selectedChart =
+    editableSelection.length === 1 &&
+    scene.nodes.some(
+      (n) => n.id === editableSelection[0] && n.kind === DATA_CHART_KIND,
+    );
   const selectedNodes = editableSelection.filter((id) =>
     editableNodeIds.has(id),
   ).length;
@@ -615,6 +644,7 @@ export function Canvas({
       selected: editableSelection.length,
       selectedNodes,
       selectedLane,
+      selectedChart,
       canPaste: hasClipboard,
       propertiesVisible: inspectorOpen,
       objectsVisible: objects,
@@ -624,6 +654,7 @@ export function Canvas({
     editableSelection.length,
     selectedNodes,
     selectedLane,
+    selectedChart,
     hasClipboard,
     inspectorOpen,
     objects,
@@ -895,6 +926,7 @@ export function Canvas({
   useImperativeHandle(ref, () => ({
     preview: previewArrangement,
     snapshot: () => state.current,
+    insertionLayer: () => layerId,
     prepare,
     run: command,
     tool: (next) => {
@@ -920,6 +952,7 @@ export function Canvas({
       drawing.current!,
       pattern.current!,
       gridRect.current!,
+      locale,
     );
 
     const ports = new ConnectionPorts(
@@ -1479,6 +1512,7 @@ export function Canvas({
               ),
             },
             styles,
+            project.datasets,
           );
         }
       } else if (gesture.kind === 'move') {
@@ -2061,10 +2095,16 @@ export function Canvas({
       ports.clear();
     };
     // Content transactions replace the scene; navigation retains the current scene.
-  }, [content, scene, locale, layerId, styles]);
+  }, [content, scene, locale, layerId, styles, project.datasets]);
   useEffect(() => {
     if (!focusTarget) return;
-    if (!controls.current?.target(focusTarget.id)) setFeedback('links.missing');
+    if (focusTarget.selectOnly) {
+      interaction.current.activate('select');
+      interaction.current.select([focusTarget.id]);
+      controls.current?.focus();
+    } else if (!controls.current?.target(focusTarget.id)) {
+      setFeedback('links.missing');
+    }
     onTargetApplied();
   }, [focusTarget, onTargetApplied]);
   useEffect(() => {
@@ -2357,7 +2397,7 @@ export function Canvas({
                   className="button compact"
                   onClick={() => pick(editableSelection[0], true)}
                 >
-                  {t('rich.edit')}
+                  {t(selectedChart ? 'chart.edit' : 'rich.edit')}
                 </button>
               )}
               <button
@@ -2700,7 +2740,7 @@ export function Canvas({
             )}
             {editableSelection.length === 1 && (
               <button role="menuitem" onClick={() => command('text')}>
-                {t('rich.edit')}
+                {t(selectedChart ? 'chart.edit' : 'rich.edit')}
               </button>
             )}
             {selectedLane && (
@@ -2927,6 +2967,7 @@ export function Canvas({
                 onApply={commitEdit}
                 onCancel={resetProperties}
                 onDraftChange={reportPropertyDraft}
+                onEditChart={() => pick(propertyId, true)}
               />
             ) : !inline && editableSelection.length > 1 ? (
               <FormatSelection

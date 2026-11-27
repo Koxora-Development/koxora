@@ -191,3 +191,9 @@ Existing string anchors retain their meaning and are not rewritten merely by rea
 The [swimlane editor](../development/swimlanes.md) adds `swimlane-horizontal` and `swimlane-vertical` node kinds. Both store their heading as ordinary node text and use the existing geometry and appearance fields. The renderer puts the band behind other elements within its own layer. A step's position determines containment, and ordinary connections retain their endpoint IDs.
 
 Either lane kind requires `swimlanes-v1` in `manifest.requiredFeatures`, including when it occurs in an embedded template document. ZIP and schema version numbers remain at 1.0.0. Older readers reject the unknown required profile. Subsequent edits retain the marker, and projects with no lane data can use their existing features.
+
+## Dataset charts
+
+A `data-chart` node stores a nonblank title of up to 4,096 16-bit code units as `content.text`. Its `org.koxora.chart` extension version 1 stores `type` (`column` or `line`) and `palette` (`studio`, `ocean` or `warm`). Its two `dataBindings` entries identify the category field first and the numeric value field second. Both entries refer to distinct fields of the same project dataset. The category field can be a string, boolean, date or number. The chart resolves rows from the referenced project dataset as it renders.
+
+The profile requires `data-charts-v1` in `manifest.requiredFeatures`, including for charts in embedded template documents. Older readers reject the unknown required feature. Future positive integer profile versions under the supported marker are preserved as read-only data, with the general project reference rules still applying. See [dataset charts](../development/data-charts.md) for authoring and display limits.

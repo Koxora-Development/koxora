@@ -14,6 +14,7 @@ import {
   type RichText,
 } from './rich-text';
 import { FREEHAND_KEY, freehandGeometry, readFreehand } from './freehand';
+import { type ChartSettings } from './data-charts';
 import {
   STACK_KEY,
   readStackOrder,
@@ -30,6 +31,10 @@ import {
   isConnectionAnchor,
   isSwimlaneKind,
   withSwimlaneFeature,
+  DATA_CHART_KIND,
+  DATA_CHART_KEY,
+  readChartConfig,
+  withDataChartFeature,
   type Project,
   type Node,
   type Connection,
@@ -84,6 +89,14 @@ import {
 } from './text-regions';
 export type EditCommand =
   | { type: 'link'; id: string; link: LinkChange }
+  | {
+      type: 'insertChart';
+      id: string;
+      layerId: string;
+      position: Point;
+      settings: ChartSettings;
+    }
+  | { type: 'updateChart'; id: string; settings: ChartSettings }
   | {
       type: 'freehand';
       id: string;
@@ -227,7 +240,10 @@ export function assertEditableElement(item: Node | Connection): void {
     )
       throw new EditError('unsupported');
     if (
-      (!isShapeKind(n.kind) && n.kind !== 'freehand') ||
+      (!isShapeKind(n.kind) &&
+        n.kind !== 'freehand' &&
+        n.kind !== DATA_CHART_KIND) ||
+      (n.kind === DATA_CHART_KIND && !readChartConfig(n)) ||
       (n.kind === 'freehand' && !readFreehand(n)) ||
       (n.extensions[FREEHAND_TEXT_KEY] !== undefined &&
         (n.kind !== 'freehand' ||
@@ -527,7 +543,11 @@ export function applyEdit(
     if (
       command.type === 'richText' &&
       (!isRichText(command.value) ||
-        items.some((item) => 'kind' in item && item.kind === 'table'))
+        items.some(
+          (item) =>
+            'kind' in item &&
+            (item.kind === 'table' || item.kind === DATA_CHART_KIND),
+        ))
     )
       throw new EditError('invalid');
     const update = <T extends Node | Connection>(item: T): T => {
@@ -591,6 +611,67 @@ export function applyEdit(
     };
     nodes = nodes.map(update);
     connections = connections.map(update);
+  } else if (command.type === 'insertChart' || command.type === 'updateChart') {
+    const { datasetId, categoryFieldId, valueFieldId, title, type, palette } =
+      command.settings;
+    text(title);
+    let chart: Node;
+    if (command.type === 'insertChart') {
+      editable(command.layerId);
+      const width = 480;
+      const height = 320;
+      const grid = readCanvas(page).grid;
+      const position = snapPoint(
+        {
+          x: command.position.x - width / 2,
+          y: command.position.y - height / 2,
+        },
+        grid.spacing,
+        grid.snap,
+      );
+      const geometry = { ...position, width, height, rotation: 0 };
+      assertGeometry(geometry);
+      chart = {
+        id: command.id,
+        kind: DATA_CHART_KIND,
+        layerId: command.layerId,
+        geometry,
+        content: {},
+        metadata: {},
+        assetIds: [],
+        dataBindings: [],
+        extensions: {
+          [ELEMENT_KEY]: {
+            version: 1,
+            style: { fill: '#ffffff', stroke: '#94a3b8', strokeWidth: 1 },
+          },
+        },
+      };
+    } else {
+      chart = node(command.id);
+      if (chart.kind !== DATA_CHART_KIND) throw new EditError('invalid');
+    }
+    const updated: Node = {
+      ...chart,
+      content: { ...chart.content, text: title },
+      dataBindings: [
+        { datasetId, fieldId: categoryFieldId },
+        { datasetId, fieldId: valueFieldId },
+      ],
+      extensions: {
+        ...chart.extensions,
+        [DATA_CHART_KEY]: {
+          ...jsonObject(chart.extensions[DATA_CHART_KEY]),
+          version: 1,
+          type,
+          palette,
+        },
+      },
+    };
+    nodes =
+      command.type === 'insertChart'
+        ? [...nodes, updated]
+        : nodes.map((item) => (item.id === updated.id ? updated : item));
   } else if (command.type === 'insert') {
     editable(command.layerId);
     text(command.text ?? '');
@@ -893,7 +974,7 @@ export function applyEdit(
     )
       throw new EditError('invalid');
     if (
-      n.kind === 'table' &&
+      (n.kind === 'table' || n.kind === DATA_CHART_KIND) &&
       (command.richText ||
         (command.textRegions === undefined && command.text !== n.content.text))
     )
@@ -1269,6 +1350,12 @@ export function applyEdit(
       command.nodes.some((node) => isSwimlaneKind(node.kind)))
   )
     next = withSwimlaneFeature(next);
+  if (
+    command.type === 'insertChart' ||
+    (command.type === 'paste' &&
+      command.nodes.some((node) => node.kind === DATA_CHART_KIND))
+  )
+    next = withDataChartFeature(next);
   validateProject(next);
   return next;
 }

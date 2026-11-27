@@ -3,6 +3,8 @@ import {
   type Project,
   type Document,
   type Extensible,
+  type Field,
+  type Node,
   type Style,
   type Json,
 } from './types';
@@ -45,6 +47,14 @@ import {
   isConnectionAnchor,
 } from './connection-ports';
 import {
+  DATA_CHART_FEATURE,
+  DATA_CHART_KEY,
+  DATA_CHART_KIND,
+  isChartCategoryField,
+  readChartBindings,
+  readChartConfig,
+} from './data-charts';
+import {
   isTextRegions,
   hasAdvancedTextRegions,
   hasTableCalculations,
@@ -54,6 +64,7 @@ import {
   TEXT_REGIONS_FEATURE,
 } from './text-regions';
 export const FEATURES = [
+  DATA_CHART_FEATURE,
   SWIMLANES_FEATURE,
   CONNECTION_PORTS_FEATURE,
   CONNECTION_DECORATIONS_FEATURE,
@@ -94,7 +105,7 @@ export function validateProject(
     documents = new Set<string>(),
     assets = new Set<string>(),
     styles = new Set<string>();
-  const datasets = new Map<string, Set<string>>(),
+  const datasets = new Map<string, Map<string, Field>>(),
     pending: (() => void)[] = [];
   const register = (value: unknown, path: string) => {
     id(value, path);
@@ -255,11 +266,11 @@ export function validateProject(
     compatible(dataset.schemaVersion, `${path}.schemaVersion`);
     text(dataset.title, `${path}.title`);
     record(dataset.source, `${path}.source`);
-    const fields = new Set<string>();
+    const fields = new Map<string, Field>();
     each(dataset.fields, `${path}.fields`, (field, at) => {
       ext(field, at);
       register(field.id, `${at}.id`);
-      fields.add(field.id);
+      fields.set(field.id, field);
       text(field.name, `${at}.name`);
       check(
         ['string', 'number', 'boolean', 'date', 'json'].includes(field.type),
@@ -330,6 +341,46 @@ export function validateProject(
     pending.push(() =>
       check(datasets.get(datasetId)?.has(fieldId), path, 'datasetReference'),
     );
+  }
+  function chart(node: Node, path: string) {
+    const profile = node.extensions[DATA_CHART_KEY];
+    if (node.kind !== DATA_CHART_KIND && profile === undefined) return;
+    const profilePath = `${path}.extensions.${DATA_CHART_KEY}`;
+    check(
+      manifest.requiredFeatures.includes(DATA_CHART_FEATURE),
+      profilePath,
+      'feature',
+    );
+    check(node.kind === DATA_CHART_KIND, `${path}.kind`, 'chartKind');
+    record(profile, profilePath);
+    check(
+      typeof profile.version === 'number' &&
+        Number.isSafeInteger(profile.version) &&
+        profile.version >= 1,
+      `${profilePath}.version`,
+      'chartVersion',
+    );
+    // Future positive profile versions remain opaque under the known marker.
+    if (profile.version !== 1) return;
+    check(readChartConfig(node), profilePath, 'chartConfig');
+    text(node.content.text, `${path}.content.text`);
+    const bindingsPath = `${path}.dataBindings`;
+    const bindings = readChartBindings(node);
+    check(bindings, bindingsPath, 'chartBindings');
+    pending.push(() => {
+      const fields = datasets.get(bindings.datasetId);
+      const categoryField = fields?.get(bindings.categoryFieldId);
+      check(
+        categoryField && isChartCategoryField(categoryField),
+        `${bindingsPath}[0].fieldId`,
+        'chartCategoryField',
+      );
+      check(
+        fields?.get(bindings.valueFieldId)?.type === 'number',
+        `${bindingsPath}[1].fieldId`,
+        'chartValueField',
+      );
+    });
   }
   function document(doc: Document, path: string) {
     ext(doc, path);
@@ -465,6 +516,7 @@ export function validateProject(
         each(node.dataBindings, `${np}.dataBindings`, (item, dp) =>
           binding(item.datasetId, item.fieldId, dp),
         );
+        chart(node, np);
       });
       each(page.connections, `${at}.connections`, (edge, ep) => {
         ext(edge, ep);
