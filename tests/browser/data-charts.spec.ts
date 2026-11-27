@@ -237,6 +237,126 @@ test('inserting and double-clicking a chart retain dataset bindings through hist
   expect(after.documents[0].pages[0].nodes).toEqual([node]);
 });
 
+test('pie shares follow stored data edits and area charts keep their typed dataset binding', async ({
+  page,
+}) => {
+  const messages = messagesFor('en');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await startProject(page, messages);
+  const data = await openData(page, messages);
+  await importData(
+    data,
+    messages,
+    'totals.csv',
+    'Region,Amount\nNorth,10\nWest,45\nEast,\nNorth,5',
+  );
+  await data
+    .getByRole('button', { name: messages['office.close'], exact: true })
+    .click();
+  const chooser = await openChartChooser(page, messages);
+  await chooser
+    .getByRole('button', { name: messages['chart.insertConfirm'], exact: true })
+    .press('Enter');
+  const canvas = page.getByRole('region', {
+    name: messages['canvas.navigation'],
+    exact: true,
+  });
+  const chart = canvas.locator('svg[data-chart]');
+  await expect(chart).toHaveAttribute('data-chart', 'column');
+
+  async function changeType(type: 'area' | 'pie') {
+    await canvas.locator('[data-node-id] > .scene-node').dblclick();
+    const edit = page.getByRole('dialog', {
+      name: messages['chart.edit'],
+      exact: true,
+    });
+    await edit
+      .getByRole('combobox', { name: messages['chart.type'], exact: true })
+      .selectOption(type);
+    await edit
+      .getByRole('button', { name: messages['chart.apply'], exact: true })
+      .press('Enter');
+    await expect(chart).toHaveAttribute('data-chart', type);
+  }
+
+  await changeType('pie');
+  const labels = chart.locator('[data-chart-pie-label]');
+  const shares = chart.locator('[data-chart-pie-share]');
+  await expect(chart.locator('[data-chart-slice]')).toHaveCount(2);
+  await expect(labels).toHaveText(['West', 'North']);
+  await expect(shares).toHaveText(['75%', '25%']);
+
+  async function editWest(from: string, to: string, checkInvalid = false) {
+    await openData(page, messages);
+    const row = data.getByRole('row').filter({
+      has: page.getByRole('cell', { name: 'West', exact: true }),
+    });
+    const cell = row.getByRole('cell', { name: from, exact: true });
+    await cell.press('Enter');
+    const input = data.getByRole('textbox', {
+      name: messages['data.cellValue'],
+      exact: true,
+    });
+    const save = data.getByRole('button', {
+      name: messages['data.cellSave'],
+      exact: true,
+    });
+    if (checkInvalid) {
+      await input.fill('invalid');
+      await save.click();
+      await expect(input).toHaveAttribute('aria-invalid', 'true');
+      await data
+        .getByRole('button', { name: messages['data.saved'], exact: true })
+        .press('Escape');
+      await expect(cell).toBeFocused();
+      await expect(input).toHaveCount(0);
+      await cell.press('Enter');
+    }
+    await input.fill(to);
+    await save.click();
+    await expect(input).toHaveCount(0);
+    await expect(
+      row.getByRole('cell', { name: to, exact: true }),
+    ).toBeVisible();
+    await data
+      .getByRole('button', { name: messages['office.close'], exact: true })
+      .click();
+  }
+
+  await editWest('45', '5', true);
+  await expect(labels).toHaveText(['North', 'West']);
+  await expect(shares).toHaveText(['75%', '25%']);
+  await page
+    .getByRole('button', { name: messages['editing.undo'], exact: true })
+    .press('Enter');
+  await expect(labels).toHaveText(['West', 'North']);
+  await page
+    .getByRole('button', { name: messages['editing.redo'], exact: true })
+    .press('Enter');
+  await expect(labels).toHaveText(['North', 'West']);
+
+  await editWest('5', '-5');
+  await expect(
+    chart.locator('[data-chart-pie-status="negative"]'),
+  ).toBeVisible();
+  await expect(chart.locator('[data-chart-slice]')).toHaveCount(0);
+  await changeType('area');
+  await expect(chart.locator('[data-chart-area]')).toHaveCount(1);
+  await expect(chart.locator('[data-chart-point="2"]')).toHaveCount(0);
+  const stored = await archive(page, messages);
+  expect(stored.manifest.requiredFeatures).toContain('data-chart-types-v2');
+  const node = stored.documents[0].pages[0].nodes[0];
+  expect(node.extensions['org.koxora.chart']).toMatchObject({
+    version: 2,
+    type: 'area',
+  });
+  expect(node.dataBindings.map(({ datasetId }) => datasetId)).toEqual([
+    stored.datasets[0].id,
+    stored.datasets[0].id,
+  ]);
+  expect(stored.datasets[0].rows[1][node.dataBindings[1].fieldId]).toBe(-5);
+});
+
 test('German chart insertion opens import when empty and uses the chosen dataset on a narrow screen', async ({
   page,
 }) => {

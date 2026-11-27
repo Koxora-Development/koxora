@@ -8,9 +8,11 @@ import {
   synchronizeIndexes,
   type Dataset,
 } from '@koxora/project';
+import { buildDataChart } from './data-charts';
 import { applyEdit } from './editing';
 import { activePageId, selectPage, writeCanvas } from './project-view';
 import { StudioHistory } from './studio-history';
+import { copyTemplateProject } from './templates';
 import { applyWorkbook } from './workbook';
 
 const now = '2026-11-25T10:00:00.000Z';
@@ -277,5 +279,114 @@ describe('studio dataset history', () => {
     await expect(pending).rejects.toMatchObject({ code: 'conflict' });
     expect(history.status()).toEqual({ undo: 0, redo: 0 });
     expect(base.datasets).toEqual([]);
+  });
+
+  it('edits one typed cell and updates a bound chart without rewriting the drawing or template snapshot', async () => {
+    const base = createProject('Workbook', makeId, now);
+    const data = dataset('Orders');
+    const count = data.fields[0].id;
+    const label = makeId();
+    data.fields.push({
+      id: label,
+      name: 'Month',
+      type: 'string',
+      nullable: false,
+      extensions: {},
+    });
+    data.rows = [
+      { [count]: 12, [label]: 'January' },
+      { [count]: 15, [label]: 'February' },
+    ];
+    // This metadata would exceed the history budget if the entry retained a full dataset.
+    data.source.description = 'a'.repeat(2000);
+    const imported = await new StudioHistory().addDataset(base, data, now);
+    const doc = imported.documents[0];
+    const page = doc.pages[0];
+    const charted = applyEdit(
+      imported,
+      doc.id,
+      page.id,
+      {
+        type: 'insertChart',
+        id: makeId(),
+        layerId: page.layers[0].id,
+        position: { x: 0, y: 0 },
+        settings: {
+          type: 'line',
+          palette: 'ocean',
+          title: 'Orders',
+          datasetId: data.id,
+          categoryFieldId: label,
+          valueFieldId: count,
+        },
+      },
+      now,
+    );
+    const template = copyTemplateProject(charted, makeId, now);
+    const history = new StudioHistory(20, 512);
+    const change = {
+      datasetId: data.id,
+      rowIndex: 0,
+      fieldId: count,
+      value: 40,
+    };
+    const next = await history.editDatasetCell(charted, change, now);
+    const chart = charted.documents[0].pages[0].nodes[0];
+    expect(buildDataChart(chart, next.datasets)?.points[0]).toEqual({
+      label: 'January',
+      value: 40,
+    });
+    expect(next.documents).toBe(charted.documents);
+    expect(next.indexes).toBe(charted.indexes);
+    expect(next.datasets[0].fields).toBe(charted.datasets[0].fields);
+    expect(next.datasets[0].source).toBe(charted.datasets[0].source);
+    expect(next.datasets[0].rows[1]).toBe(charted.datasets[0].rows[1]);
+    expect(template.datasets[0].rows[0][count]).toBe(12);
+    const undone = history.travel(next, doc.id, page.id, 'undo', now);
+    expect(buildDataChart(chart, undone.datasets)?.points[0].value).toBe(12);
+    const redone = history.travel(undone, doc.id, page.id, 'redo', now);
+    expect(buildDataChart(chart, redone.datasets)?.points[0].value).toBe(40);
+    expect((await importProject(await exportProject(redone))).datasets).toEqual(
+      redone.datasets,
+    );
+  });
+
+  it('leaves a typed edit and its history atomic on invalid, unchanged and stale inputs', async () => {
+    const base = createProject('Workbook', makeId, now);
+    const data = dataset('Orders');
+    const imported = await new StudioHistory().addDataset(base, data, now);
+    const history = new StudioHistory();
+    const edit = {
+      datasetId: data.id,
+      fieldId: data.fields[0].id,
+      rowIndex: 0,
+    };
+    await expect(
+      history.editDatasetCell(imported, { ...edit, value: '12' }, now),
+    ).rejects.toMatchObject({ reason: 'number' });
+    await expect(
+      history.editDatasetCell(imported, { ...edit, value: null }, now),
+    ).rejects.toMatchObject({ reason: 'nullable' });
+    await expect(
+      history.editDatasetCell(
+        imported,
+        { ...edit, rowIndex: 100, value: 12 },
+        now,
+      ),
+    ).rejects.toThrow('invalid');
+    await expect(
+      history.editDatasetCell(imported, { ...edit, value: 12 }, now),
+    ).resolves.toBe(imported);
+    let canCommit = true;
+    const pending = history.editDatasetCell(
+      imported,
+      { ...edit, value: 40 },
+      now,
+      () => canCommit,
+    );
+    canCommit = false;
+    await expect(pending).rejects.toMatchObject({ code: 'conflict' });
+    expect(history.status()).toEqual({ undo: 0, redo: 0 });
+    expect(imported.datasets[0].rows[0][edit.fieldId]).toBe(12);
   });
 });

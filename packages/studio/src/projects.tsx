@@ -2221,6 +2221,11 @@ export function Projects({
                 history.removeDataset(current, id, now),
               )
             }
+            onEditCell={(change) =>
+              updateProjectData((current, now, canCommit) =>
+                history.editDatasetCell(current, change, now, canCommit),
+              )
+            }
             onClose={() => setDataProjectId(null)}
           />
         )}

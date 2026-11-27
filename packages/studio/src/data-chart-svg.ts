@@ -1,11 +1,15 @@
 import { CHART_PALETTES, FONT_FAMILIES } from '@koxora/editor-core';
-import type { Appearance, DataChart } from '@koxora/editor-core';
+import type { Appearance, Bounds, DataChart } from '@koxora/editor-core';
 import { translate } from '@koxora/i18n';
 
 type SvgFactory = (
   tag: string,
   attributes?: Record<string, string | number>,
 ) => SVGElement;
+type ChartText = (
+  label: string,
+  attributes: Record<string, string | number>,
+) => void;
 
 /** Use decimal steps and normalize before subtraction so a finite series never overflows. */
 function chartScale(points: DataChart['points']) {
@@ -50,6 +54,7 @@ const formatters = new Map<
     axis: Intl.NumberFormat;
     scientific: Intl.NumberFormat;
     count: Intl.NumberFormat;
+    percent: Intl.NumberFormat;
   }
 >();
 function numberFormatters(locale: string) {
@@ -62,6 +67,10 @@ function numberFormatters(locale: string) {
       maximumSignificantDigits: 4,
     }),
     count: new Intl.NumberFormat(locale),
+    percent: new Intl.NumberFormat(locale, {
+      style: 'percent',
+      maximumFractionDigits: 1,
+    }),
   };
   formatters.set(locale, format);
   return format;
@@ -78,6 +87,132 @@ function fittedLabel(label: string, width: number, size: number) {
         .trimEnd()}…`;
 }
 
+function appendPieChart(
+  content: SVGElement,
+  chart: DataChart,
+  box: Bounds,
+  labelSize: number,
+  locale: string,
+  text: ChartText,
+  svg: SvgFactory,
+) {
+  if (chart.pie?.status !== 'ready') return;
+  const { slices } = chart.pie;
+  const colors = CHART_PALETTES[chart.palette];
+  const rowHeight = labelSize * 1.45;
+  const legendHeight = rowHeight * (slices.length + 1);
+  const inset = labelSize * 0.75;
+  const inline = box.width >= Math.max(labelSize * 24, box.height * 1.05);
+  const legendVisible =
+    box.height >= legendHeight + (inline ? 0 : labelSize * 5);
+  const diskWidth = legendVisible && inline ? box.width * 0.44 : box.width;
+  const diskHeight =
+    legendVisible && !inline ? box.height - legendHeight : box.height;
+  const radius = Math.max(0, Math.min(diskWidth, diskHeight) / 2 - inset);
+  const cx = box.x + diskWidth / 2;
+  const cy = box.y + diskHeight / 2;
+  const edge = (turns: number) => {
+    const angle = (turns - 0.25) * 2 * Math.PI;
+    return `${cx + radius * Math.cos(angle)} ${cy + radius * Math.sin(angle)}`;
+  };
+  const arc = (turns: number) => `A ${radius} ${radius} 0 0 1 ${edge(turns)}`;
+  let start = 0;
+  for (const [index, { share }] of slices.entries()) {
+    const end = Math.min(1, start + share);
+    if (end <= start || radius <= 0) continue;
+    const attrs = {
+      fill: colors[index % colors.length],
+      'data-chart-slice': index,
+    };
+    content.append(
+      end - start >= 1
+        ? svg('circle', { ...attrs, cx, cy, r: radius })
+        : svg('path', {
+            ...attrs,
+            d: `M ${cx} ${cy} L ${edge(start)} ${end - start > 0.5 ? `${arc((start + end) / 2)} ` : ''}${arc(end)} Z`,
+          }),
+    );
+    start = end;
+  }
+  if (!legendVisible) return;
+
+  const legendLeft = inline ? box.x + diskWidth + inset : box.x + inset;
+  const legendRight = box.x + box.width - inset;
+  const legendTop = inline
+    ? box.y + (box.height - legendHeight) / 2
+    : box.y + diskHeight;
+  const legendWidth = legendRight - legendLeft;
+  const percent = numberFormatters(locale).percent;
+  const shares = slices.map(({ share }) => {
+    if (share < 0.001)
+      return translate(locale, 'data.chartPieSmallShare', {
+        value: percent.format(0.001),
+      });
+    if (slices.length > 1 && share > 0.999)
+      return translate(locale, 'data.chartPieLargeShare', {
+        value: percent.format(0.999),
+      });
+    return percent.format(share);
+  });
+  const shareWidth =
+    Math.max(...shares.map((share) => share.length)) * labelSize * 0.65;
+  const categoryX = legendLeft + labelSize * 1.35;
+  text(
+    fittedLabel(
+      `${chart.categoryLabel} · ${chart.valueLabel}`,
+      legendWidth,
+      labelSize,
+    ),
+    {
+      x: legendLeft,
+      y: legendTop + rowHeight / 2,
+      'text-anchor': 'start',
+      'font-size': labelSize,
+      'font-weight': 600,
+      'data-chart-pie-fields': '',
+    },
+  );
+  for (const [index, { label, grouped }] of slices.entries()) {
+    const y = legendTop + rowHeight * (index + 1.5);
+    content.append(
+      svg('rect', {
+        x: legendLeft,
+        y: y - labelSize * 0.4,
+        width: labelSize * 0.8,
+        height: labelSize * 0.8,
+        rx: 1,
+        fill: colors[index % colors.length],
+        'data-chart-pie-swatch': index,
+      }),
+    );
+    const name = grouped
+      ? translate(locale, 'data.chartPieOther')
+      : label.trim() || translate(locale, 'data.chartPieBlank');
+    text(
+      fittedLabel(
+        name,
+        legendRight - shareWidth - categoryX - inset,
+        labelSize,
+      ),
+      {
+        x: categoryX,
+        y,
+        'text-anchor': 'start',
+        'font-size': labelSize,
+        'data-chart-pie-label': index,
+        ...(grouped ? { 'data-chart-pie-grouped': '' } : {}),
+      },
+    );
+    text(shares[index], {
+      x: legendRight,
+      y,
+      'text-anchor': 'end',
+      'font-size': labelSize,
+      'data-chart-pie-share': index,
+    });
+  }
+}
+
 export function appendDataChart(
   group: SVGElement,
   chart: DataChart,
@@ -89,9 +224,16 @@ export function appendDataChart(
 ) {
   const { type, palette, title, categoryLabel, valueLabel, points, rowCount } =
     chart;
-  const hasValues = points.some(({ value }) => value !== null);
   const number = numberFormatters(locale);
-  const noValues = translate(locale, 'data.chartNoValues');
+  const pieStatus = type === 'pie' ? (chart.pie?.status ?? 'empty') : null;
+  const noValues =
+    pieStatus === 'negative'
+      ? translate(locale, 'data.chartPieNegative')
+      : pieStatus === 'empty'
+        ? translate(locale, 'data.chartPieEmpty')
+        : pieStatus === 'ready' || points.some(({ value }) => value !== null)
+          ? ''
+          : translate(locale, 'data.chartNoValues');
   const preview =
     rowCount > points.length
       ? translate(locale, 'data.chartPreviewRows', {
@@ -100,12 +242,7 @@ export function appendDataChart(
         })
       : '';
   const description = svg('desc');
-  description.textContent = [
-    categoryLabel,
-    valueLabel,
-    hasValues ? '' : noValues,
-    preview,
-  ]
+  description.textContent = [categoryLabel, valueLabel, noValues, preview]
     .filter(Boolean)
     .join('. ');
   const content = svg('svg', {
@@ -161,6 +298,50 @@ export function appendDataChart(
           : 'middle',
   });
 
+  const labelSize = Math.min(12, width / 30, height / 20);
+  const right = width - padding;
+  const top = padding + titleSize + labelSize * 1.25;
+  const previewText = (left: number) => {
+    if (preview) {
+      text(fittedLabel(preview, right - left, labelSize), {
+        x: right,
+        y: height - padding - labelSize / 2,
+        'text-anchor': 'end',
+        'font-size': labelSize,
+        'data-chart-preview': '',
+      });
+    }
+  };
+  if (pieStatus) {
+    const bottom = height - padding - (preview ? labelSize * 1.65 : 0);
+    if (labelSize < 5 || bottom - top < 12) return;
+    previewText(padding);
+    if (noValues) {
+      text(fittedLabel(noValues, right - padding, labelSize), {
+        x: width / 2,
+        y: (top + bottom) / 2,
+        'font-size': labelSize,
+        'data-chart-pie-status': pieStatus,
+      });
+    } else {
+      appendPieChart(
+        content,
+        chart,
+        {
+          x: padding,
+          y: top,
+          width: right - padding,
+          height: bottom - top,
+        },
+        labelSize,
+        locale,
+        text,
+        svg,
+      );
+    }
+    return;
+  }
+
   const scale = chartScale(points);
   const tickLabels = scale.ticks.map((value) => {
     const abs = Math.abs(value);
@@ -168,12 +349,9 @@ export function appendDataChart(
       abs >= 1e7 || (abs !== 0 && abs < 1e-4) ? number.scientific : number.axis
     ).format(value);
   });
-  const labelSize = Math.min(12, width / 30, height / 20);
   const tickWidth =
     Math.max(...tickLabels.map((label) => label.length)) * labelSize * 0.64;
   const left = padding + labelSize * 1.8 + tickWidth;
-  const right = width - padding;
-  const top = padding + titleSize + labelSize * 1.25;
   const bottom = height - padding - labelSize * (preview ? 4.8 : 3.4);
   if (labelSize < 5 || right - left < 12 || bottom - top < 12) return;
 
@@ -229,16 +407,8 @@ export function appendDataChart(
     'font-size': labelSize,
     'data-chart-axis': 'category',
   });
-  if (preview) {
-    text(fittedLabel(preview, plotWidth, labelSize), {
-      x: right,
-      y: height - padding - labelSize / 2,
-      'text-anchor': 'end',
-      'font-size': labelSize,
-      'data-chart-preview': '',
-    });
-  }
-  if (!hasValues) {
+  previewText(left);
+  if (noValues) {
     text(fittedLabel(noValues, plotWidth, labelSize), {
       x: (left + right) / 2,
       y: middleY,
@@ -253,10 +423,18 @@ export function appendDataChart(
   const colors = CHART_PALETTES[palette];
   const barWidth = Math.min(slot * 0.72, 46);
   const linePath: string[] = [];
+  const areaPath: string[] = [];
   const dots: SVGElement[] = [];
   let connects = false;
+  let runEnd: number | null = null;
+  const closeAreaRun = () => {
+    if (runEnd === null) return;
+    areaPath.push(`L ${runEnd} ${zero} Z`);
+    runEnd = null;
+  };
   for (const [index, { value }] of points.entries()) {
     if (value === null) {
+      closeAreaRun();
       connects = false;
       continue;
     }
@@ -275,6 +453,11 @@ export function appendDataChart(
       );
       continue;
     }
+    if (type === 'area') {
+      if (!connects) areaPath.push(`M ${px} ${zero}`);
+      areaPath.push(`L ${px} ${py}`);
+      runEnd = px;
+    }
     linePath.push(`${connects ? 'L' : 'M'} ${px} ${py}`);
     connects = true;
     dots.push(
@@ -284,6 +467,17 @@ export function appendDataChart(
         r: Math.min(2.8, Math.max(1, slot * 0.24)),
         fill: colors[0],
         'data-chart-point': index,
+      }),
+    );
+  }
+  closeAreaRun();
+  if (areaPath.length) {
+    content.append(
+      svg('path', {
+        d: areaPath.join(' '),
+        fill: colors[0],
+        'fill-opacity': 0.25,
+        'data-chart-area': '',
       }),
     );
   }
